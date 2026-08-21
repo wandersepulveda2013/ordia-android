@@ -7,6 +7,15 @@
 - **Archivos**: `SearchEngine.kt`, `AssistantEngine.kt`, `SearchEngineTest.kt` (+5), `AssistantEngineTest.kt` (+4, c.797 etiqueta); `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK). La rama sí en JVM.
 - **Próxima prioridad**: de los 11 GAP restantes en `tools/probe/AssistantHonestRouteProbe.kt`: (i) «cuanta carga tengo hoy»/«tengo muchas tareas» → `dayLoadAnswer` vocab; (ii) «que tiempo tengo»/«tiempos libres hoy» ambigua; (iii) «que tarea es mas larga» (most-deferrable); (iv) «cuales son mis tareas» paridad OPEN_SEARCH payload «tareas»; (v) «que mes pasado hice» recap mes. Sonda nueva para vencidas-importantes / horario libre (P0→P1 de la distribución).
+## Ciclo c.798 (parte 2, segundo commit del run) — 2026-08-21 (UTC) — fix(assistant): familias carga + tiempo-libre interrogativas rutean a `dayLoadAnswer` — sonda persistida 11→5 GAP
+
+- **HEAD inicial**: `4a381d8` (c.798 what-now). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
+- **Problema (P2 routing honesto, residuo de la sonda persistida c.797/c.798)**: seis formas cotidianas caían al menú genérico «Puedo organizar tu día…» — mentira por omisión pese a que Ordía ya calcula el veredicto del día (SummaryEngine.dayLoad, fuente única con la tarjeta): «¿cuánta carga tengo hoy?», «tengo muchas tareas», «¿cuánto tiempo me falta?» (hermano de «¿cuánto tiempo me queda?»), «¿qué tiempo tengo?», «tiempos libres hoy», «¿qué horario tengo libre?».
+- **Solución (cambio mínimo)**: vocabulario `isDayLoadQuery` += `"cuanta carga"`, `"tengo muchas tareas"`, `"cuanto tiempo me falta"`, `"que tiempo tengo"`, `"tiempos libres"`, `"horario tengo libre"` → `dayLoadAnswer` (veredicto + posponible; nunca menú). Determinista, cero random, cero IA fingida, cero botón nuevo.
+- **TDD (RED→GREEN)**: RED — +6 tests, EXACTAMENTE 6 fallaron; GREEN `OK (4949 tests: 4943 base + 6)`, 0 failures; smoke 25/25 OK. Sonda POST: 11→5 GAP (6 cerrados, 0 regresión).
+- **Archivos**: `AssistantEngine.kt` (vocabulario dayLoad); `AssistantEngineTest.kt` (+6 rutas); `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad**: 5 GAP restantes — recuento «cuantas tareas/cuantas pendientes» (guarda «exige hoy» deliberada → BLOCKED, decisión humana), listado «cuales son mis tareas» (paridad OPEN_SEARCH «tareas»), duración «qué tarea es más larga»/«cuánto dura», y recap «qué mes pasado hice».
 
 ## Ciclo c.798 — 2026-08-21 (UTC) — fix(assistant): variantes de What-Now «¿qué debo hacer?»/«¿qué tarea tengo primero?» rutean con guarda de alcance — sonda persistida 13→11 GAP
 

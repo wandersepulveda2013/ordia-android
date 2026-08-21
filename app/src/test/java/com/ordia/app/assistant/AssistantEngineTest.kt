@@ -2801,6 +2801,40 @@ class AssistantEngineTest {
         assertEquals("relaciona exactamente la tarea sugerida", listOf(1L), answer.relatedTaskIds)
     }
 
+    // c.798 (familia carga/tiempo-libre interrogativo): nunca deben caer al
+    // menú genérico ("Puedo organizar tu día…") — el veredicto del día es el
+    // mismo motor de la tarjeta (SummaryEngine). Consultas cortas (6 formas).
+    @Test fun dayLoad_cuantaCargaHoy() {
+        val answer = AssistantEngine.answer("¿cuánta carga tengo hoy?", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+    @Test fun dayLoad_tengoMuchasTareas() {
+        val answer = AssistantEngine.answer("tengo muchas tareas", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+    @Test fun dayLoad_cuantoTiempoMeFalta() {
+        val answer = AssistantEngine.answer("¿cuánto tiempo me falta?", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+    @Test fun dayLoad_queTiempoTengo() {
+        val answer = AssistantEngine.answer("¿qué tiempo tengo?", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+    @Test fun dayLoad_tiemposLibresHoy() {
+        val answer = AssistantEngine.answer("tiempos libres hoy", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+    @Test fun dayLoad_queHorarioLibre() {
+        val answer = AssistantEngine.answer("¿qué horario tengo libre?", emptyList(), emptyList(), emptyList())
+        assertFalse("mentira por omisión: ${answer.text}", answer.text.startsWith("Puedo organizar tu día"))
+    }
+
+
     @Test fun dayLoad_light_saysDayIsClear() {
         // Sin trabajo que compita por la jornada → LIGHT.
         val now = dayAt(dayToday, 9)

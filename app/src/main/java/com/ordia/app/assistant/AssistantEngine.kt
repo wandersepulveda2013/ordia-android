@@ -1974,6 +1974,14 @@ object AssistantEngine {
             "cuanto tiempo me queda" in query || "cuanto tiempo libre" in query ||
             "cuanto me queda" in query || "tengo tiempo libre" in query ||
             "tengo mucho que hacer" in query ||
+            // c.798 (carga): «cuánta carga tengo» / «tengo muchas tareas» /
+            // «cuánto tiempo me falta» (hermano de «cuánto tiempo me queda»).
+            "cuanta carga" in query || "tengo muchas tareas" in query ||
+            "cuanto tiempo me falta" in query ||
+            // c.798 (tiempo libre interrogativo): «qué tiempo tengo» / «tiempos
+            // libres hoy» / «qué horario tengo libre».
+            "que tiempo tengo" in query || "tiempos libres" in query ||
+            "horario tengo libre" in query ||
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
             "estoy saturad" in query ||
