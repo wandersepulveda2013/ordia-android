@@ -8,7 +8,7 @@
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5261 = 5247 + 14)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25 OK. Sonda de cobertura POST: 13 NULLs de 43 — TODOS guards/controles intencionados; CERO NULLs de captura (la orden inversa la resolvió el hermano c.832). Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (3 puntos lockstep + comentarios c.833), `ContextIntentEngineEcharGasolinaFloorTest.kt` (+14 tests + doc c.833), `tools/probe/CaptureCoverageProbe.kt` (2 formas REGRESIÓN c.833), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: tras este append; HEAD final: pendiente.
+- **Commits**: `66c2833` (fix c.833 + docs tras colisión). HEAD final: `66c2833`.
 - **Próxima prioridad**: la sonda c.822 queda con CERO NULLs de captura → nueva auditoría de descubrimiento (sonda nueva) antes de seguir con pisos; residual P3 títulos con envoltura residual («Habría que…»/«Que…»); residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ---
