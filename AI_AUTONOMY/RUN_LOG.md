@@ -17177,4 +17177,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` sobre `a7fe0bb` + mis 2 guards → **OK (5317 = 5315 hermano + 2)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `app/src/test/java/com/ordia/app/context/ContextIntentEngineMedirmeTensionFloorTest.kt` (+2 guards), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sonda efímera `/tmp/probe839/` fuera del repo (convención c.829…c.835).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Commits**: `e6cf769` (test c.841 + docs). **HEAD final**: `e6cf769`.
 - **Próxima prioridad**: «cortarme/cortar el pelo» (familia doble — sonda dedicada PRE, evaluar kind) o «medir la presión» (diagonal no reflexiva — bivalencia neumáticos); «me mido la tensión» (perífrasis — con guard de contrato c.841); residual P2 c.818; «debiera/debiese…»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar (CINCO colisiones recientes con el hermano remoto).
