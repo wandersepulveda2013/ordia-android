@@ -1,3 +1,13 @@
+## Ciclo c.798 (parte 3, quinto commit del run — integración con hermano remoto `979461e` que cerró la sonda a 0 GAP) — 2026-08-21 (UTC) — fix(assistant): formas «ver tareas»/«ver las tareas» hermanas del listado «tareas»
+
+- **HEAD inicial**: `3d454ae` (c.798 parte 2). Durante el trabajo el remoto avanzó (c.799 calificador «activo») y luego `979461e` (c.800 del hermano: recuento/duración/recomendación/posponer/hueco/recap + formas «tareas»/«cuales son mis tareas» — sonda POST 0 GAP). Integré con stash → ff-only → pop, UN solo conflicto en `ENTITY_LISTING_FORMS` resuelto por unión (sin force, sin reset --hard, sin tocar `main`).
+- **Problema (P2 paridad/IA honesta, colisión con el hermano remoto)**: en paralelo con el hermano que cerraba los 13 GAPs, mi añadido era la familia «tareas» en `ENTITY_LISTING_*` — el hermano ya cubrió las formas base; lo que queda aportado de este run es (a) las formas «ver tareas»/«ver las tareas» (hermanas de «ver hábitos») y (b) la guarda de recuento «cuantas tareas tengo» NO rutea a listado (el hermano la rutea a su respuesta de recuento como acción distinta de OPEN_SEARCH).
+- **Solución (cambio mínimo)**: `ENTITY_LISTING_FORMS` += «ver tareas»/«ver las tareas» → payload «tareas`. Determinista, cero random, cero IA fingida, cero botón nuevo.
+- **TDD (RED→GREEN, integrada)**: pre-integración RED — 6 tests nuevos, EXACTAMENTE 5 fallos (rutas; guarda ya verde); post-integración GREEN — `OK (4980: 4973 base integrada + 7)`, 0 failures; smoke 25/25 OK.
+- **Archivos**: `AssistantEngine.kt` (FORMS «ver tareas» ×2); `AssistantEngineTest.kt` (+7: 5 rutas + guarda recuento + ver-formas); `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: sonda persistida cerrada a 0 GAP (hermano). Nuevo descubrimiento P1/P2 (sondas nuevas): vencidas importantes, parser natural de tiempos complejos, y capacidad de agrupación/relaciones (menor visible, mayor utilidad).
+
 ## Ciclo c.799 — 2026-08-21 (UTC) — fix(search/assistant): calificador «activo(s)/activa(s)» sobre listados de entidades (integral del scratch del ciclo)
 
 - **HEAD inicial**: `4a381d8` (c.798 entrante; mi work-bucket recibió fetch tras commit, no STALE_RUN destructivo, sin force, sin reset --hard, sin tocar `main`). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).

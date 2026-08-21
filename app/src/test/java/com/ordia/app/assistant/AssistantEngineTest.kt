@@ -5218,6 +5218,59 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
+    // --- c.798 parte 3: paridad de listado de TAREAS (hermano de notas
+    // c.793 y de hábitos/rutinas/proyectos c.795/c.797) — el buscador ya lista
+    // `wantsTasks` (TAREA_INTENT_TOKENS), pero el map ENTITY_LISTING_FORMS y
+    // el token-parity de entidades excluían «tarea»/«tareas», así formas
+    // cotidianas caían al menú genérico — mentira por omisión cruzada.
+    @Test fun tasksListing_cualesSonMisTareas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("cuales son mis tareas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun tasksListing_queTareasTengo_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("que tareas tengo", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun tasksListing_todasMisTareas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("todas mis tareas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun tasksListing_bareTareas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("tareas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun tasksListing_activasQualificador_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("tareas activas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun tasksListing_verTareas_routesToOpenSearch() {
+        // Integración del ciclo (colisión con el hermano remoto que cerró la
+        // sonda): las formas «ver tareas»/«ver las tareas» rutean a la misma
+        // superficie de listado, aunque la sonda fixture no la cubra.
+        for (form in listOf("ver tareas", "ver las tareas")) {
+            val answer = AssistantEngine.answer(form, emptyList(), emptyList(), emptyList())
+            assertEquals(form, AssistantAction.OPEN_SEARCH, answer.action)
+            assertEquals(form, "tareas", answer.actionPayload)
+        }
+    }
+
+    @Test fun tasksListing_guard_cuantasTareasSinHoy_noRutea() {
+        // «cuántas tareas tengo» (sin «hoy») exige decisión humana (guarda
+        // deliberada): el recuento sin alcance NO se camufla como listado.
+        val answer = AssistantEngine.answer("cuantas tareas tengo", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
     @Test fun contentQualified_guard_flaggedStaysFlagged() {
         val answer = AssistantEngine.answer("tareas marcadas", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)

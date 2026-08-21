@@ -1060,9 +1060,10 @@ object AssistantEngine {
         "cuales son los proyectos" to "proyectos",
         // c.798 (sonda AssistantHonestRouteProbe): la familia tareas seguía
         // sin formas de listing → «¿cuáles son mis tareas?» caía al menú
-        // genérico. Payload «tareas» (casa con TASK_TERMS del buscador),
-        // paridad con hábitos/rutinas/proyectos.
+        // genérico. Payload «tareas» (paridad con wantsTasks del buscador).
+        // c.798 p.3 (este run): formas «ver …» hermanas de las ya enrutadas.
         "tareas" to "tareas", "mis tareas" to "tareas", "las tareas" to "tareas",
+        "ver tareas" to "tareas", "ver las tareas" to "tareas",
         "todas las tareas" to "tareas", "todas mis tareas" to "tareas",
         "tarea" to "tareas", "la tarea" to "tareas", "mi tarea" to "tareas",
         "que tareas tengo" to "tareas", "cuales son mis tareas" to "tareas",
@@ -1083,7 +1084,8 @@ object AssistantEngine {
     private val ENTITY_LISTING_TOKENS: Map<String, String> = mapOf(
         "habito" to "habitos", "habitos" to "habitos",
         "rutina" to "rutinas", "rutinas" to "rutinas",
-        "proyecto" to "proyectos", "proyectos" to "proyectos"
+        "proyecto" to "proyectos", "proyectos" to "proyectos",
+        "tarea" to "tareas", "tareas" to "tareas"
     )
     private fun entityListingPayload(query: String): String? {
         ENTITY_LISTING_FORMS[query.trim()]?.let { return it }
