@@ -67,6 +67,9 @@ object AssistantEngine {
         // para que el asistente no mienta por omisión en "¿qué olvidé?"/"vencidas".
         val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now)
         val priorityIntent = priorityIntent(query)
+        // c.807: interrogativa con contenido cualificado → payload afirmativo
+        // equivalente (ver rama de contenido cualificado al final del when).
+        val contentQualifiedInterrogativePayload = contentQualifiedInterrogativePayload(clean)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -808,8 +811,21 @@ object AssistantEngine {
             // [isNotesListingQuery] (c.793) mucho antes con payload canónico;
             // pinned (c.787) y creación también reclaman antes; «notas de»
             // sin calificador no rutea (guard).
-            isContentQualifiedTasksQuery(query) || isContentQualifiedNotesQuery(query) ->
-                AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
+            // c.807 — hermana interrogativa de las dos ramas anteriores:
+            // «qué notas tengo de trabajo» / «qué tareas tengo del proyecto
+            // casa» caían al menú (GAP abierto de la sonda c.803-b) mientras
+            // la afirmativa equivalente ya buscaba. El payload es la frase
+            // afirmativa reconstruida (sin «qué … tengo») sobre `clean`, así
+            // SearchEngine extrae el calificador con su misma lógica y los
+            // acentos originales se conservan. El alcance temporal («qué
+            // tareas tengo de hoy») lo reclama isAgendaQuery mucho antes.
+            isContentQualifiedTasksQuery(query) || isContentQualifiedNotesQuery(query) ||
+                contentQualifiedInterrogativePayload != null ->
+                AssistantAnswer(
+                    "Abriré la búsqueda con esa consulta.",
+                    AssistantAction.OPEN_SEARCH,
+                    contentQualifiedInterrogativePayload ?: clean
+                )
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -987,6 +1003,35 @@ object AssistantEngine {
      */
     private val NOTE_SUBJECTS = setOf("nota", "notas")
     private val NOTE_LEAD_ARTICLES = setOf("las", "mis")
+
+    /**
+     * Interrogativa con contenido cualificado (c.807): «qué notas tengo de
+     * trabajo», «qué tareas tengo del proyecto casa», «qué pendientes tengo de
+     * la uni». La afirmativa equivalente ya rutea por [isContentQualifiedNotesQuery]/
+     * [isContentQualifiedTasksQuery]; la interrogativa caía al menú (GAP
+     * documentado por la sonda c.803-b). Se reconstruye la frase afirmativa
+     * (sujeto + conector + calificador, sin «qué … tengo») SOBRE el texto
+     * original para conservar acentos en el payload. Exige calificador no
+     * vacío tras el conector; la forma desnuda «qué notas tengo» la reclama
+     * antes el listado simple (c.803-c) y el alcance temporal («de hoy») lo
+     * reclama isAgendaQuery mucho antes en el despacho.
+     */
+    private val CONTENT_QUALIFIED_INTERROGATIVE_PATTERN =
+        Regex("""(?i)^¿?qu[eé]\s+(notas?|tareas?|pendientes?)\s+tengo\s+((?:de|del)(?:\s+(?:la|las|los|el))?\s+\S.*)$""")
+
+    private fun contentQualifiedInterrogativePayload(clean: String): String? {
+        val match = CONTENT_QUALIFIED_INTERROGATIVE_PATTERN.matchEntire(clean.trim().trimEnd('?', '¿', ' ')) ?: return null
+        val subject = match.groupValues[1]
+        val qualifier = match.groupValues[2].trim()
+        if (qualifier.isEmpty()) return null
+        val payload = "$subject $qualifier"
+        // Alcance temporal («qué tareas tengo de hoy»): la afirmativa
+        // equivalente la reclama isAgendaQuery antes que la rama de contenido
+        // (doctrina c.792), pero la interrogativa NO — el guard se aplica aquí
+        // sobre el payload reconstruido para no secuestrarla como calificador.
+        if (isAgendaQuery(payload.foldForSearch())) return null
+        return payload
+    }
 
     private fun isContentQualifiedNotesQuery(query: String): Boolean {
         val words = query.split(Regex("\\s+"))

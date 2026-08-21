@@ -5381,6 +5381,46 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
+    // c.807 — interrogativa con contenido cualificado («qué notas tengo de
+    // trabajo» / «qué tareas tengo del proyecto casa»): la rama afirmativa
+    // «notas de casa» (c.794) y «tareas de matemáticas» (c.792) ya rutea a la
+    // búsqueda, pero la forma interrogativa cotidiana caía al menú genérico
+    // (GAP abierto documentado por la sonda c.803-b). Misma ruta honesta
+    // (OPEN_SEARCH); el payload es la frase afirmativa equivalente para que
+    // SearchEngine extraiga el calificador exactamente igual.
+    @Test fun contentQualifiedInterrogative_queNotasTengoDeTema_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("¿qué notas tengo de trabajo?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas de trabajo", answer.actionPayload)
+    }
+
+    @Test fun contentQualifiedInterrogative_queTareasTengoDelProyecto_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("¿qué tareas tengo del proyecto casa?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas del proyecto casa", answer.actionPayload)
+    }
+
+    @Test fun contentQualifiedInterrogative_quePendientesTengoDeLaUni_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("qué pendientes tengo de la uni", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("pendientes de la uni", answer.actionPayload)
+    }
+
+    @Test fun contentQualifiedInterrogative_guard_sinCalificadorSigueListadoSimple() {
+        // «qué notas tengo» (sin calificador) es el listado simple c.803-c,
+        // NO contenido cualificado: no debe cambiar de ruta ni payload.
+        val answer = AssistantEngine.answer("qué notas tengo", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertNotEquals("notas de", answer.actionPayload)
+    }
+
+    @Test fun contentQualifiedInterrogative_guard_temporalStaysAgenda() {
+        // «qué tareas tengo de hoy»: alcance temporal, no calificador de
+        // contenido. isAgendaQuery se evalúa mucho antes en el despacho.
+        val answer = AssistantEngine.answer("qué tareas tengo de hoy", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
     // --- c.797: interrogativo de entidades (proyectos/rutinas/hábitos) ---
     // El map ENTITY_LISTING_FORMS sólo cubría formas imperativas/del artículo
     // ("mis proyectos", "los proyectos"...). Las interrociones cotidianas
