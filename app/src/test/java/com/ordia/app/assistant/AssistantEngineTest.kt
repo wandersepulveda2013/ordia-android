@@ -3075,6 +3075,23 @@ class AssistantEngineTest {
             answer.text.contains("Puedo organizar"))
     }
 
+    // ---- c.814 (sonda efímera residual c.813): «de que va mi semana» — la
+    // variante «de que va» de «como va mi semana» (c.803-b) caía al menú pese
+    // a que la hermana ya rutea a la agenda semanal. La guarda «semana»
+    // permanece: «de que va el proyecto» sigue al menú.
+
+    @Test fun weekOverview_recognizesDeQueVaMiSemana() {
+        val answer = AssistantEngine.answer("de que va mi semana", emptyList(), emptyList(), emptyList())
+        assertTrue("'de que va mi semana' rutea a agenda de la semana, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun weekOverview_guardDeQueVaSinSemana_staysMenu() {
+        val answer = AssistantEngine.answer("de que va el proyecto", emptyList(), emptyList(), emptyList())
+        assertTrue("'de que va el proyecto' (sin semana) NO rutea a agenda: ${answer.text}",
+            answer.text.contains("Puedo organizar"))
+    }
+
     // ---- c.803-c (sonda DiscoveryRound): «qué notas tengo» — la forma
     // INTERROGATIVA de pedir las notas — caía al menú pese a que la forma
     // sustantiva «mis notas» ruteaba a búsqueda (c.793) y la hermana «qué

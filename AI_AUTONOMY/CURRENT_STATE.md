@@ -1,3 +1,15 @@
+## Ciclo c.814 — 2026-08-21 (UTC) — feat(assistant): variante «de que va mi semana» rutea a la agenda semanal — cierra el residuo semanal de c.812/c.813
+
+- **HEAD inicial del segmento**: `e459c6c` (c.813 propio pusheado en este run, fetch pre-commit limpio). Suite entrante: OK (5048). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Problema (residual P2 de la sonda efímera)**: la variante «de que va mi semana» caía al menú genérico pese a que su hermana «como va mi semana» (c.803-b) ya rutea a la agenda semanal — gap de compat asincrónica documentado en c.813.
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.kt` — `isAgendaQuery` += `("de que va" && "semana")` simétrica a «como va»/«resumen». La guarda exige «semana» igualmente: «de que va el proyecto» sigue al menú. Cero pantalla nueva, cero wiring, cero IA fingida.
+- **TDD**: RED exacto — +2 tests nuevos (1 ruta + 1 guard), EXACTAMENTE 1 falló como se predijo (guard verde desde RED) → **GREEN OK (5050 = 5048 + 2)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda efímera POST: «de que va mi semana» [ok]. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+2, insertados tras el bloque c.803-b), `AI_AUTONOMY/*`.
+- **Residuos restantes (≈1 píldora cada uno)**: «cosas que tengo pendientes» (paraphrase pendientes/what-now), «cuantas rutinas tengo» (recuento — la ruta de rutinas ya existe), «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance antes de implementar). Ninguno necesita pantalla nueva.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: «cuantas rutinas tengo» (recuento honesto, hermana de «cuantas tareas tengo») o «cosas que tengo pendientes»; o agendas históricas abiertas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`).
+
+
 ## Ciclo c.813 — 2026-08-21 (UTC) — feat(assistant): forma cotidiana «quiero ver todas mis tareas» (deseo+verbo) rutea al listado de familia — cierra el GAP «quiero ver …» residual de la sonda c.812
 
 - **HEAD inicial del segmento**: `bd4863c` (c.812 propio, pull --ff-only limpio). Suite entrante: OK (5045). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

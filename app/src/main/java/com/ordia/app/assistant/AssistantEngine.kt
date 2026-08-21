@@ -1701,7 +1701,11 @@ object AssistantEngine {
                 // semana?» / «resumen de la semana» — hermano de «que viene esta
                 // semana». La guarda exige «semana»: «¿cómo va el proyecto?» o
                 // «resumen del libro» siguen al menú (sin scope honesto).
+                // c.814: variante «de que va» (sonda efímera c.813 residual) —
+                // la guarda «semana» también la protege («de que va el
+                // proyecto» sigue al menú).
                 ("como va" in query && "semana" in query) ||
+                ("de que va" in query && "semana" in query) ||
                 ("resumen" in query && "semana" in query) ||
                 BARE_TEMPORAL_TASK_CONNECTORS.any { it in query })) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
