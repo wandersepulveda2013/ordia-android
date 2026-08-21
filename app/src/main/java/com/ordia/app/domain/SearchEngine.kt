@@ -92,8 +92,16 @@ object SearchEngine {
         val wantsHabits = HABIT_ENTITY_TOKENS.any { it in words }
         val wantsRoutines = ROUTINE_ENTITY_TOKENS.any { it in words }
         val wantsProjects = PROJECT_ENTITY_TOKENS.any { it in words }
+        // "recordatorio(s)" (tareas con reminderAt) — análogo de "recurrentes"
+        // para el atributo de aviso programado (c.808). El recordatorio es la
+        // promesa de que la app avisará; sin este filtro la pregunta «¿qué me
+        // vas a recordar?» no podía responderse desde la búsqueda universal.
+        // Se excluyen las completadas: al completar se cancela la notificación,
+        // así que listarla como recordatorio sería mentira.
+        val wantsReminders = REMINDER_INTENT_TOKENS.any { it in words }
+        val reminderTerms = if (wantsReminders) REMINDER_INTENT_TOKENS.filter { it in words }.toSet() else emptySet()
         val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations ||
-            wantsHabits || wantsRoutines || wantsProjects
+            wantsHabits || wantsRoutines || wantsProjects || wantsReminders
         // "alta prioridad"/"prioridad alta" → exactamente HIGH; "baja
         // prioridad"/"prioridad baja" → exactamente LOW. Simétrico a
         // "importante" (HIGH+URGENT) y "urgente" (URGENT): permite recuperar por
@@ -296,7 +304,7 @@ object SearchEngine {
                 val ph = projectHaystack(task.projectId)
                 val pa = parentHaystack(task)
                 val th = tagHaystack(task.id)
-                !task.archived && task.status != TaskStatus.CANCELLED && (!typed || wantsTasks) &&
+                !task.archived && task.status != TaskStatus.CANCELLED && (!typed || wantsTasks || wantsReminders) &&
                     (!(VENCIDA_INTENT_TOKENS.any { it in words }) || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
                     (!normalized.contains("urgente") || task.priority == TaskPriority.URGENT) &&
@@ -306,8 +314,9 @@ object SearchEngine {
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
+                    (!wantsReminders || (task.reminderAt != null && !task.completed)) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget, weekendTarget = weekendTarget, dayBand = dayBand)) &&
-                    (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
+                    (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms + reminderTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE, TaskRules.isMissedStart(it, now)))
             }
@@ -527,6 +536,10 @@ object SearchEngine {
     private val HABIT_ENTITY_TOKENS = setOf("habito", "habitos")
     private val ROUTINE_ENTITY_TOKENS = setOf("rutina", "rutinas")
     private val PROJECT_ENTITY_TOKENS = setOf("proyecto", "proyectos")
+    // Intención de recordatorios (c.808), por palabra exacta como el resto de
+    // intents: libera el listado («typed») sin atrapar por subcadena. El
+    // atributo filtrado es TaskEntity.reminderAt (aviso programado real).
+    private val REMINDER_INTENT_TOKENS = setOf("recordatorio", "recordatorios")
 
     // --- Búsqueda por fecha (intención semántica) ---
 

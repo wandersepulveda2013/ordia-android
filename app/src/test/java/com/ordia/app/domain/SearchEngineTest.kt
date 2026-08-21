@@ -607,6 +607,58 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- Recuperación de recordatorios programados («recordatorios», c.808) ---
+    // El recordatorio (TaskEntity.reminderAt) es la promesa de que la app
+    // avisará; la pregunta «¿qué me vas a recordar?» debe poder responderse
+    // desde la búsqueda universal, no sólo desde el asistente. Sin este
+    // filtro, una tarea «Cita médica» con aviso programado era irrecuperable
+    // salvo escribiendo su título — el dato existe y sólo faltaba la ruta.
+    @Test fun recordatorios_recoversTasksWithReminderAtWithoutTheWordInContent() {
+        val cita = TaskEntity(id = 1, title = "Cita médica", dueAt = 2_000_000L, reminderAt = 1_700_000L)
+        val pan = TaskEntity(id = 2, title = "Comprar pan")
+        val ids = SearchEngine.search("recordatorios", listOf(cita, pan), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun recordatorio_singularAlsoRecovers() {
+        val cita = TaskEntity(id = 1, title = "Cita médica", reminderAt = 1_700_000L)
+        val ids = SearchEngine.search("recordatorio", listOf(cita), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun recordatorios_interrogativeFiller_recoversReminders() {
+        // «cuáles son mis recordatorios»: la muletilla interrogativa es stop
+        // word (c.783); el filtro de atributo debe seguir aplicando.
+        val cita = TaskEntity(id = 1, title = "Cita médica", reminderAt = 1_700_000L)
+        val pan = TaskEntity(id = 2, title = "Comprar pan")
+        val ids = SearchEngine.search("cuales son mis recordatorios", listOf(cita, pan), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun recordatorios_excludesCompletedTasksWhoseReminderWillNotFire() {
+        // Una tarea completada no volverá a avisar (al completar se cancela la
+        // notificación): listarla como «recordatorio» sería mentira.
+        val hecha = TaskEntity(id = 1, title = "Pagar agua", reminderAt = 1_700_000L, completed = true)
+        val pendiente = TaskEntity(id = 2, title = "Pagar luz", reminderAt = 1_800_000L)
+        val ids = SearchEngine.search("recordatorios", listOf(hecha, pendiente), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun recordatorios_withContent_recoversRemindersMatchingContent() {
+        // «recordatorios luz»: la palabra de contenido recorta el listado,
+        // igual que «recurrentes luz» (c.600s) y «marcadas presupuesto».
+        val match = TaskEntity(id = 1, title = "Pago", details = "factura luz", reminderAt = 1_700_000L)
+        val otherReminder = TaskEntity(id = 2, title = "Gimnasio", reminderAt = 1_800_000L)
+        val noReminderMatch = TaskEntity(id = 3, title = "Revisar", details = "medidor luz")
+        val ids = SearchEngine.search("recordatorios luz", listOf(match, otherReminder, noReminderMatch), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun recurrentes_withContent_recoversRecurringMatchingContent() {
         // "recurrentes luz" recupera la tarea recurrente cuyo contenido contiene
         // "luz", pero no otra recurrente ajena ni una no recurrente que sí lo

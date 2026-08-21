@@ -16805,3 +16805,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: nueva ronda de descubrimiento (sonda c.803-b agotada): parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / auditoría de otra superficie. Temporales desnudas siguen BLOCKED-humano.
+
+## Ciclo c.810 — 2026-08-21 (UTC) — feat(search): «recordatorios» recuperable desde la búsqueda universal (paridad con asistente c.808)
+- **HEAD inicial**: `50d7705` → fetch pre-commit reveló hermano remoto `408eff0` (c.808) + `b3fb0cf` (c.809, sonda c.803-b cerrada 0 GAPs). **Colisión gestionada sin destrucción**: stash → pull --ff-only → restaurar SOLO `SearchEngine.kt`/`SearchEngineTest.kt` del stash (archivos que el hermano no tocó) y descartar el WIP duplicado de asistente/sonda. Ni force push, ni reset --hard, ni `main`. Base integrada: `b3fb0cf`. Suite entrante: OK (5036). Env JVM heredado.
+- **Problema**: tras c.808 el asistente responde «recordatorios», pero la búsqueda universal ignoraba el token (vacío) — paridad a medias; un futuro OPEN_SEARCH con ese payload hubiera mentido.
+- **Solución**: `SearchEngine` — `REMINDER_INTENT_TOKENS` + `wantsReminders` (antes de `typed`) + filtro `reminderAt != null && !completed` en la rama de tareas + `reminderTerms` ignorados en `semanticMatches`. Combina con calificadores («recordatorios del doctor») y scope temporal («recordatorios de mañana»). Completadas excluidas (completar cancela el aviso).
+- **Tests**: RED exacto 4 fallos (1 guarda verde) → **GREEN OK (5041 = 5036 + 5)**; smoke 25/25; automation smoke 9/9; sonda discovery end-to-end 0 GAPs de 12. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `SearchEngine.kt`, `SearchEngineTest.kt` (+5), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: nueva ronda de descubrimiento (parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / otra superficie). Opcional P3: acción OPEN_SEARCH «recordatorios» en la respuesta del asistente c.808.
