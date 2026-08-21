@@ -40,6 +40,8 @@ fun main() {
         "encargar el pastel mañana",
         "encargar las flores el viernes",
         // Gestiones ("gestionar" nunca sondeado; candidatos futuros NULL)
+        // c.830: REGRESIÓN — las dos formas de "gestionar" ya tienen piso
+        // (TASK) tras el fix c.830; deben reportar HIT.
         "gestionar el alta en el registro mañana",
         "gestionar la reclamación el lunes",
         "pedir el pastel mañana", // control: 'pedir' es keyword de TASK

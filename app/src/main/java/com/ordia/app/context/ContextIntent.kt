@@ -96,7 +96,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // en español corriente ("maletín" no la contiene: «malet-í» ≠
         // «malet-a»); 0.12 sola queda bajo el umbral: "la maleta está
         // hecha" sigue descartado.
-        "maleta")),
+        "maleta",
+        // c.830: keyword verbo "gestionar" (lockstep con el piso acotado
+        // "gestionar <objeto>", ver ContextIntentEngine.hasStrongTaskImperative;
+        // lección c.751: sin ella una notificación "gestionar el envío" sin
+        // palabra gatillo ni llega al análisis en producción). El sustantivo
+        // "gestión" no la contiene («gestión» ≠ «gestionar»); 0.12 sola queda
+        // bajo el umbral (0.45): "la gestión quedó bien" sigue descartado.
+        "gestionar")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

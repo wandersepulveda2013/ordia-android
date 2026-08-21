@@ -1555,6 +1555,21 @@ object ContextIntentEngine {
             // hermano semántico de "pedir" c.712/"mandar" c.823; no es
             // desplazamiento a destino físico (no ERRAND).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )encargar\s+\w""").containsMatchIn(lower)
+            // c.830: "gestionar <objeto>" ("gestionar la reclamación el
+            // lunes"), forma 1/N de la clase de gestión administrativa
+            // (candidatos del pool de NULLs de
+            // `tools/probe/CaptureCoverageProbe.kt` c.822). Mismo
+            // ancla/guard que c.691…c.825: verbo al inicio o tras acuse o
+            // tras prefijo temporal; `\s+\w` exige objeto; `(?<!no )`
+            // bloquea la negada; el sustantivo "gestión", la 1ª persona
+            // "te gestiono" y el pasado "gestionó" no casan. Kind
+            // decidido: TASK — "gestionar" gobierna el OBJETO (alta/
+            // reclamación/beca) como acción de gestión administrativa,
+            // hermano semántico directo de "tramitar" c.822; keyword
+            // lockstep en TASK (lección c.751: sin ella la notificación
+            // "gestionar el envío" sin palabra gatillo ni llega al
+            // análisis en producción).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )gestionar\s+\w""").containsMatchIn(lower)
             // c.827: "hacer/preparar/meter la maleta" ("hacer la maleta esta
             // noche", "preparar la maleta mañana"), forma 1/N de la familia
             // equipaje de la sonda `tools/probe/CaptureCoverageProbe.kt`
@@ -2348,6 +2363,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchEncargar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )encargar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEncargar != null) return "Encargar ${matchEncargar.groupValues[1]}"
+
+                // "gestionar X" → "Gestionar X" (c.830): mismo criterio
+                // que c.691…c.825 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchGestionar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )gestionar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchGestionar != null) return "Gestionar ${matchGestionar.groupValues[1]}"
 
                 // "pedir X" → "Pedir X" (c.712): mismo criterio
                 // que c.691…c.711 (verbo preservado, acuse/prefijo
