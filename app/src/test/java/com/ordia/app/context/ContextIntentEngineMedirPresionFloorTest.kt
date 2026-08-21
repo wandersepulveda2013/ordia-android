@@ -95,6 +95,21 @@ class ContextIntentEngineMedirPresionFloorTest {
         assertEquals("Medir la presión", i.title)
     }
 
+    // ---- Guards aditivos c.844 (no cubiertos por el hermano c.843) ----
+
+    @Test
+    fun `captura con prefijo temporal hoy`() {
+        // Contrato del ancla temporal DELANTE del verbo (alternativa
+        // `\b(?:$TASK_FLOOR_TEMPORAL)\s+` del piso): el hermano c.843
+        // cubre base/sin tilde/esta noche/acuse/posesivo/semana/sin fecha
+        // pero no el prefijo temporal. Aditivo (precedente c.841).
+        val i = analyze("hoy medir la presión")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertEquals("Medir la presión", i.title)
+        assertNotNull(i.dueAt)
+    }
+
     // ---- Envolvente (el candado sigue gobernando, regresión de ruta) ----
 
     @Test
