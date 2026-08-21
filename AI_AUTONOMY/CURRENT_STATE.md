@@ -1,3 +1,14 @@
+## Ciclo c.796 — 2026-08-21 (UTC) — fix(assistant): forma sustantiva «búsqueda de <X>» → OPEN_SEARCH con operando despojado (residuo (f) sonda c.793)
+
+- **HEAD inicial**: `0942a53` (c.795 publicado en sesión previa del mismo run). Sin colisión (único remoto con avance).
+- **Problema (P2 residuo (f) de la sonda c.793)**: la sonda persistente `tools/probe/AssistantEntityParityProbe.kt` marcaba «búsqueda de notas» → GAP-menu. Es la forma sustantiva del verbo de búsqueda «busca», y un usuario viendo el menú recibe otra mentira por omisión donde el buscador sí sufría ruta honesta.
+- **Solución (cambio mínimo)**: helper puro `busquedaNounOperand` (`query.startsWith("busqueda de ")` + operando no vacío) → `AssistantAction.OPEN_SEARCH` con el operando despojado (pasar la consulta íntegra envenenaba: «busqueda» quedaría como token de contenido; guarda hermana del guarda «notas de» c.794). Determinista, sin random, cero UI/botón nuevo.
+- **TDD (RED→GREEN)**: RED verificado primero — +3 tests, EXACTAMENTE 2 fallaron (`busquedaDe_notas`, `busquedaDe_contenido`; el guarda `sinOperandosNoRutea` ya pasaba de verde pre-fix). GREEN tras implementación: **OK (4933 tests: 4930 base + 3)**, 0 failures; smoke 25/25.
+- **Sonda POST**: «búsqueda de notas» → `ok→SEARCH`; residuo de la sonda queda reducido a las 15 temporales desnudas (d) — deliberadamente ambiguas (agenda↔recap), necesitan decisión humana de producto (BLOCKED).
+- **AI_AUTONOMY**: CURRENT_STATE c.796 prepend; BACKLOG fila c.796 FIXED; RUN_LOG c.796 prepend.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK). La rama sí en JVM.
+- **Próxima prioridad**: sonda c.793 cerrada salvo temporales desnudas (d) deliberada (BLOCKED por decisión de producto). Nueva ronda de descubrimiento P1/P2 con probes nuevos (retos temporales residuales, sonda-parser, hábitos/rutinas activas sino de familia).
+
 ## Ciclo c.795 — 2026-08-21 (UTC) — fix(search/assistant): listados de familia «hábitos»/«rutinas»/«proyectos» — paridad búsqueda↔asistente en las 3 familias OPEN de la sonda c.793 (menú → OPEN_SEARCH)
 
 - **HEAD inicial**: `370b498` (c.794). Fetch PRE-COMMIT sin avance (no STALE_RUN). Sesión multi-parte: TDD RED verificado en sesión previa (resumen con número c.795 habilitado por fetch final).

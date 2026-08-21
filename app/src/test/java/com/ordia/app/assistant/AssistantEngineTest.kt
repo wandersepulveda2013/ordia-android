@@ -5094,4 +5094,31 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("notas de", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
+
+    // c.796 — residuo (f) de la sonda c.793: la forma sustantiva «búsqueda de
+    // <X>» («búsqueda de notas») caía al menú pese a que su verbo hermano
+    // «busca» ya ruteaba (y el sustantivo, empleado como token de contenido,
+    // envenenaba el payload entero: lo correcto es despojar el prefijo al
+    // rúter, igual que el verbo). Forma sustantiva de la rama explicita.
+    @Test fun busquedaDe_notas_routesWithStrippedPayload() {
+        val answer = AssistantEngine.answer("búsqueda de notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun busquedaDe_contenido_routesWithStrippedPayload() {
+        val answer = AssistantEngine.answer("búsqueda de tareas de matemáticas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        // El payload sale del query ya plegado (`foldForSearch`), igual que
+        // cualquier rama OPEN_SEARCH del despacho; SearchEngine pliega de
+        // nuevo sin coste.
+        assertEquals("tareas de matematicas", answer.actionPayload)
+    }
+
+    @Test fun busquedaDe_guard_sinOperandosNoRutea() {
+        // «búsqueda de» sin operando no rutea (igual que el guarda de arriba):
+        // cae al menú, nunca inventa una búsqueda vacía.
+        val answer = AssistantEngine.answer("búsqueda de", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
 }

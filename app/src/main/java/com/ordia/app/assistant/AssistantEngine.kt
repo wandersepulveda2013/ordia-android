@@ -433,6 +433,15 @@ object AssistantEngine {
                 AssistantAnswer("Abriré la búsqueda con las notas fijadas.", AssistantAction.OPEN_SEARCH, clean)
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
+            // Residuo (f) de la sonda de entidades c.793: forma sustantiva del
+            // verbo de búsqueda («búsqueda de <X>»). Sin esta rama caía al menú
+            // pese a que «busca» ruteaba; y pasar la consulta íntegra envenena
+            // ("busqueda" quedaría como token de contenido), así que el
+            // payload es el operando despojado del prefijo.
+            busquedaNounOperand(query) != null -> {
+                val operand = busquedaNounOperand(query)!!
+                AssistantAnswer("Abriré la búsqueda con ${operand}.", AssistantAction.OPEN_SEARCH, operand)
+            }
             // Sonda de entidades c.793: "mis notas"/"todas las notas" — la forma
             // COTIDIANA de pedir ver las notas — no era "fijadas" (rama de arriba)
             // ni "guardar como nota" (CREATE_NOTE, arriba también), así que caía
@@ -992,6 +1001,16 @@ object AssistantEngine {
         "habitos" to "los hábitos", "rutinas" to "las rutinas", "proyectos" to "los proyectos"
     )
     private fun entityListingPayload(query: String): String? = ENTITY_LISTING_FORMS[query.trim()]
+
+    // Forma sustantiva del verbo de búsqueda (c.796, residuo (f) de la sonda
+    // c.793): «búsqueda de <operando>». Exige el conector «de» y un operando
+    // no vacío; la forma «búsqueda de» sola no rutea (guarda hermana del
+    // guarda «notas de» de c.794). El token se pliega sin acento por
+    // `foldForSearch` en el despacho.
+    private fun busquedaNounOperand(query: String): String? =
+        if (query.startsWith("busqueda de ")) {
+            query.removePrefix("busqueda de ").trim().takeIf { it.isNotEmpty() }
+        } else null
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",
