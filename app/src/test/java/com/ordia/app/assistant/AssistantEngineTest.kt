@@ -5000,6 +5000,67 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.CREATE_NOTE, answer.action)
     }
 
+    // c.795 — sonda de entidades: listados de hábitos/rutinas/proyectos. El
+    // asistente no las recibe (igual que notas, c.793), así que la única ruta
+    // honesta es OPEN_SEARCH; antes, «hábitos»/«mis rutinas»/«proyectos» caían
+    // al menú genérico — mentira por omisión cruzada (sonda c.793 llegó hasta
+    // notas; esta completa la familia listada por el buscador).
+    @Test fun entityListing_habitos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("habitos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("habitos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_misHabitos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis hábitos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("habitos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_elHabitoSingular_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("el hábito", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("habitos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_rutinas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("rutinas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("rutinas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_misRutinas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis rutinas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("rutinas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_proyectos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("proyectos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("proyectos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_misProyectos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis proyectos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("proyectos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_guard_notasSiguenTipadasConNota() {
+        // «mis notas» sigue ruteando al payload «notas» (c.793 intacto).
+        val answer = AssistantEngine.answer("mis notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_guard_contenidoSinFamiliaNoRutea() {
+        // «hábitos de lectura» es contenido-calificado, no listado: sigue al
+        // menú; nunca inventa un payload canónico.
+        val answer = AssistantEngine.answer("habitos de lectura", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
     // c.794 — calificador de contenido sobre la superficie de notas («notas
     // de/del/de la <X>»), hermano de c.792 (tareas): el guard c.793
     // `notesListing_guard_contentQueryDoesNotRoute` se actualiza a bloquear la

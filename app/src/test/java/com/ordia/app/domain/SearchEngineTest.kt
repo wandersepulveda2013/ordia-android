@@ -78,6 +78,108 @@ class SearchEngineTest {
         assertEquals(7L, results.first().id)
     }
 
+    // c.795 — listados de familias de entidad (hábitos/rutinas/proyectos), al igual
+    // que «notas»/«tareas»: el buscador sólo los encontraba por coincidencia de
+    // contenido, así que «hábitos»/«mis hábitos» («mis» es stop word) devolvían
+    // vacío aunque el usuario tuviera decenas — mentira por omisión de la
+    // búsqueda universal. Los términos semánticos los listan todos (igual que el
+    // listing de conversaciones), y el intent tipado los libera del filtro
+    // «typed» igual que «tarea(s)»/«nota(s)»/«compromiso(s)» arriba.
+    @Test fun habitosBaresListanTodosLosHabitos() {
+        val results = SearchEngine.search(
+            "habitos",
+            emptyList(), emptyList(), emptyList(),
+            listOf(
+                HabitEntity(id = 1, title = "Leer 20 minutos"),
+                HabitEntity(id = 2, title = "Correr 5k"),
+                HabitEntity(id = 3, title = "Meditar", archived = true)
+            )
+        )
+        assertEquals(setOf(1L, 2L), results.map { it.id }.toSet())
+        assertEquals(setOf(SearchKind.HABIT), results.map { it.kind }.toSet())
+    }
+
+    @Test fun misHabitosListaLosHabitos() {
+        val results = SearchEngine.search(
+            "mis hábitos",
+            emptyList(), emptyList(), emptyList(),
+            listOf(HabitEntity(id = 1, title = "Leer 20 minutos"))
+        )
+        assertEquals(1, results.size)
+        assertEquals(1L, results.first().id)
+    }
+
+    @Test fun habitosCalificadosFiltranPorContenido() {
+        // «hábitos de lectura» conserva sólo el que coincide con «lectura»; el
+        // familar token «hábito(s)» no exige presencia en el título detalle.
+        val results = SearchEngine.search(
+            "habitos de lectura",
+            emptyList(), emptyList(), emptyList(),
+            listOf(
+                HabitEntity(id = 1, title = "Lectura diaria"),
+                HabitEntity(id = 2, title = "Correr 5k")
+            )
+        )
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun rutinasBaresListanTodasLasRutinas() {
+        val results = SearchEngine.search(
+            "rutinas",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            routines = listOf(
+                RoutineEntity(id = 1, name = "Mañana"),
+                RoutineEntity(id = 2, name = "Noche"),
+                RoutineEntity(id = 3, name = "Deporte", archived = true)
+            )
+        )
+        assertEquals(setOf(1L, 2L), results.map { it.id }.toSet())
+        assertEquals(setOf(SearchKind.ROUTINE), results.map { it.kind }.toSet())
+    }
+
+    @Test fun misRutinasListaLasRutinas() {
+        val results = SearchEngine.search(
+            "mis rutinas",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            routines = listOf(RoutineEntity(id = 1, name = "Mañana"))
+        )
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun proyectosBaresListanLosProyectos() {
+        val results = SearchEngine.search(
+            "proyectos",
+            emptyList(),
+            listOf(
+                ProjectEntity(id = 1, name = "Mudanza"),
+                ProjectEntity(id = 2, name = "Toolisto", archived = true)
+            ),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), results.map { it.id })
+        assertEquals(setOf(SearchKind.PROJECT), results.map { it.kind }.toSet())
+    }
+
+    @Test fun entityListing_guard_substringNoDisparaElIntent() {
+        // El intent se dispara por PALABRA (como wantsTasks/wantsCommitments):
+        // «rutinario»/«proyectare» no son «rutina(s)»/«proyecto(s)», así que la
+        // tarea titulada así sigue apareciendo (no queda excluida por typed).
+        val task = TaskEntity(id = 1, title = "Revisar el rutinario semanal")
+        val results = SearchEngine.search("rutinario", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun entityListing_guard_notasSiguenSinVerHabitos() {
+        // «hábitos» no dispara `wantsNotes`, y las notas siguen su propio filtro.
+        val notes = SearchEngine.search(
+            "habitos",
+            emptyList(), emptyList(),
+            listOf(NoteEntity(id = 1, title = "Ideas")),
+            emptyList()
+        )
+        assertTrue(notes.isEmpty())
+    }
+
     @Test fun noteTypeFilterDoesNotRequireTheWordNotaInContent() {
         // "nota proyecto" debe encontrar una nota sobre "proyecto" aunque la
         // nota no contenga la palabra "nota" (igual que "tarea X" filtra tareas

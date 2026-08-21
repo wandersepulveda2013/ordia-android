@@ -85,7 +85,15 @@ object SearchEngine {
         // contiene esas palabras. Palabra exacta, simetrico al resto de intents.
         val wantsCommitments = "compromiso" in normalized || PENDIENTE_INTENT_TOKENS.any { it in words }
         val wantsAutomations = "automatiz" in normalized || "regla" in normalized
-        val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations
+        // Familias listables (hábitos/rutinas/proyectos), por PALABRA igual que
+        // wantsTasks/wantsCommitments: sin ellas, «hábitos» pelado o «mis
+        // hábitos» («mis» es stop word) se quedaban vacías cuando el título no
+        // contenía la palabra — mentira por omisión de la búsqueda universal.
+        val wantsHabits = HABIT_ENTITY_TOKENS.any { it in words }
+        val wantsRoutines = ROUTINE_ENTITY_TOKENS.any { it in words }
+        val wantsProjects = PROJECT_ENTITY_TOKENS.any { it in words }
+        val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations ||
+            wantsHabits || wantsRoutines || wantsProjects
         // "alta prioridad"/"prioridad alta" → exactamente HIGH; "baja
         // prioridad"/"prioridad baja" → exactamente LOW. Simétrico a
         // "importante" (HIGH+URGENT) y "urgente" (URGENT): permite recuperar por
@@ -293,7 +301,7 @@ object SearchEngine {
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE, TaskRules.isMissedStart(it, now)))
             }
-            projects.filter { !typed && !it.archived && !pureDateScope && matches(it.name, it.description) }.forEach {
+            projects.filter { (!typed || wantsProjects) && !it.archived && !pureDateScope && (matches(it.name, it.description) || semanticMatches(PROJECT_TERMS, it.name, it.description)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
             notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (!wantsPinned || it.pinned) }.filter {
@@ -302,12 +310,12 @@ object SearchEngine {
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90))))
             }
-            habits.filter { !typed && !it.archived && !pureDateScope && matches(it.title, it.details) }.forEach {
+            habits.filter { (!typed || wantsHabits) && !it.archived && !pureDateScope && (matches(it.title, it.details) || semanticMatches(HABIT_TERMS, it.title, it.details)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90))))
             }
-            routines.filter { !typed && !it.archived && !pureDateScope }.filter {
+            routines.filter { (!typed || wantsRoutines) && !it.archived && !pureDateScope }.filter {
                 val sh = stepHaystack(it.id)
-                matches(it.name, it.description, *sh)
+                matches(it.name, it.description, *sh) || semanticMatches(ROUTINE_TERMS, it.name, it.description, *sh)
             }.forEach { r ->
                 // Subtítulo útil aunque la rutina no tenga descripción: los
                 // primeros pasos unidos por " · ", recortados. Reusa datos
@@ -486,9 +494,23 @@ object SearchEngine {
         "tengo", "hay", "cuales", "son", "lo"
     )
     private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important", "urgente")
+    // Términos semánticos por familia de entidad. Sin ellos (hábitos/rutinas/
+    // proyectos), el buscador exigía que el título contuviera literalmente la
+    // palabra de la familia («hábito» en un hábito), así «mis hábitos» caía al
+    // vacío typed mientras NOTE_TERMS ya listaba todas las notas.
     private val NOTE_TERMS = setOf("nota")
     private val MESSAGE_TERMS = setOf("mensaje", "conversacion", "chat")
     private val COMMITMENT_TERMS = setOf("compromiso", "pendient", "sin", "fecha")
+    private val HABIT_TERMS = setOf("habito", "habitos")
+    private val ROUTINE_TERMS = setOf("rutina", "rutinas")
+    private val PROJECT_TERMS = setOf("proyecto", "proyectos")
+
+    // Tokens de intent tipado (palabra exacta) para las familias listables —
+    // simétricos a TAREA/PENDIENTE/VENCIDA_INTENT_TOKENS: libera el listado
+    // («typed») sin atrapar por subcadena («rutinario», «proyectare»).
+    private val HABIT_ENTITY_TOKENS = setOf("habito", "habitos")
+    private val ROUTINE_ENTITY_TOKENS = setOf("rutina", "rutinas")
+    private val PROJECT_ENTITY_TOKENS = setOf("proyecto", "proyectos")
 
     // --- Búsqueda por fecha (intención semántica) ---
 

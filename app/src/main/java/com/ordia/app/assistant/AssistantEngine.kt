@@ -442,6 +442,17 @@ object AssistantEngine {
             // "mis"/"todas"/"las" se hubieran quedado como palabras de contenido).
             isNotesListingQuery(query) ->
                 AssistantAnswer("Abriré la búsqueda con las notas.", AssistantAction.OPEN_SEARCH, "notas")
+            // Sonda de entidades c.795: hábitos/rutinas/proyectos — las familias
+            // restantes que el buscador lista. El asistente tampoco las recibe
+            // (igual que notas, c.793), así que la única ruta honesta sigue
+            // siendo OPEN_SEARCH; antes, «hábitos»/«mis rutinas»/«proyectos»
+            // caían al menú genérico — mentira por omisión cruzada. Payload
+            // canónico (plural): "mis"/"los"/"las" se hubieran quedado como
+            // palabras de contenido en el buscador.
+            entityListingPayload(query) != null -> {
+                val payload = entityListingPayload(query)!!
+                AssistantAnswer("Abriré la búsqueda con ${ENTITY_LISTING_LABELS[payload]}.", AssistantAction.OPEN_SEARCH, payload)
+            }
             // Noveno olvido de la familia "lie-by-omission" / recuperación de
             // compromisos: "¿qué me comprometí?"/"¿qué prometí?" — la forma
             // COTIDIANA de pedir recordar lo prometido en una conversación — no
@@ -955,6 +966,32 @@ object AssistantEngine {
     )
     private fun isNotesListingQuery(query: String): Boolean =
         query.trim() in NOTES_LISTING_FORMS
+
+    // Listados de las familias restantes del buscador (c.795 — hermano de la
+    // sonda c.793 de notas): formas EXPLÍCITAS (no tokens sueltos) para no
+    // secuestrar consultas ajenas: "hábitos de lectura" (contenido) no es pedir
+    // la lista — sigue al menú como antes.
+    private val ENTITY_LISTING_FORMS: Map<String, String> = mapOf(
+        // Hábitos
+        "habitos" to "habitos", "mis habitos" to "habitos", "los habitos" to "habitos",
+        "ver habitos" to "habitos", "ver los habitos" to "habitos",
+        "todos los habitos" to "habitos", "todos mis habitos" to "habitos",
+        "habito" to "habitos", "el habito" to "habitos", "mi habito" to "habitos",
+        // Rutinas
+        "rutinas" to "rutinas", "mis rutinas" to "rutinas", "las rutinas" to "rutinas",
+        "ver rutinas" to "rutinas", "ver las rutinas" to "rutinas",
+        "todas las rutinas" to "rutinas", "todas mis rutinas" to "rutinas",
+        "rutina" to "rutinas", "la rutina" to "rutinas", "mi rutina" to "rutinas",
+        // Proyectos
+        "proyectos" to "proyectos", "mis proyectos" to "proyectos", "los proyectos" to "proyectos",
+        "ver proyectos" to "proyectos", "ver los proyectos" to "proyectos",
+        "todos los proyectos" to "proyectos", "todos mis proyectos" to "proyectos",
+        "proyecto" to "proyectos", "el proyecto" to "proyectos", "mi proyecto" to "proyectos"
+    )
+    private val ENTITY_LISTING_LABELS = mapOf(
+        "habitos" to "los hábitos", "rutinas" to "las rutinas", "proyectos" to "los proyectos"
+    )
+    private fun entityListingPayload(query: String): String? = ENTITY_LISTING_FORMS[query.trim()]
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",
