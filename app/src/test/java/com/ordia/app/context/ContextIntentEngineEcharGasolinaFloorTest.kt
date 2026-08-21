@@ -25,9 +25,10 @@ import org.junit.Test
  * contra TASK (no es gestión abstracta) y SHOPPING (el verbo cotidiano es
  * "echar", no "comprar"). Anti-overreach: `(?<!no )` bloquea la negada,
  * c.649 mantiene "quizá…"→NULL, el declarativo "la gasolina está cara" no
- * casa piso, la 1ª persona pasada "eché" no casa, la orden inversa
- * "gasolina: echar antes del viaje" sigue NULL (documentada). Determinista
- * (regex), sin random, sin IA fingida.
+ * casa piso, la 1ª persona pasada "eché" no casa. La orden inversa
+ * "gasolina: echar antes del viaje" era candidata documentada y se
+ * implementó en c.832 (ver [ContextIntentEngineGasolinaInversaFloorTest]).
+ * Determinista (regex), sin random, sin IA fingida.
  */
 class ContextIntentEngineEcharGasolinaFloorTest {
 
@@ -145,10 +146,15 @@ class ContextIntentEngineEcharGasolinaFloorTest {
     }
 
     @Test
-    fun gasolinaEcharAntesDelViaje_reverseOrderStaysNull() {
-        // Orden inverso ("gasolina: echar antes del viaje") no casa el piso:
-        // sólo la keyword 0.12 suma, bajo el umbral. Candidata documentada.
-        assertNull(analyze("gasolina: echar antes del viaje"))
+    fun gasolinaEcharAntesDelViaje_reverseOrderNowCapturesErrand() {
+        // c.832: la candidata documentada se implementó — la alternativa
+        // inversa de ERRAND_FUEL_FLOOR captura la taquigrafía "tema: acción"
+        // y el título reordena a la forma canónica verbo-primero. Suite
+        // completa: ContextIntentEngineGasolinaInversaFloorTest.
+        val intent = analyze("gasolina: echar antes del viaje")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echar gasolina antes del viaje", intent.title)
     }
 
     @Test

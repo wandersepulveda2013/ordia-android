@@ -421,11 +421,28 @@ object ContextIntentEngine {
     // hermano de "llevar el coche al taller" c.684), no TASK (no es gestión
     // abstracta) ni SHOPPING (no es compra de supermercado; aunque sea
     // compra, el verbo cotidiano es "echar", no "comprar"). "echarle
-    // gasolina" (enclítico) y "repostar" quedan como candidatas documentadas
-    // para futuros ciclos (una forma por ciclo). Determinista (regex), sin
-    // random, sin IA fingida.
+    // gasolina" (enclítico) queda como candidata documentada para futuros
+    // ciclos (una forma por ciclo). Determinista (regex), sin random, sin
+    // IA fingida.
+    //
+    // Orden inverso (c.832, forma documentada de la sonda
+    // `CaptureCoverageProbe.kt` c.822 — último NULL de captura): "gasolina:
+    // echar antes del viaje" es taquigrafía de nota rápida "tema: acción"
+    // (el objeto encabeza y el ":" estructural marca el atajo). El ":"
+    // exigido es el ancla inequívoca de la notación: sin él la forma
+    // inversa no casa ("gasolina echar mañana" sigue NULL; anti-overreach,
+    // una forma por ciclo). La negación se bloquea en la propia regex
+    // (`(?<!no )` antes de "echar") y de nuevo en [imperativeIsNegated]
+    // (cinturón y tirantes, precedente c.748/c.757). El pasado "eché" y el
+    // futuro "echaré" no casan (verbo exacto). Título en [extractTitle]
+    // (rama inversa): reordena a la forma canónica verbo-primero
+    // "Echar gasolina antes del viaje" (doctrina c.653 de ortografía del
+    // objeto; [sanitizeTitle] depura el residuo temporal y conserva el
+    // contenido "…antes del viaje").
     private val ERRAND_FUEL_FLOOR =
-        Regex("""\b(?<!no )echar\s+(?:gasolina|gasoil|di[eé]sel)\b""")
+        Regex(
+            """(?U)\b(?:(?<!no )echar\s+(?:gasolina|gasoil|di[eé]sel)|(?:gasolina|gasoil|di[eé]sel)\s*:\s*(?<!no )echar)\b"""
+        )
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
@@ -1928,7 +1945,7 @@ object ContextIntentEngine {
         // lookbehind sí la bloquea), así la negación se bloquea también aquí
         // (cinturón y tirantes, precedente c.717/c.748/c.757).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+echar\s+(?:gasolina|gasoil|di[eé]sel)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+echar\s+(?:gasolina|gasoil|di[eé]sel)|\b(?:gasolina|gasoil|di[eé]sel)\s*:\s*no\s+echar\b""").containsMatchIn(lower)
         ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -2923,6 +2940,27 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchFuel != null) {
                     return "Echar ${matchFuel.groupValues[1]}"
+                }
+                // Orden inverso (c.832, lockstep con la alternativa
+                // «objeto: echar» de [ERRAND_FUEL_FLOOR]): "gasolina: echar
+                // antes del viaje" → "Echar gasolina antes del viaje".
+                // El título reordena a la forma canónica verbo-primero;
+                // el match arranca en el objeto, así el acuse ("vale, …")
+                // no ensucia el título (lección c.616) y la ortografía del
+                // objeto se preserva (doctrina c.653). [sanitizeTitle]
+                // depura el residuo temporal de cola ("…mañana") y conserva
+                // el contenido ("…antes del viaje").
+                val matchFuelInverse = Regex(
+                    """(?U)\b(gasolina|gasoil|di[eé]sel)\s*:\s*(?<!no )echar\b\s*(.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchFuelInverse != null) {
+                    val restInverse = matchFuelInverse.groupValues[2].trim()
+                    return if (restInverse.isEmpty()) {
+                        "Echar ${matchFuelInverse.groupValues[1]}"
+                    } else {
+                        "Echar ${matchFuelInverse.groupValues[1]} $restInverse"
+                    }
                 }
                 // "repostar el coche mañana" → "Repostar el coche" (c.831,
                 // lockstep con `ERRAND_VERBS` posición libre): verbo
