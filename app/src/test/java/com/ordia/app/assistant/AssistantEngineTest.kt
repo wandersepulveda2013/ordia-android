@@ -5787,6 +5787,44 @@ class AssistantEngineTest {
         assertTrue(!answer.text.contains("Tienes 1 recordatorio"))
     }
 
+    // c.811 — cuando la lista SUPERA la ventana en línea (6), se ofrece
+    // OPEN_SEARCH «recordatorios» (la búsqueda universal ya la entiende, c.810)
+    // para ver el listado completo; y el conteo se calcula sobre TODOS, no
+    // sobre los 6 mostrados (antes decía «Tienes 6 recordatorios» mintiendo).
+    @Test fun reminders_moreThanSix_offersOpenSearchWithFullCount() {
+        val now = 1_774_012_800_000L
+        val tasks = (1..8).map { idx ->
+            TaskEntity(id = idx.toLong(), title = "Aviso $idx", reminderAt = now + idx * 3_600_000L)
+        }
+        val answer = AssistantEngine.answer(
+            "que recordatorios tengo",
+            tasks,
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("recordatorios", answer.actionPayload)
+        assertTrue(answer.text.contains("Tienes 8 recordatorios"))
+        // La ventana en línea se queda en 6 y se ordena por disparo.
+        assertEquals((1L..6L).toList(), answer.relatedTaskIds)
+        assertTrue(answer.text.contains("Aviso 6"))
+        assertTrue(!answer.text.contains("Aviso 7"))
+    }
+
+    @Test fun reminders_atMostSix_keepsInlineOnly() {
+        val now = 1_774_012_800_000L
+        val tasks = (1..6).map { idx ->
+            TaskEntity(id = idx.toLong(), title = "Aviso $idx", reminderAt = now + idx * 3_600_000L)
+        }
+        val answer = AssistantEngine.answer(
+            "mis recordatorios",
+            tasks,
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertEquals((1L..6L).toList(), answer.relatedTaskIds)
+        assertTrue(answer.text.contains("Aviso 6"))
+    }
+
     // c.809 — «qué tengo pendiente de ayer» (último openGap de la sonda
     // c.803-b). DECISIÓN DE PRODUCTO (DECISIONS.md): pendiente-de-ayer ≡
     // RECUPERACIÓN (hermana de «qué olvidé»): lo que quedó de ayer sin hacer

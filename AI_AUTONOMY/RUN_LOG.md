@@ -16815,3 +16815,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: nueva ronda de descubrimiento (parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / otra superficie). Opcional P3: acción OPEN_SEARCH «recordatorios» en la respuesta del asistente c.808.
+
+## Ciclo c.811 — 2026-08-21 (UTC) — feat(assistant): OPEN_SEARCH «recordatorios» cuando la lista supera la ventana + conteo honesto
+- **HEAD inicial**: `0a9f154` (c.810 remoto; pull --ff-only limpio, sin colisión). Suite entrante: OK (5041); smoke 25/25. Env JVM heredado (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21 `/tmp/jdk21`).
+- **Problema**: P3 opcional pendiente de c.810 (ofrecer OPEN_SEARCH «recordatorios» en la respuesta c.808). Además el conteo se calculaba sobre el cap de 6 → «Tienes 6 recordatorios» mentía con 8 programados; sin vía honesta al listado completo pese a que c.810 ya enseñó a la búsqueda el payload.
+- **Auditoría previa (descarte honesto)**: backup (`BackupManager.kt` checksum/schema/restore invariants) revisado — maduro, tests existentes; TODO grep = sólo palabras españolas «todo(s)»; sondas `AssistantOverdueImportanceProbe` (NONE ok, 1 tolerado documentado) y `ParserComplexTimeProbe` (0 GAPs) ejecutadas — sin hallazgo nuevo. SummaryEngine/WhatNowEngine/automation con cobertura dominio.
+- **Solución**: `AssistantEngine.isRemindersQuery` — `all` (todos los próximos, ordenados) vs `upcoming = all.take(6)`; conteo sobre `all.size` (honesto); si `truncated` (>6) → `AssistantAction.OPEN_SEARCH` payload «recordatorios»; si no, NONE (MENOS ES MÁS). Cero pantalla/wiring nuevos (reusa botón OPEN_SEARCH ya consumido por AssistantScreen).
+- **Tests**: RED exacto — 2 nuevos, EXACTAMENTE 1 falló → **GREEN OK (5043 = 5041 + 2)**; `run_domain_checks.sh` 25/25; `InterrogativeReminderProbe` (captura) sin regresión. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+2), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append (code+tests+docs único); HEAD final: tras push.
+- **Próxima prioridad**: nueva ronda de descubrimiento (parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / deep-dive backup-restore). Temporales desnudas siguen BLOCKED-humano.

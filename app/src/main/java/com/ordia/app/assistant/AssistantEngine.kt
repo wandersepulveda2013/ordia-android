@@ -645,13 +645,21 @@ object AssistantEngine {
             // Los avisos ya pasados de tareas activas no se enumeran: esa
             // deuda la cubre la familia «vencidas». Vacío honesto sin menú.
             isRemindersQuery(query) -> {
-                val upcoming = active.filter { it.reminderAt != null && it.reminderAt >= now }
+                val all = active.filter { it.reminderAt != null && it.reminderAt >= now }
                     .sortedBy { it.reminderAt }
-                    .take(6)
+                val upcoming = all.take(6)
+                // c.811: cuando la lista SUPERA la ventana en línea, ofrece
+                // OPEN_SEARCH «recordatorios» (la búsqueda universal ya la
+                // entiende, c.810) para ver el listado completo. Y el conteo se
+                // calcula sobre TODOS — antes «Tienes 6 recordatorios» mentía
+                // cuando había más de 6 programados.
+                val truncated = all.size > upcoming.size
                 AssistantAnswer(
-                    if (upcoming.isEmpty()) "No tienes recordatorios programados."
-                    else "Tienes ${upcoming.size} recordatorio" + (if (upcoming.size == 1) "" else "s") + ": " +
+                    if (all.isEmpty()) "No tienes recordatorios programados."
+                    else "Tienes ${all.size} recordatorio" + (if (all.size == 1) "" else "s") + ": " +
                         upcoming.joinToString(" · ") { "«${it.title}» ${upcomingWhenLabel(it.reminderAt!!, now, zone)}" },
+                    action = if (truncated) AssistantAction.OPEN_SEARCH else AssistantAction.NONE,
+                    actionPayload = if (truncated) "recordatorios" else "",
                     relatedTaskIds = upcoming.map { it.id }
                 )
             }
