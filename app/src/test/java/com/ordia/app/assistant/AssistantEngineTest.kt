@@ -5000,10 +5000,37 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.CREATE_NOTE, answer.action)
     }
 
-    @Test fun notesListing_guard_contentQueryDoesNotRoute() {
-        // "notas de física" es contenido de una nota, no pedir la lista:
-        // no debe abrir la búsqueda con el payload canónico.
+    // c.794 — calificador de contenido sobre la superficie de notas («notas
+    // de/del/de la <X>»), hermano de c.792 (tareas): el guard c.793
+    // `notesListing_guard_contentQueryDoesNotRoute` se actualiza a bloquear la
+    // nueva ruta honesta — nunca el payload canónico "notas", sino la consulta
+    // íntegra (igual que c.792 actualizó el guard c.784 al abrir la suya).
+    @Test fun notesListing_guard_contentQueryRoutesWithQueryPayload() {
         val answer = AssistantEngine.answer("notas de física", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas de física", answer.actionPayload)
+    }
+
+    @Test fun notesContent_notasDeContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("notas de matemáticas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas de matemáticas", answer.actionPayload ?: answer.text)
+    }
+
+    @Test fun notesContent_notasDeLaContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("notas de la reunión", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun notesContent_notasDelContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("notas del trabajo", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun notesContent_guard_noQualifierDoesNotRoute() {
+        // «notas de…» sin calificador tras el conector no rutea (igual que
+        // «tareas de» c.792): cae al menú, nunca inventa una búsqueda vacía.
+        val answer = AssistantEngine.answer("notas de", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 }

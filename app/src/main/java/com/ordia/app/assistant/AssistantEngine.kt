@@ -729,7 +729,15 @@ object AssistantEngine {
             // de búsqueda (matcher de contenido real), NUNCA una respuesta
             // inventada. Paridad con «notas fijadas» c.787. Determinista; sin
             // pantalla nueva; helper puro.
-            isContentQualifiedTasksQuery(query) ->
+            // c.794 — la misma doctrina (c.788 DECISIONS) se extiende al
+            // calificador por contenido sobre la superficie de notas con
+            // [isContentQualifiedNotesQuery] («notas de/del/de la <X>»): la
+            // búsqueda filtraba por el calificador y el asistente caía al
+            // menú. El listado desnudo («notas»/«mis notas») lo cubre
+            // [isNotesListingQuery] (c.793) mucho antes con payload canónico;
+            // pinned (c.787) y creación también reclaman antes; «notas de»
+            // sin calificador no rutea (guard).
+            isContentQualifiedTasksQuery(query) || isContentQualifiedNotesQuery(query) ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
@@ -881,6 +889,34 @@ object AssistantEngine {
     private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")
     private val CONTENT_LEAD_ARTICLES = setOf("las", "los")
     private val CONTENT_CONNECTOR_ARTICLES = setOf("la", "las", "los", "el")
+
+    /**
+     * Calificador de contenido sobre la superficie de notas: «notas de la
+     * reunión», «notas del trabajo», «mis notas de química». Hermano de
+     * [isContentQualifiedTasksQuery] (c.792); el listado desnudo («notas»/
+     * «mis notas»/«todas las notas») lo cubre [isNotesListingQuery] (c.793)
+     * con payload canónico, así que aquí se exige conector + calificador.
+     * Sin calificador tras el conector no rutea.
+     */
+    private val NOTE_SUBJECTS = setOf("nota", "notas")
+    private val NOTE_LEAD_ARTICLES = setOf("las", "mis")
+
+    private fun isContentQualifiedNotesQuery(query: String): Boolean {
+        val words = query.split(Regex("\\s+"))
+        val subjectIdx = words.indexOfFirst { it in NOTE_SUBJECTS }
+        if (subjectIdx < 0) return false
+        if (subjectIdx > 1 || (subjectIdx == 1 && words[0] !in NOTE_LEAD_ARTICLES)) return false
+        val rest = words.drop(subjectIdx + 1)
+        if (rest.isEmpty() || (rest[0] != "de" && rest[0] != "del")) return false
+        val afterConnector = rest.drop(1)
+        if (afterConnector.isEmpty()) return false
+        val qualifier = if (rest[0] == "de" && afterConnector[0] in CONTENT_CONNECTOR_ARTICLES) {
+            afterConnector.drop(1)
+        } else {
+            afterConnector
+        }
+        return qualifier.isNotEmpty()
+    }
 
     /**
      * Calificador de contenido de tareas: «tareas de la casa», «tareas del
