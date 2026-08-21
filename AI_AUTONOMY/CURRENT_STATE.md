@@ -1,3 +1,16 @@
+## Ciclo c.828b — 2026-08-21 (UTC) — test(context): STALE_RUN colisión c.828 «vaciar» (duplicado descartado) + verificación del hermano + refuerzo de guards de borde (+7 tests)
+
+- **HEAD inicial**: `9b2330c` (c.827 «maleta»; pull --ff-only inicial limpio). Mi c.828 «vaciar <objeto>» (piso TASK + plantilla + 14 tests, GREEN local 5177 OK) quedó listo ANTES del push; el fetch final PRE-push detectó STALE_RUN: la rama avanzó `9b2330c`→`7aa959a` con el c.828 hermano («vaciar» como piso HOUSEHOLD de posición libre, precedente c.727 — `776cd69`+`0a970d7`), el c.825b hermano (test-only «encargar», `6431d6d`), el c.829 hermano («echar gasolina» ERRAND, `4de7440`+`6348043`) y docs (`7aa959a`).
+- **Resolución NO destructiva**: implementación duplicada DESCARTADA íntegra (stash drop tras ff-only a `7aa959a`); NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Divergencia de diseño (TASK general vs HOUSEHOLD posición libre) resuelta a favor del hermano ya publicado y testeado (5194 OK).
+- **Verificación del hermano + unidad test-only**: sonda efímera fuente real (7 formas de borde no cubiertas): «vaciar el lavavajillas esta noche» → HOUSEHOLD 0.49 dueAt (2ª familia de objeto, no roba c.738); pasados «vació/vaciamos/vaciaste…ayer» → NULL (su guard sólo «vacié»); «la nevera está vacía» → NULL (adjetivo; su guard nominal era «vaciado»); «vaciarán el local mañana» → NULL (futuro conjugado, subcadena keyword < umbral); «llenar la nevera mañana» → TASK 0.45 intacta (su regresión era «tender»). 7/7 correcto → +7 tests de bloqueo en `ContextIntentEngineVaciarFloorTest.kt`. Cero cambio de producción.
+- **Tests**: `bash tools/run_domain_tests.sh` → **OK (5201 = 5194 hermano + 7)**; smokes 25/25 y 9/9. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/test/java/com/ordia/app/context/ContextIntentEngineVaciarFloorTest.kt` (+7 tests), `AI_AUTONOMY/*`. Sonda efímera `/tmp/probe828b/` eliminada.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «gestionar el alta/reclamación» (hermana de «tramitar» c.822; «echar gasolina» RESUELTO c.829 por el hermano); residual P3 títulos con envoltura residual; residual P2 c.818 «Icon( null-decorativo»; residual P2 c.824 «habría que/debería …»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar (dos STALE_RUN seguidos: verificar remoto ANTES de invertir).
+
+---
+
 ## Ciclo c.828 — 2026-08-21 (UTC) — feat(context): «vaciar <objeto>» (nevera/armario/cajas) — quehacer doméstico caía a NULL (P1 olvido silencioso en captura pasiva) — clase cuarta, forma 4/N
 
 - **HEAD inicial**: `9b2330c` (c.827 propio, en sync con origin; pull --ff-only limpio, sin colisión). Suite entrante: OK (5163). Env JVM heredado (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21).

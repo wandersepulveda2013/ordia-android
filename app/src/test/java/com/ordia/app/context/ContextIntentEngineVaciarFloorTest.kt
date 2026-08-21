@@ -131,4 +131,78 @@ class ContextIntentEngineVaciarFloorTest {
         assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
         assertEquals("Tender la ropa", intent.title)
     }
+
+    // ---- c.828b: refuerzo de guards de borde tras STALE_RUN (duplicado del
+    // hermano). Formas verificadas por sonda efímera fuente real sobre la
+    // implementación del hermano; ninguna estaba cubierta por sus tests. ----
+
+    @Test
+    fun `captura segunda familia de objeto lavavajillas`() {
+        // «lavavajillas» ya es objeto-keyword del piso c.738 `poner el
+        // lavavajillas`: «vaciar el lavavajillas» debe capturar vía el piso
+        // de posición libre sin robar la ruta de c.738 (guard literal).
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "vaciar el lavavajillas esta noche", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+        assertEquals("Vaciar el lavavajillas", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `pasado tercera persona vacio descartado`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "vació la nevera ayer", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `pasado primera plural vaciamos descartado`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "vaciamos la nevera ayer", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `pasado segunda persona vaciaste descartado`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "vaciaste el armario ayer", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `afirmacion nominal esta vacia descartada`() {
+        // «vacía» (adjetivo) ni contiene la subcadena «vaciar»: la keyword
+        // sola no dispara nada; afirmar el estado no compromete nada.
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "la nevera está vacía", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `futuro conjugado vaciaran descartado`() {
+        // «vaciarán» CONTIENE la subcadena «vaciar» (keyword 0.12 sola) pero
+        // queda bajo el umbral 0.45: el piso exige el infinitivo literal.
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "vaciarán el local mañana", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `regresion hermana llenar sigue TASK`() {
+        // Cara simétrica (c.726, TASK): «llenar la nevera» NO debe ser
+        // robada por el piso doméstico de posición libre.
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llenar la nevera mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Llenar la nevera", intent.title)
+    }
 }
