@@ -8,7 +8,7 @@
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5232 = 5216 + 16)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25 OK. Sonda de cobertura POST (`tools/probe/CaptureCoverageProbe.kt`, 2 formas «repostar» añadidas como REGRESIÓN c.831): 14 NULLs de 41 — TODOS guards/controles intencionados excepto la orden inversa documentada «gasolina: echar antes del viaje». Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (`ERRAND_VERBS` + plantilla + comentario c.831), `ContextIntent.kt` (keyword «repostar» + comentario lockstep), `ContextIntentEngineRepostarFloorTest.kt` (NUEVO, +16 tests), `tools/probe/CaptureCoverageProbe.kt` (2 formas «repostar» REGRESIÓN c.831), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: ver RUN_LOG. HEAD final: ver RUN_LOG.
+- **Commits**: `cebace4` (fix c.831 + docs). HEAD final: `cebace4`.
 - **Próxima prioridad**: orden inversa «gasolina: echar antes del viaje» (único NULL de captura de la sonda; UNA forma por ciclo); candidatas documentadas: «echarle gasolina» (enclítico); residual P3 títulos con envoltura residual («Habría que…»/«Que…»); residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); si la sonda se agota: nueva auditoría de descubrimiento (sonda nueva); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ---
