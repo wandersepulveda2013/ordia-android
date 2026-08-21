@@ -16757,5 +16757,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Cerrado sin cambio**: hora desnuda «a las N» en pasado = decisión formal c.200/c.406 (deuda honesta + entrega inmediata al capturar). NO re-abrir.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Commits**: este append (code+tests+docs en commit único).
-- **HEAD final**: tras este push.
+- **HEAD final**: `0eee12a` (push OK; auth vía `$github_token`).
 - **Próxima prioridad**: nueva sonda de descubrimiento (parser tiempos complejos / vencidas-importantes / agrupación-relaciones) o el P1 OPEN que aparezca; sin P0/P1 conocidos.
