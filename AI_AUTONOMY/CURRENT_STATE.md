@@ -6,7 +6,7 @@
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5201 = 5194 hermano + 7)**; smokes 25/25 y 9/9. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `app/src/test/java/com/ordia/app/context/ContextIntentEngineVaciarFloorTest.kt` (+7 tests), `AI_AUTONOMY/*`. Sonda efímera `/tmp/probe828b/` eliminada.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `1663f8e` (refuerzo test-only + docs). **HEAD final**: `1663f8e`.
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «gestionar el alta/reclamación» (hermana de «tramitar» c.822; «echar gasolina» RESUELTO c.829 por el hermano); residual P3 títulos con envoltura residual; residual P2 c.818 «Icon( null-decorativo»; residual P2 c.824 «habría que/debería …»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar (dos STALE_RUN seguidos: verificar remoto ANTES de invertir).
 
 ---
