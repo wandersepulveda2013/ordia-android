@@ -1,3 +1,15 @@
+## Ciclo c.817 — 2026-08-21 (UTC) — feat(assistant): «tengo que hacer algo en la mañana» rutea a la agenda por franja existente — cierra el último residuo documentado (c.815)
+
+- **HEAD inicial del segmento**: `934ba14` (c.816 propio, pull --ff-only limpio, sin colisión). Suite entrante: OK (5054). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Problema (residual P2 documentado c.815)**: «tengo que hacer algo en la mañana» (y «…mañana») caía al menú genérico — mentira por omisión: los marcadores verbales de agenda exigían «que tengo»/«tengo algo» y la forma cotidiana «tengo que hacer algo <scope>» no casaba.
+- **Decisión (DECISIONS c.817)**: ruteo a la maquinaria de agenda EXISTENTE con alcance temporal (enLaMananaHoy → hoy 6..11; «mañana» → mañana; etc.); «tengo que hacer algo» SIN scope sigue al menú honesto (¿agenda de qué día?). Respuesta textual en línea (como c.798/c.816), cero pantalla.
+- **Solución (cambio mínimo, TDD)**: `isAgendaQuery` += marcador `"hacer algo" in query`, protegido por la guarda de alcance temporal ya existente (relative/date/weekday/finde/parte del día). Cero UI, cero IA fingida.
+- **TDD**: RED exacto — +3 tests nuevos, EXACTAMENTE 2 fallaron (`tengoQueHacerAlgoEnLaManana…`, `tengoQueHacerAlgoManana…`; guard «sin scope → menú» verde desde RED) → **GREEN OK (5057 = 5054 + 3)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistente `AssistantDiscoveryRoundProbe` +1 regresión → 0 GAPs de 14. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (marcador+comentario), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+3), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+1 regresión), `AI_AUTONOMY/*`.
+- **Residuos restantes**: ninguno documentado — la ronda de residuales queda cerrada; la sonda persistente falla (exit 1) ante cualquier GAP NUEVO.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: nueva ronda de descubrimiento (agendas históricas: backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`); temporales desnudas siguen BLOCKED-humano.
+
 ## Ciclo c.816 — 2026-08-21 (UTC) — feat(assistant): «cuantas rutinas tengo» responde con recuento honesto de rutinas activas — cierra el residuo de diseño de la sonda (c.815 openGaps)
 
 - **HEAD inicial del segmento**: `2ca10dc` (c.815 propio, pull --ff-only limpio, sin colisión). Suite entrante: OK (5051). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

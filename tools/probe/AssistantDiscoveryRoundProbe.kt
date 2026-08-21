@@ -47,7 +47,12 @@ fun main() {
         // c.816 — «cuantas rutinas tengo» (residuo de diseño en openGaps
         // c.815): DECISIÓN tomada — `answer` recibe `routines` y la rama
         // cuenta las activas (hermana del recuento de pendientes c.798).
-        "cuantas rutinas tengo"
+        "cuantas rutinas tengo",
+        // c.817 — «tengo que hacer algo en la mañana» (GAP residual de la
+        // sonda efímera c.812, documentado en CURRENT_STATE c.813..c.816):
+        // marcador «hacer algo» en isAgendaQuery, protegido por la guarda
+        // de alcance temporal (sin scope sigue al menú).
+        "tengo que hacer algo en la manana"
     )
     // ABIERTOS: ninguno — la ronda c.803-b quedó cerrada (c.804 ×3, c.807 ×2,
     // c.808 ×3, c.809 ×1). La sonda sigue fallando (exit 1) ante cualquier

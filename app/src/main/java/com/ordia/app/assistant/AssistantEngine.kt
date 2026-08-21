@@ -1742,6 +1742,13 @@ object AssistantEngine {
                 ("como va" in query && "semana" in query) ||
                 ("de que va" in query && "semana" in query) ||
                 ("resumen" in query && "semana" in query) ||
+                // c.817 (sonda efímera c.812 residual): forma cotidiana «tengo que
+                // hacer algo <scope>» («…en la mañana», «…mañana») — los demás
+                // marcadores exigen «que tengo»/«tengo algo» y esta paráfrasis
+                // caía al menú pese a que la agenda por franja ya existe. La
+                // guarda de alcance temporal de abajo la protege: «tengo que
+                // hacer algo» sin scope sigue al menú (¿agenda de qué día?).
+                "hacer algo" in query ||
                 BARE_TEMPORAL_TASK_CONNECTORS.any { it in query })) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
         // como agenda y la consulta caía al mensaje genérico — el asistente callaba

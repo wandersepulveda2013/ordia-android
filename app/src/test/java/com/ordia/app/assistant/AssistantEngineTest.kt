@@ -1771,6 +1771,56 @@ class AssistantEngineTest {
         assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
         assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Correr en el parque"))
     }
+    // --- c.817: «tengo que hacer algo en la mañana» — marcador «hacer algo» +
+    // scope temporal → agenda (GAP residual de la sonda efímera c.812, documentado
+    // en CURRENT_STATE c.813..c.816). Antes caía al menú genérico: los marcadores
+    // verbales exigían «que tengo»/«tengo algo» y la forma cotidiana «tengo que
+    // hacer algo <scope>» no casa ninguno — mentira por omisión: el asistente ya
+    // tiene toda la maquinaria de agenda por franja (enLaMananaHoy → hoy 6..11).
+
+    @Test fun tengoQueHacerAlgoEnLaManana_routesToTodayMorningAgenda() {
+        val now = 1_000_000_000_000L
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+            TaskEntity(id = 2, title = "Comprar aguacates", dueAt = todayAtHour(now, 15)),
+            TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+        )
+        val answer = AssistantEngine.answer("tengo que hacer algo en la mañana", tasks, emptyList(), emptyList(), now)
+        assertTrue("nombra la de esta mañana: ${answer.text}", answer.text.contains("Correr en el parque"))
+        assertTrue("no mezcla la tarde: ${answer.text}", !answer.text.contains("Comprar aguacates"))
+        assertTrue("no muestra mañana: ${answer.text}", !answer.text.contains("Reunión de equipo"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun tengoQueHacerAlgoManana_routesToTomorrowAgenda() {
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "tengo que hacer algo mañana",
+            listOf(
+                TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+                TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Correr en el parque"))
+    }
+
+    @Test fun tengoQueHacerAlgo_sinScope_noAgenda() {
+        // Guardia de alcance: «tengo que hacer algo» SIN scope temporal no puede
+        // responderse con una agenda (¿de qué día?) — sigue al menú honesto. El
+        // marcador «hacer algo» sólo rutea cuando la consulta porta alcance.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "tengo que hacer algo",
+            listOf(TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("cae al menú honesto: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+    }
+
 
     // --- c.356: "¿qué tengo hoy?" no debe callar un compromiso vencido de una
     // conversación (el cuarto olvido). La rama "hoy" de agendaAnswer ya rompía la
