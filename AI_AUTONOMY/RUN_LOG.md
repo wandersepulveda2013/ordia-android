@@ -17225,5 +17225,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5356 = 5355 hermano c.843 + 1 aditivo)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `app/src/test/java/com/ordia/app/context/ContextIntentEngineMedirPresionFloorTest.kt` (+1 guard c.844), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md` (+anotacion en BACKLOG.md). Cero codigo de producto.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: `<pendiente>` (guard aditivo + docs c.844). **HEAD final**: `<pendiente>`.
+- **Commits**: `8dc4272` (guard aditivo + docs c.844). **HEAD final**: `8dc4272`.
 - **Proxima prioridad**: POOL sonda c.834 agotado y matriz reflexivo×objeto del autocontrol de tension CERRADA → nueva auditoria de descubrimiento (sonda nueva, convencion c.822/c.834); candidatas derivadas (UNA por ciclo): perifrasis «me mido la presión» (guard c.843) / «me mido la tensión» (guard c.841), plural «los pelos» / dativo «cortarle el pelo al niño» / objeto «cabello» (c.842); residual P2 c.818 «Icon( null-decorativo»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
