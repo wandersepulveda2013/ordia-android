@@ -1253,6 +1253,40 @@ class NaturalTaskParserTest {
         assertEquals("comprar 2do piso", r2.title)
         assertEquals(RecurrenceFrequency.NONE, r2.recurrence)
         assertNull(r2.dueAt)
+        val r3 = NaturalTaskParser.parse("ver el 5to capítulo", now, zone)
+        assertEquals("ver el 5to capítulo", r3.title)
+        assertEquals(RecurrenceFrequency.NONE, r3.recurrence)
+        assertNull(r3.dueAt)
+    }
+
+    // Ordinal numérico "5to" antes de un weekday ("el 5to viernes del mes"): forma
+    // cotidiana equivalente a la escrita "quinto" (c.575). El motor ya la soporta
+    // (ord=5 con salto de meses sin 5ª ocurrencia, c.575); antes el normalizador
+    // numérico se limitaba a 1-4 por un comentario obsoleto ("el motor no lo mapea")
+    // y "el 5to viernes" se agendaba MAL: caía al próximo viernes suelto con rec=NONE
+    // y residuo "el 5to del mes" en el título (compromiso agendado en fecha errónea).
+    @Test fun ordinalNumericoQuintoViernesDelMesAnclaMonthlyOrdinalCinco() {
+        // Simétrico a quintoViernesDelMesAnclaMonthlyOrdinalCinco (forma escrita):
+        // julio 2026 tiene 5 viernes (3,10,17,24,31) → due 2026-07-31 futuro.
+        val result = NaturalTaskParser.parse("reunión el 5to viernes del mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("5:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 7, 31), due)
+    }
+
+    @Test fun ordinalNumericoQuintoViernesDeCadaMesAnclaMonthlyOrdinalCinco() {
+        // Cadencia explícita tras el ordinal ("el 5to viernes de cada mes"): mismo
+        // anclaje que la forma escrita, sin rodar al 1er viernes del mes siguiente.
+        val result = NaturalTaskParser.parse("reunión el 5to viernes de cada mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("5:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 7, 31), due)
     }
 
     // No-regresión: mes nombrado NO se promueve a MONTHLY (fecha única en mes concreto).

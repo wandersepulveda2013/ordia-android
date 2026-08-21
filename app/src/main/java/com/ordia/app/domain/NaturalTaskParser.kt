@@ -1045,8 +1045,10 @@ object NaturalTaskParser {
      * corrupto con el residuo "el 3er del mes". Se normaliza a su palabra canónica
      * SÓLO cuando va seguida de un día de la semana (contexto inequívoco de
      * ordinal-weekday), reutilizando TODO el flujo mensual existente. Así "ver el
-     * 3er capítulo" o "comprar 2do piso" (contenido) no se tocan. Se limita a 1-4
-     * (todo mes tiene ≥4 de cada weekday; "5to" es raro y el motor no lo mapea).
+     * 3er capítulo" o "comprar 2do piso" (contenido) no se tocan. Se limita a 1-5:
+     * el motor ya mapea ord=5 con salto de meses sin 5ª ocurrencia (c.575), así
+     * que "el 5to viernes del mes" ancla igual que la forma escrita "quinto";
+     * fuera de ese rango (≥6) se deja intacto (invalid mes-ordinal → contenido).
      */
     private val ordinalBeforeWeekdayPattern = Regex(
         """(?i)\b(\d{1,2})(?:ero|ro|er|do|to|ra|da|ta)(\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b)"""
@@ -1060,6 +1062,7 @@ object NaturalTaskParser {
                 2 -> "segundo"
                 3 -> "tercer"
                 4 -> "cuarto"
+                5 -> "quinto"
                 else -> null
             }
             if (word != null) "$word${m.groupValues[2]}" else m.value
