@@ -16747,3 +16747,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: este append (code+tests+sonda+docs en commit único). HEAD final: tras push.
 - **Próxima prioridad**: recordatorios (wiring estructural — decisión de diseño) o interrogativas cualificadas (P2). Nueva ronda sugerida: parser natural de tiempos complejos / agrupación notas-tareas.
+## Ciclo c.805 — 2026-08-21 (UTC) — fix(parser): «N <unidad> antes del <día numérico>» perdía el plazo (dueAt=null) — guard de ancla digital en consumo de conector c.474
+
+- **HEAD inicial**: `cf082c3` (c.801 remoto — pull ff-only limpio inicial; fetch pre-commit reveló hermano `5cc709b`..`2ddd906` (c.802..c.804) → **renumerado c.802→c.805**, integrado stash→ff-only→pop, conflictos solo en AI_AUTONOMY resueltos conservando ambos bloques; no STALE_RUN destructivo, no force, no `main`). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
+- **Problema (P1, sonda propia)**: «pago un día antes del 30» → casaba `reminderPatterns` («un día antes») y el blanqueo del recordatorio (c.474) consumía el «del» del ancla «del 30» → día de mes sin conector → **dueAt=null, reminderOffset=1440 suelto, «un» residuo en título**. Olvido seguro.
+- **Cambios**: `NaturalTaskParser.kt` — guard `startsDigitalAnchor` en el bucle de `reminderPatterns` (~l.3235): si tras el conector genitivo viene dígito, NO se consume (la limpieza c.4342 lo gestiona); genitivo de contenido intacto. Hipótesis satélite (artículo con espacio «de la») probada y **rechazada** (rompe 3 tests c.474 que codifican título con artículo; revertida; DECISIONS c.805). `NaturalTaskParserTest.kt` +4 tests (`antesDelNumericoConRecordatorioNoPierdePlazo{,DosDias,UnDia}`, `antesDeContenidoSigueLimpioConElGuard`).
+- **TDD**: RED 3/3 fallos exactos (dueAt=null) → GREEN. Expectativa inicial mía (ago-30) estaba mal: fixture now=2026-07-29 → «del 30»=julio correcto; corregí el test, no el parser.
+- **Tests**: `bash tools/run_domain_tests.sh` → **OK (5006: 5002 base integrada + 4)**; `run_domain_checks.sh` → 25/25 OK; `run_automation_engine_checks.sh` → 9/9 OK. Sondas efímeras (/tmp, eliminadas) verifican 7 formas «antes del viernes/30/25 de septiembre». Sin tests reducidos/eliminados/falseados.
+- **Cerrado sin cambio**: hora desnuda «a las N» en pasado = decisión formal c.200/c.406 (deuda honesta + entrega inmediata al capturar). NO re-abrir.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Commits**: este append (code+tests+docs en commit único).
+- **HEAD final**: tras este push.
+- **Próxima prioridad**: nueva sonda de descubrimiento (parser tiempos complejos / vencidas-importantes / agrupación-relaciones) o el P1 OPEN que aparezca; sin P0/P1 conocidos.

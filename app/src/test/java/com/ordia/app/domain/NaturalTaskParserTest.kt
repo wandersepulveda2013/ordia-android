@@ -3442,6 +3442,42 @@ class NaturalTaskParserTest {
         assertTrue(result.title, result.title.contains("reunion"))
     }
 
+    // c.805: bug P1 — "N <unidad> antes del <día numérico>" perdía el plazo entero
+    // (dueAt=null y "N" como residuo; sólo el recordatorio se programaba → olvido).
+    // El blanqueo c.474 consumía el conector "del" a ciegas destruyendo el ancla
+    // numérica. Ahora se guarda cuando lo que sigue al conector empieza por dígito.
+    @Test fun antesDelNumericoConRecordatorioNoPierdePlazo() {
+        val result = NaturalTaskParser.parse("pago tres días antes del 25", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("pago", result.title)
+    }
+
+    @Test fun antesDelNumericoConRecordatorioUnDia() {
+        // now=29-jul-2026: el 30 aún no pasó → ancla al propio julio (igual que
+        // "el 30" suelto). Perder el plazo = el bug; el mes exacto lo define la
+        // semántica vigente de `delDayOfMonthPattern` (día N de este mes o del siguiente).
+        val result = NaturalTaskParser.parse("pago un día antes del 30", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("pago", result.title)
+    }
+
+    @Test fun antesDelNumericoConRecordatorioDosDia() {
+        val result = NaturalTaskParser.parse("enviar el reporte dos días antes del 5", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("enviar el reporte", result.title)
+    }
+
+    // Anti-regresión del guard: el genitivo de contenido ("antes de <sustantivo>")
+    // sigue consumiendo el conector — el guard sólo protege anclas digitales.
+    @Test fun antesDeContenidoSigueLimpioConElGuard() {
+        val result = NaturalTaskParser.parse("avisame 2 horas antes de la reunion", now, zone)
+        assertEquals(120, result.reminderOffsetMinutes)
+        assertTrue(result.title, result.title.contains("reunion"))
+    }
+
     // Anti-regresion critica: plazo puro "antes del N" (sin cantidad+unidad de
     // recordatorio) NO debe ser afectado por c.474: no casa reminderPatterns, asi
     // que su "del" sigue gestionado por la limpieza existente (c.4342) y la fecha

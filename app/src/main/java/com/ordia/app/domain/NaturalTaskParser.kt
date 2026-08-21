@@ -3232,7 +3232,19 @@ object NaturalTaskParser {
                     val leadWs = afterTail.takeWhile { it.isWhitespace() }.length
                     val deMatch = Regex("""(?i)^de(?:l|la|los|las)?\b""").find(afterTail.substring(leadWs))
                     if (deMatch != null) {
-                        end += leadWs + deMatch.range.last + 1
+                        // c.805: NO consumir el conector si lo que sigue arranca un
+                        // ancla de fecha/hora digital (día del mes "del 25", hora
+                        // "de las 5"): blanquearlo destruía el plazo ("pago tres días
+                        // antes del 25" → dueAt=null, vencimiento olvidado, P1). Las
+                        // anclas con nombre (weekdayPattern acepta el día suelto) se
+                        // resuelven sin el conector, así que el guard sólo protege
+                        // el caso digital; el genitivo de contenido ("antes de la
+                        // reunión") sigue consumiendo "de/de la/..." para un título limpio.
+                        val rest = afterTail.substring(leadWs).removePrefix(deMatch.value).trimStart()
+                        val startsDigitalAnchor = rest.firstOrNull()?.isDigit() == true
+                        if (!startsDigitalAnchor) {
+                            end += leadWs + deMatch.range.last + 1
+                        }
                     }
                 }
                 working = working.replaceRange(m.range.first, end, " ")
