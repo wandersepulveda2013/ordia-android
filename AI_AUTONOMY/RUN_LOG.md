@@ -17112,5 +17112,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +16 `ContextIntentEngineConditionalNecessityFloorTest.kt` (NUEVO) → GREEN 16/16. `bash tools/run_domain_tests.sh` → **OK (5277 = 5261 + 16)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25 OK. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt`, `ContextIntentEngineConditionalNecessityFloorTest.kt` (NUEVO), `tools/probe/ConditionalNecessityProbe.kt` (nota c.835), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sondas efímeras `/tmp/probe834/` fuera del repo.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: `PENDIENTE` (fix c.835 + docs). HEAD final: `PENDIENTE`.
+- **Commits**: `984f698` (fix c.835 + docs tras colisión + renumber c.834→c.835). HEAD final: `984f698` + docs HEAD final siguiente.
 - **Próxima prioridad**: nueva auditoría de descubrimiento (sonda nueva — familia condicional CERRADA, sonda c.822 agotada); «debiera/debiese…» (evaluar con evidencia); residual P2 c.818 «Icon( null-decorativo»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
