@@ -1038,7 +1038,11 @@ object AssistantEngine {
     // se evalúan antes en el when.
     private val NOTES_LISTING_FORMS = setOf(
         "mis notas", "todas las notas", "todas mis notas",
-        "las notas", "ver notas", "ver las notas", "lista de notas", "notas"
+        "las notas", "ver notas", "ver las notas", "lista de notas", "notas",
+        // c.803-c: forma interrogativa («qué notas tengo») — hermana de «qué
+        // tareas tengo». Mapa de formas exactas: «qué notas tengo de
+        // trabajo» (cualificada) no entra — GAP abierto documentado.
+        "que notas tengo"
     )
     private fun isNotesListingQuery(query: String): Boolean =
         query.trim() in NOTES_LISTING_FORMS
@@ -1588,6 +1592,12 @@ object AssistantEngine {
                 // espera hoy»). Sin scope, no rutean (la guarda temporal de abajo
                 // lo exige; «que viene despues» — sin scope — sigue a What Now).
                 "que viene" in query || "que me espera" in query ||
+                // c.803-b (sonda DiscoveryRound): panorama semanal «¿cómo va mi
+                // semana?» / «resumen de la semana» — hermano de «que viene esta
+                // semana». La guarda exige «semana»: «¿cómo va el proyecto?» o
+                // «resumen del libro» siguen al menú (sin scope honesto).
+                ("como va" in query && "semana" in query) ||
+                ("resumen" in query && "semana" in query) ||
                 BARE_TEMPORAL_TASK_CONNECTORS.any { it in query })) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
         // como agenda y la consulta caía al mensaje genérico — el asistente callaba

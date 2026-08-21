@@ -16735,3 +16735,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Commit: tras este append (code+tests+sonda+docs único); HEAD final: tras push.
 - Próxima prioridad: temporales desnudas («ayer», «semana pasada») — BLOCKED-humano (ambigüedad agenda↔recap); sondas nuevas: vencidas importantes, resumen del día.
+
+
+### c.804 — 2026-08-21 (UTC) — fix(assistant): panorama semanal («cómo va mi semana»/«resumen de la semana») + «qué notas tengo» — sonda NUEVA `AssistantDiscoveryRoundProbe.kt` (12 frases, 6 abiertos-tolerados)
+- **HEAD inicial**: `979461e` (c.803 cerrado, `68de7e3` pushed). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21). Verificación entrante: suite 4998 OK; sondas 1-tolerada y 52-0-GAP.
+- **Descubrimiento**: sonda efímera `/tmp/probe-work/DiscoveryRound.kt` (ronda sugerida por c.803: recordatorios/rutinas/relaciones + 2 panoramas semanales) → 8 GAPs de 14. Persistida como `tools/probe/AssistantDiscoveryRoundProbe.kt`.
+- **Cerrados (3)**: «cómo va mi semana» / «resumen de la semana» → agenda semana ISO (guarda «semana»: «cómo va el proyecto» sigue al menú; NO `dayLoadAnswer` porque es veredicto de HOY — mentiría de alcance); «qué notas tengo» → OPEN_SEARCH («notas», hermana de «mis notas» c.793 y «qué tareas tengo»).
+- **Abiertos documentados (6, tolerados, exit 1 ante GAP nuevo)**: recordatorios ×3 (estructural: asistente no recibe la lista — decisión de diseño), interrogativas cualificadas ×2 («qué notas/tareas tengo de <tema>», P2), «qué tengo pendiente de ayer» (vs vencidas, decisión de producto).
+- **TDD**: RED-1 2 fallos exactos (guarda verde) → GREEN 399; RED-2 1 fallo → GREEN 400.
+- **Tests**: `bash tools/run_domain_tests.sh` → **OK (5002 = 4998 + 4)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sondas hermanas sin regresión. Sin tests reducidos/eliminados/falseados.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: este append (code+tests+sonda+docs en commit único). HEAD final: tras push.
+- **Próxima prioridad**: recordatorios (wiring estructural — decisión de diseño) o interrogativas cualificadas (P2). Nueva ronda sugerida: parser natural de tiempos complejos / agrupación notas-tareas.

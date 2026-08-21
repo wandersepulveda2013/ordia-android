@@ -3039,6 +3039,42 @@ class AssistantEngineTest {
             !answer.text.contains("Puedo organizar"))
     }
 
+    // ---- c.803-b (sonda DiscoveryRound ronda agenda-semana): las dos formas
+    // cotidianas de panorama de la semana caían al menú pese a que la agenda
+    // semanal ya existe («qué viene esta semana» hermana, c.802). La guarda
+    // exige la palabra «semana»: «¿cómo va el proyecto?» sigue al menú.
+
+    @Test fun weekOverview_recognizesComoVaMiSemana() {
+        val answer = AssistantEngine.answer("como va mi semana", emptyList(), emptyList(), emptyList())
+        assertTrue("'como va mi semana' rutea a agenda de la semana, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun weekOverview_recognizesResumenDeLaSemana() {
+        val answer = AssistantEngine.answer("resumen de la semana", emptyList(), emptyList(), emptyList())
+        assertTrue("'resumen de la semana' rutea a agenda de la semana, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun weekOverview_withoutSemana_staysMenu() {
+        val answer = AssistantEngine.answer("como va el proyecto", emptyList(), emptyList(), emptyList())
+        assertTrue("'como va el proyecto' (sin semana) NO rutea a agenda: ${answer.text}",
+            answer.text.contains("Puedo organizar"))
+    }
+
+    // ---- c.803-c (sonda DiscoveryRound): «qué notas tengo» — la forma
+    // INTERROGATIVA de pedir las notas — caía al menú pese a que la forma
+    // sustantiva «mis notas» ruteaba a búsqueda (c.793) y la hermana «qué
+    // tareas tengo» ya ruteaba. La forma cualificada («qué notas tengo de
+    // trabajo») sigue abierta: el mapa es de formas exactas y no la
+    // secuestra (GAP documentado en la sonda).
+
+    @Test fun notesListing_recognizesQueNotasTengo() {
+        val answer = AssistantEngine.answer("que notas tengo", emptyList(), emptyList(), emptyList())
+        assertTrue("'que notas tengo' rutea a búsqueda de notas, no al menú: ${answer.text}",
+            answer.action == AssistantAction.OPEN_SEARCH)
+    }
+
     // ---- c.798-b (sonda AssistantHonestRouteProbe): segunda tanda de GAPs ----
 
     @Test fun freeTime_recognizesQueTiempoTengo() {
