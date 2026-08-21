@@ -158,4 +158,21 @@ class ContextIntentEngineMedirmeTensionFloorTest {
         // candidata — una forma por ciclo (doctrina de la sonda).
         assertNull(analyze("medir la presión mañana"))
     }
+
+    // ---- Guards aditivos c.841 (no cubiertos por el hermano c.840) ----
+
+    @Test
+    fun `descartada plural las tensiones`() {
+        // «las tensiones» (fricciones interpersonales) NO es la medición
+        // de salud: el piso no admite plural (decisión c.772, intacta).
+        assertNull(analyze("medirme las tensiones mañana"))
+    }
+
+    @Test
+    fun `descartada perifrasis me mido`() {
+        // Perífrasis conjugada «me mido»: fuera del alcance del piso
+        // (infinitivo con enclítico) — candidata potencial futura, una
+        // forma por ciclo (doctrina de la sonda).
+        assertNull(analyze("me mido la tensión mañana"))
+    }
 }
