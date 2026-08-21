@@ -1,3 +1,15 @@
+## Ciclo c.816 — 2026-08-21 (UTC) — feat(assistant): «cuantas rutinas tengo» responde con recuento honesto de rutinas activas — cierra el residuo de diseño de la sonda (c.815 openGaps)
+
+- **HEAD inicial del segmento**: `2ca10dc` (c.815 propio, pull --ff-only limpio, sin colisión). Suite entrante: OK (5051). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Problema (residual P2 de diseño)**: «cuantas rutinas tengo» caía al menú genérico — mentira por omisión. El dato existe (`OrdiaUiState.routines`) pero `AssistantEngine.answer` no lo recibía (faltaba el param, decisión de diseño pendiente desde c.815).
+- **Decisión (DECISIONS c.816)**: recuento honesto textual (hermana del recuento de pendientes c.798), NO abrir la pantalla de rutinas — «cuántas» pide una cifra, no una navegación; isActive==false no cuenta (rutinas archivadas).
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.answer(query, tasks, activeEvents, routines, now, zone)` — nuevo param `routines: List<RoutineEntity>` (NO default); predicado nuevo («cuantas»/«cuántas» + «rutina(s)», excluido de `ENTITY_LISTING_FORMS`); rama nueva cerca del recuento de pendientes: vacío honesto «No tienes rutinas activas.», cuenta sólo activas y nombra las 2 primeras. `AssistantScreen.kt` pasa `state.routines` al llamar. Cero pantalla nueva, cero IA fingida.
+- **TDD**: RED exacto — +3 tests nuevos, error de compilación esperado («no parameter with name 'routines'») → **GREEN OK (5054 = 5051 + 3)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistente `AssistantDiscoveryRoundProbe` +1 regresión («cuantas rutinas tengo») → 0 GAPs de 13. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/AssistantScreen.kt` (wiring 1 línea), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+3, +import `RoutineEntity`), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+1 regresión), `AI_AUTONOMY/*`.
+- **Residuos restantes (≈1 píldora)**: «tengo que hacer algo en la mañana» (franja temporal — requiere decisión de diseño del alcance). Ninguno necesita pantalla nueva.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: «tengo que hacer algo en la mañana» (diseñar alcance: agenda matutina vs marcas de tiempo); o agendas históricas abiertas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.
+
 ## Ciclo c.815 — 2026-08-21 (UTC) — feat(assistant): paráfrasis «cosas que tengo pendientes» rutea al recuento/listado honesto de pendientes — cierra el residuo de paráfrasis de c.812/c.813
 
 - **HEAD inicial del segmento**: `cb13119` (c.814 propio, pull --ff-only limpio). Suite entrante: OK (5050). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.FocusSessionEntity
+import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -46,7 +47,8 @@ object AssistantEngine {
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault(),
         profile: LearningProfile? = null,
-        focusSessions: List<FocusSessionEntity> = emptyList()
+        focusSessions: List<FocusSessionEntity> = emptyList(),
+        routines: List<RoutineEntity> = emptyList()
     ): AssistantAnswer {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
@@ -797,6 +799,20 @@ object AssistantEngine {
                     relatedTaskIds = active.map { it.id }
                 )
             }
+            // c.816 — recuento honesto de rutinas (residuo de la sonda c.815):
+            // «cuantas rutinas tengo» caía al menú porque la rama de recuento
+            // sólo recibía tareas; las rutinas ahora llegan como parámetro
+            // (AssistantScreen pasa state.routines). Cuenta las activas (no
+            // archivadas) y nombra las 5 primeras, hermana del recuento de
+            // pendientes. Vacío: vacío honesto (NUNCA menú).
+            isRoutineCountQuery(query) -> {
+                val liveRoutines = routines.filter { !it.archived }
+                val preview = liveRoutines.take(5)
+                AssistantAnswer(
+                    if (liveRoutines.isEmpty()) "No tienes rutinas activas."
+                    else "Tienes ${liveRoutines.size} rutinas: ${preview.joinToString(", ") { "«${it.name}»" }}${if (liveRoutines.size > 5) "…" else "."}"
+                )
+            }
             // Petición de tiempo invertido (cluster sonda assistant: "en qué
             // gasto mi tiempo", "en qué estoy gastando tiempo", "en qué se me
             // va el tiempo"). El usuario pregunta EN QUÉ invirtió su día;
@@ -1340,6 +1356,13 @@ object AssistantEngine {
             // c.801 (sonda extendida): forma de duración-restante honesta.
             "cuanto me falta" in query || "cuanto falta" in query ||
             query.trim() in PENDING_PARAPHRASE_FORMS
+
+    // c.816 — recuento de rutinas: «cuantas rutinas tengo/hay» (las
+    // rutinas llegan como parámetro de `answer`, hermano del recuento de
+    // pendientes). Sólo el sustantivo cuantificado; el listado pelado
+    // («rutinas», «mis rutinas») sigue en `entityListingPayload` (c.795).
+    private fun isRoutineCountQuery(query: String): Boolean =
+        "cuantas rutinas" in query
 
     /** La más larga del día por duración planificable; `null` si nada queda. */
     private fun longestTaskToday(tasks: List<TaskEntity>, now: Long, zone: ZoneId): TaskEntity? {

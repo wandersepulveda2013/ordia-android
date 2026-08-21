@@ -73,7 +73,8 @@ fun AssistantScreen(
         } else null
         latest = AssistantEngine.answer(
             value, state.tasks, conversations, commitments, now = clockNow,
-            profile = profile, focusSessions = state.focusSessions
+            profile = profile, focusSessions = state.focusSessions,
+            routines = state.routines
         )
         input = ""
     }

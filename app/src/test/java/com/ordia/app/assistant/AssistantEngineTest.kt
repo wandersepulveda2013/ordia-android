@@ -1,6 +1,7 @@
 package com.ordia.app.assistant
 
 import com.ordia.app.data.local.FocusSessionEntity
+import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.RecurrenceFrequency
@@ -3022,6 +3023,29 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("cosas que tengo pendientes", listOf(t1), emptyList(), emptyList())
         assertTrue("'cosas que tengo pendientes' lista las pendientes, no el menú: ${answer.text}",
             !answer.text.contains("Puedo organizar") && answer.text.contains("1 pendiente"))
+    }
+
+    // ---- c.816 (residuo de la sonda c.815): recuento honesto de rutinas ----
+
+    @Test fun routineCount_recognizesCuantasRutinasTengo() {
+        val r1 = RoutineEntity(id = 1, name = "Mañana")
+        val r2 = RoutineEntity(id = 2, name = "Noche")
+        val answer = AssistantEngine.answer("cuantas rutinas tengo", emptyList(), emptyList(), emptyList(), routines = listOf(r1, r2))
+        assertTrue("'cuantas rutinas tengo' nombra el recuento, no el menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar") && answer.text.contains("2 rutinas"))
+    }
+
+    @Test fun routineCount_excludesArchived() {
+        val live = RoutineEntity(id = 1, name = "Mañana")
+        val archived = RoutineEntity(id = 2, name = "Vieja", archived = true)
+        val answer = AssistantEngine.answer("cuantas rutinas tengo", emptyList(), emptyList(), emptyList(), routines = listOf(live, archived))
+        assertTrue("sólo cuenta las activas: ${answer.text}", answer.text.contains("1 rutinas"))
+    }
+
+    @Test fun routineCount_emptyIsHonest() {
+        val answer = AssistantEngine.answer("cuantas rutinas tengo", emptyList(), emptyList(), emptyList())
+        assertTrue("vacío honesto, no menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar") && answer.text.contains("No tienes rutinas activas."))
     }
 
     @Test fun forgetful_recognizesQueNoDeboOlvidar() {

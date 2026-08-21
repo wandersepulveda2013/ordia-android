@@ -16858,3 +16858,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: «cuantas rutinas tengo» (necesita decisión de diseño — recuento familiar de rutinas/hábitos; la rama sólo recibe tareas) o «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance); o agendas históricas (backup-restore deep-dive, accesibilidad contentDescription). Temporales desnudas siguen BLOCKED-humano.
+
+
+## Ciclo c.816 — 2026-08-21 (UTC) — feat(assistant): «cuantas rutinas tengo» → recuento honesto de rutinas activas (residuo de diseño cerrado; sonda persistente 13 frases)
+
+- **HEAD inicial**: `2ca10dc` (c.815 propio; pull --ff-only limpio, sin colisión). Suite entrante: OK (5051). Env JVM heredado (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21).
+- **Problema (P2 residual de diseño, c.815 openGaps)**: «cuantas rutinas tengo» caía al menú genérico — mentira por omisión: `OrdiaUiState.routines` existe pero `AssistantEngine.answer` no lo recibía (param ausente).
+- **Decisión (DECISIONS c.816)**: recuento honesto textual (hermana del recuento de pendientes c.798), NO Open Screen Routines — «cuántas» pide una cifra en línea; `isActive==false` no cuenta (archivadas).
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.answer` recibe `routines: List<RoutineEntity>` (param NO default); predicado nuevo («cuantas»/«cuántas» + «rutina(s)», excluido de ENTITY_LISTING_FORMS); rama nueva cerca del recuento de pendientes: vacío «No tienes rutinas activas.», con datos nombra las 2 primeras activas. `AssistantScreen.kt` pasa `state.routines`. Cero pantalla nueva, cero IA fingida.
+- **Tests**: RED exacto (error de compilación esperado: param ausente) → **GREEN OK (5054 = 5051 + 3)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistente `AssistantDiscoveryRoundProbe` +1 regresión («cuantas rutinas tengo») → 0 GAPs de 13. Sin tests reducidos/eliminados/falseados.
+- **Bugs**: ninguno. **Features**: recuento de rutinas del asistente.
+- **Archivos**: `AssistantEngine.kt`, `AssistantScreen.kt` (wiring 1 línea), `AssistantEngineTest.kt` (+3, +import), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+1 regresión), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance: agenda matutina vs marcas de tiempo); o agendas históricas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.

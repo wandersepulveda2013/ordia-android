@@ -43,7 +43,11 @@ fun main() {
         // DECISIÓN DE PRODUCTO tomada (DECISIONS.md): pendiente-de-ayer ≡
         // RECUPERACIÓN (hermana de «qué olvidé», rama vencidas con
         // forgottenIntent), no recap ni conteo frío.
-        "que tengo pendiente de ayer"
+        "que tengo pendiente de ayer",
+        // c.816 — «cuantas rutinas tengo» (residuo de diseño en openGaps
+        // c.815): DECISIÓN tomada — `answer` recibe `routines` y la rama
+        // cuenta las activas (hermana del recuento de pendientes c.798).
+        "cuantas rutinas tengo"
     )
     // ABIERTOS: ninguno — la ronda c.803-b quedó cerrada (c.804 ×3, c.807 ×2,
     // c.808 ×3, c.809 ×1). La sonda sigue fallando (exit 1) ante cualquier
