@@ -7,7 +7,7 @@
 - **TDD**: RED exacto — 13 tests nuevos, EXACTAMENTE 6 fallaron (las 6 capturas; 6 guards + 1 regresión de envolvente verdes desde RED) → GREEN OK (13/13). `bash tools/run_domain_tests.sh` → **OK (5097 = 5084 base integrada del hermano + 13)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST fuente real: «tramitar el pasaporte mañana» → TASK 0.45 «Tramitar el pasaporte» dueAt=true; guards NULL intactos. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (+13 piso, +5 plantilla), `ContextIntentEngineTramitarFloorTest.kt` (NUEVO, +13), `tools/probe/CaptureCoverageProbe.kt` (NUEVO, sondeo persistente 37 formas; las 2 formas tramitar marcadas REGRESIÓN c.822), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `b6625cc` (feat c.822, rebase+renumber sobre `c8b3903`); HEAD final: `b6625cc`.
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «hacer/preparar/meter la maleta», «mandar el paquete», «encargar el pastel», «vaciar la nevera/armario», «echar gasolina»; residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ## Ciclo c.821 — 2026-08-21 (UTC) — feat(assistant): familia «recuperación de tareas olvidadas» (las pendientes más antiguas por createdAt real) con vacío honesto
