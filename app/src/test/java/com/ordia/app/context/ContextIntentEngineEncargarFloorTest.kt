@@ -124,6 +124,34 @@ class ContextIntentEngineEncargarFloorTest {
         assertNull(analyze("encargar"))
     }
 
+    // --- Refuerzo c.825 (segundo run, base integrada): guards de borde
+    // verificados contra la implementación integrada con sonda efímera
+    // PRE (4/4 comportamiento correcto); se bloquean como regresión ---
+
+    @Test
+    fun meEncargueDelPastel_reflexivePastStaysNull() {
+        assertNull(analyze("me encargué del pastel"))
+    }
+
+    @Test
+    fun encargoElPastelTodasLasSemanas_habitualFirstPersonStaysNull() {
+        assertNull(analyze("encargo el pastel todas las semanas"))
+    }
+
+    @Test
+    fun teEncargoElPaquete_secondPersonPresentStaysNull() {
+        assertNull(analyze("te encargo el paquete"))
+    }
+
+    @Test
+    fun encargarElRegaloEstaNoche_otherObjectFamilyCaptures() {
+        val intent = analyze("encargar el regalo esta noche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Encargar el regalo", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
     // --- Regresión: la envolvente c.613 sigue gobernando (PRE-fix:
     // TASK 0.45, título limpio) ---
 

@@ -17016,3 +17016,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «echar gasolina», «gestionar el alta/reclamación»; residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P3 títulos con envoltura residual.
+### 2026-08-21 — ciclo c.825b (agente autónomo OpenHands — base `ae8443c`; STALE_RUN duplicado c.825 hermano; refuerzo test-only)
+- **HEAD inicial**: `ae8443c` (docs c.824 remoto; pull --ff-only inicial limpio). Fetch final: STALE_RUN — la rama avanzó con c.825 hermano («encargar», `be3a0dc`+`48c1bf3`) y c.826 hermano (pasado de «deber», `5207dfa`+`260a8d3`).
+- **Resolución**: mi c.825 duplicado (piso+plantilla+13 tests idénticos en función) DESCARTADO (stash drop, archivos restaurados a HEAD); NO destructivo (NO force/reset --hard/clean/main). Base reintegrada ff-only.
+- **Verificación hermano + unidad test-only**: sonda efímera 4 formas de borde no cubiertas → 4/4 correctas; +4 tests de bloqueo en `ContextIntentEngineEncargarFloorTest.kt` («me encargué del pastel»/«encargo el pastel todas las semanas»/«te encargo el paquete» → NULL; «encargar el regalo esta noche» → TASK 0.45 dueAt). Cero cambio de producción.
+- **Tests (base final `0a970d7`)**: suite **OK (5179 = 5175 hermano (c.823…c.828) + 4)**; smokes 25/25 y 9/9 re-verificados.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **STALE ×3 (contención máxima)**: el hermano integró c.825/c.826, luego c.827 («maleta», `9b2330c`) y luego c.828 («vaciar», `0a970d7`) durante mis dos resoluciones; mi base avanzó 3 veces por ff-only sin pérdidas (conflictos SOLO docs, resueltos conservando ambas entradas).
+- **Próxima prioridad**: siguiente NULL de `CaptureCoverageProbe` (UNA forma por ciclo): «echar gasolina», «gestionar el alta/reclamación»; «encargar» RESUELTO c.825, «maleta» c.827, «vaciar» c.828. Residual P2 c.818. Re-fetch OBLIGATORIO.
+

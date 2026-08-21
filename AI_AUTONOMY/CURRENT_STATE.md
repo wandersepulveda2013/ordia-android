@@ -9,6 +9,17 @@
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Commits**: tras este append; HEAD final: `776cd69` (c.828).
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «echar gasolina esta tarde», «gestionar el alta/reclamación»; residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P3 títulos con envoltura residual («Habría que…»/«Que…»); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
+## Ciclo c.825b — 2026-08-21 (UTC) — test(context): STALE_RUN colisión c.825 «encargar» (duplicado descartado) + verificación del hermano + refuerzo de guards de borde (+4 tests)
+
+- **HEAD inicial**: `ae8443c` (docs c.824; pull --ff-only inicial limpio). STALE_RUN en el fetch final: la rama avanzó `ae8443c`→`260a8d3` con el c.825 hermano (`be3a0dc` feat «encargar» + `48c1bf3` docs, MISMA unidad elegida por la misma sonda) y el c.826 hermano (`5207dfa` pasado de «deber» + `260a8d3` docs).
+- **Resolución NO destructiva**: mi implementación duplicada (piso + plantilla + 13 tests, idéntica en función a la del hermano) se DESCARTÓ (stash drop tras restaurar archivos a HEAD); NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Base reintegrada por ff-only.
+- **Verificación del hermano (suite sobre base fusionada)**: sonda efímera `/tmp/probe825/EdgeGuardProbe.kt` (fuente real, 4 formas de borde NO cubiertas por sus tests): «me encargué del pastel» → NULL, «encargo el pastel todas las semanas» → NULL, «te encargo el paquete» → NULL, «encargar el regalo esta noche» → TASK 0.45 «Encargar el regalo» dueAt=true — 4/4 comportamiento correcto (anti-overreach intacto, captura extendida a otra familia de objeto).
+- **Unidad entregada (test-only, aditiva)**: +4 tests en `ContextIntentEngineEncargarFloorTest.kt` bloqueando esos 4 bordes (reflexivo pasado, habitual 1ª persona, presente 2ª persona, segunda familia de objeto con ancla «esta noche»). Cero cambio de producción.
+- **STALE ×3 (contención máxima)**: el hermano integró c.825/c.826, c.827 («maleta», `9b2330c`) y c.828 («vaciar», `0a970d7`) durante mis dos resoluciones; base avanzada 3 veces por ff-only sin pérdidas (conflictos SOLO en docs: prepend/append conservando AMBAS entradas).
+- **Tests (base final `0a970d7`)**: `bash tools/run_domain_tests.sh` → **OK (5179 = 5175 hermano (c.823…c.828) + 4)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/test/java/com/ordia/app/context/ContextIntentEngineEncargarFloorTest.kt` (+4 tests), `AI_AUTONOMY/*`. Sonda `/tmp/probe825/*` fuera del repo.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Próxima prioridad**: siguiente NULL de la sonda `CaptureCoverageProbe` (UNA forma por ciclo): «echar gasolina», «gestionar el alta/reclamación»; «encargar» RESUELTO c.825, «maleta» c.827, «vaciar» c.828. Residual P2 c.818 «Icon( null-decorativo». Re-fetch OBLIGATORIO antes de implementar.
 
 ---
 
