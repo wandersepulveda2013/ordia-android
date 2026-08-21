@@ -1018,7 +1018,30 @@ object AssistantEngine {
     private val ENTITY_LISTING_LABELS = mapOf(
         "habitos" to "los hábitos", "rutinas" to "las rutinas", "proyectos" to "los proyectos"
     )
-    private fun entityListingPayload(query: String): String? = ENTITY_LISTING_FORMS[query.trim()]
+    // Tokens de familia listable tolerados por el calificador «activo» y las
+    // muletillas interrogativas («qué», «tengo», «hay»): «habitos activos» o
+    // «que habito tengo activo» rutean AL MISMO bundle que la forma pelada en
+    // vez de caer al menú genérico (c.797). Se ignora sólo cuando lo que queda
+    // tras filtrar calificador+interrogativa es EXACTAMENTE un token de
+    // familia; si hay contenido real («habitos activos lectura») no se rutea.
+    private val ENTITY_LISTING_QUALIFIERS = setOf("activo", "activos", "activa", "activas")
+    private val ENTITY_LISTING_NOISE = setOf("que", "tengo", "hay", "mis")
+    private val ENTITY_LISTING_TOKENS: Map<String, String> = mapOf(
+        "habito" to "habitos", "habitos" to "habitos",
+        "rutina" to "rutinas", "rutinas" to "rutinas",
+        "proyecto" to "proyectos", "proyectos" to "proyectos"
+    )
+    private fun entityListingPayload(query: String): String? {
+        ENTITY_LISTING_FORMS[query.trim()]?.let { return it }
+        val meaningful = query.trim().split(Regex("\\s+"))
+            .filterNot { it in ENTITY_LISTING_QUALIFIERS || it in ENTITY_LISTING_NOISE }
+        // Tras filtrar calificador/muletillas, deben quedar EXCLUSIVAMENTE
+        // tokens de familia; si hay contenido real («habitos activos lectura»)
+        // no se rutea al bundle.
+        if (meaningful.isEmpty() || meaningful.any { it !in ENTITY_LISTING_TOKENS }) return null
+        val distinct = meaningful.distinct()
+        return if (distinct.size == 1) ENTITY_LISTING_TOKENS[distinct[0]] else null
+    }
 
     // Forma sustantiva del verbo de búsqueda (c.796, residuo (f) de la sonda
     // c.793): «búsqueda de <operando>». Exige el conector «de» y un operando

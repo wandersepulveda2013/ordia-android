@@ -132,6 +132,16 @@ object SearchEngine {
         // "marcadas"/"completadas" para el atributo de recurrencia.
         val wantsRecurring = RECURRING_TOKENS.any { it in words }
         val recurringTerms = if (wantsRecurring) RECURRING_TOKENS.filter { it in words }.toSet() else emptySet()
+        // «activos»/«activas»/«activo»/«activa» sobre las familias listables
+        // (hábito/rutina/proyecto): un hábito lo es si no está archivado (el
+        // filtro `!archived` ya es la semántica de «activo»; una rutina/proyecto
+        // activa == no archivada). Sin este guard, la palabra «activo» se exigía
+        // en el título/detalles y el listado volvía vacío — c.797. Se ignora
+        // SÓLO cuando hay familia (habito/rutina/proyecto), simétrico al resto
+        // de atributos (completadas/marcadas/prioridad).
+        val activeTerms = if (wantsHabits || wantsRoutines || wantsProjects) {
+            ACTIVE_QUALIFIER_TOKENS.filter { it in words }.toSet()
+        } else emptySet()
         // "en la mañana"/"por la mañana" (preposición + artículo): la mañana
         // (franja 6..11) de HOY, jamás tomorrow — la misma lectura que "esta
         // mañana", el parser de captura (hoy 09:00) y el motor de contexto.
@@ -301,7 +311,7 @@ object SearchEngine {
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE, TaskRules.isMissedStart(it, now)))
             }
-            projects.filter { (!typed || wantsProjects) && !it.archived && !pureDateScope && (matches(it.name, it.description) || semanticMatches(PROJECT_TERMS, it.name, it.description)) }.forEach {
+            projects.filter { (!typed || wantsProjects) && !it.archived && !pureDateScope && (matches(it.name, it.description) || semanticMatches(PROJECT_TERMS + activeTerms, it.name, it.description)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
             notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (!wantsPinned || it.pinned) }.filter {
@@ -310,12 +320,12 @@ object SearchEngine {
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90))))
             }
-            habits.filter { (!typed || wantsHabits) && !it.archived && !pureDateScope && (matches(it.title, it.details) || semanticMatches(HABIT_TERMS, it.title, it.details)) }.forEach {
+            habits.filter { (!typed || wantsHabits) && !it.archived && !pureDateScope && (matches(it.title, it.details) || semanticMatches(HABIT_TERMS + activeTerms, it.title, it.details)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90))))
             }
             routines.filter { (!typed || wantsRoutines) && !it.archived && !pureDateScope }.filter {
                 val sh = stepHaystack(it.id)
-                matches(it.name, it.description, *sh) || semanticMatches(ROUTINE_TERMS, it.name, it.description, *sh)
+                matches(it.name, it.description, *sh) || semanticMatches(ROUTINE_TERMS + activeTerms, it.name, it.description, *sh)
             }.forEach { r ->
                 // Subtítulo útil aunque la rutina no tenga descripción: los
                 // primeros pasos unidos por " · ", recortados. Reusa datos
@@ -504,6 +514,12 @@ object SearchEngine {
     private val HABIT_TERMS = setOf("habito", "habitos")
     private val ROUTINE_TERMS = setOf("rutina", "rutinas")
     private val PROJECT_TERMS = setOf("proyecto", "proyectos")
+    // Calificador «activo» («activo/activa/activos/activas») sobre las familias
+    // listables (hábito/rutina/proyecto): se ignora en `semanticMatches`
+    // igual que el término de familia, porque para estas la semántica honesta
+    // es «no archivado» y el filtro `!archived` ya lo cumple. Sin él, la palabra
+    // se exigía en el título/detalles y el listado volvía vacío (c.797).
+    private val ACTIVE_QUALIFIER_TOKENS = setOf("activo", "activa", "activos", "activas")
 
     // Tokens de intent tipado (palabra exacta) para las familias listables —
     // simétricos a TAREA/PENDIENTE/VENCIDA_INTENT_TOKENS: libera el listado

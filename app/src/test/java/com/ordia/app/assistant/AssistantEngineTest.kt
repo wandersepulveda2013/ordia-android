@@ -5164,6 +5164,50 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("habitos de lectura", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
+    // c.797 — calificador «activo(s)/activa(s)» sobre las familias listables:
+    // rutea al MISMO bundle que la forma pelada (c.795) en vez de caer al menú.
+    // El calificador no añade contenido (hábito = activo por definición aquí;
+    // rutina/proyecto activo = no archivado, y el buscador ya filtra archived),
+    // así que la ruta honesta es el listado de la familia. Sin ello, «habitos
+    // activos» se respondía con el menú genérico — mentira por omisión.
+    @Test fun entityListing_habitosActivos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("habitos activos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("habitos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_rutinasActivas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("rutinas activas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("rutinas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_proyectosActivos_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("proyectos activos", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("proyectos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_queHabitoTengoActivo_routesToOpenSearch() {
+        // Palabras interrogativas («qué», «tengo», «hay») no envenenan: con el
+        // remanente «hábito + activo» el ruteo honesto sigue siendo la familia.
+        val answer = AssistantEngine.answer("que habito tengo activo", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("habitos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_guard_calificadorSoloSinFamiliaNoRutea() {
+        // «activos» solo no es listado de nada: sigue al flujo normal.
+        val answer = AssistantEngine.answer("activos", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun entityListing_guard_contenidoQualificadoNoRutea() {
+        // «habitos activos de lectura»: hay contenido real tras el calificador
+        // de activo, así que no hay familia única que listar → menú.
+        val answer = AssistantEngine.answer("habitos activos lectura", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
 
     // c.794 — calificador de contenido sobre la superficie de notas («notas
     // de/del/de la <X>»), hermano de c.792 (tareas): el guard c.793

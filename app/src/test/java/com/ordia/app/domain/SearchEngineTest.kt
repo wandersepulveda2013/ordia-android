@@ -1543,4 +1543,60 @@ class SearchEngineTest {
         val ids = SearchEngine.search("pendiente", listOf(pending, done), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
         assertEquals(listOf(1L), ids)
     }
+
+    // --- Calificador "activo(s)/activa(s)" sobre las familias listables (c.797) ---
+    // Un hábito lo es si no está archivado (el buscador ya filtra `archived`); una
+    // rutina/proyecto activa = no archivada. Sin esta regla, «habitos activos»/
+    // «rutinas activas» exigían «activo» en el título y el listado volvía vacío —
+    // mentira por omisión. Se ignora SOLO cuando hay familia (wantsHabits/
+    // wantsRoutines/wantsProjects), igual que se ignoran «habito»/«rutina»/
+    // «proyecto» en `semanticMatches`.
+
+    @Test fun habitosActivos_listsHabitsWithoutTitleQualifier() {
+        val habit = HabitEntity(id = 7, title = "Leer")
+        val results = SearchEngine.search(
+            "habitos activos",
+            emptyList(), emptyList(), emptyList(), listOf(habit)
+        )
+        assertEquals(listOf(7L), results.map { it.id })
+    }
+
+    @Test fun rutinasActivas_listsRoutinesWithoutTitleQualifier() {
+        val routine = RoutineEntity(id = 8, name = "Gym")
+        val results = SearchEngine.search(
+            "rutinas activas",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            routines = listOf(routine)
+        )
+        assertEquals(listOf(8L), results.map { it.id })
+    }
+
+    @Test fun proyectosActivos_listsProjectsWithoutTitleQualifier() {
+        val project = ProjectEntity(id = 9, name = "Mudanza")
+        val results = SearchEngine.search(
+            "proyectos activos",
+            emptyList(), listOf(project), emptyList(), emptyList()
+        )
+        assertEquals(listOf(9L), results.map { it.id })
+    }
+
+    @Test fun habitosActivos_stillExcludesArchivedHabits() {
+        // El calificador se ignora, pero el filtro de archivado ES la semántica
+        // honesta de «activo» para la familia: la archivada no ha de pasar.
+        val activa = HabitEntity(id = 7, title = "Leer")
+        val archivada = HabitEntity(id = 8, title = "Correr", archived = true)
+        val results = SearchEngine.search(
+            "habitos activos",
+            emptyList(), emptyList(), emptyList(), listOf(activa, archivada)
+        )
+        assertEquals(listOf(7L), results.map { it.id })
+    }
+
+    @Test fun activoQualifier_aloneOnTitleStillMatches() {
+        // Guardia: «activos» SIN familia sigue siendo contenido legítimo — una
+        // tarea cuyo título es «Activos» se recupera por texto, no por filtro.
+        val task = TaskEntity(id = 12, title = "Cierre activos 2025")
+        val results = SearchEngine.search("activos", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(12L), results.map { it.id })
+    }
 }
