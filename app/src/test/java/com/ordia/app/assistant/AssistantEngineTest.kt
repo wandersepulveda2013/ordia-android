@@ -2028,6 +2028,19 @@ class AssistantEngineTest {
         }
     }
 
+    // c.812 sonda de descubrimiento (DiscoveryRound202608): «tareas sin agenda» /
+    // «sin programación» deben entrar al paquete sin-fecha (la más olvidable).
+    @Test fun undated_sinAgendaSinProgramacion() {
+        val tasks = listOf(TaskEntity(id = 1, title = "Idea suelta"))
+        for (q in listOf("tareas sin agenda", "pendientes sin programación")) {
+            val answer = AssistantEngine.answer(q, tasks, emptyList(), emptyList())
+            assertTrue("$q → ${answer.text}", answer.text.contains("Idea suelta"))
+            assertEquals("$q", listOf(1L), answer.relatedTaskIds)
+        }
+    }
+
+
+
     @Test fun undated_noneIsHonestNotMenu() {
         val answer = AssistantEngine.answer(
             "tareas sin fecha",
@@ -5309,6 +5322,20 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("preparar la repetición de la clase", listOf(ordinary), emptyList(), emptyList())
         assertTrue("noun does not list recurring: ${answer.text}", answer.relatedTaskIds.isEmpty())
     }
+
+    // c.812 sonda de descubrimiento (DiscoveryRound202608): «tareas que se
+    // repite(n)» debe entrar al vocabulario recurrente (rutinas).
+    @Test fun recurring_seRepite_listsRecurring() {
+        val recurring = TaskEntity(id = 1, title = "Backup semanal", recurrence = RecurrenceFrequency.WEEKLY)
+        val ordinary = TaskEntity(id = 2, title = "Factura única")
+        for (q in listOf("tareas que se repite", "tareas que se repiten", "que se repite", "que se repiten")) {
+            val answer = AssistantEngine.answer(q, listOf(recurring, ordinary), emptyList(), emptyList())
+            assertTrue("$q → lista recurrentes: ${answer.text}", answer.text.contains("Backup semanal"))
+            assertTrue("$q → no incluye la única: ${answer.text}", !answer.text.contains("Factura única"))
+        }
+    }
+
+
 
 
     // c.787 — (v) notas fijadas: la única ruta honesta del asistente hacia las

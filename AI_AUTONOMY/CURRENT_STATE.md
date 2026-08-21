@@ -1,3 +1,15 @@
+## Ciclo c.812 — 2026-08-21 (UTC) — feat(assistant): sonda EPHEMERAL nueva de consultas cotidianas elige y cierra 2 familias — vocabulario «sin agenda/sin programación» → sin-fecha, y «se repite(n)» → recurrentes (GAPs de ruta al menú genérico)
+
+- **HEAD inicial del segmento**: `46958b3` (c.811 propio, push limpio). Suite entrante: OK (5043). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Descubrimiento (sonda efímera `/tmp/probes/DiscoveryRound202608.kt`, 29 frases cotidianas)**: 16 GAPs entrantes → se eligieron 2 familias de bajo coste y alta frecuencia: (a) formas «tareas sin agenda» / «sin programación» que apuntan al mismo conjunto que UNDATED (las más olvidables) y caían al menú; (b) «tareas que se repite(n)» (memoria de rutinas: `TaskEntity.recurrence != NONE` ya llega) caía al menú. GAPs restantes residuales documentados abajo.
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.kt` — (a) `isUndatedQuery` += `"sin agenda"` y `"sin programacion"` (el guard `sin` mantiene la frase inocua ante "tengo agenda llena"/«programación» a secas); (b) `isRecurringQuery` += `RECURRING_PHRASES` («se repite»/«se repiten», frase exacta — no roba el infinitivo "repetir".como-título, simétrica a `MISSED_SLIP_HEADS`). Cero pantalla nueva, cero wiring, cero IA fingida: memoria de vocabulario determinista.
+- **TDD**: RED exacto — +2 tests nuevos fallaron EXACTAMENTE como se predijo → **GREEN OK (5045 = 5043 + 2)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistida `AssistantDiscoveryRoundProbe` sigue 0 GAPs de 12; sonda efímera POST: 16→13 GAPs. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+2), `AI_AUTONOMY/*`.
+- **Residuos documentados (cada uno ≈1 píldora; sonda efímera la aterrizándolos)**: «quiero ver todas mis tareas»/«tareas que tengo» (familia-listado ya ruteada por `ENTITY_LISTING_FORMS`; solo falta la forma "tener" interrogativa), «cuantas rutinas tengo» («cuantas tareas tengo» ya es recuento), «de que va mi semana»/«como va mi semana» (la variante exacta ya rutea), «tengo que hacer algo en la mañana» (franja temporal), «cosas que tengo pendientes» (paraphrase what-now). Cada uno es una unidad atómica pequeña, candidata al próximo run. Ninguno requiere pantalla nueva.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: limpiar el resto de la sonda efímera (≈7 formas), una por run; o las agendas abiertas históricas (backup-restore deep-dive, accesibilidad «contentDescription», auditoría de otros consumidores de `WhatNowEngine` por `zone` silenciada — hermana de c.604).
+
+
 ## Ciclo c.811 — 2026-08-21 (UTC) — feat(assistant): respuesta de recordatorios ofrece OPEN_SEARCH «recordatorios» cuando la lista supera la ventana + conteo honesto sobre TODOS
 
 - **HEAD inicial del segmento**: `0a9f154` (c.810 remoto, pull --ff-only limpio, sin colisión). Suite entrante: OK (5041). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

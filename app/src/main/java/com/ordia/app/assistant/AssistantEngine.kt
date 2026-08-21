@@ -982,15 +982,28 @@ object AssistantEngine {
         "recurrente", "recurrentes", "repetitiva", "repetitivas"
     )
 
+    // c.812 sonda de descubrimiento (DiscoveryRound202608): la forma cotidiana
+    // «tareas que se repiten» caía al menú pese a que la memoria de rutinas
+    // (recurrence != NONE) ya llega. Frase (no token aislado — "repite" suelto
+    // seguiría siendo acción), simétrica a [MISSED_SLIP_HEADS]; no secuestra
+    // el infinitivo ("repetir una tarea" sigue sin ruteo).
+    private val RECURRING_PHRASES = listOf("se repite", "se repiten")
+
     private fun isRecurringQuery(query: String): Boolean =
-        query.split(" ").any { it in RECURRING_WORDS }
+        query.split(" ").any { it in RECURRING_WORDS } ||
+            RECURRING_PHRASES.any { it in query }
 
     // Intención "tareas sin fecha": identica al scope UNDATED de SearchEngine
     // ("sin" + hint: fecha/vencimiento/día/plazo), así búsqueda y asistente
     // coinciden en qué frases abren el conjunto. "compromiso sin fecha" NO se
     // roba: la rama de compromisos se evalúa antes que ésta en `answer`.
+    // c.812 sonda de descubrimiento (DiscoveryRound202608): «sin agenda»/«sin
+    // programación» apuntan al mismo conjunto (las tareas por anclar en
+    // calendario) y caían al menú; el guard `sin` sigue haciendo la frase
+    // inocua para "tengo agenda llena"/"programación" a secas.
     private fun isUndatedQuery(query: String): Boolean =
-        "sin fecha" in query || "sin vencimiento" in query || "sin dia" in query || "sin plazo" in query
+        "sin fecha" in query || "sin vencimiento" in query || "sin dia" in query || "sin plazo" in query ||
+            "sin agenda" in query || "sin programacion" in query
 
     // Recordatorios consultables por voz (c.808): la preferencia vive en
     // TaskEntity.reminderAt y YA llega al asistente, así que «qué recordatorios
