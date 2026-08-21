@@ -31,7 +31,7 @@
 - **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (+11), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+6 tests), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+4 frases regresión), `AI_AUTONOMY/*`.
 - **Tests**: TDD RED exacto — 6 tests nuevos, EXACTAMENTE 4 fallaron (4 rutas), 2 guards verdes desde RED (sin-scope + por-palabra) → GREEN. `bash tools/run_filtered_test.sh "AssistantEngineTest"` → OK (437). `bash tools/run_domain_tests.sh` → **OK (5078 = 5072 + 6)**, 0 failures. `bash tools/run_domain_checks.sh` → 25/25 OK. `bash tools/run_automation_engine_checks.sh` → 9/9 OK. Sonda persistente → 0 GAPs de 18. Sin tests reducidos/eliminados/falseados. Sonda efímera POST conservada en `/tmp/probe820` (fuera del repo).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: sonda `ContextIntentEngine.classify`/`extractTitle` (cobertura de routing; residual «imperfecto/condicional» y listados de `AssistantHonestRouteProbe` c.797); residual P2 c.818 «Icon( null-decorativo»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ## Ciclo c.814 (2026-08-21 — residual c.813 resuelto: variante «de que va mi semana» rutea a la agenda semanal)
@@ -16859,7 +16859,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto 4 fallos (guard «pendiente de mañana» verde) → **GREEN OK (5036 = 5031 + 5)**; smoke 25/25; sonda end-to-end: **0 GAPs de 12 — ronda c.803-b CERRADA** (c.804 ×3, c.807 ×2, c.808 ×3, c.809 ×1). Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt` (openGaps vacío), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: nueva ronda de descubrimiento (sonda c.803-b agotada): parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / auditoría de otra superficie. Temporales desnudas siguen BLOCKED-humano.
 
 ## Ciclo c.810 — 2026-08-21 (UTC) — feat(search): «recordatorios» recuperable desde la búsqueda universal (paridad con asistente c.808)
@@ -16869,7 +16869,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto 4 fallos (1 guarda verde) → **GREEN OK (5041 = 5036 + 5)**; smoke 25/25; automation smoke 9/9; sonda discovery end-to-end 0 GAPs de 12. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `SearchEngine.kt`, `SearchEngineTest.kt` (+5), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: nueva ronda de descubrimiento (parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / otra superficie). Opcional P3: acción OPEN_SEARCH «recordatorios» en la respuesta del asistente c.808.
 
 ## Ciclo c.811 — 2026-08-21 (UTC) — feat(assistant): OPEN_SEARCH «recordatorios» cuando la lista supera la ventana + conteo honesto
@@ -16892,7 +16892,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto 1 fallo → **GREEN OK (5051 = 5050 + 1)**; smokes 25/25 y 9/9. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+1), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: «cuantas rutinas tengo» (necesita decisión de diseño — recuento familiar de rutinas/hábitos; la rama sólo recibe tareas) o «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance); o agendas históricas (backup-restore deep-dive, accesibilidad contentDescription). Temporales desnudas siguen BLOCKED-humano.
 
 
@@ -16906,7 +16906,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Bugs**: ninguno. **Features**: recuento de rutinas del asistente.
 - **Archivos**: `AssistantEngine.kt`, `AssistantScreen.kt` (wiring 1 línea), `AssistantEngineTest.kt` (+3, +import), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+1 regresión), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance: agenda matutina vs marcas de tiempo); o agendas históricas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.
 
 ## Ciclo c.817 — 2026-08-21 (UTC) — feat(assistant): «tengo que hacer algo en la mañana» rutea a agenda por franja — residuo cerrado, 0 openGaps
@@ -16918,7 +16918,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto — +3 tests, EXACTAMENTE 2 fallaron (guard verde desde RED) → **GREEN OK (5057 = 5054 + 3)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistente `AssistantDiscoveryRoundProbe` +1 regresión → 0 GAPs de 14. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+3), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+1 regresión), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: nueva ronda de descubrimiento (agendas históricas: backup-restore deep-dive, accesibilidad contentDescription, auditoría de consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.
 
 
@@ -16933,7 +16933,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Bugs**: ninguno nuevo. **Features**: parser ordinal numérico quinto.
 - **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+3), `FocusRecapTest.kt` (NUEVO), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: accesibilidad (1ª pantalla de las samples, textos en R.string) o SIN TEST restantes (`NoteBlocks`, `TaskMutationGate`).
 
 ### 2026-08-21 — ciclo c.822 (agente autónomo OpenHands — continuidad c.820 `fab5bab`, fetch/estado: rama ya al día, sin colisión)
@@ -16958,7 +16958,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «encargar el pastel mañana», «hacer/preparar la maleta esta noche», «vaciar la nevera el domingo», «echar gasolina esta tarde»; residual P2 c.818 «Icon( null-decorativo» (62 sitios); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: sonda `ContextIntentEngine.classify`/`extractTitle` (cobertura de routing; residual «imperfecto/condicional» y listados de `AssistantHonestRouteProbe` c.797); residual P2 c.818 «Icon( null-decorativo»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ### 2026-08-21 — ciclo c.824 (agente autónomo OpenHands — continuidad c.820 `fab5bab`, pull ff-only limpio)
@@ -16970,5 +16970,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +16 nuevos en `ContextIntentEnginePastObligationGuardTest.kt` (10 pasado → NULL [incl. negada + ancla futura]; 2 envolturas presentes preservadas TASK/REMINDER; 4 controles presente intactos [incl. acción antes del marcador]). RED vía sondas PRE (fuente real) → GREEN post-fix. `bash tools/run_domain_tests.sh` → **5094 PASS** (5078 + 16), 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (patrón + helper + guard + comentarios c.824), `app/src/test/java/com/ordia/app/context/ContextIntentEnginePastObligationGuardTest.kt` (NUEVO +16), `AI_AUTONOMY/*`. Probes `/tmp/probe821/*` fuera del repo.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `525f851` (fix c.824; rebase ×2 + renumber c.821→c.823→c.824 por colisiones con runs remotos c.821/c.822/c.823 — convención c.655). HEAD final: `525f851`. Suite final sobre base fusionada (remotos c.821+c.822+c.823 + c.824): **5126 PASS**, smoke 25/25.
 - **Próxima prioridad**: (i) residual P2 — evaluar «habría que/debería …» (condicional de necesidad reconocida; doctrina c.649 — requiere evidencia de daño real); (ii) residual P2 c.818 «Icon( null-decorativo» (62 sitios) u opción accesibilidad de textos; (iii) workers/backup/restore con DAOs/Room reales (P0 — NO JVM-verificable); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
