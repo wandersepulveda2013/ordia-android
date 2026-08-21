@@ -1524,6 +1524,25 @@ object ContextIntentEngine {
             // hermano semántico de "pedir" c.712/"mandar" c.823; no es
             // desplazamiento a destino físico (no ERRAND).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )encargar\s+\w""").containsMatchIn(lower)
+            // c.827: "hacer/preparar/meter la maleta" ("hacer la maleta esta
+            // noche", "preparar la maleta mañana"), forma 1/N de la familia
+            // equipaje de la sonda `tools/probe/CaptureCoverageProbe.kt`
+            // (c.822). Renumerado de c.823 a c.827 por colisiones con runs
+            // remotos (el hermano tomó c.823 «mandar», c.824, c.825
+            // «encargar» y c.826 «deber pasado»). El verbo "hacer" es muy bivalente (la compra —
+            // SHOPPING c.758—, la cama —HOUSEHOLD c.728—, copia de
+            // seguridad —c.774—) y "meter" también (la pata/ruido/gol), así
+            // que el piso se ACOTA al objeto `maletas?` (misma doctrina
+            // objeto-anclada que c.774). Lockstep keyword-OBJETO "maleta"
+            // en ContextIntentKind.TASK.keywords (lección c.713/c.751/
+            // c.765). Ancla ^/ACK/temporal; `(?<!no )` bloquea la negada;
+            // el pasado "hice…"/"preparó…"/"metí…" y la afirmación
+            // nominal "la maleta está hecha" no casan; "meter la carta"
+            // (objeto distinto) no casa. Plural idioma: "hacer las
+            // maletas". Kind: TASK — hacer la maleta gobierna el equipaje
+            // (preparación), no el desplazamiento (TRAVEL queda para
+            // "viaje/vuelo/hotel").
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|preparar|meter)\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2445,6 +2464,15 @@ object ContextIntentEngine {
                 // preserva (doctrina c.653): "Hacer backup" queda tal cual.
                 val matchHacerCopiaSeguridad = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:copias?\s+de\s+seguridad|backups?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCopiaSeguridad != null) return "Hacer ${matchHacerCopiaSeguridad.groupValues[2]}"
+                // c.827: plantilla "hacer/preparar/meter la maleta" (ancla/
+                // guard idénticos al piso; lección c.616: el match arranca
+                // en el verbo, así acuse/prefijo temporal se despojan; el
+                // residuo temporal de cola lo depura [sanitizeTitle]). El
+                // verbo se capitaliza desde el match (3 alternativas: no se
+                // puede fijar como c.774) y la grafía del objeto se preserva
+                // (doctrina c.653).
+                val matchMaleta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|preparar|meter)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMaleta != null) return "${capitalizeFirst(matchMaleta.groupValues[1])} ${matchMaleta.groupValues[2]}"
 
                 null
             }

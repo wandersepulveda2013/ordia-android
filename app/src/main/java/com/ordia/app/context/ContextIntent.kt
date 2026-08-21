@@ -88,7 +88,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword aunque sumara sólo 0.12. "backup" es inequívoco en español
         // corriente; 0.12 sola queda bajo el umbral: "el backup está
         // corrupto" sigue descartado.
-        "backup")),
+        "backup",
+        // c.827: keyword-OBJETO "maleta" (lockstep con el piso acotado
+        // "hacer/preparar/meter la maleta", ver ContextIntentEngine.hasStrongTaskImperative).
+        // NO los verbos: "hacer"/"preparar" ya son keywords genéricas y
+        // "meter" es bivalente (la pata/ruido/gol). "maleta" es inequívoca
+        // en español corriente ("maletín" no la contiene: «malet-í» ≠
+        // «malet-a»); 0.12 sola queda bajo el umbral: "la maleta está
+        // hecha" sigue descartado.
+        "maleta")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

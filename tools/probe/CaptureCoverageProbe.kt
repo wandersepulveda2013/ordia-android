@@ -25,6 +25,8 @@ fun main() {
         "tramitar la visa la semana que viene",
         "renovar el pasaporte el lunes", // control: 'renovar' ya tiene piso (c.698)
         // Equipaje/viaje doméstico ("maleta" nunca sondeada)
+        // c.827: REGRESIÓN — las tres primeras formas ya tienen piso
+        // objeto-anclado (TASK) tras el fix c.827; deben reportar HIT.
         "hacer la maleta esta noche",
         "preparar la maleta mañana",
         "meter la maleta en el coche esta noche",
