@@ -1449,6 +1449,19 @@ object ContextIntentEngine {
             // tramitaciones son gestión remota/digital y ERRAND está
             // anclado a destinos físicos.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tramitar\s+\w""").containsMatchIn(lower)
+            // c.823: "mandar <objeto>" ("mandar el paquete el jueves"),
+            // forma 1/N de la clase de encargos/comisiones (sonda propia
+            // con pool de dispersión por epoch-day sobre los NULLs de
+            // `tools/probe/CaptureCoverageProbe.kt` c.822; metodología
+            // idéntica). Mismo ancla/guard que c.691…c.822: verbo al inicio
+            // o tras acuse o tras prefijo temporal; `\s+\w` exige objeto;
+            // `(?<!no )` bloquea la negada; el sustantivo "mandado", la 1ª
+            // persona narrativa "te mando" y el pasado "mandó" no casan.
+            // Kind decidido: TASK — "mandar" gobierna el OBJETO
+            // (paquete/fax/documento) como acción de gestión, hermano
+            // semántico de "pedir" c.712/"enviar" c.692; no es
+            // desplazamiento a destino físico (no ERRAND).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )mandar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2185,6 +2198,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchTramitar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tramitar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTramitar != null) return "Tramitar ${matchTramitar.groupValues[1]}"
+
+                // "mandar X" → "Mandar X" (c.823): mismo criterio
+                // que c.691…c.822 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchMandar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )mandar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMandar != null) return "Mandar ${matchMandar.groupValues[1]}"
 
                 // "pedir X" → "Pedir X" (c.712): mismo criterio
                 // que c.691…c.711 (verbo preservado, acuse/prefijo

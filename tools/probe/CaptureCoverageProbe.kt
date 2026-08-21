@@ -29,6 +29,8 @@ fun main() {
         "preparar la maleta mañana",
         "meter la maleta en el coche esta noche",
         // Encargos/comisiones ("mandar/encargar" nunca sondeados; "enviar" sí, c.692)
+        // c.823: REGRESIÓN — las dos formas de "mandar" ya tienen piso
+        // (TASK) tras el fix c.823; deben reportar HIT.
         "mandar el paquete el jueves",
         "mandar el fax mañana",
         "encargar el pastel mañana",
