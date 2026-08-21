@@ -45,6 +45,8 @@ fun main() {
         "pedir el pastel mañana", // control: 'pedir' es keyword de TASK
         // Compra doméstica suelta ("nevera")
         "llenar la nevera mañana",
+        // c.828: REGRESIÓN — "vaciar" ya tiene piso doméstico de posición
+        // libre (precedente c.727) tras el fix c.828; debe reportar HIT.
         "vaciar la nevera el domingo",
         // Vehículo/combustible ("gasolina" 1 hit: ERRAND_CARRY)
         "echar gasolina esta tarde",

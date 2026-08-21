@@ -166,6 +166,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // no captura: guardia en el piso y baja puntuación de keyword).
         "fregar", "barrer", "trapear", "regar", "sacudir", "desempolvar", "tender",
         "aspirar",
+        // c.828: "vaciar" — lockstep c.639 con el piso de posición libre
+        // (precedente c.727 "tender"): quehacer monosémico (vaciar un
+        // contenedor/espacio), sin acepción figurada frecuente.
+        "vaciar",
         // c.717: objeto del piso `sacar la basura` (lockstep keyword↔piso,
         // lección c.639). "sacar" suelto es demasiado genérico, así se
         // alinea el OBJETO restringido en el piso.
