@@ -1529,7 +1529,15 @@ object ContextIntentEngine {
             // no casan. Negación sin cláusula dedicada: keyword 0.12
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
             // c.771).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b""").containsMatchIn(lower)
+            // c.840: el verbo admite el enclítico reflexivo «medirme»
+            // (candidata 1/4 de la sonda persistida c.834; forma real más
+            // cotidiana del autocontrol). Sólo «me»: te/se/nos no son
+            // formas de autocuidado en primera persona. Acotado deliberado
+            // (una forma por ciclo): la otra diagonal «medir la presión»
+            // (no reflexiva) sigue FUERA — candidata documentada. El ancla
+            // de objeto `tensi[oó]n` blinda la bivalencia («medirme el peso
+            // mañana» NULL verificado por sonda efímera `/tmp/probe839/`).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir(?:me)?\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b""").containsMatchIn(lower)
             // Piso "medirme la presión" (c.775, quinta clase — salud/
             // autocuidado; dispersión epoch-day 20686 % 2 = 0 sobre el pool
             // OPEN residual de 2; NULL PRE verificado por la sonda sobre
@@ -2583,8 +2591,13 @@ object ContextIntentEngine {
                 // la mesa…" nunca llega aquí porque el piso no lo captura).
                 // La grafía del usuario se preserva (doctrina c.653): "la
                 // tension" sin tilde queda tal cual en el título.
-                val matchMedirTension = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchMedirTension != null) return "Medir ${matchMedirTension.groupValues[2]}"
+                // c.840: el grupo del verbo admite el enclítico «me» del
+                // piso (lockstep), así el título conserva el pronombre
+                // («Medirme la tensión», precedente c.770 «Tomarme la
+                // pastilla»); el verbo se capitaliza desde el match
+                // (hermano c.836).
+                val matchMedirTension = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir(?:me)?)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMedirTension != null) return "${capitalizeFirst(matchMedirTension.groupValues[1])} ${matchMedirTension.groupValues[2]}"
                 // c.775: presión arterial reflexiva (grafía del usuario preservada;
                 // verbo reconstruido capitalizado — hermana c.770).
                 val matchMedirmePresion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medirme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
