@@ -890,7 +890,10 @@ object AssistantEngine {
     // frase exacta en la consulta normalizada (foldForSearch quita los acentos).
     // Se excluye "te" ("¿qué te pasó?" es "ocurrió algo", no un olvido); nunca
     // la palabra "paso" suelta. Simétrico a SearchEngine.MISSED_SLIP_HEADS.
-    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas")
+    // c.797: cabezas imperfeccionables del olvido incluyen "se me olvid" /
+    // "se nos olvid" — forma cotidiana ("¿qué se me olvidaba?", "¿qué se nos
+    // olvidó?") que caía al menú genérico (mentira por omisión).
+    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas", "se me olvid", "se nos olvid")
 
     private fun isMissedSlipQuery(query: String): Boolean =
         MISSED_SLIP_HEADS.any { it in query }
@@ -995,7 +998,14 @@ object AssistantEngine {
         "proyectos" to "proyectos", "mis proyectos" to "proyectos", "los proyectos" to "proyectos",
         "ver proyectos" to "proyectos", "ver los proyectos" to "proyectos",
         "todos los proyectos" to "proyectos", "todos mis proyectos" to "proyectos",
-        "proyecto" to "proyectos", "el proyecto" to "proyectos", "mi proyecto" to "proyectos"
+        "proyecto" to "proyectos", "el proyecto" to "proyectos", "mi proyecto" to "proyectos",
+        // c.797: formas interrogativas (frase completa, no tokens sueltos).
+        "que habitos tengo" to "habitos", "cuales son mis habitos" to "habitos",
+        "cuales son los habitos" to "habitos",
+        "que rutinas tengo" to "rutinas", "cuales son mis rutinas" to "rutinas",
+        "cuales son las rutinas" to "rutinas",
+        "que proyectos tengo" to "proyectos", "cuales son mis proyectos" to "proyectos",
+        "cuales son los proyectos" to "proyectos"
     )
     private val ENTITY_LISTING_LABELS = mapOf(
         "habitos" to "los hábitos", "rutinas" to "las rutinas", "proyectos" to "los proyectos"

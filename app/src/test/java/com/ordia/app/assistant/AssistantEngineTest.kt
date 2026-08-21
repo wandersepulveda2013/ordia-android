@@ -914,6 +914,47 @@ class AssistantEngineTest {
         assertTrue(answer.action != AssistantAction.RUN_REPLAN)
     }
 
+    // --- c.797: forma imperfecta del olvido ("se me olvidaba/olvidó") ---
+    // El guard de misSED solo miraba "pas": «¿qué se me olvidaba?» caía al menú
+    // (mentira por omisión en la superficie de recuperación). Extensión de
+    // este vocabulario con el mismo fixture de missed-start de arriba.
+    @Test fun forgottenIntent_seMeOlvidaba_phraseNamesMissedStart() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 11, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué se me olvidaba?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra el compromiso olvidado: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+        assertEquals(listOf(11L), answer.relatedTaskIds)
+    }
+
+    @Test fun forgottenIntent_seNosOlvido_phraseNamesMissedStart() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 12, title = "Recoger documentación",
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 15,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué se nos olvidó?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra el compromiso olvidado (plural): ${answer.text}", answer.text.contains("Recoger documentación"))
+        assertEquals(listOf(12L), answer.relatedTaskIds)
+    }
+
     @Test fun overdueIntent_doesNotPretendMissedStartIsOverdue() {
         // "vencidas" pregunta por vencidas (dueAt pasado). Un compromiso cuyo hueco
         // pasó (isMissedStart genuino: start+duración < now, sin dueAt vencido) NO es
@@ -4957,6 +4998,35 @@ class AssistantEngineTest {
         // «tareas completadas» es vocabulario (recap del logro), no calificador.
         val answer = AssistantEngine.answer("tareas completadas hoy", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    // --- c.797: interrogativo de entidades (proyectos/rutinas/hábitos) ---
+    // El map ENTITY_LISTING_FORMS sólo cubría formas imperativas/del artículo
+    // ("mis proyectos", "los proyectos"...). Las interrociones cotidianas
+    // ("¿qué proyectos tengo?", "¿cuáles son mis proyectos?") caían al menú.
+    // Paridad: misma ruta honesta (OPEN_SEARCH con payload de entidad).
+    @Test fun entityListing_interrogativeQueProyectosTengo() {
+        val answer = AssistantEngine.answer("¿qué proyectos tengo?", emptyList(), emptyList(), emptyList())
+        assertEquals("ruta búsqueda", AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("payload proyectos", "proyectos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_interrogativeCualesSonMisProyectos() {
+        val answer = AssistantEngine.answer("¿cuáles son mis proyectos?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("proyectos", answer.actionPayload)
+    }
+
+    @Test fun entityListing_interrogativeQueRutinasTengo() {
+        val answer = AssistantEngine.answer("¿qué rutinas tengo?", emptyList(), emptyList(), emptyList())
+        assertEquals("rutinas", answer.actionPayload)
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun entityListing_interrogativeQueHabitosTengo() {
+        val answer = AssistantEngine.answer("¿qué hábitos tengo?", emptyList(), emptyList(), emptyList())
+        assertEquals("habitos", answer.actionPayload)
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
     @Test fun contentQualified_guard_flaggedStaysFlagged() {

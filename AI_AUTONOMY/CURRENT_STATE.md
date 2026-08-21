@@ -1,3 +1,14 @@
+## Ciclo c.797 — 2026-08-21 (UTC) — fix(assistant/search): olvido imperfecto «se me/se nos olvid…» + interrogativos de listado de entidades (proyectos/rutinas/hábitos) — 18→13 GAP en sonda nueva `tools/probe/AssistantHonestRouteProbe.kt`
+
+- **HEAD inicial**: `9ae4a1f` (c.796). Fetch sin avance (no colisión). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
+- **Problema (P1 paridad / recup. información, SAME FAMILIA c.793..c.796)**: sonda nueva `tools/probe/AssistantHonestRouteProbe.kt` (25 frases cotidianas) descubre 18 GAPs — mentiras por omisión. Seleccionadas 2 familias de mayor valor, baja ambigüedad: (a) **olvido imperfecto** «¿qué se me olvidaba?»/«¿qué se nos olvidó?» — vocabulario del olvido sólo reconocía «se me/se nos pas»; (b) **listados interrogativos** «¿qué proyectos tengo?», «cuáles son mis rutinas/hábitos/proyectos» — el map `ENTITY_LISTING_FORMS` (c.795) sólo cubría imperativo/determinante.
+- **Solución (cambio mínimo)**: `AssistantEngine.MISSED_SLIP_HEADS` += «se me olvid», «se nos olvid»; `SearchEngine.MISSED_SLIP_HEADS` idem (paridad). `AssistantEngine.ENTITY_LISTING_FORMS` += formas interrogativas exactas («que <X> tengo» / «cuales son mis/los/las <X>») → OPEN_SEARCH con payload canónico (misma regla de exact-match, guardas hermanas de c.793/795). Determinista, zero random, zero IA fingida, zero botón nuevo.
+- **TDD (RED→GREEN)**: RED — +6 tests, EXACTAMENTE 6 fallaron (2 olvido + 4 listados); GREEN `OK (4939 tests: 4933 base + 6)`, 0 failures; smoke 25/25 OK. Sonda POST: 18→13 GAPs (olvido y 4 listados cerrados).
+- **Archivos**: `AssistantEngine.kt` (MISSED_SLIP_HEADS + ENTITY_LISTING_FORMS); `SearchEngine.kt` (MISSED_SLIP_HEADS); `AssistantEngineTest.kt` (+6); `tools/probe/AssistantHonestRouteProbe.kt` (persistente); `AI_AUTONOMY/*`. 
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK). La rama sí en JVM.
+- **Próxima prioridad**: de los 13 GAP restantes los de mayor señal P2 son (i) «que tarea es mas larga» (most deferrable longitud expuesta sólo como OVERLOADED), (ii) «que debo hacer ahora» (what-now form variant), (iii) «cuantas pendientes tengo» sin «hoy» — guard conservador (decisión humana). Auditoría nueva con probes (vencidas importantes, horario libre).
+
+
 ## Ciclo c.796 — 2026-08-21 (UTC) — fix(assistant): forma sustantiva «búsqueda de <X>» → OPEN_SEARCH con operando despojado (residuo (f) sonda c.793)
 
 - **HEAD inicial**: `0942a53` (c.795 publicado en sesión previa del mismo run). Sin colisión (único remoto con avance).

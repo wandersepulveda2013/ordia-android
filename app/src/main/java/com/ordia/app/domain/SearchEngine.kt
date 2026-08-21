@@ -548,7 +548,9 @@ object SearchEngine {
     private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados", "olvide")
     // Cabeçeras de frase para el modismo del olvido "se me/se nos pas*"
     // (1.ª singular y plural; "te" excluido a propósito).
-    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas")
+    // c.797: extendidas con "se me/se nos olvid" (olvidaba/olvidó), paridad con
+    // AssistantEngine.MISSED_SLIP_HEADS.
+    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas", "se me olvid", "se nos olvid")
     // Formas del participio "completado/hecho/terminado/finalizado/acabado" (no el
     // infinitivo "completar"/"terminar") más la 1ª persona del pretérito
     // "completé"→"complete" y "hice" (de hacer), las frases MÁS naturales para
