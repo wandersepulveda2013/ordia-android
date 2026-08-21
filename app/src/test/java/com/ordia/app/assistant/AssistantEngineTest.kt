@@ -3014,6 +3014,16 @@ class AssistantEngineTest {
             !answer.text.contains("Puedo organizar") && answer.text.contains("No tienes tareas pendientes."))
     }
 
+    // c.815 — paráfrasis natural del recuento/listado de pendientes (residuo de
+    // la sonda assistant): «cosas que tengo pendientes» caía al menú genérico
+    // aunque la misma intención ya tenía ruta honesta (c.798). Debe listar.
+    @Test fun pendingCount_recognizesCosasQueTengoPendientes() {
+        val t1 = TaskEntity(id = 8, title = "Llamar al banco")
+        val answer = AssistantEngine.answer("cosas que tengo pendientes", listOf(t1), emptyList(), emptyList())
+        assertTrue("'cosas que tengo pendientes' lista las pendientes, no el menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar") && answer.text.contains("1 pendiente"))
+    }
+
     @Test fun forgetful_recognizesQueNoDeboOlvidar() {
         val answer = AssistantEngine.answer("que no debo olvidar", emptyList(), emptyList(), emptyList())
         assertTrue("'que no debo olvidar' rutea honesto, no al menú: ${answer.text}",

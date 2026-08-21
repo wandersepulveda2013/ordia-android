@@ -1,3 +1,15 @@
+## Ciclo c.815 — 2026-08-21 (UTC) — feat(assistant): paráfrasis «cosas que tengo pendientes» rutea al recuento/listado honesto de pendientes — cierra el residuo de paráfrasis de c.812/c.813
+
+- **HEAD inicial del segmento**: `cb13119` (c.814 propio, pull --ff-only limpio). Suite entrante: OK (5050). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Sonda efímera `/tmp/probes/ResidualProbe.kt` (6 frases residuales)**: confirma GAPs y elige 1 unidad — «cosas que tengo pendientes» → NONE/menú. (También caen al menú «cuantas rutinas tengo» y «tengo que hacer algo en la mañana» — documentados como residuales; «de que va mi semana» ya ruteada por c.814.)
+- **Problema (residual P2)**: paráfrasis natural del recuento/listado de pendientes (c.798) caía al menú genérico — mentira por omisión en la frecuente superficie «qué me falta».
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.isPendingCountQuery` += `PENDING_PARAPHRASE_FORMS` (7 formas EXACTAS de frase completa: «cosas que tengo pendientes», «que tengo pendiente(s)», «lo que tengo pendiente(s)», «cosas pendientes», «tengo cosas pendientes»). Exactitud deliberada (no substrings): no secuestra el calificador de contenido («que tengo pendientes de química», rutas c.792/c.807) ni la agenda («que tengo pendiente hoy»). Respuesta reusa la rama de recuento honesto: «Tienes N pendientes: «títulos» (hasta 5)» con `relatedTaskIds`. Cero pantalla nueva, cero wiring, cero IA fingida.
+- **TDD**: RED exacto — +1 test nuevo (`pendingCount_recognizesCosasQueTengoPendientes`), EXACTAMENTE 1 falló como se predijo → **GREEN OK (5051 = 5050 + 1)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+1), `AI_AUTONOMY/*`.
+- **Residuos restantes (≈1 píldora cada uno)**: «cuantas rutinas tengo» (recuento familiar de rutinas — requiere decisión de diseño: la rama de recuento sólo recibe tareas), «tengo que hacer algo en la mañana» (franja temporal — diseñar alcance). Ninguno necesita pantalla nueva.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: los residuales anteriores (uno por run); o agendas históricas abiertas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.
+
 ## Ciclo c.814 — 2026-08-21 (UTC) — feat(assistant): variante «de que va mi semana» rutea a la agenda semanal — cierra el residuo semanal de c.812/c.813
 
 - **HEAD inicial del segmento**: `e459c6c` (c.813 propio pusheado en este run, fetch pre-commit limpio). Suite entrante: OK (5048). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

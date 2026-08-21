@@ -1320,14 +1320,26 @@ object AssistantEngine {
         "mas larga" in query
 
     /**
-     * Petición de recuento honesto de pendientes ("¿cuántas tareas tengo?",
-     * "¿cuántas pendientes tengo?"). Antes caía al menú genérico (los dos
-     * GAPs restantes de la sonda AssistantHonestRouteProbe tras c.798).
+     * Petición de recuento/listado honesto de pendientes ("¿cuántas tareas
+     * tengo?", "¿cuántas pendientes tengo?"). Antes caía al menú genérico (los
+     * dos GAPs restantes de la sonda AssistantHonestRouteProbe tras c.798).
      */
+    // c.815 — paráfrasis natural del recuento/listado (residuo de la sonda):
+    // «cosas que tengo pendientes» caía al menú aunque la intención ya tenía
+    // ruta honesta (c.798). Formas EXACTAS de frase completa (no substrings)
+    // para no secuestrar el calificador de contenido («que tengo pendientes
+    // de química», rutas c.792/c.807) ni la agenda («que tengo pendiente hoy»).
+    private val PENDING_PARAPHRASE_FORMS = setOf(
+        "cosas que tengo pendientes", "cosas pendientes",
+        "que tengo pendiente", "que tengo pendientes",
+        "lo que tengo pendiente", "lo que tengo pendientes",
+        "tengo cosas pendientes"
+    )
     private fun isPendingCountQuery(query: String): Boolean =
         "cuantas tareas" in query || "cuantas pendientes" in query ||
             // c.801 (sonda extendida): forma de duración-restante honesta.
-            "cuanto me falta" in query || "cuanto falta" in query
+            "cuanto me falta" in query || "cuanto falta" in query ||
+            query.trim() in PENDING_PARAPHRASE_FORMS
 
     /** La más larga del día por duración planificable; `null` si nada queda. */
     private fun longestTaskToday(tasks: List<TaskEntity>, now: Long, zone: ZoneId): TaskEntity? {
