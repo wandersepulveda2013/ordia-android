@@ -1592,15 +1592,6 @@ class AssistantEngineTest {
     // verbo "debo" (la forma más natural de pedir la siguiente acción) y la
     // forma orden "qué tarea tengo primero" demandan la misma sugerencia.
 
-    @Test fun whatNow_recognizesQueDeboHacerAhora() {
-        val answer = AssistantEngine.answer("¿Qué debo hacer ahora?", whatNowUrgent, emptyList(), emptyList())
-        assertEquals("¿qué debo hacer ahora? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
-    }
-
-    @Test fun whatNow_recognizesQueTareaTengoPrimero() {
-        val answer = AssistantEngine.answer("¿Qué tarea tengo primero?", whatNowUrgent, emptyList(), emptyList())
-        assertEquals("¿qué tarea tengo primero? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
-    }
 
     @Test fun whatNow_queDeboHacerConScopeNoEsWhatNow() {
         // Guarda de alcance: «¿qué debo hacer mañana/esta semana/el viernes?»
@@ -2862,6 +2853,49 @@ class AssistantEngineTest {
         )
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
+    // ---- c.798 (sonda AssistantHonestRouteProbe): formas cotidianas de What Now
+    // y del veredicto de carga que caían al menú genérico. TDD RED → todo debe
+    // fallar hasta ampliar los guardas de los helpers. ----
+
+    @Test fun whatNow_recognizesQueDeboHacerAhora() {
+        // "¿qué debo hacer ahora?" es la forma más cotidiana de pedir la siguiente
+        // tarea junto con "qué hago"/"qué me toca"; antes caía al menú por no
+        // contener "hago"/"toca"/"sigue" (GAP Probe). Paridad con "que hago".
+        val answer = AssistantEngine.answer("¿qué debo hacer ahora?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué debo hacer ahora? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueTareaTengoPrimero() {
+        // "¿qué tarea tengo primero?" pide la siguiente acción; la agenda no la
+        // reclama (sin marcador temporal) y la guarda anti-colisión sigue en pie
+        // (paridad con "qué tengo que hacer" de c.afb). GAP Probe.
+        val answer = AssistantEngine.answer("¿qué tarea tengo primero?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué tarea tengo primero? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun dayLoad_recognizesCuantaCarga() {
+        // "¿cuánta carga tengo hoy?" pide el veredicto; era GAP Probe (caía al
+        // menú). Debe ser el mismo dayLoadAnswer, no otra rama.
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer("¿cuánta carga tengo hoy?", emptyList(), emptyList(), emptyList(), now, dayZone)
+        assertTrue("colapsa al veredicto de carga (LIGHT → 'despejado'): ${answer.text}", answer.text.contains("despejado"))
+    }
+
+    @Test fun dayLoad_recognizesTengoMuchasTareas() {
+        // "tengo muchas tareas" es el hermano declarativo de "tengo mucho que
+        // hacer" (ya reconocido); antes caía al menú (GAP Probe).
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer("tengo muchas tareas", emptyList(), emptyList(), emptyList(), now, dayZone)
+        assertTrue("día libre → 'despejado', nunca menú: ${answer.text}", answer.text.contains("despejado"))
+    }
+
+    @Test fun dayLoad_recognizesCuantoTiempoMeFalta() {
+        // "¿cuánto tiempo me falta?" es el hermano de "me queda" (ya reconocido);
+        // antes caía al menú (GAP Probe).
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer("¿cuánto tiempo me falta?", emptyList(), emptyList(), emptyList(), now, dayZone)
+        assertTrue("día libre → 'despejado', nunca menú: ${answer.text}", answer.text.contains("despejado"))
+    }
 
     // ---- phrasing natural de "¿cuánto tiempo me queda?" — paridad con "¿voy bien?" ----
     //
@@ -2924,6 +2958,93 @@ class AssistantEngineTest {
         assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
             answer.text.contains("holgura") || answer.text.contains("despejado") ||
                 answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    // ---- c.798-b (sonda AssistantHonestRouteProbe): segunda tanda de GAPs ----
+
+    @Test fun freeTime_recognizesQueTiempoTengo() {
+        // Forma invertida de "tengo tiempo": la sonda la seguía marcando GAP.
+        val answer = AssistantEngine.answer("¿qué tiempo tengo?", emptyList(), emptyList(), emptyList())
+        assertTrue("'qué tiempo tengo' rutea a hueco libre, no al menú: ${answer.text}",
+            answer.text.contains("Nada te cabe") || answer.text.contains("puedes completar"))
+    }
+
+    @Test fun freeTime_recognizesTiemposLibresHoy() {
+        val answer = AssistantEngine.answer("tiempos libres hoy", emptyList(), emptyList(), emptyList())
+        assertTrue("'tiempos libres hoy' rutea a hueco libre, no al menú: ${answer.text}",
+            answer.text.contains("Nada te cabe") || answer.text.contains("puedes completar"))
+    }
+
+    @Test fun freeTime_recognizesHorarioTengoLibre() {
+        val answer = AssistantEngine.answer("qué horario tengo libre", emptyList(), emptyList(), emptyList())
+        assertTrue("'qué horario tengo libre' rutea a hueco libre, no al menú: ${answer.text}",
+            answer.text.contains("Nada te cabe") || answer.text.contains("puedes completar"))
+    }
+
+    @Test fun recap_recognizesReversedMesPasadoHice() {
+        // "¿qué mes pasado hice?" es la forma invertida de "qué hice el mes
+        // pasado"; la sonda la marcaba GAP. La rama YA resuelve el período
+        // (LAST_MONTH_RECAP_MODIFICADORES); sólo falta el guarda.
+        val answer = AssistantEngine.answer("¿qué mes pasado hice?", emptyList(), emptyList(), emptyList())
+        assertTrue("rutea al recap del mes pasado, no al menú: ${answer.text}",
+            answer.text.contains("mes pasado") && !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun listing_recognizesCualesSonMisTareas() {
+        // Igualdad con hábitos/rutinas/proyectos: la familia tareas no tenía
+        // formas interrogativas de listing → la sonda la marcaba GAP; debe
+        // abrir la búsqueda con el semántico TASK_TERMS ("tareas").
+        val answer = AssistantEngine.answer("¿cuáles son mis tareas?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun longestTask_listsTheLongestOfToday() {
+        // "¿qué tarea es más larga?" pide la más larga de hoy (piscina = igual
+        // que deferrable: raíz activa, vencida hoy o antes, no auto-skip). Elige
+        // por duración explícita; empate → misma heurística de posponibilidad.
+        val now = dayAt(dayToday, 12)
+        val t1 = TaskEntity(id = 1, title = "Breve", durationMinutes = 15, dueAt = dayAt(dayToday, 17))
+        val t2 = TaskEntity(id = 2, title = "Maratón", durationMinutes = 90, dueAt = dayAt(dayToday, 17))
+        val answer = AssistantEngine.answer("¿qué tarea es más larga?", listOf(t1, t2), emptyList(), emptyList(), now, dayZone)
+        assertEquals("elige la de 90 min, no al menú: ${answer.text}", listOf(2L), answer.relatedTaskIds)
+        assertTrue("nombra la duración: ${answer.text}", answer.text.contains("90"))
+    }
+
+    @Test fun longestTask_deterministicOnTies() {
+        // Empate de duración → desempate determinista por id (mismo estilo
+        // estable que los comparadores del dominio).
+        val now = dayAt(dayToday, 12)
+        val t1 = TaskEntity(id = 1, title = "Larga-horas", dueAt = dayAt(dayToday, 17))
+        val t2 = TaskEntity(id = 2, title = "Corta", dueAt = dayAt(dayToday, 17))
+        val answer = AssistantEngine.answer("¿qué tarea es más larga?", listOf(t1, t2), emptyList(), emptyList(), now, dayZone)
+        assertEquals("desempate por id: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun longestTask_sinPendienteHonesto() {
+        // Sin pendiente hoy: vacío honesto («No tienes tareas pendientes
+        // hoy.»), nunca el menú genérico.
+        val answer = AssistantEngine.answer("¿qué tarea es más larga?", emptyList(), emptyList(), emptyList())
+        assertTrue("sin candidato honesto, no menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    // Recuento honesto de pendientes (los dos GAPs que cerró la sonda
+    // AssistantHonestRouteProbe tras c.798): «cuántas tareas»/«cuántas
+    // pendientes» responden con el número + vista previa, nunca menú.
+    @Test fun pendingCount_respuestaConNumeroYPreview() {
+        val now = dayAt(dayToday, 9)
+        val t1 = TaskEntity(id = 7, title = "A", dueAt = dayAt(dayToday, 12))
+        val t2 = TaskEntity(id = 8, title = "B", dueAt = dayAt(dayToday, 15))
+        val answer = AssistantEngine.answer("¿cuántas tareas tengo?", listOf(t1, t2), emptyList(), emptyList(), now, dayZone)
+        assertTrue("contiene el número: ${answer.text}", answer.text.contains("2"))
+        assertEquals("ambas ids: ${answer.text}", listOf(7L, 8L), answer.relatedTaskIds)
+    }
+
+    @Test fun pendingCount_vacíoCelebra() {
+        val answer = AssistantEngine.answer("¿cuántas pendientes tengo?", emptyList(), emptyList(), emptyList())
+        assertTrue("vacío honesto, no menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar") && answer.text.contains("No tienes tareas pendientes."))
     }
 
     // Guard anti-colisión: "tengo tiempo" suelto (sin "libre"/"cuánto") NO es

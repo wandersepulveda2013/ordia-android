@@ -16,6 +16,15 @@
 - **Archivos**: `AssistantEngine.kt` (vocabulario dayLoad); `AssistantEngineTest.kt` (+6 rutas); `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Próxima prioridad**: 5 GAP restantes — recuento «cuantas tareas/cuantas pendientes» (guarda «exige hoy» deliberada → BLOCKED, decisión humana), listado «cuales son mis tareas» (paridad OPEN_SEARCH «tareas»), duración «qué tarea es más larga»/«cuánto dura», y recap «qué mes pasado hice».
+## Ciclo c.800 (re-etiquetado; remoto hermano usó c.799) — 2026-08-21 (UTC) — fix(assistant): routing de consultas cotidianas — los 11 GAPs restantes cerrados (25/25 ok en `AssistantHonestRouteProbe.kt`)
+
+- **HEAD inicial**: `a8a6102` (c.797). Renumerado c.798→c.800 por colisión con hermano (su GI c.798 What-Now ×2 GAPs). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
+- **Problema (P1/P2 IA honesta — residuos de la sonda `tools/probe/AssistantHonestRouteProbe.kt` tras c.798 hermano)**: 11 GAPs cotidianos al menú genérico.
+- **Solución (cambio mínimo)**: 5 rutas nuevas deterministas y vacío-honestas (NUNCA menú): recuento («cuántas tareas»/«cuántas pendientes» → preview de 5 + número), duración («más larga» → `longestTaskToday` con empate desempatado por id ascendente — paridad comparadores dominio), recomendación («recomienda decidir/me conviene» → What Now), posponer («posponer» → `SummaryEngine.deferralCandidate`), hueco («tiempo/rato libre»). Más: `ENTITY_LISTING_FORMS` extendido (hábitos/proyectos) y `isCompletedRecapIntent` («que hice/complete»).
+- **TDD (RED→GREEN)**: RED en sesión previa — `longestTask_*` 2 fallos exactos (fix de firma `commitments=emptyList()`); +2 tests `pendingCount_*`. GREEN `OK (4954 tests))`, 0 failures; sonda POST **0 GAPs de 25** (11→0); smoke 25/25.
+- **Archivos**: `AssistantEngine.kt` (5 helpers), `AssistantEngineTest.kt` (+6), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK). La rama sí en JVM.
+- **Próxima prioridad**: sonda cerrada COMPLETA (25/25). Nuevas rondas con probes de descubrimiento (vencidas importantes, resumen del día, horario libre avanzado). BLOCKED-humano: temporales desnudas («ayer», «antier», «semana pasada») — ambigüedad agenda↔recap, decisión de producto.
 
 ## Ciclo c.798 — 2026-08-21 (UTC) — fix(assistant): variantes de What-Now «¿qué debo hacer?»/«¿qué tarea tengo primero?» rutean con guarda de alcance — sonda persistida 13→11 GAP
 

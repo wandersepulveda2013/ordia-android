@@ -136,7 +136,14 @@ object AssistantEngine {
                 // &&, y al ser true niega la rama). "que me falta" se incluye porque
                 // "¿qué me falta por hacer?" nombra exactamente lo pendiente. No se
                 // añaden verbos sueltos (paridad con whatNow_verbsAloneAreNotWhatNow).
-                (("que tengo que hacer" in query || "que me falta" in query) && !isAgendaQuery(query)) -> {
+                // c.798 (sonda AssistantHonestRouteProbe): se añaden "que debo hacer"
+                // (hermano cotidiano de "que hago") y "que tarea tengo primero" —
+                // ambas preguntan por la siguiente acción; la agenda no las activa
+                // (sin "que tengo"/marcador temporal; la guarda negada las protege
+                // igual que las hermanas de c.afb).
+                (("que tengo que hacer" in query || "que me falta" in query ||
+                    "que debo hacer" in query || "que tarea tengo primero" in query) &&
+                    !isAgendaQuery(query) && !hasAgendaDateScope(query)) -> {
                 val suggestion = WhatNowEngine.suggest(active, now, zone)
                 if (suggestion == null) {
                     // Quinto olvido de Ordía (c.357): sin tareas pendientes PERO con
@@ -706,6 +713,23 @@ object AssistantEngine {
             // honesto (NUNCA menú); vacío + promesa vencida → recuperación
             // (paridad familia lie-by-omission c.357/c.416/c.680). Determinista
             // local; cero random/IA fingida/pantalla nueva (decisión c.361).
+            // c.798 (sonda AssistantHonestRouteProbe): «¿qué tarea es más
+            // larga?» nombra la más larga del día por duración planificable
+            // (fuente única [TaskRules.plannedDuration], la misma del plan y
+            // del resumen → no discrepa con la tarjeta). Evalúa antes del
+            // deferral para que «larga» tenga su ruta. Vacío: vacío honesto
+            // (nunca menú).
+            isLongestTaskQuery(query) -> {
+                val longest = longestTaskToday(active, now, zone)
+                if (longest == null) {
+                    AssistantAnswer("No tienes tareas pendientes hoy.")
+                } else {
+                    AssistantAnswer(
+                        "La más larga de hoy es «${longest.title}» (≈${TaskRules.plannedDuration(longest)} min).",
+                        relatedTaskIds = listOf(longest.id)
+                    )
+                }
+            }
             isDeferralQuery(query) -> {
                 val candidate = SummaryEngine.deferralCandidate(active, now, zone)
                 if (candidate == null) {
@@ -717,6 +741,20 @@ object AssistantEngine {
                         relatedTaskIds = listOf(candidate.taskId)
                     )
                 }
+            }
+            // Recuento honesto de pendientes (sonda assistant c.798): «¿cuántas
+            // tareas tengo?»/«¿cuántas pendientes?» caían al menú genérico aunque
+            // el grupo activo ya está calculado («active» excluye subtareas y
+            // completadas, fuente única). Vacío: vacío honesto celebrativo
+            // (NUNCA menú; paridad familia lie-by-omission). Nombra las 5
+            // primeras para que el recuento actúe (no sólo diga un número).
+            isPendingCountQuery(query) -> {
+                val pendingPreview = active.take(5)
+                AssistantAnswer(
+                    if (active.isEmpty()) "No tienes tareas pendientes."
+                    else "Tienes ${active.size} pendientes: ${pendingPreview.joinToString(", ") { "«${it.title}»" }}${if (active.size > 5) "…" else "."}",
+                    relatedTaskIds = active.map { it.id }
+                )
             }
             // Petición de tiempo invertido (cluster sonda assistant: "en qué
             // gasto mi tiempo", "en qué estoy gastando tiempo", "en qué se me
@@ -800,10 +838,16 @@ object AssistantEngine {
                 "hice hoy" in query || "complete hoy" in query ||
                 "termine hoy" in query || "acabe hoy" in query ||
                 "completado hoy" in query
+        // c.798 (sonda AssistantHonestRouteProbe): forma invertida del recap —
+        // «¿qué mes pasado hice?»/«¿qué semana pasada hice?» — el token
+        // "hice" suelto basta para la intención de recap; el período lo
+        // resuelve completedAnswer (LAST_WEEK/LAST_MONTH_MODIFIERS) y cae a
+        // default hoy si no hay uno.
+        val recapLoose = "hice" in query
         // "hice ayer"/"hice anteayer" fuerzan la fecha aunque falte el verbo
         // recap explícito ("¿qué hice ayer?" trae "hice" + "ayer"; lo mismo con
         // anteayer). "anteayer" contiene "ayer", por lo que ambos se cubren.
-        return isRecapVerb || "hice ayer" in query || "hice anteayer" in query ||
+        return isRecapVerb || recapLoose || "hice ayer" in query || "hice anteayer" in query ||
             isCompletedAdjectiveQuery(query)
     }
 
@@ -1013,10 +1057,20 @@ object AssistantEngine {
         "que rutinas tengo" to "rutinas", "cuales son mis rutinas" to "rutinas",
         "cuales son las rutinas" to "rutinas",
         "que proyectos tengo" to "proyectos", "cuales son mis proyectos" to "proyectos",
-        "cuales son los proyectos" to "proyectos"
+        "cuales son los proyectos" to "proyectos",
+        // c.798 (sonda AssistantHonestRouteProbe): la familia tareas seguía
+        // sin formas de listing → «¿cuáles son mis tareas?» caía al menú
+        // genérico. Payload «tareas» (casa con TASK_TERMS del buscador),
+        // paridad con hábitos/rutinas/proyectos.
+        "tareas" to "tareas", "mis tareas" to "tareas", "las tareas" to "tareas",
+        "todas las tareas" to "tareas", "todas mis tareas" to "tareas",
+        "tarea" to "tareas", "la tarea" to "tareas", "mi tarea" to "tareas",
+        "que tareas tengo" to "tareas", "cuales son mis tareas" to "tareas",
+        "cuales son las tareas" to "tareas"
     )
     private val ENTITY_LISTING_LABELS = mapOf(
-        "habitos" to "los hábitos", "rutinas" to "las rutinas", "proyectos" to "los proyectos"
+        "habitos" to "los hábitos", "rutinas" to "las rutinas",
+        "proyectos" to "los proyectos", "tareas" to "las tareas"
     )
     // Tokens de familia listable tolerados por el calificador «activo» y las
     // muletillas interrogativas («qué», «tengo», «hay»): «habitos activos» o
@@ -1129,6 +1183,42 @@ object AssistantEngine {
         "pospon" in query || "dejar para manana" in query || "dejar para despues" in query
 
     /**
+     * Petición de la tarea más larga de hoy ("¿qué tarea es más larga?",
+     * "¿qué tareas son más largas?"). Hermano de [isDeferralQuery]: la misma
+     * piscina (pendiente de hoy) pero ordenada por duración planificable —
+     * la «más larga» es la palanca real cuando el usuario evalúa su carga.
+     * Conservador: «más larga» no casa con nada del vocabulario de agenda/
+     * posponer/carga (ninguna string contiene «larga»).
+     */
+    private fun isLongestTaskQuery(query: String): Boolean =
+        "mas larga" in query
+
+    /**
+     * Petición de recuento honesto de pendientes ("¿cuántas tareas tengo?",
+     * "¿cuántas pendientes tengo?"). Antes caía al menú genérico (los dos
+     * GAPs restantes de la sonda AssistantHonestRouteProbe tras c.798).
+     */
+    private fun isPendingCountQuery(query: String): Boolean =
+        "cuantas tareas" in query || "cuantas pendientes" in query
+
+    /** La más larga del día por duración planificable; `null` si nada queda. */
+    private fun longestTaskToday(tasks: List<TaskEntity>, now: Long, zone: ZoneId): TaskEntity? {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val pending = tasks.filter { task ->
+            task.parentTaskId == null && TaskRules.isActive(task) &&
+                listOfNotNull(task.dueAt, task.startAt).any { epoch ->
+                    Instant.ofEpochMilli(epoch).atZone(zone).toLocalDate() == today
+                }
+        }
+        // Duración descendente, id ascendente: empate resuelto determinista
+        // por el id más bajo (paridad con los comparadores del dominio).
+        return pending.sortedWith(
+            compareByDescending<TaskEntity> { TaskRules.plannedDuration(it) }
+                .thenBy { it.id }
+        ).firstOrNull()
+    }
+
+    /**
      * Petición de tiempo invertido: "¿en qué gasto mi tiempo?", "¿en qué estoy
      * gastando tiempo?", "¿en qué se me va el tiempo?". Tokens sin acento (ya
      * normalizados por `foldForSearch`). Conservadora y sin colisión:
@@ -1155,8 +1245,14 @@ object AssistantEngine {
      * arriba gana antes por posición; paridad positiva/negativa en tests).
      */
     private fun isFreeTimeQuery(query: String): Boolean {
-        val bareForm = "tengo tiempo" in query || "tengo hueco" in query ||
-            "tengo un hueco" in query || "tengo un rato" in query
+        // c.798 (sonda AssistantHonestRouteProbe): formas invertidas y
+        // plurales («¿qué tiempo tengo?», «tiempos libres hoy», «horario
+        // libre») — antes sólo «tengo tiempo/hueco/rato» ruteaba y esas
+        // formas cotidianas caían al menú genérico.
+        val bareForm = "tengo tiempo" in query || "tiempo tengo" in query ||
+            "tengo hueco" in query || "tengo un hueco" in query ||
+            "tengo un rato" in query || "tiempos libres" in query ||
+            "horario libre" in query || "horario tengo libre" in query
         return bareForm || freeTimeWindowMinutes(query) != null
     }
 
@@ -1971,17 +2067,18 @@ object AssistantEngine {
     private fun isDayLoadQuery(query: String): Boolean =
         "voy bien" in query || "voy mal" in query ||
             "da tiempo" in query || "me da tiempo" in query ||
-            "cuanto tiempo me queda" in query || "cuanto tiempo libre" in query ||
+            "cuanto tiempo me queda" in query || "cuanto tiempo me falta" in query ||
+            "cuanto tiempo libre" in query ||
             "cuanto me queda" in query || "tengo tiempo libre" in query ||
             "tengo mucho que hacer" in query ||
-            // c.798 (carga): «cuánta carga tengo» / «tengo muchas tareas» /
-            // «cuánto tiempo me falta» (hermano de «cuánto tiempo me queda»).
+            // c.798 (carga): cobertura remota. Las formas interrogativas de
+            // tiempo libre («qué tiempo tengo» / «tiempos libres» / «horario
+            // tengo libre») NO van aquí: viven en isFreeTimeQuery. Como la rama
+            // de carga se evalúa antes en answer(), tenerlas en ambas listas
+            // haría que el hueco libre respondiera como carga del día (su test
+            // freeTime_recognizes* lo detecta).
             "cuanta carga" in query || "tengo muchas tareas" in query ||
             "cuanto tiempo me falta" in query ||
-            // c.798 (tiempo libre interrogativo): «qué tiempo tengo» / «tiempos
-            // libres hoy» / «qué horario tengo libre».
-            "que tiempo tengo" in query || "tiempos libres" in query ||
-            "horario tengo libre" in query ||
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
             "estoy saturad" in query ||
