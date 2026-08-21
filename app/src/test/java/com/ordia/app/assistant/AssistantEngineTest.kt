@@ -2960,6 +2960,85 @@ class AssistantEngineTest {
                 answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
     }
 
+    // ---- c.801 (sonda extendida /tmp): imperativos + recuento + olvido ----
+
+    @Test fun imperativeListing_recognizesEnseñameMisTareas() {
+        val answer = AssistantEngine.answer("ensename mis tareas", emptyList(), emptyList(), emptyList())
+        assertTrue("'ensename mis tareas' rutea al listado, no al menú: ${answer.text}",
+            answer.action == AssistantAction.OPEN_SEARCH)
+    }
+
+    @Test fun imperativeListing_recognizesMuestrameMisRutinas() {
+        val answer = AssistantEngine.answer("muestrame mis rutinas", emptyList(), emptyList(), emptyList())
+        assertTrue("'muestrame mis rutinas' rutea al listado, no al menú: ${answer.text}",
+            answer.action == AssistantAction.OPEN_SEARCH)
+    }
+
+    @Test fun imperativeWhatNow_recognizesDimeQueHacer() {
+        val answer = AssistantEngine.answer("dime que hacer", emptyList(), emptyList(), emptyList())
+        assertTrue("'dime que hacer' rutea a What Now honesto, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun imperativeWhatNow_guardAgendaScopeTomorrow() {
+        // «dime que hacer mañana» — scope mañana → agenda, NO What Now (hermana c.798).
+        val answer = AssistantEngine.answer("dime que hacer mañana", emptyList(), emptyList(), emptyList())
+        assertTrue("'dime que hacer mañana' no roba el scope mañana: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun pendingCount_recognizesCuantoMeFalta() {
+        val now = dayAt(dayToday, 9)
+        val t1 = TaskEntity(id = 3, title = "A", dueAt = dayAt(dayToday, 12))
+        val answer = AssistantEngine.answer("¿cuánto me falta?", listOf(t1), emptyList(), emptyList(), now, dayZone)
+        assertTrue("'cuánto me falta' responde el recuento, no el menú: ${answer.text}",
+            answer.text.contains("1") && !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun pendingCount_recognizesCuantoFalta() {
+        val answer = AssistantEngine.answer("cuanto falta", emptyList(), emptyList(), emptyList())
+        assertTrue("'cuanto falta' vacío honesto, no menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar") && answer.text.contains("No tienes tareas pendientes."))
+    }
+
+    @Test fun forgetful_recognizesQueNoDeboOlvidar() {
+        val answer = AssistantEngine.answer("que no debo olvidar", emptyList(), emptyList(), emptyList())
+        assertTrue("'que no debo olvidar' rutea honesto, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    // ---- c.802 (sonda extendida): pinned genérico + marcadores agenda + forms ----
+
+    @Test fun pinnedGeneric_recognizesQueTengoFijado() {
+        val answer = AssistantEngine.answer("que tengo fijado", emptyList(), emptyList(), emptyList())
+        assertTrue("'que tengo fijado' rutea a notas fijadas, no al menú: ${answer.text}",
+            answer.action == AssistantAction.OPEN_SEARCH)
+    }
+
+    @Test fun agendaMarker_recognizesQueVieneEstaSemana() {
+        val answer = AssistantEngine.answer("que viene esta semana", emptyList(), emptyList(), emptyList())
+        assertTrue("'que viene esta semana' rutea a agenda, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun agendaMarker_recognizesQueMeEsperaHoy() {
+        val answer = AssistantEngine.answer("que me espera hoy", emptyList(), emptyList(), emptyList())
+        assertTrue("'que me espera hoy' rutea a agenda, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun freeTime_recognizesMeQuedaPocoTiempo() {
+        val answer = AssistantEngine.answer("me queda poco tiempo", emptyList(), emptyList(), emptyList())
+        assertTrue("'me queda poco tiempo' rutea a hueco, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun dayLoad_recognizesQueTanLlenaEsMiSemana() {
+        val answer = AssistantEngine.answer("que tan llena es mi semana", emptyList(), emptyList(), emptyList())
+        assertTrue("'que tan llena es mi semana' rutea a carga, no al menú: ${answer.text}",
+            !answer.text.contains("Puedo organizar"))
+    }
+
     // ---- c.798-b (sonda AssistantHonestRouteProbe): segunda tanda de GAPs ----
 
     @Test fun freeTime_recognizesQueTiempoTengo() {

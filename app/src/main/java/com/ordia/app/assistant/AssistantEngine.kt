@@ -142,7 +142,12 @@ object AssistantEngine {
                 // (sin "que tengo"/marcador temporal; la guarda negada las protege
                 // igual que las hermanas de c.afb).
                 (("que tengo que hacer" in query || "que me falta" in query ||
-                    "que debo hacer" in query || "que tarea tengo primero" in query) &&
+                    "que debo hacer" in query || "que tarea tengo primero" in query ||
+                    // c.801 (sonda extendida): imperativo «dime qué hacer» y
+                    // olvido «qué no debo olvidar» piden la siguiente acción;
+                    // guardas de scope idénticas a las hermanas de c.798.
+                    "dime que hacer" in query || "que no debo olvid" in query ||
+                    "que no debemos olvid" in query) &&
                     !isAgendaQuery(query) && !hasAgendaDateScope(query)) -> {
                 val suggestion = WhatNowEngine.suggest(active, now, zone)
                 if (suggestion == null) {
@@ -958,7 +963,14 @@ object AssistantEngine {
 
     private fun isPinnedNotesQuery(query: String): Boolean {
         val words = query.split(" ")
-        return words.any { it == "nota" || it == "notas" } && words.any { it in PINNED_NOTE_WORDS }
+        if (words.any { it == "nota" || it == "notas" } && words.any { it in PINNED_NOTE_WORDS }) return true
+        // c.802: «que tengo/hay fijado» sin el sustantivo «nota» — hermano de
+        // la forma anterior; el vocabulario pinned sigue siendo honesto (la
+        // búsqueda lista NOTAS fijadas; el asistente redirige a ella).
+        val pinned = words.any { it in PINNED_NOTE_WORDS }
+        val interrogativa = "que tengo" in query || "que hay" in query ||
+            "tengo algo" in query || "hay algo" in query
+        return pinned && interrogativa
     }
 
     private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")
@@ -1080,7 +1092,10 @@ object AssistantEngine {
     // tras filtrar calificador+interrogativa es EXACTAMENTE un token de
     // familia; si hay contenido real («habitos activos lectura») no se rutea.
     private val ENTITY_LISTING_QUALIFIERS = setOf("activo", "activos", "activa", "activas")
-    private val ENTITY_LISTING_NOISE = setOf("que", "tengo", "hay", "mis")
+    // c.801 (sonda extendida): prefijos imperativos de listado («ensename/muestrame/
+    // dime mis tareas») son muletillas honestas del listado: la intención es la
+    // misma que la forma interrogativa («cuáles son mis tareas», c.797).
+    private val ENTITY_LISTING_NOISE = setOf("que", "tengo", "hay", "mis", "ensename", "muestrame", "dime")
     private val ENTITY_LISTING_TOKENS: Map<String, String> = mapOf(
         "habito" to "habitos", "habitos" to "habitos",
         "rutina" to "rutinas", "rutinas" to "rutinas",
@@ -1201,7 +1216,9 @@ object AssistantEngine {
      * GAPs restantes de la sonda AssistantHonestRouteProbe tras c.798).
      */
     private fun isPendingCountQuery(query: String): Boolean =
-        "cuantas tareas" in query || "cuantas pendientes" in query
+        "cuantas tareas" in query || "cuantas pendientes" in query ||
+            // c.801 (sonda extendida): forma de duración-restante honesta.
+            "cuanto me falta" in query || "cuanto falta" in query
 
     /** La más larga del día por duración planificable; `null` si nada queda. */
     private fun longestTaskToday(tasks: List<TaskEntity>, now: Long, zone: ZoneId): TaskEntity? {
@@ -1254,6 +1271,8 @@ object AssistantEngine {
         val bareForm = "tengo tiempo" in query || "tiempo tengo" in query ||
             "tengo hueco" in query || "tengo un hueco" in query ||
             "tengo un rato" in query || "tiempos libres" in query ||
+            // c.802: «me queda poco tiempo» hermano cotidiano del hueco.
+            "me queda poco tiempo" in query || "queda poco tiempo" in query ||
             "horario libre" in query || "horario tengo libre" in query
         return bareForm || freeTimeWindowMinutes(query) != null
     }
@@ -1555,6 +1574,15 @@ object AssistantEngine {
         // se exige abajo igualmente: "tareas de matemáticas" NO se secuestra (guardia).
         if (!("que tengo" in query || "tengo para" in query || "que hay" in query ||
                 "tengo algo" in query || "hay algo" in query ||
+                // c.801: imperativo «dime que ...» + scope temporal → agenda
+                // (hermana de «dime que hacer» cuya rama What Now emplea la guarda
+                // de scope negada; con scope, cae aquí y no al menú).
+                "dime que" in query ||
+                // c.802: marcadores de expectativa «que viene»/«que me espera» —
+                // piden la agenda de un scope («que viene esta semana», «que me
+                // espera hoy»). Sin scope, no rutean (la guarda temporal de abajo
+                // lo exige; «que viene despues» — sin scope — sigue a What Now).
+                "que viene" in query || "que me espera" in query ||
                 BARE_TEMPORAL_TASK_CONNECTORS.any { it in query })) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
         // como agenda y la consulta caía al mensaje genérico — el asistente callaba
@@ -2084,7 +2112,9 @@ object AssistantEngine {
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
             "estoy saturad" in query ||
-            COMO_VOY.containsMatchIn(query)
+            COMO_VOY.containsMatchIn(query) ||
+            // c.802: «que tan llena/lleno» — carga del día/semana honesta.
+            "que tan llena" in query || "que tan lleno" in query
 
     /**
      * Detecta la intención de PANORAMA del día: el recuento (hechas/pendientes/
