@@ -8,7 +8,7 @@
 - **Tests**: 15 tests nuevos en `ContextIntentEngineGasolinaInversaFloorTest.kt` (5 capturas + envolvente + 6 guards + 2 regresiones) → GREEN 15/15. Guard obsoleto de c.829 `gasolinaEcharAntesDelViaje_reverseOrderStaysNull` actualizado a la nueva conducta (`..._reverseOrderNowCapturesErrand` + KDoc con referencia a c.832) — era la candidata documentada que este ciclo implementa deliberadamente; NO es un test eliminado para obtener verde. `bash tools/run_domain_tests.sh` → **OK (5247 = 5232 + 15)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25 OK; `bash tools/run_automation_engine_checks.sh` → 9/9 OK. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (piso + cláusula negación + plantilla inversa + comentario c.832; `(?U)` en piso/plantilla), `ContextIntentEngineGasolinaInversaFloorTest.kt` (NUEVO, +15 tests), `ContextIntentEngineEcharGasolinaFloorTest.kt` (guard c.829 actualizado + KDoc), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: pendiente (fix c.832 + docs). HEAD final: pendiente.
+- **Commits**: `05cae64` (fix c.832 + docs). HEAD final: `05cae64`.
 - **Próxima prioridad**: la sonda c.822 queda con CERO NULLs de captura → nueva auditoría de descubrimiento (sonda nueva) antes de seguir con pisos; candidata documentada «echarle gasolina» (enclítico); residual P3 títulos con envoltura residual («Habría que…»/«Que…»); residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 
