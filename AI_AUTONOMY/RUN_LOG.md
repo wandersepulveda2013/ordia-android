@@ -16917,5 +16917,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto — +5 tests, EXACTAMENTE 4 fallaron (guard «primera hora de noticias» verde desde RED) → **GREEN OK (5072 = 5067 + 5)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST fuente real: «revisión dos veces al año»→`MONTHLY/6` título limpio «revisión»; guards intactos («cuántas veces he ido al gimnasio», «las veces que fuimos a la playa», «primera hora de noticias» → NULL sin cadencia). Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `NaturalTaskParser.kt` (+22/-9), `NaturalTaskParserTest.kt` (+5 tests, +48), `AI_AUTONOMY/*`. Sonda temporal `/tmp/probe819/FrequencyDiscoveryProbe.kt` fuera del repo.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**:  (fix c.819). HEAD final: .
 - **Próxima prioridad**: residual P2 c.818 — revisión opcional de `Icon(` null-decorativo (62 sitios, auditoría cerrada) o accesibilidad de textos; alternativa: «primera/última hora» (require) vs «N veces» familia cerrada (día/semana/mes/año cubiertos); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
