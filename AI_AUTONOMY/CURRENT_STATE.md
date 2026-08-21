@@ -7,7 +7,7 @@
 - **TDD**: RED exacto — 13 tests nuevos, EXACTAMENTE 6 fallaron (las 6 capturas; 6 guards + 1 regresión de envolvente verdes desde RED) → GREEN OK (13/13). `bash tools/run_domain_tests.sh` → **OK (5110 = 5097 + 13)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST fuente real: «mandar el paquete el jueves» → TASK 0.45 «Mandar el paquete» dueAt=true; «mandar el fax mañana» → TASK 0.45 «Mandar el fax» dueAt=true; 23 NULLs restantes intactos; guards NULL intactos. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (+13 piso, +6 plantilla), `ContextIntentEngineMandarFloorTest.kt` (NUEVO, +13 tests), `tools/probe/CaptureCoverageProbe.kt` (anotación regresión c.823), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `39c518c` (feat c.823); HEAD final: `39c518c`.
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «encargar <objeto>», «hacer/preparar la maleta esta noche», «vaciar la nevera el domingo», «echar gasolina esta tarde»; residual P2 c.818 «Icon( null-decorativo» (62 sitios). Re-fetch OBLIGATORIO antes de implementar.
 
 ---
