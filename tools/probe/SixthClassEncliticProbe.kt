@@ -21,7 +21,9 @@ import com.ordia.app.context.ContextIntentEngine
  * plausible del usuario. NULL sobre controles/regresiones es un FALLO.
  *
  * Candidata documentada desde c.829: «echarle gasolina» (enclítico del
- * piso [ERRAND_FUEL_FLOOR] c.829/c.832).
+ * piso [ERRAND_FUEL_FLOOR] c.829/c.832) — RESUELTA en c.833.
+ * «hacerme la maleta» (enclítico del piso de equipaje c.827) — RESUELTA
+ * en c.836 por el hermano remoto (`(?:me|te|se|nos)?`), movida a REGRESIONES.
  */
 fun main() {
     val now = 1723939200000L
@@ -32,13 +34,12 @@ fun main() {
         "echarle diésel antes del viaje",
         // --- Salud/autocuidado enclítico (hermanas de c.765…c.775) ---
         "medirme la tensión mañana",
-        // --- Equipaje enclítico (hermano de c.827) ---
-        "hacerme la maleta esta noche",
         // --- Cuidado personal (peluquería) — nunca sondeado ---
         "cortarme el pelo el sábado",
         "cortar el pelo el sábado",
         // --- REGRESIONES: deben reportar HIT ---
         "tomarme la pastilla esta noche", // c.770 (tomar|tomarme) + objeto pastillas
+        "hacerme la maleta esta noche", // c.836 equipaje enclítico (hermano de c.827)
         "echarles gasolina a las dos motos mañana", // c.833 plural «echarles» (hermano remoto)
         "recoger la ropa de la tintorería mañana", // ERRAND recoger (posición libre)
         "reservar el hotel para el sábado", // TASK reservar
