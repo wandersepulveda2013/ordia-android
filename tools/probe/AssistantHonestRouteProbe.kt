@@ -17,6 +17,9 @@ fun main() {
         "como va mi dia",
         "que proyectos tengo",
         "cuales son mis tareas",
+        // c.798 p.3: formas «ver …» hermanas del listado «tareas».
+        "ver tareas",
+        "ver las tareas",
         "tengo cosas urgente",
         "que pospongo",
         "posponer algo",
