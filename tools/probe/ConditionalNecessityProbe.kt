@@ -17,6 +17,17 @@ import com.ordia.app.context.ContextIntentEngine
  *   ACEPTABLE; captura de alta confianza sobre condicional sería
  *   OVERREACH (futuro firme inventado).
  * - «debía/debí …» (pasado) debe ser NULL (anti-overreach c.824).
+ *
+ * c.835 RESUELTO (regresión de la familia): piso condicional de necesidad
+ * en `hasStrongTaskImperative` («habría que/tendría que/debería» + verbo →
+ * TASK 0.45 cuando ningún piso de kind aplica — NUNCA alta confianza sobre
+ * condicional) + despoje central del envolvente en `sanitizeTitle` (títulos
+ * limpios «Ir al médico»/«Recoger el paquete»/«Llamar al banco», cierra el
+ * P3 residual) + guard de negación del envolvente condicional en
+ * `obligationWrapperIsNegated` («no habría que…»/«no debería…» → NULL;
+ * cierra el overreach «no habría que llamar…» → CALL 0.57 descubierto por
+ * la sonda hermana `/tmp/probe834/PrecedentProbe.kt`). Salida esperada
+ * POST-c.835: 14/16 capturadas (los 2 NULL son «debía/debí», correctos).
  */
 fun main() {
     val now = 1723939200000L

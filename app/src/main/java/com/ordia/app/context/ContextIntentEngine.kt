@@ -1130,6 +1130,26 @@ object ContextIntentEngine {
     private fun hasStrongTaskImperative(lower: String): Boolean =
         Regex("""\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|(?<!no )cancelar|(?<!no )anular)\s+\w""")
             .containsMatchIn(lower) ||
+            // c.835: envolvente CONDICIONAL de necesidad («habría que…»,
+            // «tendría que…», «debería…» + verbo). La familia ya enrutaba
+            // cuando el verbo subordinado tenía piso de kind propio
+            // («habría que llamar al fontanero» → CALL 0.57, «habría que
+            // ir al médico» → APPOINTMENT 0.67) pero caía a NULL con los
+            // verbos genéricos («habría que comprar leche», «tendría que
+            // terminar el informe», «debería hacer copias de seguridad»):
+            // olvido silencioso P1 asimétrico (sondas
+            // ConditionalNecessityProbe c.826 + BareControlProbe c.835: las
+            // formas desnudas y «tengo que/hay que» sí enrutan). El
+            // condicional de necesidad RECONOCE una obligación real
+            // (doctrina c.649: «debería» no es duda), así recibe el MISMO
+            // piso mínimo que «tengo que» — nunca alta confianza sobre lo
+            // condicional (anti-overreach). `(?<!no )` bloquea la negada
+            // inmediata; la negada del envolvente la descarta
+            // [obligationWrapperIsNegated]. «deber» admite «que» opcional
+            // (dequeísmo coloquial, misma decisión que c.826). El despoje
+            // del envolvente para el título es central en [sanitizeTitle]
+            // (alineación piso↔título, lección c.616).
+            Regex("""\b(?<!no )(?:(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que|deber[ií]a(?:s|mos|is|n)?(?:\s+que)?)\s+\w""").containsMatchIn(lower) ||
             // c.682: "recuerda" sólo si el verbo subordinado es INFINITIVO
             // (anti-overreach: "recuerda cuando…"/"recuerda que…"/"recuerdas…"
             // no son instrucciones al asistente).
@@ -2028,9 +2048,15 @@ object ContextIntentEngine {
      * [scoreKind]). A diferencia de [imperativeIsNegated] (negación inmediata
      * del verbo del kind), aquí el "no" precede al envolvente léxico del piso.
      * Determinista (regex), sin IA fingida.
+     * c.835 amplía a los envolventes CONDICIONALES de necesidad ("no habría
+     * que …", "no tendría que …", "no debería …"): la sonda c.835 mostró que
+     * "no habría que llamar al fontanero" se persistía como CALL 0.57 — lo
+     * OPUESTO de lo dicho (misma clase P1 que c.681) — y el nuevo piso
+     * condicional necesita este guard para no capturar jamás la forma negada
+     * ("no tendría que comprar leche").
      */
     private fun obligationWrapperIsNegated(lower: String): Boolean =
-        Regex("""\b(?:ya\s+)?no\s+(?:tengo\s+(?:que|q)\b|hay\s+que\b|tengo\s+(?:reuni[oó]n|cita)\b)""")
+        Regex("""\b(?:ya\s+)?no\s+(?:tengo\s+(?:que|q)\b|hay\s+que\b|tengo\s+(?:reuni[oó]n|cita)\b|(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que\b|deber[ií]a(?:s|mos|is|n)?\b)""")
             .containsMatchIn(lower)
 
     /**
@@ -3610,9 +3636,63 @@ object ContextIntentEngine {
         // Si tras depurar el residuo el título queda vacío/muy corto, se conserva
         // el original: un residuo visible es preferible a un título en blanco.
         val base = if (stripped.length >= 3) stripped else title
-        return fixCapitalization(base)
+        val unwrapped = stripLeadingNecessityWrapper(base)
+        return fixCapitalization(unwrapped)
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-', ';', ':')
+    }
+
+    /**
+     * Envolvente CONDICIONAL de necesidad al INICIO del título (c.835):
+     * «habría que …», «tendría que …», «debería (que) …». Los [extractTitle]
+     * por kind despojan sus envolventes («tengo que», «hay que») pero ninguno
+     * conocía la familia condicional, así los títulos nacían con el envolvente
+     * pegado: «Habría que ir al médico», «Habría que recoger el paquete»
+     * (P3 backlog). El despoje es CENTRAL aquí (vale para todos los kinds) y
+     * mantiene la alineación piso↔título (lección c.616): el piso condicional
+     * de [hasStrongTaskImperative] y los pisos de kind que ya enrutaban estas
+     * frases producen ahora el mismo título limpio que «tengo que X» → "X".
+     */
+    private val LEADING_NECESSITY_WRAPPER = Regex(
+        """^(?:(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que\s+|deber[ií]a(?:s|mos|is|n)?(?:\s+que\s+)?)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * «Que » subordinada residual al inicio del título (c.835): resto del
+     * envolvente «recuérdame QUE debería llamar al banco» → «Que debería
+     * llamar al banco» (P3 backlog). Sólo se despoja cuando lo que sigue es
+     * un INFINITIVO (lookahead hermano de los guards c.682/c.685) o un
+     * auxiliar de necesidad condicional: una «que» légitima («Que no se me
+     * olvide…», «Quevedo») nunca se toca.
+     */
+    private val LEADING_SUBORDINATE_QUE = Regex(
+        """^que\s+(?=\w*(?:ar|er|ir)\b|(?:habr[ií]a|tendr[ií]a|deber[ií]a)(?:s|mos|is|n)?\b)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Despoja el envolvente de necesidad condicional y la «que» subordinada
+     * del INICIO del título, iterando hasta estabilizar («que debería …»
+     * requiere dos pasadas) y re-capitalizando la nueva cabeza. Si el despoje
+     * dejara el título vacío/muy corto, conserva el original (mismo guard
+     * que el residuo temporal: un residuo visible es preferible a un título
+     * en blanco).
+     */
+    private fun stripLeadingNecessityWrapper(title: String): String {
+        var current = title
+        var prev = ""
+        var guard = 0
+        while (current != prev && guard < 4) {
+            prev = current
+            current = LEADING_NECESSITY_WRAPPER.replaceFirst(current, "").trimStart()
+            current = LEADING_SUBORDINATE_QUE.replaceFirst(current, "").trimStart()
+            if (current.isNotEmpty()) {
+                current = current.replaceFirstChar { it.uppercase() }
+            }
+            guard++
+        }
+        return if (current.length >= 3) current else title
     }
 
     /**
