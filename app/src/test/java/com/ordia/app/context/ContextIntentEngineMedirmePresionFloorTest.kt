@@ -120,10 +120,13 @@ class ContextIntentEngineMedirmePresionFloorTest {
     }
 
     @Test
-    fun `descartada no reflexiva residual`() {
-        // Acotado deliberado: "medir la presión" (sin reflexivo) queda OPEN
-        // — una forma por ciclo (doctrina de la sonda).
-        assertNull(analyze("medir la presión mañana"))
+    fun `regresion c843 no reflexiva`() {
+        // c.843: "medir la presión" (sin reflexivo) — la diagonal
+        // descartada deliberadamente en c.775 — pasa a CAPTURAR.
+        val i = analyze("medir la presión mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertEquals("Medir la presión", i.title)
     }
 
     @Test

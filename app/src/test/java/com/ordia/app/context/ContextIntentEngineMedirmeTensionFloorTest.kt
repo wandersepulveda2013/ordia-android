@@ -152,11 +152,13 @@ class ContextIntentEngineMedirmeTensionFloorTest {
     }
 
     @Test
-    fun `descartada no reflexiva con presion residual`() {
-        // Acotado deliberado: «medir la presión» (sin reflexivo, objeto
-        // presión — la otra diagonal de la matriz) queda OPEN como
-        // candidata — una forma por ciclo (doctrina de la sonda).
-        assertNull(analyze("medir la presión mañana"))
+    fun `regresion c843 no reflexiva con presion`() {
+        // c.843: «medir la presión» (sin reflexivo, objeto presión — la
+        // diagonal descartada deliberadamente en c.840) pasa a CAPTURAR.
+        val i = analyze("medir la presión mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertEquals("Medir la presión", i.title)
     }
 
     // ---- Guards aditivos c.841 (no cubiertos por el hermano c.840) ----

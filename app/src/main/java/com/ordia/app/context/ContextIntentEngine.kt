@@ -1588,7 +1588,18 @@ object ContextIntentEngine {
             // y el sustantivo "la presión está…" no casan. Negación sin
             // cláusula dedicada: keyword 0.12 + bono temporal 0.1 = 0.22
             // < umbral (hermana c.765/c.766/c.768/c.771/c.772).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medirme\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b""").containsMatchIn(lower)
+            // c.843: el verbo admite la forma DESNUDA «medir la presión»
+            // (candidata documentada desde c.840 — la diagonal no
+            // reflexiva del autocontrol; NULL PRE verificado por sonda
+            // efímera /tmp/probe843/ sobre HEAD 4fa5bf0; asimetría de
+            // ruta: la envolvente «recuérdame medir la presión…» ya era
+            // TASK 0.54 vía candado). El ancla de objeto `presi[oó]n`
+            // blinda la bivalencia del verbo («medir la mesa mañana»
+            // NULL); la semántica social «las presiones» (plural) sigue
+            // NULL. Decisión de alcance: «medir la presión de los
+            // neumáticos» CAPTURA — tarea real de mantenimiento del
+            // vehículo (hermana de «echar gasolina» c.829), no overreach.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir(?:me)?\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b""").containsMatchIn(lower)
             // Piso "hacer copia de seguridad" (c.774, quinta clase — hogar-
             // tecnología; dispersión epoch-day 20686 % 3 = 1 sobre el pool
             // OPEN residual de 3; NULL PRE verificado por la sonda sobre
@@ -2638,8 +2649,11 @@ object ContextIntentEngine {
                 if (matchMedirTension != null) return "${capitalizeFirst(matchMedirTension.groupValues[1])} ${matchMedirTension.groupValues[2]}"
                 // c.775: presión arterial reflexiva (grafía del usuario preservada;
                 // verbo reconstruido capitalizado — hermana c.770).
-                val matchMedirmePresion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medirme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchMedirmePresion != null) return "Medirme ${matchMedirmePresion.groupValues[2]}"
+                // c.843: el grupo del verbo admite la forma desnuda «medir»
+                // del piso (lockstep), capitalizada desde el match
+                // (hermano c.836/c.840).
+                val matchMedirPresion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir(?:me)?)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMedirPresion != null) return "${capitalizeFirst(matchMedirPresion.groupValues[1])} ${matchMedirPresion.groupValues[2]}"
                 // c.774: plantilla "hacer copia de seguridad" (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
                 // verbo, así acuse/prefijo temporal se despojan; el residuo
