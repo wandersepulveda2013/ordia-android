@@ -33,8 +33,8 @@ fun main() {
         // (TASK) tras el fix c.823; deben reportar HIT.
         "mandar el paquete el jueves",
         "mandar el fax mañana",
-        // c.824: REGRESIÓN — las dos formas de "encargar" ya tienen piso
-        // (TASK) tras el fix c.824; deben reportar HIT.
+        // c.825: REGRESIÓN — las dos formas de "encargar" ya tienen piso
+        // (TASK) tras el fix c.825; deben reportar HIT.
         "encargar el pastel mañana",
         "encargar las flores el viernes",
         // Gestiones ("gestionar" nunca sondeado; candidatos futuros NULL)

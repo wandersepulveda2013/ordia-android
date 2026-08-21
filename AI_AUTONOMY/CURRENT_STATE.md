@@ -1,3 +1,18 @@
+## Ciclo c.825 — 2026-08-21 (UTC) — feat(context): «encargar <objeto>» — encargos/comisiones caían a NULL (P1 olvido silencioso en captura pasiva) — sonda c.822, forma 3/N
+
+- **HEAD inicial**: `3421db9` (docs c.823; rama ya al día con origin, pull --ff-only limpio, sin colisión PRE-trabajo) → colisión al push: hermano remoto c.824 (`525f851` fix + `ae8443c` docs — guard de obligación pasada). Rebase NO destructivo sobre `ae8443c` (conflictos SOLO en AI_AUTONOMY, ambas entradas conservadas) + renumber c.824→c.825 (convención c.655/c.821). Suite entrante: OK (5110); suite del hermano sobre base fusionada: 5126. Env JVM heredado (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21).
+- **Selección**: «encargar» — forma confirmada pendiente en c.823 con asimetría idéntica (UNA forma por ciclo). Sonda JVM fuente real PRE-fix: 6 formas declarativas («encargar el pastel mañana», «encargar las flores el viernes», «encargar el pastel», «vale, encargar el pastel mañana», «hoy encargar el pastel», «encargar las flores el lunes») → NULL; envolvente «tengo que encargar el pastel mañana» → TASK 0.45 «Encargar el pastel» dueAt=true; guards («te encargo el pastel», «no encargar…», «quizá encargar…», «el encargo del pastel…», «encargó el pastel ayer», «el pastel ya está encargado») → NULL.
+- **Problema (P1 evitar olvidos / menos pasos)**: «encargar el pastel mañana» dicho por chat se perdía: sin piso ni keyword, el bono temporal (0.22) no alcanza el umbral 0.45 → analyze NULL → la gestión jamás nace → olvido seguro. Misma asimetría de ruta que c.822/c.823.
+- **Solución (cambio mínimo, TDD)**: piso de TASK en `hasStrongTaskImperative` (ancla inicio/acuse/prefijo temporal — patrón hermano c.691…c.823) + plantilla de título «encargar X»→«Encargar X» en `extractTitle` (match arranca en el verbo; despoja acuse/prefijo temporal — lección c.616). Kind TASK: «encargar» gobierna el OBJETO (pastel/flores/encargo) como acción de gestión, hermano semántico de «pedir» c.712/«mandar» c.823; no es desplazamiento a destino físico (no ERRAND). Anti-overreach codificado: `\s+\w` exige objeto; `(?<!no )` bloquea la negada; sustantivo «encargo», 1ª persona narrativa «te encargo», pasado «encargó» y participio «encargado» no casan; «quizá…»→NULL (hedge c.649). Determinista (regex), sin random, sin IA fingida, cero UI.
+- **TDD**: RED exacto — 13 tests nuevos, EXACTAMENTE 6 fallaron (las 6 capturas; 6 guards + 1 regresión de envolvente verdes desde RED) → GREEN OK (13/13). `bash tools/run_domain_tests.sh` → **OK (5123 = 5110 + 13)** sobre base propia; **OK (5139 = 5126 + 13)** sobre base fusionada (hermano c.824 + c.825); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST fuente real: «encargar el pastel mañana» → TASK 0.45 «Encargar el pastel» dueAt=true; «encargar las flores el viernes» → TASK 0.45 «Encargar las flores» dueAt=true; guards NULL intactos; sonda ampliada con «gestionar el alta en el registro mañana»/«gestionar la reclamación el lunes» al pool (NULL, candidatos futuros): 23 NULLs de 39 (10 inesperados: maleta×3, nevera×2, gasolina×3, gestionar×2). Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `ContextIntentEngine.kt` (+piso, +plantilla), `ContextIntentEngineEncargarFloorTest.kt` (NUEVO, +13 tests), `tools/probe/CaptureCoverageProbe.kt` (anotación regresión c.825 + pool «gestionar»), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `be3a0dc` (feat c.825, rebased sobre `ae8443c`); HEAD final: tras docs+push.
+- **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «hacer/preparar/meter la maleta esta noche», «vaciar la nevera el domingo», «echar gasolina esta tarde», «gestionar el alta en el registro mañana»; residual P2 c.818 «Icon( null-decorativo» (62 sitios); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
+
+---
+
+---
 ## Ciclo c.824 — 2026-08-21 (UTC) — fix(context): obligación/posesión PASADA se persistía como compromiso FUTURO — guard posicional `pastObligationGoverns` (P1 anti-overreach / IA honesta)
 
 - **HEAD inicial del segmento**: `fab5bab` (c.820 remoto; pull --ff-only limpio, sin colisión). Suite entrante: OK (5078). Env JVM (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21 `/tmp/jdk21`).
@@ -10,6 +25,7 @@
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Próxima prioridad**: (i) residual P2 — evaluar «habría que/debería …» (condicional de necesidad reconocida; requiere evidencia de daño real, doctrina c.649); (ii) residual P2 c.818 «Icon( null-decorativo» (62 sitios) u opción accesibilidad de textos; (iii) workers/backup/restore con DAOs/Room reales (P0 — NO JVM-verificable); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
+---
 ## Ciclo c.823 — 2026-08-21 (UTC) — feat(context): «mandar <objeto>» — encargos/comisiones caían a NULL (P1 olvido silencioso en captura pasiva) — sonda c.822, forma 2/N
 
 - **HEAD inicial**: `160cb8b` (docs c.822; rama ya al día con origin, pull --ff-only limpio, sin colisión). Suite entrante: OK (5097). Env JVM heredado (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21).

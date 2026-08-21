@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.824 (P1 olvido silencioso en captura pasiva — verbo de encargos/
+ * c.825 (P1 olvido silencioso en captura pasiva — verbo de encargos/
  * comisiones sin piso; una forma por ciclo, doctrina anti-overreach):
  * "encargar <objeto>" ("encargar el pastel mañana") se DESCARTABA
  * (analyze → NULL). Sonda JVM fuente real PRE-fix (metodología de
