@@ -1643,7 +1643,17 @@ object ContextIntentEngine {
             // maletas". Kind: TASK — hacer la maleta gobierna el equipaje
             // (preparación), no el desplazamiento (TRAVEL queda para
             // "viaje/vuelo/hotel").
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|preparar|meter)\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b""").containsMatchIn(lower)
+            // c.836: forma enclítica del piso («hacerme la maleta esta
+            // noche», NULL verificado en la sonda persistida
+            // `tools/probe/SixthClassEncliticProbe.kt` del hermano c.834 —
+            // 4 NULLs declarativas; un ítem por ciclo, doctrina
+            // anti-overreach). Sufijo (me|te|se|nos) sobre los 3 verbos
+            // (precedente enclítico c.770 «tomar|tomarme»); el ancla de
+            // objeto `maletas?` sigue blindando la bivalencia
+            // («hacerme un favor» no casa), `(?<!no )` bloquea la negada
+            // enclítica («no hacerme la maleta»), el pasado («me hice la
+            // maleta ayer») no casa. Título en lockstep (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|preparar|meter)(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2594,8 +2604,11 @@ object ContextIntentEngine {
                 // residuo temporal de cola lo depura [sanitizeTitle]). El
                 // verbo se capitaliza desde el match (3 alternativas: no se
                 // puede fijar como c.774) y la grafía del objeto se preserva
-                // (doctrina c.653).
-                val matchMaleta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|preparar|meter)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // (doctrina c.653). c.836: el grupo del verbo admite el
+                // enclítico (me|te|se|nos) del piso (lockstep), así el
+                // título conserva el pronombre («Hacerme la maleta»,
+                // precedente c.770 «Tomarme la pastilla»).
+                val matchMaleta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:hacer|preparar|meter)(?:me|te|se|nos)?)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMaleta != null) return "${capitalizeFirst(matchMaleta.groupValues[1])} ${matchMaleta.groupValues[2]}"
 
                 null

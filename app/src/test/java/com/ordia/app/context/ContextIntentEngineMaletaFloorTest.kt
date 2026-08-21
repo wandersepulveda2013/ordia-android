@@ -103,6 +103,68 @@ class ContextIntentEngineMaletaFloorTest {
         assertNotNull(intent.dueAt)
     }
 
+    // --- c.836: forma enclítica del piso («hacerme la maleta»), 1 de las 4
+    // NULLs declarativas verificadas en `tools/probe/SixthClassEncliticProbe.kt`
+    // (hermano c.834). Sufijo (me|te|se|nos) con ancla de objeto `maletas?`;
+    // el título conserva el pronombre (precedente c.770 «Tomarme la pastilla»).
+
+    @Test
+    fun hacermeLaMaletaEstaNoche_encliticCapturesTaskWithDueAt() {
+        val intent = analyze("hacerme la maleta esta noche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Hacerme la maleta", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun prepararteLaMaletaManana_encliticCapturesTaskWithDueAt() {
+        val intent = analyze("prepararte la maleta mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Prepararte la maleta", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun hacerseLasMaletasElViernes_encliticPluralCapturesTask() {
+        val intent = analyze("hacerse las maletas el viernes")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Hacerse las maletas", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun prepararnosLaMaletaSinFecha_encliticCapturesTaskWithoutDueAt() {
+        val intent = analyze("prepararnos la maleta")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Prepararnos la maleta", intent.title)
+    }
+
+    // --- Controles anti-overreach de la forma enclítica (NULL) ---
+
+    @Test
+    fun noHacermeLaMaleta_encliticNegatedStaysNull() {
+        assertNull(analyze("no hacerme la maleta"))
+    }
+
+    @Test
+    fun quizasHacermeLaMaleta_encliticConditionalStaysNull() {
+        assertNull(analyze("quizá hacerme la maleta mañana"))
+    }
+
+    @Test
+    fun meHiceLaMaletaAyer_encliticPastNarrativeStaysNull() {
+        assertNull(analyze("me hice la maleta ayer"))
+    }
+
+    @Test
+    fun hacermeUnFavor_encliticBivalentVerbDifferentObjectStaysNull() {
+        assertNull(analyze("hacerme un favor mañana"))
+    }
+
     // --- Controles anti-overreach (deben permanecer NULL; verificados en
     // sonda PRE-fix: /tmp/probe823/MaletaRedProbe.kt) ---
 
