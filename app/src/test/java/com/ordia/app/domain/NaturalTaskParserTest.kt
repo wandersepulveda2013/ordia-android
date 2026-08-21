@@ -6650,6 +6650,59 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Rango ambiguo que cruza el mediodía sin meridiem: "de 9 a 5" (c.804, P1) ---
+    // Asimetría: "de 3 a 5" (fin > inicio) SÍ se aceptaba con la misma ambigüedad,
+    // pero "de 9 a 5"/"de 8 a 4" (fin <= inicio) se rechazaba entero (dueAt=null,
+    // duración perdida) — la forma más común de describir una jornada o turno en
+    // español. La lectura natural es fin PM (9→17, 8→16): se aplica wrap +12h al
+    // fin bajo las mismas condiciones del rango ascendente ambiguo (sin meridiem/
+    // unidad/minutos, ambas <13, sin sustantivo de cantidad, duración 1..11h).
+    // Se EXCLUYE el inicio en 12: "de 12 a 2" sigue rechazado (decisión deliberada
+    // de ciclo 79: el límite del mediodía sin meridiem es irreductiblemente ambiguo).
+    @Test fun noonWrapRangeWorkShiftDe9a5() {
+        val result = NaturalTaskParser.parse("Trabajo de 9 a 5", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(480, result.durationMinutes)
+    }
+
+    @Test fun noonWrapRangeShiftDe8a4() {
+        val result = NaturalTaskParser.parse("Turno de 8 a 4", now, zone)
+        assertEquals("Turno", result.title)
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(480, result.durationMinutes)
+    }
+
+    @Test fun noonWrapRangeShortShiftDe10a1() {
+        val result = NaturalTaskParser.parse("Clase de 10 a 1", now, zone)
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(180, result.durationMinutes)
+    }
+
+    @Test fun noonWrapRangeKeepsNoonBoundaryRejected() {
+        // "de 12 a 2" (inicio en el límite del mediodía) sigue rechazado:
+        // decisión deliberada de ciclo 79 (noonCrossingRangeAmbiguousRejected).
+        val result = NaturalTaskParser.parse("Reunión de 12 a 2", now, zone)
+        assertNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun noonWrapRangeCountNounGuard() {
+        // "de 9 a 5 entradas" es una cuenta, no un rango horario: se rechaza y
+        // el título se conserva intacto (guard anti-cuenta).
+        val result = NaturalTaskParser.parse("Compra de 9 a 5 entradas", now, zone)
+        assertNull(result.dueAt)
+        assertNull(result.durationMinutes)
+        assertEquals("Compra de 9 a 5 entradas", result.title)
+    }
+
+    @Test fun noonWrapRangeDegenerateRejected() {
+        // "de 5 a 5" (fin == inicio): el wrap daría 12h (> 11h máximo) → se rechaza.
+        val result = NaturalTaskParser.parse("Turno de 5 a 5", now, zone)
+        assertNull(result.durationMinutes)
+    }
+
+
     // --- Meridiem solo en el INICIO (PM): el fin bare hereda PM (ciclo 79, BUG-001) ---
     // BUG: "de 6pm a 8" dejaba el fin (8) sin resolver → 08:00 < 18:00 → rango inválido,
     // duración null y título sucio ("Reunión de a 8"). El inicio con PM explícito
@@ -10871,6 +10924,87 @@ class NaturalTaskParserTest {
         assertEquals(2, result.recurrenceInterval)
         assertNotNull(result.dueAt)
     }
+
+    // --- "<período> sí [y] <período> no" = cada dos períodos (c.804, P1) ---
+    // La forma nativa "<período> sí <período> no" (día/semana/mes) significa cada
+    // dos períodos, idéntica a "cada dos días"/"un día sí y otro no". Antes caía a
+    // NONE → rutina sin cadencia ni fecha (medicación/limpieza/pago olvidados:
+    // recordatorio jamás disparaba, invisible en What Now); con hora explícita la
+    // cadencia se perdía y la frase quedaba como residuo en el título. Se mapea a
+    // interval=2 del período natural: día→DAILY/2, semana→WEEKLY/2, mes→MONTHLY/2.
+    @Test fun diaSiDiaNoParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Gym día sí día no", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diaSiYDiaNoParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Gym día sí y día no", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unDiaSiUnDiaNoParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Medicina un día sí un día no", now, zone)
+        assertEquals("Medicina", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun semanaSiSemanaNoParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Limpieza semana sí semana no", now, zone)
+        assertEquals("Limpieza", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unaSemanaSiYOtraNoParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Visita una semana sí y otra no", now, zone)
+        assertEquals("Visita", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun mesSiMesNoParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Pago mes sí mes no", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun diaSiDiaNoConHoraMantieneCadenciaYLimpiaTitulo() {
+        // Antes: la hora (07:00) se resolvía pero la cadencia caía a NONE y
+        // "día sí día no" quedaba como residuo pegado al título.
+        val result = NaturalTaskParser.parse("Gym día sí día no a las 7", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals(LocalTime.of(7, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun unDiaSiYOtroTambienNoEsRecurrencia() {
+        // Guard: "otro también" no es la cadencia "sí…no" (falta el cierre "no").
+        val result = NaturalTaskParser.parse("Comprar un día sí y otro también", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("Comprar un día sí y otro también", result.title)
+    }
+
+    @Test fun semanaSiFueDuraNoEsRecurrencia() {
+        // Guard: "sí" afirmativo seguido de verbo, sin período de cierre + "no".
+        val result = NaturalTaskParser.parse("La semana sí fue dura", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("La semana sí fue dura", result.title)
+    }
+
 
     // --- "N veces por semana" / "N veces al día" / "N veces al mes" ---
     // Cadencia de frecuencia cotidiana ("ir al gym tres veces por semana", "tomar

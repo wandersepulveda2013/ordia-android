@@ -16759,3 +16759,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: este append (code+tests+docs en commit único).
 - **HEAD final**: `0eee12a` (push OK; auth vía `$github_token`).
 - **Próxima prioridad**: nueva sonda de descubrimiento (parser tiempos complejos / vencidas-importantes / agrupación-relaciones) o el P1 OPEN que aparezca; sin P0/P1 conocidos.
+
+## Ciclo c.806 (renumerado de c.804 por colisión con hermano remoto c.804/c.805) — 2026-08-21 (UTC) — fix(parser): cadencia «período sí [y] período no» + rango ambiguo con wrap de mediodía «de 9 a 5»
+
+- **HEAD inicial**: `68de7e3` (c.803). Fetch pre-commit reveló al hermano `cb36ccf` (c.804 assistant + c.805 parser ~l.3232). Integración NO destructiva: stash → ff-only → pop limpio (regiones DISJUNTAS: hermano ~l.3232 + tests ~l.3442; mío ~l.4860 + ~l.6350 + tests ~l.6616/10839); sin force, sin reset --hard, sin `main`. Renumerado c.804→c.806.
+- **Problema (P1 evitar olvidos/rutinas; descubrimiento propio vía sondas persistidas `SiNoCadenceProbe`/`ComplexTimeDiscoveryProbe2`)**: (A) cadencia nativa «sí…no» («día sí día no», «semana sí semana no», «mes sí mes no» y variantes «un/una») caía a `NONE/1` sin fecha → rutina/medicación/pago olvidados; con hora explícita la frase quedaba como residuo del título. (B) asimetría en rangos ambiguos bare: «de 3 a 5» se aceptaba pero «de 9 a 5»/«de 8 a 4» (la jornada laboral) se rechazaba entero (`dueAt=null`).
+- **Solución (cambio mínimo, determinista, cero UI)**: (A) `siNoAlternatingPattern` tras `everyOtherDayPattern` — segundo período consistente + cierre literal «no» obligatorio → DAILY/WEEKLY/MONTHLY `interval=2`; guards («otro también», «la semana sí fue dura») NO casan. (B) `noonWrap` en `rangeMatch` — wrap +12h al fin bajo las mismas condiciones del caso ascendente (sin meridiem/unidad/minutos, ambas <13, guard anti-cuenta, duración 1..11h), EXCLUYE inicio en 12 (decisión deliberada c.79 preservada), mutuamente excluyente con `midnightWrap`.
+- **Tests**: RED documentado por sondas PRE-fix. +15 tests TDD (9 cadencia + 6 wrap). GREEN base propia **OK (5013 = 4998 + 15)**; GREEN integrado **OK (5021 = 5006 + 15)**, 0 failures; smoke 25/25; sondas POST end-to-end verificadas (todas las formas «sí…no» rutean; «trabajo de 9 a 5»→09:00 dur=480; guards intactos). Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+15), `tools/probe/{SiNoCadenceProbe,ComplexTimeDiscoveryProbe,ComplexTimeDiscoveryProbe2}.kt`, `AI_AUTONOMY/*`.
+- **Commits**: tras este append (code+tests+sondas+docs único); HEAD final: tras push.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK). La lógica pura sí en JVM.
+- **Próxima prioridad**: «última hora de la mañana» → 09:00 (¿debería ser ~11:00? verificar intención). GAPs de routing abiertos por hermano c.804 (sonda `AssistantDiscoveryRoundProbe`). Temporales desnudas siguen BLOCKED-humano.

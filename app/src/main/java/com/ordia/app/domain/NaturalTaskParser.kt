@@ -4867,7 +4867,6 @@ object NaturalTaskParser {
             // (ambos PM, descendente) NO envuelve: se rechaza como antes.
             val midnightWrap = endMin <= startMin &&
                 startPmEffective && !endPmEffective && !followedByCount
-            val endMinEffective = if (midnightWrap) endMin + 24 * 60 else endMin
             // Duración solo si fin > inicio (mismo día o envuelto) y rango plausible (<= 24h).
             val hasMinutesOrMeridiem = startM != 0 || endM != 0 ||
                 startMer.isNotEmpty() || endMer.isNotEmpty()
@@ -4875,7 +4874,26 @@ object NaturalTaskParser {
             // acepta si no le sigue un sustantivo de cantidad ("entradas", "personas").
             val ambiguousOnTheHour = !hasUnit && !hasMinutesOrMeridiem &&
                 startH < 13 && endH < 13
-            val acceptAmbiguous = !ambiguousOnTheHour ||
+            // RANGO AMBIGUO QUE CRUZA EL MEDIODÍA ("de 9 a 5", "de 8 a 4", "de 10 a 1"):
+            // fin <= inicio en un rango ambiguo bare. La lectura natural en español es
+            // fin PM (9→17, 8→16) — la jornada/turno, la forma más común de bloque de
+            // trabajo. Antes se rechazaba entero (dueAt=null, duración perdida) aunque
+            // "de 3 a 5" (fin > inicio, la MISMA ambigüedad) sí se aceptaba: asimetría
+            // que perdía el bloque laboral (P1). El wrap +12h al fin se aplica bajo las
+            // mismas condiciones del caso ascendente (sin sustantivo de cantidad,
+            // duración 1..11h) y EXCLUYE el inicio en 12: "de 12 a 2" sigue rechazado
+            // (decisión deliberada de ciclo 79 — el límite del mediodía sin meridiem es
+            // irreductiblemente ambiguo). Mutuamente excluyente con midnightWrap (éste
+            // exige inicio PM-efectivo; el rango ambiguo bare no lo tiene).
+            val noonWrap = !midnightWrap && ambiguousOnTheHour && !followedByCount &&
+                startH in 1..11 && endH in 1..11 && endMin <= startMin &&
+                (endMin + 12 * 60 - startMin) in 60..(11 * 60)
+            val endMinEffective = when {
+                midnightWrap -> endMin + 24 * 60
+                noonWrap -> endMin + 12 * 60
+                else -> endMin
+            }
+            val acceptAmbiguous = !ambiguousOnTheHour || noonWrap ||
                 (!followedByCount && (endMin - startMin) in 60..(11 * 60))
             val valid = endMinEffective > startMin &&
                 (endMinEffective - startMin) <= 24 * 60 &&
@@ -6358,6 +6376,36 @@ object NaturalTaskParser {
         everyOtherDayPattern.find(working)?.let { match ->
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.DAILY, 2, emptyList(), phrases)
+        }
+
+        // "<período> sí [y] [<un/una>] <período|otro/a> no" (c.804): la forma nativa
+        // de "cada dos períodos" — "día sí día no" (DAILY/2), "semana sí semana no"
+        // (WEEKLY/2), "mes sí mes no" (MONTHLY/2). Antes caía a NONE: la rutina
+        // nacía sin cadencia ni fecha (medicación/limpieza/pago olvidados; P1), y
+        // con hora explícita la cadencia se perdía y la frase quedaba como residuo
+        // en el título ("gym día sí día no a las 7" → one-off 07:00, título sucio).
+        // El segundo período debe coincidir con el primero (o ser "otro/a"): así
+        // "día sí semana no" no casa (frase sin sentido como cadencia). El cierre
+        // literal "no" es OBLIGATORIO: "la semana sí fue dura" (afirmación+verbo) y
+        // "comprar un día sí y otro también" (sin "no") NO casan. Se evalúa tras
+        // everyOtherDayPattern (superconjunto disjunto: exige segundo período/"otro"
+        // + "no") y antes de fixedPatterns ("cada día" exige "día" tras "cada ").
+        val siNoAlternatingPattern =
+            Regex("""(?i)\b(?:(?:un|una)\s+)?(d[ií]a|semana|mes)\s+s[ií]\s+(?:y\s+)?(?:(?:un|una)\s+)?(d[ií]a|semana|mes|otr[oa])\s+no\b""")
+        siNoAlternatingPattern.find(working)?.let { match ->
+            val period = match.groupValues[1].lowercase()
+            val period2 = match.groupValues[2].lowercase()
+            val freq = when (period) {
+                "día", "dia" -> RecurrenceFrequency.DAILY
+                "semana" -> RecurrenceFrequency.WEEKLY
+                "mes" -> RecurrenceFrequency.MONTHLY
+                else -> null
+            }
+            val consistent = period2 == period || period2 == "otro" || period2 == "otra"
+            if (freq != null && consistent) {
+                phrases += match.range
+                return RecurrenceResult(freq, 2, emptyList(), phrases)
+            }
         }
 
         // Giros idiomáticos de "cada 2 días" sin cantidad numérica: "días alternos",
