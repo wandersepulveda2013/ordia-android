@@ -52,7 +52,14 @@ fun main() {
         // sonda efímera c.812, documentado en CURRENT_STATE c.813..c.816):
         // marcador «hacer algo» en isAgendaQuery, protegido por la guarda
         // de alcance temporal (sin scope sigue al menú).
-        "tengo que hacer algo en la manana"
+        "tengo que hacer algo en la manana",
+        // c.820 — hermana residual de c.817: el pronombre suelto también
+        // pregunta por la agenda («algo en la mañana», «¿algo esta noche?»).
+        // Matcher por PALABRA \balgo\b + misma guarda de alcance.
+        "algo en la manana",
+        "algo manana",
+        "algo esta noche",
+        "algo para hoy"
     )
     // ABIERTOS: ninguno — la ronda c.803-b quedó cerrada (c.804 ×3, c.807 ×2,
     // c.808 ×3, c.809 ×1). La sonda sigue fallando (exit 1) ante cualquier

@@ -1749,6 +1749,11 @@ object AssistantEngine {
                 // guarda de alcance temporal de abajo la protege: «tengo que
                 // hacer algo» sin scope sigue al menú (¿agenda de qué día?).
                 "hacer algo" in query ||
+                // c.820: hermana residual de c.817 — el usuario también suelta el
+                // pronombre solo: «algo en la mañana», «¿algo esta noche?»,
+                // «algo para hoy». Por PALABRA y con la misma guarda de alcance
+                // de abajo: «algo de matemáticas» sigue al menú honesto.
+                BARE_ALGO_TOKEN.containsMatchIn(query) ||
                 BARE_TEMPORAL_TASK_CONNECTORS.any { it in query })) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
         // como agenda y la consulta caía al mensaje genérico — el asistente callaba
@@ -2088,6 +2093,11 @@ object AssistantEngine {
         "tareas de ", "tareas del ", "tarea de ", "tarea del ",
         "tareas por ", "tarea por "
     )
+    // c.820: paráfrasis desnuda «algo <alcance>» — hermana residual de «tengo
+    // que hacer algo <scope>» (c.817). Coincidencia por PALABRA para no
+    // secuestrar «algoritmo para mañana»/«algodón...»; el alcance temporal
+    // se exige igualmente abajo («algo de matemáticas» sigue al menú).
+    private val BARE_ALGO_TOKEN = Regex("""\balgo\b""")
     // DayOfWeek ISO (lun=1..dom=7). Simétrico con SearchEngine.WEEKDAY_TOKENS y el
     // parser de captura, para que preguntar, buscar y capturar signifiquen lo mismo.
     private val AGENDA_WEEKDAY_TOKENS = setOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")

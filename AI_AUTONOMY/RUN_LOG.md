@@ -16919,3 +16919,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**:  (fix c.819). HEAD final: .
 - **Próxima prioridad**: residual P2 c.818 — revisión opcional de `Icon(` null-decorativo (62 sitios, auditoría cerrada) o accesibilidad de textos; alternativa: «primera/última hora» (require) vs «N veces» familia cerrada (día/semana/mes/año cubiertos); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
+
+### 2026-08-21 — ciclo c.820 (agente autónomo OpenHands — continuidad c.819 `7c85263`, pull ff-only limpio)
+- **HEAD inicial**: `7c85263` (c.819 propio).
+- **Unidad**: feat(assistant) — hermana residual P2 de c.817: paráfrasis desnuda «algo <alcance>» («algo en la mañana», «¿algo esta noche?», «algo para hoy») caía al menú genérico pese a que la agenda por franja/fecha ya existía (sonda de descubrimiento `/tmp/probe820/AlgoScopeProbe.kt` — 12 frases, 8 GAPs + 2 guards; fuera del repo).
+- **Causa raíz**: los marcadores verbales de `isAgendaQuery` exigían «que tengo»/«tengo algo»/«tengo que hacer»/«hacer algo» — el pronombre suelto sin verbo no casaba nada y consultas cotidianas («¿algo esta noche?») respondían con el menú, ocultando la ruta agendada (mentira por omisión).
+- **Solución**: `BARE_ALGO_TOKEN = Regex("""\balgo\b""")` en los marcadores; coincidencia por PALABRA (no secuestra «algoritmo para mañana») + guarda de alcance temporal existente («algo de matemáticas» sigue al menú honesto).
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (+11), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+6 tests), `tools/probe/AssistantDiscoveryRoundProbe.kt` (+4 frases regresión), `AI_AUTONOMY/*`.
+- **Tests**: TDD RED exacto — 6 tests nuevos, EXACTAMENTE 4 fallaron (4 rutas), 2 guards verdes desde RED (sin-scope + por-palabra) → GREEN. `bash tools/run_filtered_test.sh "AssistantEngineTest"` → OK (437). `bash tools/run_domain_tests.sh` → **OK (5078 = 5072 + 6)**, 0 failures. `bash tools/run_domain_checks.sh` → 25/25 OK. `bash tools/run_automation_engine_checks.sh` → 9/9 OK. Sonda persistente → 0 GAPs de 18. Sin tests reducidos/eliminados/falseados. Sonda efímera POST conservada en `/tmp/probe820` (fuera del repo).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: sonda `ContextIntentEngine.classify`/`extractTitle` (cobertura de routing; residual «imperfecto/condicional» y listados de `AssistantHonestRouteProbe` c.797); residual P2 c.818 «Icon( null-decorativo»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.

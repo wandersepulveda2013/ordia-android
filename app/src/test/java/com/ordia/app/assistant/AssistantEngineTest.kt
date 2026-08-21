@@ -1821,6 +1821,89 @@ class AssistantEngineTest {
         assertTrue("cae al menú honesto: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
     }
 
+    // --- c.820 (paridad, hermana residual de c.817): la paráfrasis desnuda
+    // «algo <alcance>» tiene el mismo derecho a agenda que «tengo algo» /
+    // «tengo que hacer algo» — el usuario suelta el pronombre solo y el
+    // asistente la mandaba al menú pese a entender el alcance. Guards: sin
+    // scope → menú; el match es por PALABRA («algoritmo» no se secuestra).
+    @Test fun algoEnLaManana_bareForm_routesToTodayMorningAgenda() {
+        val now = 1_000_000_000_000L
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+            TaskEntity(id = 2, title = "Comprar aguacates", dueAt = todayAtHour(now, 15)),
+            TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+        )
+        val answer = AssistantEngine.answer("algo en la mañana", tasks, emptyList(), emptyList(), now)
+        assertTrue("nombra la de esta mañana: ${answer.text}", answer.text.contains("Correr en el parque"))
+        assertTrue("no mezcla la tarde: ${answer.text}", !answer.text.contains("Comprar aguacates"))
+        assertTrue("no cae al menú: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun algoManana_bareForm_routesToTomorrowAgenda() {
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "algo mañana",
+            listOf(
+                TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+                TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Correr en el parque"))
+    }
+
+    @Test fun algoEstaNoche_interrogativeForm_routesToTonightAgenda() {
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿algo esta noche?",
+            listOf(TaskEntity(id = 1, title = "Llamar a mamá", dueAt = todayAtHour(now, 21))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de esta noche: ${answer.text}", answer.text.contains("Llamar a mamá"))
+        assertTrue("no cae al menú: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun algoParaHoy_bareForm_routesToTodayAgenda() {
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "algo para hoy",
+            listOf(TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Correr en el parque"))
+        assertTrue("no cae al menú: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun algoDeMatematicas_sinScope_staysInMenu() {
+        // Guardia de alcance: «algo de matemáticas» SIN scope temporal no
+        // puede responderse con una agenda (¿de qué día?) — sigue al menú.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "algo de matemáticas",
+            listOf(TaskEntity(id = 1, title = "Problemas de derivadas", dueAt = todayAtHour(now, 8))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("cae al menú: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun algoritmoParaManana_wordBoundaryGuard_staysInMenu() {
+        // Guardia por PALABRA: «algoritmo»/«algodón» contienen «algo» por
+        // substring — el matcher usa \b...\b para no secuestrar la agenda.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "algoritmo para mañana",
+            listOf(TaskEntity(id = 1, title = "Estudiar algoritmos", dueAt = tomorrowNoon(now))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("cae al menú: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+    }
+
 
     // --- c.356: "¿qué tengo hoy?" no debe callar un compromiso vencido de una
     // conversación (el cuarto olvido). La rama "hoy" de agendaAnswer ya rompía la
