@@ -17192,3 +17192,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Commits**: `50f26bc` (feat + tests + docs c.842). **HEAD final**: `50f26bc`.
 - **Próxima prioridad**: POOL sonda c.834 AGOTADO → nueva auditoría de descubrimiento (sonda nueva, convención c.822/c.834) antes de seguir con pisos; candidatas derivadas (UNA por ciclo): plural «los pelos» / dativo «cortarle el pelo al niño» / objeto «cabello» (acotado deliberado c.842), diagonal «medir la presión» (c.840 — evaluar guard «presión de los neumáticos»), perífrasis «me mido la tensión» (guard de contrato c.841); residual P2 c.818 «Icon( null-decorativo»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
+
+## Ciclo c.843 — 2026-08-21 (UTC) — feat(context): piso TASK «medir la presión» (c.843, diagonal no reflexiva del autocontrol de tensión arterial — candidata documentada desde c.840)
+
+**HEAD inicial**: `4fa5bf0` (docs c.842; fetch + pull --ff-only limpios, SIN colisión; fetch final pre-commit intacto).
+
+**Problema (P1)**: «medir la presión mañana» → NULL — el piso c.775 sólo admitía el enclítico reflexivo «medirme»; la forma desnuda (la más escrita en nota rápida) se silenciaba pese a que la envolvente «recuérdame medir la presión mañana» ya capturaba TASK 0.54 vía candado (asimetría de ruta hermana de c.765…c.842).
+
+**Causa raíz**: regex de piso y plantilla de título con el verbo literal `medirme` en los 2 puntos lockstep (lección c.616).
+
+**Solución (mínima, TDD estricto)**: `medir(?:me)?` en ambos puntos; título capitalizado desde el match (hermano c.836/c.840); keyword-objeto «presión» preexistente (c.775) → lockstep coste-cero. Ancla de objeto `presi[oó]n` intacta (bivalencia blindada), SIN plural social, `(?<!no )` + ancla ^/ACK/temporal. Decisión de alcance: «medir la presión de los neumáticos» CAPTURA deliberadamente (mantenimiento real del vehículo — no overreach; test de contrato). Matriz reflexivo×objeto cerrada: c.772 «medir la tensión», c.775 «medirme la presión», c.840 «medirme la tensión», c.843 «medir la presión».
+
+**Sonda efímera** `/tmp/probe843/MedirPresionPreProbe.kt` (18 casos): PRE sobre `4fa5bf0` — 6 capturas NULL (gap), envolvente HIT 0.54, 7 guards NULL, neumáticos NULL, regresiones HIT. POST — 6 capturas HIT TASK 0.45 (títulos «Medir la presión»/«Medir la presion»/«Medir mi presión», dueAt correcto), envolvente intacta 0.54, 7 guards NULL, neumáticos HIT 0.45 «Medir la presión de los neumáticos», regresiones c.772/c.775/c.840 intactas.
+
+**Tests**: `ContextIntentEngineMedirPresionFloorTest.kt` (NUEVO, 19 = 7 capturas + envolvente + neumáticos + 7 guards + 3 regresiones). RED exacto (19 run, EXACTAMENTE 8 fallos = 7 capturas + neumáticos; envolvente/guards/regresiones verdes desde RED) → GREEN 19/19. Los guards «descartada residual» de c.775/c.840 (acotaban la forma OPEN) pasan a regresiones de captura (+2 archivos tocados). `bash tools/run_domain_tests.sh` → **OK (5355 = 5336 + 19)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sin tests reducidos/eliminados/falseados. Env JVM (OpenJDK 21, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`). Auth git `github_token`.
+
+**Archivos**: `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (piso + plantilla + comentarios c.843), `app/src/test/java/com/ordia/app/context/ContextIntentEngineMedirPresionFloorTest.kt` (NUEVO), `app/src/test/java/com/ordia/app/context/ContextIntentEngineMedirmePresionFloorTest.kt` (guard→regresión), `app/src/test/java/com/ordia/app/context/ContextIntentEngineMedirmeTensionFloorTest.kt` (guard→regresión), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+
+**NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+
+**Commits**: `291d030` (feat + tests c.843). **HEAD final**: pendiente docs-commit.
+
+**Próxima prioridad**: POOL sonda c.834 agotado y diagonal cerrada → nueva auditoría de descubrimiento (sonda nueva, convención c.822/c.834); candidatas derivadas (UNA por ciclo): perífrasis «me mido la presión» (guard c.843), plural «los pelos» / dativo «cortarle el pelo al niño» / objeto «cabello» (c.842); residual P2 c.818 «Icon( null-decorativo»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
