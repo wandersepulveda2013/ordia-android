@@ -1644,6 +1644,29 @@ object ContextIntentEngine {
             // tilde (precedente c.772 «tensi[oó]n»). SIN plural: "las
             // medicaciones" no es forma cotidiana (una forma por ciclo).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:tomar|tomarme)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b""").containsMatchIn(lower)
+            // c.860 (candidata 2/7 de la sonda persistida c.857
+            // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
+            // gestiones de adulto; NULL PRE verificado sobre HEAD bebc7c2,
+            // 5/5 candidatas): "responder el correo (de Ana) (hoy)" — la
+            // comunicación escrita pendiente. "llamar"/"hablar" tienen
+            // CALL y "redactar el correo" TASK (c.721d), pero "responder
+            // el correo" no tenía ruta: el verbo "responder" es bivalente
+            // (en el examen/a la pregunta/por alguien — nunca keyword) y
+            // el objeto no lo eleva (la keyword ERRAND "correo" —oficina
+            // postal— suma 0.12; con bono temporal 0.22 < umbral: por eso
+            // NO hace falta cláusula dedicada en [imperativeIsNegated] ni
+            // keyword nueva en ContextIntent.kt — "correo" ya lleva la
+            // frase al análisis). El piso se ACOTA al objeto `correos?`
+            // (una forma por ciclo, doctrina de la sonda; los bivalentes
+            // "responder en el examen"/"a la pregunta"/"por él" quedan
+            // FUERA). Kind decidido: TASK, en deliberación contra CALL/
+            // NOTE/ERRAND — acción de contestar un mensaje escrito
+            // (gestión), no llamada telefónica, no contenido capturado y
+            // sin desplazamiento; hermana de "redactar el correo" c.721d.
+            // Anti-overreach: artículo/posesivo opcional, `\b` final
+            // ("correoso" no casa), `(?<!no )` bloquea la negada, pasado
+            // "respondí…"/suelto "responder" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?correos?\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -2843,6 +2866,15 @@ object ContextIntentEngine {
                 // precedente c.770 «Tomarme la pastilla»).
                 val matchMaleta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:hacer|preparar|meter)(?:me|te|se|nos)?)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMaleta != null) return "${capitalizeFirst(matchMaleta.groupValues[1])} ${matchMaleta.groupValues[2]}"
+                // c.860: plantilla "responder el correo" (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; el objeto
+                // bivalente "responder en el examen…" nunca llega aquí
+                // porque el piso no lo captura). La grafía del usuario se
+                // preserva (doctrina c.653).
+                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?correos?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchResponderCorreo != null) return "Responder ${matchResponderCorreo.groupValues[2]}"
 
                 null
             }

@@ -33,6 +33,11 @@ import com.ordia.app.context.ContextIntentEngine
  *        de título + keyword-OBJETO; test
  *        ContextIntentEngineMedicacionFloorTest), movida a REGRESIONES.
  *     2) «responder el correo de Ana hoy» — comunicación pendiente.
+ *        RESUELTA en c.860 (piso NUEVO acotado al objeto «correos?»
+ *        «responder el correo»: piso + plantilla de título, CERO cambios
+ *        en ContextIntent.kt — la keyword ERRAND «correo» ya lleva la
+ *        frase al análisis; test ContextIntentEngineResponderCorreoFloorTest),
+ *        movida a REGRESIONES.
  *     3) «contestar a Juan esta tarde» — variante coloquial de la 2.
  *     4) «hacerme un análisis de sangre el lunes» — salud (reflexivo
  *        «hacerme», hermano del «cortarme el pelo» c.7xx).
@@ -58,7 +63,6 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "responder el correo de Ana hoy",
         "contestar a Juan esta tarde",
         "hacerme un análisis de sangre el lunes",
         "hacer la declaración de la renta este mes",
@@ -67,6 +71,9 @@ fun main() {
         // --- REGRESIÓN c.859: candidata 1 resuelta (lockstep piso+título+
         // keyword «medicaci[oó]n»); era NULL en c.857 ---
         "tomar la medicación a las 8", // TASK
+        // --- REGRESIÓN c.860: candidata 2 resuelta (piso nuevo acotado
+        // «responder el correo»); era NULL en c.857 ---
+        "responder el correo de Ana hoy", // TASK
         // --- REGRESIONES de la clase (ya capturan en c.857) ---
         "pasar la ITV la semana que viene", // TASK
         "cambiar el aceite del coche el sábado", // TASK
