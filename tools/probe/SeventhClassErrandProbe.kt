@@ -78,6 +78,13 @@ import com.ordia.app.context.ContextIntentEngine
  * «cargar el coche» c.853 remoto) — los 2 casos quedan abajo como
  * regresión del piso c.854; «apuntarse al gimnasio» (reflexivo) sigue
  * NULL como candidata propia (una forma por ciclo).
+ * REGRESIÓN c.855: el dativo enclítico de SEGUNDA oleada «recogerle/
+ * retirarle/repostarle» ya captura (extensión del grupo de verbos del
+ * piso c.854 `ERRAND_DATIVE_FLOOR` → HIT ERRAND 0.45 con título fiel y
+ * dueAt) — los 5 casos quedan abajo como regresión de c.855 junto a 3
+ * controles propios (negación/pasado/aislado NULL; NULLs 11→14 de 42:
+ * los 3 nuevos son controles, la única captura-candidata restante sigue
+ * siendo «apuntarse al gimnasio»).
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -105,6 +112,14 @@ fun main() {
         // «Devolverle el dinero a Juan» y dueAt) ---
         "llevarle el almuerzo a papá mañana",
         "devolverle el dinero a Juan mañana",
+        // --- REGRESIÓN c.855: dativo de SEGUNDA oleada (medidos NULL en
+        // sonda efímera post-c.854; extensión del grupo de verbos del piso
+        // c.854 → HIT ERRAND 0.45 con título fiel y dueAt) ---
+        "recogerle al aeropuerto mañana",
+        "recogerle a la salida del trabajo esta tarde",
+        "recogerles a la estación el viernes",
+        "retirarle el paquete a la vecina mañana",
+        "repostarle el coche a mi madre mañana",
         // --- REGRESIÓN c.848: artículo indeterminado en electrodomésticos
         // (era NULL en c.845; diagonal «una» del piso c.729 → HIT HOUSEHOLD
         // 0.45, título «Poner una lavadora», dueAt) ---
@@ -138,7 +153,11 @@ fun main() {
         "quédate con el cambio", // imperativo + dativo
         "llevar", // verbo aislado
         "me llevo a los niños ayer", // narrativa pasado
-        "cargué el móvil anoche" // narrativa pasado
+        "cargué el móvil anoche", // narrativa pasado
+        // --- CONTROLES c.855 (dativo 2ª oleada): deben permanecer NULL ---
+        "no recogerle al aeropuerto mañana", // negación
+        "le recogí a Juan ayer", // narrativa pasado
+        "recogerle" // verbo dativo aislado
     )
     var nulls = 0
     for (c in cases) {

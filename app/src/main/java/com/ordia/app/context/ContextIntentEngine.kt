@@ -559,8 +559,23 @@ object ContextIntentEngine {
     // pronombre conservado, doctrina c.653). Acotado deliberado (una forma
     // por ciclo): la candidata 6/6 «apuntarse a» reflexivo queda FUERA
     // como candidata propia.
+    //
+    // Segunda oleada dativa (c.855 — candidata MEDIDA del descubrimiento
+    // post-c.854, registrada en BACKLOG con evidencia; sonda efímera
+    // `/tmp/probe855/DativeSecondWaveProbe.kt` sobre motor real: 5/5 NULL,
+    // re-verificado sobre HEAD 339d2de): el dativo de los verbos
+    // monosémicos restantes del piso libre `ERRAND_VERBS` (c.639) seguía
+    // sin captura («recogerle al aeropuerto mañana» — recoger a una
+    // PERSONA, la más cotidiana —, «retirarle el paquete a la vecina
+    // mañana», «repostarle el coche a mi madre mañana»). El grupo de
+    // verbos se extiende a `recoger|retirar|repostar` (monosémicos, sin
+    // figurados frecuentes con dativo — el guard anti-figurado sigue
+    // siendo específico de «llevar»). Keywords verificadas, cero cambios
+    // en [ContextIntentKind]: «recoger»/«repostar» ya son keywords
+    // (cubren sus dativos por subcadena, como «devolver» c.854) y la
+    // forma medida de «retirar» llega vía la keyword-OBJETO «paquete».
     private val ERRAND_DATIVE_FLOOR =
-        Regex("""\b(?<!no )(?:llevar|devolver)les?\s+(?!la\s+contraria\b|la\s+delantera\b|ventaja\b)\w""")
+        Regex("""\b(?<!no )(?:llevar|devolver|recoger|retirar|repostar)les?\s+(?!la\s+contraria\b|la\s+delantera\b|ventaja\b)\w""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
@@ -2170,7 +2185,7 @@ object ContextIntentEngine {
         // intercalado ("no llevarle el almuerzo a papá") que el
         // lookbehind inmediato no ve.
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+(?:llevar|devolver)les?\s+\w""").containsMatchIn(lower)
+            Regex("""\bno\s+(?:llevar|devolver|recoger|retirar|repostar)les?\s+\w""").containsMatchIn(lower)
         ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -3265,9 +3280,11 @@ object ContextIntentEngine {
                 // usuario), así el acuse ("vale, …") y el prefijo temporal
                 // ("mañana …") no ensucian el título (lección c.616);
                 // [sanitizeTitle] depura el residuo temporal de cola
-                // ("…mañana"/"…el lunes").
+                // ("…mañana"/"…el lunes"). El grupo de verbos incluye la
+                // segunda oleada dativa c.855 («recoger|retirar|repostar»),
+                // lockstep con el piso.
                 val matchDative = Regex(
-                    """\b(?<!no )(llevarles?|devolverles?)\s+(.+)""",
+                    """\b(?<!no )(llevarles?|devolverles?|recogerles?|retirarles?|repostarles?)\s+(.+)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchDative != null) {
