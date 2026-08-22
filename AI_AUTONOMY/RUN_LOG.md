@@ -15330,7 +15330,7 @@ a un permiso persistente frágil y silencioso ante fallos.
   0.45, guards NULL, envolvente 0.54. Cero mojibake (python utf-8).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
   (sin SDK).
-- **HEAD final**: pendiente commit.
+- **HEAD final**: a16f1bf (c.887).
 - **Próxima prioridad**: laterales restantes («reescanear el DNI»
   prefijo re-, «hacerme la prueba de sonido» dominio a decidir); tras
   agotar, auditoría de clase NOVENA. Re-fetch OBLIGATORIO.
