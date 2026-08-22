@@ -1756,7 +1756,13 @@ object ContextIntentEngine {
             // el correo/mensaje" (objeto) y "contestarle a Juan"
             // (enclítico) quedan FUERA como candidatas propias (medidas
             // NULL en la sonda c.861).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar\s+a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w""").containsMatchIn(lower)
+            // c.872: contracciones «al» (= a + el) y «a la» ante persona/objeto
+            // (lateral registrada en la sonda c.861; 6/6 candidatas NULL
+            // medidas PRE sobre HEAD 7a8e138). Guards: «al examen» sigue
+            // STUDY (bivalente); «a la pregunta»/«a tiempo» FUERA.
+            // Lockstep con la plantilla de [extractTitle]; la keyword-FRASE
+            // «contestar a» ya cubre por subcadena (ContextIntent.kt).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar\s+(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w""").containsMatchIn(lower)
             // c.863: piso acotado «hacer la declaración de la renta»
             // (candidata 5/7 de la sonda c.857 EighthClassAdminProbe,
             // OCTAVA clase — gestiones de adulto; medición PRE sobre
@@ -3069,7 +3075,7 @@ object ContextIntentEngine {
                 // bivalentes «contestar a la pregunta…»/«a tiempo…» nunca
                 // llegan aquí porque el piso no los captura). La grafía
                 // del usuario se preserva (doctrina c.653).
-                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar)\s+(a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*)""", RegexOption.IGNORE_CASE).find(original)
+                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar)\s+((?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchContestarA != null) return "Contestar ${matchContestarA.groupValues[2]}"
                 // c.863: plantilla «hacer la declaración de la renta»
                 // (ancla/guard idénticos al piso; lección c.616: el match

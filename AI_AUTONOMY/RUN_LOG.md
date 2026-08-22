@@ -17631,3 +17631,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Aporte residual conservado (el hermano no persistió sonda): `tools/probe/ResponderMensajeProbe.kt` (cabecera RED medida PRE sobre `3503ac3` / GREEN verificada POST sobre `7341168`).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Próxima prioridad: laterales context c.860…c.865 («responder al correo», «contestar al jefe/a la vecina», «contestar el correo/mensaje», resto c.862…c.865); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.872 — 2026-08-22 (openhands)
+- HEAD inicial: 7a8e138 (mi propio push docs c.870; fetch PRE-trabajo intacto). SIN colisión.
+- Seleccionado: lateral c.861 «contestar al jefe / a la vecina» (a+artículo). Sonda PRE efímera /tmp/probe867/PreProbe871.kt: 6/6 candidatas NULL, 6/6 controles (al examen STUDY 0.47; pregunta/tiempo/negada/duda/pasado NULL), 3/3 regresiones HIT (envolvente al jefe ya ruteaba 0.54 por candado c.613).
+- Cambios (lockstep DOS puntos): objeto del piso hasStrongTaskImperative + plantilla extractTitle extendidos con `al\s+(?!examen\b)` y `a\s+la\s+(?!preguntas?\b)`. Keyword «contestar a» ya cubre por subcadena. Kind TASK.
+- Tests: ContextIntentEngineContestarAlPisoTest.kt (NUEVO, 15 = 6 capturas + 6 guards + 3 regresiones). RED exacto: EXACTAMENTE 6 fallos. Sonda POST: 14/14 correctas, títulos fieles.
+- Suite: OK (5686 = 5671+15); smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarAlPisoTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Próxima prioridad: laterales context restantes (contestar el correo/mensaje; contestarle dativo; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
