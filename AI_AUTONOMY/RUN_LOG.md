@@ -17432,5 +17432,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Observaciones laterales** (área parser del hermano, NO de esta clase): «este mes» no ancla fecha (HIT pero dueAt=false en 2 casos) y «el día N» tampoco (PAYMENT dueAt=false) — ya registrado c.845/c.852; no re-registrar.
 - **Próxima prioridad**: candidata 1/7 sonda c.857 «tomar la medicación a las 8» (piso salud-medicación nuevo; «tomar» polisémico — medir guards «tomar el pelo/sol/café»/pasado «tomé»/negación antes de implementar). Persisten: perífrasis «me mido la presión/tensión» (guards c.841/c.843), plural «los pelos» / dativo «cortarle el pelo al niño» / objeto «cabello» (c.842), «anotarse a» dialectal y otras personas del enclítico «apuntarme/te/nos» (c.856), residual P2 c.818 «Icon( null-decorativo», «debiera/debiese…», temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar (SIETE colisiones históricas con el hermano: c.835/c.836/c.837/c.839/c.840/c.843/c.853).
-- **Commits**: (ver git log). **HEAD final**: (ver git log).
-
+- **Commits**: `17b43af`. **HEAD final**: `17b43af` (sonda c.857 + docs).
