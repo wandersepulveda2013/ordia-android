@@ -726,6 +726,31 @@ object NaturalTaskParser {
         """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|que\s+entra|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\b"""
     )
     /**
+     * "esta semana el viernes" / "esta misma semana el martes": día de la semana
+     * explícito anclado a la SEMANA ACTUAL (ISO lunes→domingo). Sin este patrón,
+     * thisWeekPattern robaba "esta semana" como plazo blando (domingo 09:00) y ese
+     * ancla ganaba la cascada effectiveRelativeDueAt sobre el weekday explícito →
+     * "dentista el viernes de esta semana" (dicho un viernes) caía en el DOMINGO
+     * (fecha errónea silenciosa, P1; medido en probe c.852). El weekday explícito
+     * es más específico que el plazo blando: gobierna la fecha. Se procesa ANTES
+     * que thisWeekPattern para consumir la frase completa (período + día).
+     */
+    private val thisWeekWeekdayReversePattern = Regex(
+        """(?i)\besta\s+(?:misma\s+)?semana\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+    )
+    /**
+     * Orden inverso del anterior: "el viernes de esta semana" / "el martes de esta
+     * misma semana" / "el viernes esta semana" (sin "de", forma coloquial). Misma
+     * semántica (día objetivo de la semana actual). Si el día ya pasó esta semana,
+     * queda como tarea vencida honesta (misma doctrina que "el lunes pasado"): no
+     * se rueda a la semana siguiente porque el calificador ancla ESTA semana. El
+     * lookahead rechaza "de esta semana que viene" (forma confusa que
+     * thisWeekPattern ya ancla al domingo de la próxima, c.488).
+     */
+    private val thisWeekWeekdayForwardPattern = Regex(
+        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:de\s+)?esta\s+(?:misma\s+)?semana\b(?!\s+que\s+viene)"""
+    )
+    /**
      * "fin de mes" / "a finales de mes" / "fin del mes" / "cierre de mes" / "cierre del mes"
      * / "final de mes" / "al final del mes" → último día del mes actual (o del siguiente
      * si hoy ya es el último día). "mediados de mes" / "a mediados de mes" → día 15 del
@@ -4037,6 +4062,29 @@ object NaturalTaskParser {
         }
         midOfWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
+        // "esta semana el viernes" / "el viernes de esta semana": día de la semana
+        // explícito anclado a la SEMANA ACTUAL. Se procesa ANTES que thisWeekPattern
+        // para que el plazo blando ("esta semana" → domingo) no robe la frase y se
+        // imponga sobre el weekday explícito (probe c.852: "dentista el viernes de
+        // esta semana", dicho un viernes, caía en el DOMINGO — fecha errónea, P1).
+        // El "de" genitivo precedente ("dentista de esta semana el viernes") se
+        // consume vía strippedPeriodRange para no dejar residuo en el título.
+        val thisWeekWeekdayReverseMatch = thisWeekWeekdayReversePattern.find(working)
+        val thisWeekWeekdayReverseDueAt = thisWeekWeekdayReverseMatch?.let { m ->
+            m.groupValues[1].toDayOfWeekOrNull()?.let { target ->
+                thisWeekWeekdayDate(base.toLocalDate(), target, zone)
+            }
+        }
+        thisWeekWeekdayReverseMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+
+        val thisWeekWeekdayForwardMatch = thisWeekWeekdayForwardPattern.find(working)
+        val thisWeekWeekdayForwardDueAt = thisWeekWeekdayForwardMatch?.let { m ->
+            m.groupValues[1].toDayOfWeekOrNull()?.let { target ->
+                thisWeekWeekdayDate(base.toLocalDate(), target, zone)
+            }
+        }
+        thisWeekWeekdayForwardMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+
         // "esta semana" / "esta semana que viene" / "fin de la semana" (con o sin
         // "que viene"): fin de la semana (próximo domingo, ISO lunes→domingo). Se
         // borra ANTES del período próximo para que "semana" no active "semana que
@@ -4290,6 +4338,7 @@ object NaturalTaskParser {
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: bareMonthDueAt ?: paraMonthDueAt ?: yearBoundaryDueAt ?:
             thisMonthDueAt ?: thisYearDueAt ?:
+            thisWeekWeekdayReverseDueAt ?: thisWeekWeekdayForwardDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
             nextMonthDayShortReverseDueAt ?:
@@ -4300,6 +4349,7 @@ object NaturalTaskParser {
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || bareMonthDueAt != null || paraMonthDueAt != null || yearBoundaryDueAt != null ||
             thisMonthEarlyMatch != null || thisYearEarlyMatch != null ||
+            thisWeekWeekdayReverseMatch != null || thisWeekWeekdayForwardMatch != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextMonthDayShortMatch != null || nextMonthDayShortReverseMatch != null ||
@@ -6925,6 +6975,17 @@ object NaturalTaskParser {
     private fun nextWeekWeekdayDate(today: LocalDate, target: DayOfWeek, zone: ZoneId): Long {
         val startOfNextWeek = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY))
         val date = startOfNextWeek.plusDays((target.value - DayOfWeek.MONDAY.value).toLong())
+        return DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+    }
+
+    /**
+     * "el viernes de esta semana": el weekday [target] de la semana ISO actual
+     * (lunes→domingo). Si ya pasó, queda en el pasado (vencida honesta, doctrina
+     * "el lunes pasado"): el calificador ancla ESTA semana, no la próxima.
+     */
+    private fun thisWeekWeekdayDate(today: LocalDate, target: DayOfWeek, zone: ZoneId): Long {
+        val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val date = startOfWeek.plusDays((target.value - DayOfWeek.MONDAY.value).toLong())
         return DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
     }
 
