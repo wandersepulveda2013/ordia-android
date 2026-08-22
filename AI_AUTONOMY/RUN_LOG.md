@@ -17602,7 +17602,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderMensajeFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: eb340db. HEAD final: eb340db.
 - Próxima prioridad: laterales context c.860 («responder al correo») y c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
-
+## c.870 — 2026-08-22 (openhands)
+- HEAD inicial: 7341168 (mi propio push docs c.869). FUSIÓN: fetch PRE-push reveló avance remoto dc44b5e (docs+sonda persistida del hermano, evidencia c.869; CERO cambio de dominio — la suite OK (5671) sobre 7341168 conserva validez; tools/probe no compila en la suite). pull --rebase de mi commit propio NO publicado + resolución manual de RUN_LOG (python utf-8). Base final: dc44b5e. SIN pérdida de trabajo ajeno.
+- Seleccionado: lateral c.860 «responder al correo…» (contracción). Sonda PRE efímera /tmp/probe867/PreProbe870.kt: 6/6 candidatas NULL, 5/5 controles, 4/4 regresiones HIT (envolvente al correo ya ruteaba por candado c.613).
+- Cambios (lockstep DOS puntos): determinante del piso hasStrongTaskImperative + plantilla extractTitle extendidos con `al\s+`. Kind TASK.
+- Tests: ContextIntentEngineResponderAlCorreoFloorTest.kt (NUEVO, 15 = 6 capturas + 5 guards + 4 regresiones). RED exacto: EXACTAMENTE 6 fallos. Sonda POST: 6/6 HIT título fiel, controles/regresiones intactos.
+- Suite: OK (5671 = 5656+15); smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Archivos: ContextIntentEngine.kt, ContextIntentEngineResponderAlCorreoFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Próxima prioridad: laterales context c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+ HEAD
 ## c.869-colisión — 2026-08-22 (openhands) — duplicado gestionado sin pérdida ni sobrescritura
 - Dos runs paralelos implementaron el MISMO lateral c.860 («responder el mensaje», zona context) con diseño equivalente (lockstep piso+plantilla+keyword-OBJETO «mensaje», mismo nombre de test). El hermano pusheó primero (`eb340db`+`7341168`).
 - Protocolo anti-colisión (precedente c.864/c.867): fetch PRE-push reveló el avance remoto (push rechazado non-ff); mi commit local NO pusheado (duplicado) descartado de forma segura realineando la rama a `7341168`. Nada del trabajo ajeno tocado ni sobrescrito; cero force push, cero rebase destructivo.
