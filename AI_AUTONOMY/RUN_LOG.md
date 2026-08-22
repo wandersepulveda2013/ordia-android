@@ -15365,3 +15365,44 @@ a un permiso persistente frágil y silencioso ante fallos.
   de sonido» (decidir dominio), «reescanear el DNI»; al agotar, auditoría
   de clase NOVENA. Re-fetch OBLIGATORIO.
 ---
+
+
+## Ciclo c.888 (2026-08-22) — piso «reescanear <documento>» (ContextIntentEngine, TASK) — lateral c.864 (prefijo re-)
+
+- **HEAD inicial**: 96b2faa (grafts) — pull --ff-only limpio PRE-trabajo;
+  colisión PRE-push (remoto 96b2faa→6ecaba6: hermano documenta su
+  STALE_RUN c.887 duplicado, sólo RUN_LOG +31) → rebase NO destructivo
+  sobre 6ecaba6 (único conflicto en RUN_LOG, AMBAS entradas conservadas
+  append-only, hermana primero); NO force, NO reset --hard, NO clean
+  destructivo, NO toques a `main`, CERO sobrescritura del hermano.
+- **Latente**: «reescanear el DNI/contrato/las notas/el código QR…»
+  (prefijo re- del piso «escanear» c.864) se descartaba en silencio
+  (0.12 sub-umbral: keyword por subcadena, sin piso) pese a la
+  envolvente «recuérdame reescanear el DNI…» (TASK 0.54 vía c.613) —
+  el trámite que exige la segunda captura no agendaba — P1.
+- **Sonda PRE persistida** `tools/probe/ReescanearDniProbe.kt`
+  (run_probe.sh, motor real): 7/7 candidatas NULL, 5/5 guards NULL,
+  bivalente «examen» STUDY 0.47, regresiones HIT.
+- **Fix mínimo** (lockstep DOS puntos, lección c.616, hermana de
+  c.860…c.886): piso acotado `reescanear` + objetos-ancla del hermano
+  (`dni|contratos?|notas?|código qr`) + plantilla de título (grafía
+  preservada, c.653). **CERO cambios en `ContextIntent.kt`** — la
+  subcadena «escanear» (keyword-VERBO c.864) ya lleva la frase al
+  análisis.
+- **Guard c.864** («reescanear el DNI mañana» NULL) convertida a
+  regresión de captura — intencionalidad conservada, precedente c.843
+  (hermana de c.887).
+- **TDD**: `ContextIntentEngineReescanearDniFloorTest.kt` NUEVO (5 =
+  2 capturas + guards + bivalente-study + regresiones). RED exacto:
+  5 run, EXACTAMENTE 2 fallos; la guard del hermano ajustada (un pase
+  intermedio 1 fallo residual) → GREEN 5848/5848.
+- **OK**: suite 5848 (= 5843 + 5) 0 failures vía run_domain_tests.sh
+  (JAVA_OPTS=-Xmx6g anti-OOM); smoke 25/25. Sonda POST: 7/7 HIT TASK
+  0.45, guards NULL, «examen» sigue STUDY 0.47, envolvente 0.54.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **HEAD final**: rebasado sobre 6ecaba6 (hash en git log; push a openhands/autonomous-ordia).
+- **Próxima prioridad**: «hacerme la prueba de sonido…» (dominio a
+  decidir: ¿soundcheck = EVENT?) — última lateral viva de la familia
+  «hacerse la prueba»; tras agotar, auditoría de clase NOVENA.
+  Re-fetch OBLIGATORIO (remoto puede avanzar entre runs).

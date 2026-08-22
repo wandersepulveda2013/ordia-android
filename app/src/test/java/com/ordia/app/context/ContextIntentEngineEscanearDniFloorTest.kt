@@ -36,13 +36,15 @@ import org.junit.Test
  * Lockstep lección c.751 (verbo monosemántico, precedente c.752 «votar»):
  * keyword-VERBO «escanear» en [ContextIntentKind.TASK] — sin ella la
  * frase no alcanza el análisis en producción vía
- * [ContextIntent.TRIGGER_WORDS]. Subcadena inerte: «reescanear» contiene
- * «escanear» pero aislada puntúa 0.12 (< umbral 0.45) → NULL; el piso
- * anclado la excluye además por diseño (precedente «descargar»/«cargar»
- * c.853, «automóvil»/«móvil» c.851).
+ * [ContextIntent.TRIGGER_WORDS]. Subcadena aprovechada en c.888:
+ * «reescanear» contiene «escanear» — el piso propio añadido en c.888 la
+ * captura con CERO cambios en [ContextIntent.kt] (lockstep DOS puntos,
+ * hermana de c.860…c.886; guard NULL → regresión de captura,
+ * precedente c.843).
  *
- * Cobertura: las 6 formas de la candidata + 2 compuestas + 6 guards
- * (negación, duda, pasado, verbo aislado, sustantivo suelto, prefijo re-)
+ * Cobertura: las 6 formas de la candidata + 2 compuestas + 5 guards
+ * (negación, duda, pasado, verbo aislado, sustantivo suelto — el
+ * prefijo re- dejó de ser guard en c.888 y es ahora captura propia)
  * + regresiones hermanas (c.698, c.863, c.862, envolvente c.613).
  */
 class ContextIntentEngineEscanearDniFloorTest {
@@ -115,8 +117,6 @@ class ContextIntentEngineEscanearDniFloorTest {
         assertNull("verbo aislado", analyze("escanear"))
         assertNull("sustantivo suelto: keyword inerte 0.12 < umbral",
             analyze("el DNI está caducado"))
-        assertNull("prefijo re-: el piso anclado lo excluye (lateral candidata)",
-            analyze("reescanear el DNI mañana"))
     }
 
     @Test
@@ -149,10 +149,15 @@ class ContextIntentEngineEscanearDniFloorTest {
         // c.887: el verbo distinto «fotocopiar» dejó de ser guard NULL
         // y se resolvió como piso propio (doctrina: guard convertida a
         // regresión de captura, intencionalidad conservada — precedente
-        // c.843). El piso «reescanear»/«prueba de sonido» sigue NULL.
+        // c.843); c.888: mismo tratamiento para «reescanear…» (prefijo
+        // re-). «Prueba de sonido» sigue NULL (decisión de dominio).
         val fotocopiar = analyze("fotocopiar el DNI mañana")
         assertNotNull("«fotocopiar el DNI» resuelto en c.887", fotocopiar)
         assertEquals(ContextIntentKind.TASK, fotocopiar!!.kind)
+
+        val reescanear = analyze("reescanear el DNI mañana")
+        assertNotNull("«reescanear el DNI» resuelto en c.888", reescanear)
+        assertEquals(ContextIntentKind.TASK, reescanear!!.kind)
     }
 
     @Test

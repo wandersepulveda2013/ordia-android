@@ -1,5 +1,19 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.888 (2026-08-22) — feat(context): piso «reescanear <documento>» (lateral medida c.864)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt).
+- Latente: la ruta «escanear el DNI» (c.864) dejó NULL medida y documentada (guard de exclusión en su propio test) la forma con prefijo re- «reescanear el DNI/contrato/las notas/el código QR…» — el trámite que exige la SEGUNDA captura cuando la primera quedó borrosa/cortada se descartaba en silencio (0.12 sub-umbral: la keyword «escanear» es subcadena de «reescanear», pero sin piso), mientras la envolvente «recuérdame reescanear el DNI…» ya ruteaba TASK 0.54 vía candado c.613 (asimetría hermana de c.765…c.887). Consecuencia P1: olvido silencioso de una gestión documental cotidiana.
+- Sonda PRE persistida `tools/probe/ReescanearDniProbe.kt` (run_probe.sh, motor real, 17 casos): 7/7 candidatas NULL (DNI mañana/esta tarde, contrato, notas, código QR, prefijo temporal, acuse «vale,»), guards correctas (5 NULL + bivalente «reescanear el examen» STUDY 0.47), regresiones HIT (escanear c.864, fotocopiar c.887, envolvente c.613 TASK 0.54).
+- Fix (lockstep DOS puntos, lección c.616, hermana de c.860/c.862/c.863/c.877/c.878/c.882/c.886): (1) piso acotado al verbo monosemántico «reescanear» (precedente c.752 «votar» / c.864 «escanear») + objetos-ancla del hermano (`dni|contratos?|notas?|código qr`) — misma ancla (^/ACK/prefijo temporal) y guard `(?<!no )`; (2) plantilla de título «Reescanear el DNI…» (grafía preservada, doctrina c.653). **CERO cambios en `ContextIntent.kt`** — la subcadena «escanear» dentro de «reescanear» ya es keyword-VERBO (c.864) y la frase llega al análisis con 0.12; el piso la eleva. Kind TASK (convergente con «escanear/fotocopiar el DNI» y envolvente c.613).
+- Guard del test c.864 («reescanear el DNI mañana» NULL como lateral candidata) convertida a regresión de captura positiva — intencionalidad conservada, precedente c.843 (hermana de c.887).
+- Anti-overreach verificado: «reescanear el examen mañana» sigue ruteando STUDY 0.47 (objeto bivalente fuera del ancla documental), negación/pasado/sustantivo/verbo suelto NULL.
+- TDD estricto: `ContextIntentEngineReescanearDniFloorTest.kt` (NUEVO, 5 tests = 2 capturas + 1 guards + 1 bivalente-study + 1 regresiones). RED exacto: 5 run, EXACTAMENTE 2 fallos (las 2 capturas); guards/regresiones verdes desde RED. GREEN completo tras el fix + conversión de la guard del hermano.
+- Suite: OK (5848 = 5843 + 5), 0 failures vía tools/run_domain_tests.sh (JAVA_OPTS=-Xmx6g anti-OOM); smoke 25/25 (run_domain_checks.sh). Cero mojibake (python utf-8).
+- Sonda POST re-ejecutada: 7/7 candidatas HIT TASK 0.45 títulos limpios («Reescanear el DNI/las notas/el contrato/el código QR») dueAt; guards intactas; envolvente TASK 0.54.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: «hacerme la prueba de sonido» (última lateral de la familia «hacerse la prueba»; decisión de dominio con sonda); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.887 (2026-08-22) — feat(context): piso «fotocopiar el DNI» (lateral medida c.864)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle + ContextIntent.kt keyword-VERBO).
