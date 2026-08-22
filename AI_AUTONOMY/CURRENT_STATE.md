@@ -1,5 +1,19 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.883 (2026-08-22) — feat(context): perífrasis conjugada «me mido la presión/tensión» (candidata guard-de-contrato desde c.841/c.843)
+
+- Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).
+- Latente: la diagonal conjugada de 1ª persona «me mido la presión/tensión» era NULL deliberado (guards de contrato c.841/c.843) — la forma MÁS cotidiana del autocuidado de la tensión arterial («I measure my blood pressure») se perdía en silencio mientras las cuatro hermanas (c.772 «medir la tensión» / c.775 «medirme la presión» / c.840 «medirme la tensión» / c.843 «medir la presión») capturaban. Consecuencia real: el hábito diario de salud dicho como se habla nunca se materializaba (P1, evitar olvidos).
+- Sonda PRE efímera `/tmp/probe883/LateralProbe.kt` sobre HEAD 4dbd73e (API correcta `analyze(ContextEvent(...))` tras 2 reescrituras): 9 laterales NULL (escanear contrato/notas/QR, fotocopiar/reescanear DNI, reclamar factura, prueba de sonido, me mido presión/tensión) + 2 controles correctos.
+- Fix mínimo (lockstep DOS puntos, lección c.616): (1) piso acotado `me\s+mido` con objeto `presi[oó]n|tensi[oó]n`; (2) plantilla de título lockstep (grafía preservada, doctrina c.653; conjugado capitalizado desde el match, precedente c.770 «Tomarme la pastilla»). Keyword-OBJETOS «presión»/«tensión» ya existían (c.775/c.772) → lockstep coste-cero; «me mido las presiones/tensiones» (exigencias sociales) y «midete…» (2ª persona) quedan FUERA por `\b`/forma; negación sin cláusula dedicada (keyword 0.12 + bono temporal 0.1 = 0.22 < umbral, hermana c.765…c.772).
+- Decisión de alcance medida con sonda: «me mido la presión de los neumáticos» CAPTURA (hermana de la c.843 y de «echar gasolina» c.829) — vehículo, no overreach.
+- Guards de contrato c.843 (`perifrasis conjugada no captura`) y c.840 (`descartada perifrasis me mido`) movidos a regresiones de captura — intencionalidad conservada (precedente c.843/c.841).
+- Test `ContextIntentEngineMeMidoFloorTest.kt` (26 = 12 capturas + 1 envolvente + 9 guards + 4 regresiones). RED exacto: 26 run, EXACTAMENTE 12 fallos (las capturas).
+- Suite: OK (5825 = 5799 + 26), 0 failures; smoke 25/25. Cero mojibake (python utf-8).
+- Sonda POST re-ejecutada (`tools/run_probe.sh`): las 2 perífrasis HIT TASK 0.45 «Me mido la presión/tensión» dueAt; laterales restantes NULL intactas; controles HIT.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: laterales restantes («hacerme la prueba de sonido» decisión de dominio, «reclamar una factura» indefinido, «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI», singular indefinido residuales P2); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.882 (2026-08-22) — feat(context): objeto «prueba de embarazo» en la familia «hacerse» (lateral medida c.876)
 
 - Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).

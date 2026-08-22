@@ -159,8 +159,15 @@ class ContextIntentEngineMedirPresionFloorTest {
     }
 
     @Test
-    fun `perifrasis conjugada no captura`() {
-        assertNull(analyze("me mido la presión mañana"))
+    fun `perifrasis conjugada c883 ahora captura`() {
+        // c.883: el guard de contrato pasa a regresión de captura —
+        // la perífrasis conjugada «me mido la presión» era NULL
+        // deliberado (c.843); resuelta como candidata propia en c.883
+        // (piso acotado «me mido…» con objeto ancla presión|tensión).
+        val i = analyze("me mido la presión mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertEquals("Me mido la presión", i.title)
     }
 
     @Test

@@ -1,3 +1,16 @@
+## Ciclo c.883 (2026-08-22) — feat(context): perífrasis conjugada «me mido la presión/tensión» (guard-de-contrato c.841/c.843 resuelto)
+
+- **HEAD inicial**: `4dbd73e` (propio c.882 embarazo); fetch PRE-trabajo limpio; colisión cero. **HEAD final**: ver commits finales.
+- **Problema (P1 olvido silencioso)**: el hábito diario de salud «me mido la presión/tensión» — la forma conjugada de 1ª persona MÁS cotidiana («I measure my blood pressure») — era NULL deliberado documentado desde c.841/c.843 como guard de contrato simétrico; las 4 hermanas capturaban. Consecuencia real: olvido del autocuidado de la tensión arterial.
+- **Sonda PRE** (efímera `/tmp/probe883/LateralProbe.kt` sobre 4dbd73e, API corregida tras 2 reescrituras): 9/11 laterales NULL (lista del pool) + 2 controles correctos; candidata elegida por impacto salud.
+- **Solución (lockstep DOS puntos)**: (1) piso acotado `me\s+mido` + objeto `presi[oó]n|tensi[oó]n` (ancla inequívoca del verbo bivalente); (2) plantilla de título lockstep (grupo `(me\s+mido)` capitalizado desde el match → «Me mido la presión», precedente c.770; doctrina c.653). CERO cambios en `ContextIntent.kt` (keywords presión/tensión preexistentes c.775/c.772 → coste-cero). Anti-overreach: SIN plural social; 2ª persona «midete…» FUERA; pasado «me medí…» no casa; `(?<!no )` + ancla ^/ACK/temporal; negación sin cláusula (0.22 < umbral). Decisión de alcance: neumáticos CAPTURA (hermana c.843/c.829).
+- **Test**: `ContextIntentEngineMeMidoFloorTest.kt` (26 = 12 capturas + 1 envolvente + 9 guards + 4 regresiones). RED exacto: EXACTAMENTE 12 fallos. Sonda POST: 2 HIT TASK 0.45 «Me mido la presión/tensión» dueAt; laterales restantes NULL; controles HIT.
+- **Suite**: OK (5825 = 5799 + 26), 0 failures; smoke 25/25.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Guards de contrato movidos a captura**: c.843 `perifrasis conjugada no captura` y c.840 `descartada perifrasis me mido` → regresiones de captura (intencionalidad conservada, precedente c.843).
+- **Docs**: `BACKLOG.md` (fila c.883 al frente), `CURRENT_STATE.md` (entrada c.883 al frente), `DECISIONS.md` (fila c.883 al frente de la tabla).
+- **Próxima prioridad**: laterales restantes («hacerme la prueba de sonido» decisión de dominio, «reclamar una factura» indefinido, «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI»); auditoría de clase NOVENA al agotar.
+
 ## Ciclo c.878 (2026-08-22) — feat(context): piso NUEVO «hacer la renta» (lateral c.863 elíptica)
 
 - **HEAD inicial**: `864278e` (hermano, docs runlog STALE c.877); fetch PRE-trabajo limpio; colisión cero. **HEAD final**: ver commits finales.

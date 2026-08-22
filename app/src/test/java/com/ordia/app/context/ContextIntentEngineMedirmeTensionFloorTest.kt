@@ -171,10 +171,15 @@ class ContextIntentEngineMedirmeTensionFloorTest {
     }
 
     @Test
-    fun `descartada perifrasis me mido`() {
-        // Perífrasis conjugada «me mido»: fuera del alcance del piso
-        // (infinitivo con enclítico) — candidata potencial futura, una
-        // forma por ciclo (doctrina de la sonda).
-        assertNull(analyze("me mido la tensión mañana"))
+    fun `perifrasis me mido c883 ahora captura`() {
+        // c.883: la perífrasis conjugada «me mido la tensión» era NULL
+        // deliberado (c.840, unidad registrada «una forma por ciclo»);
+        // resuelta como candidata propia en c.883 (piso acotado
+        // «me mido…» con objeto ancla presión|tensión). El guard de
+        // contrato pasa a regresión de captura.
+        val i = analyze("me mido la tensión mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertEquals("Me mido la tensión", i.title)
     }
 }
