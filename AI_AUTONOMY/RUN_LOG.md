@@ -17488,4 +17488,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: laterales medidos NULL en la sonda PRE («contestar al jefe…»/«contestar a la vecina…» — a+artículo —, «contestar el correo/mensaje…», enclítico dativo «contestarle a…») quedan FUERA como candidatas propias (registradas en BACKLOG).
 - **Próxima prioridad**: candidata 4/7 sonda c.857 «hacerme un análisis de sangre el lunes» (salud reflexiva — hermana del «cortarme el pelo» ERRAND; medir si kind APPOINTMENT/análisis ya cubierto por otra vía y guards «hacerme un tatuaje»/pasado «me hice un análisis» antes de implementar). Persisten: candidatas 5–7, laterales c.860/c.861, perífrasis «me mido la presión/tensión» (guards c.841/c.843), residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- **Commits**: PENDIENTE (se registra en commit posterior). **HEAD final**: PENDIENTE.
+- **Commits**: `67f3564`. **HEAD final**: `67f3564` (commit c.861).
