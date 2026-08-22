@@ -17653,3 +17653,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarObjetoFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: 8a5d545. HEAD final: 8a5d545.
 - Próxima prioridad: laterales context restantes (contestarle dativo; contestar la carta; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+## c.874 — 2026-08-22 (openhands) — colisión gestionada sin pérdida ni sobrescritura
+- Dos runs paralelos implementaron el MISMO lateral c.861 «contestar el correo/mensaje/email» (zona context). El hermano pusheó primero (`d7861fc` c.872-remoto «contestar al/a la persona» + `8a5d545` c.873-remoto «contestar el correo/mensaje/email» + docs; test con el MISMO nombre de archivo que el mío).
+- Protocolo anti-colisión (precedente c.867/c.868/c.869-colisión): fetch PRE-push reveló el avance remoto; mi commit local duplicado NO pusheado descartado de forma segura realineando la rama a `42c09db` (git checkout de mis archivos + pull --ff-only). Nada del trabajo ajeno tocado ni sobrescrito; cero force push, cero rebase destructivo.
+- Mi evidencia PRE conserva validez sobre 7fd8edc: sonda efímera /tmp/probe872/PreProbe.kt (7/7 candidatas NULL, controles correctos, 4/4 regresiones HIT) + RED exacto de mi clase duplicada (8 fallos).
+- Verificación independiente del hermano sobre su propia base: `bash tools/run_domain_tests.sh` → **OK (5709)**, smoke 25/25.
+- Aporte residual conservado (7 casos NO cubiertos por el test del hermano, persistidos en su archivo): plural «los correos», posesivo «mi correo», contracción «al»+objeto, guard «la pregunta» NULL, envolvente candado c.613, regresión «responder al correo» c.870, verbo suelto NULL. Sonda residual end-to-end /tmp/probe872/ResidualProbe.kt: 7/7 OK.
+- Suite con residuales: **OK (5716 = 5709 + 7)**, 0 failures; smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Ciclo renumbrado c.874 (c.872 y c.873 ocupados por el hermano durante mi trabajo — lección reafirmada: en zona caliente, sonda+implementación atómicas).
+- Próxima prioridad: laterales context restantes c.862…c.865 («hacerme la prueba de sangre», «fotocopiar/reescanear el DNI», «reclamar una factura», «contestarle a Juan» enclítico); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.

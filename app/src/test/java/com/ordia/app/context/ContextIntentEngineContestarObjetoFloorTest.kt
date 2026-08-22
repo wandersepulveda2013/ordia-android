@@ -159,4 +159,79 @@ class ContextIntentEngineContestarObjetoFloorTest {
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
+
+    // c.874: residuales aportados tras colisión gestionada (mi implementación
+    // paralela del mismo lateral descartada; estos 7 casos no estaban
+    // cubiertos por los tests del hermano — verificados end-to-end con sonda
+    // efímera /tmp/probe872/ResidualProbe.kt sobre HEAD 42c09db: 7/7 OK).
+
+    @Test
+    fun `captura plural los correos`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "contestar los correos mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Contestar los correos", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `captura posesivo mi correo`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "contestar mi correo hoy", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Contestar mi correo", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `captura contraccion al ante objeto`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "contestar al correo de Juan hoy", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Contestar al correo de Juan", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `bivalente la pregunta queda fuera`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "contestar la pregunta del examen", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `envolvente sigue ruteando por el candado`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "recuérdame contestar el correo de Juan hoy", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Contestar el correo de Juan", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `regresion responder al correo c870`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "responder al correo hoy", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Responder al correo", intent.title)
+    }
+
+    @Test
+    fun `verbo suelto no casa`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "contestar", 1000)
+        )
+        assertNull(intent)
+    }
 }
