@@ -563,8 +563,26 @@ object ContextIntentEngine {
     // Sin cláusula dedicada en [imperativeIsNegated]: keyword «hacer»
     // 0.12 + bono temporal 0.1 = 0.22 < umbral (aritmética c.859/c.860)
     // y el piso lleva su propio lookbehind.
+    // Extensión del objeto al sinónimo coloquial «prueba de sangre»
+    // (c.876 — lateral medida NULL en la sonda PRE del propio ciclo
+    // c.862 y registrada en BACKLOG; sonda efímera
+    // `/tmp/probe876/PreProbe.kt` sobre HEAD e53a582: 8/8 declarativas
+    // NULL — en el habla cotidiana la analítica se llama «prueba de
+    // sangre» tanto como «análisis» —, 6/6 controles NULL, 6/6
+    // regresiones HIT). Acotado al complemento `de sangre` (criterio
+    // c.684/c.717/c.731/c.842/c.862): «prueba» sola es bivalente
+    // («prueba de sonido», «prueba del coche»), así el ancla inequívoca
+    // es la pareja prueba+de sangre; «prueba de embarazo» queda FUERA
+    // como lateral registrada (una forma por ciclo). El enclítico
+    // reflexivo sigue EXIGIDO (doctrina c.862: la forma desnuda es
+    // bivalente). La envolvente («recuérdame hacerme la prueba de
+    // sangre…»→TASK) ya ruteaba por el candado c.613 y queda protegida
+    // por [imperativeIsWrapped] vía [ERRAND_FLOORS] (fuente única).
+    // CERO cambios en [ContextIntent.kt]: «hacerme» contiene la keyword
+    // TASK «hacer» por subcadena (hermana de c.860/c.862). Sin cláusula
+    // dedicada en [imperativeIsNegated] (aritmética c.859/c.860/c.862).
     private val ERRAND_BLOOD_TEST_FLOOR =
-        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?an[aá]lisis\b""")
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre)\b""")
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -3612,9 +3630,10 @@ object ContextIntentEngine {
                 // arranca en el verbo, así el acuse ("vale, …") y el
                 // prefijo temporal ("mañana …") no ensucian el título;
                 // [sanitizeTitle] depura el residuo temporal de cola
-                // ("…el lunes").
+                // ("…el lunes"). Objeto extendido al sinónimo «prueba(s)
+                // de sangre» (c.876, lockstep con el piso).
                 val matchBloodTest = Regex(
-                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?an[aá]lisis\b.*)""",
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBloodTest != null) {

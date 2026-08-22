@@ -17680,7 +17680,7 @@ a un permiso persistente frágil y silencioso ante fallos.
   de test: la cola temporal «mañana» se despoja de `title` y ancla
   `dueAt` (lección c.616).
 - **OK**: 5725 tests (5716 base fusionada + 9), 25/25 smoke.
-- **HEAD final**: (commit c.875)
+- **HEAD final**: `b01e44a` (commit c.875)
 - **Próxima prioridad**: «declarar la renta» (lateral c.863 aún NULL) u
   otra lateral fiscal.
 
@@ -17694,3 +17694,37 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Ciclo renumbrado c.874 (c.872 y c.873 ocupados por el hermano durante mi trabajo — lección reafirmada: en zona caliente, sonda+implementación atómicas). Commit: e2aa23f. HEAD final: e2aa23f.
 - Próxima prioridad: laterales context restantes c.862…c.865 («hacerme la prueba de sangre», «fotocopiar/reescanear el DNI», «reclamar una factura», «contestarle a Juan» enclítico); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.876 — «hacerme la prueba de sangre» (objeto del piso ERRAND extendido; renumerado tras colisión cycle-ID: hermano ocupó c.875)
+
+- **HEAD inicial**: e53a582 (propio, hash c.874); fetch POS-trabajo reveló el c.875 del
+  hermano (`b01e44a`, «presentar la declaración de la renta», zona disjunta — piso
+  «presentar» + keyword) → stash→pull --ff-only→pop (auto-merge limpio) → renumeración
+  c.875→c.876 con los dos comentarios del hermano restablecidos a c.875 → suite
+  re-verificada sobre base fusionada. **HEAD final**: (commit c.876; hash en `git log`
+  tras push).
+- **Sonda PRE** (efímera `/tmp/probe876/PreProbe.kt`, motor real): 8/8 candidatas NULL
+  (reflexivas ex tute/ente, sing/pl, acuse «vale», temporal delante, sin fecha);
+  6/6 controles NULL (negación, «quizá», pasado, «de sonido» ×2, «de embarazo»);
+  6/6 regresiones HIT (envolvente candado c.613 incluida).
+- **RED**: `ContextIntentEnginePruebaSangreFloorTest` (17 = 8 capturas + 6 guards + 3
+  regresiones) → EXACTAMENTE 7 fallos (la envolvente c.613 ya pasaba en RED por diseño).
+- **Fix mínimo** (lockstep DOS puntos, lección c.616): objeto del piso en
+  `hasStrongTaskImperative` extendido a `(?:an[aá]lisis|pruebas?\s+de\s+sangre)` +
+  plantilla de título hermana en `extractTitle` (captura del objeto completo, grafía
+  preservada c.653). Complemento «de sangre» como ancla inequívoca («prueba» sola
+  bivalente: «de sonido»/«del coche»). CERO cambios en `ContextIntent.kt` (keyword
+  TASK «hacer» cubre por subcadena, hermana c.860/c.862/c.863). Kind ERRAND
+  («la diligencia gobierna», c.842). Determinista, cero random, cero IA fingida,
+  cero UI.
+- **Sonda POST** sobre base fusionada `b01e44a`: 8/8 HIT con títulos fieles
+  («Hacerme la prueba de sangre», «Hacerte la prueba de sangre»), 6/6 controles NULL,
+  6/6 regresiones HIT.
+- **OK**: 5742 tests (5725 base fusionada hermano + 17 nuevos), 0 failures; smoke
+  25/25. Cero mojibake (python utf-8). Sonda efímera fuera del repo (`/tmp/probe876`).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/Android/UI/Room DAOs reales (sin SDK).
+- **Próxima prioridad**: laterales context («hacerse tatuaje», «contestar la carta»,
+  «prueba de embarazo», «contestarle a Juan» enclítico, «declarar la renta»,
+  «fotocopiar/reescanear el DNI», «reclamar una factura»); perífrasis
+  «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano.
+  Re-fetch OBLIGATORIO.
