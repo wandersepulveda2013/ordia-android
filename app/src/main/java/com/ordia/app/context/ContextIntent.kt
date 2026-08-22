@@ -64,6 +64,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // vuelo/una decisión). 0.12 sola queda bajo el umbral: el sustantivo
         // suelto ("la medicina está en la mesa") sigue descartado.
         "medicina",
+        // c.859: keyword-OBJETO "medicación" (lockstep con la extensión del
+        // piso "tomar la medicina", lección c.751/c.765: "medicina" no la
+        // cubre por subcadena). 0.12 sola queda bajo el umbral: "la
+        // medicación está en el botiquín" sigue descartado. Sin tilde no es
+        // keyword (precedente c.772 «tensión»): el piso sí la admite por
+        // `[oó]` cuando el texto llega al análisis vía otra keyword.
+        "medicación",
         // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la

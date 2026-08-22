@@ -28,6 +28,10 @@ import com.ordia.app.context.ContextIntentEngine
  *   c.833/c.836/c.845):
  *     1) «tomar la medicación a las 8» — salud diaria (la más crítica:
  *        olvidar la medicación es el olvido con consecuencia real).
+ *        RESUELTA en c.859 (extensión lockstep del objeto del piso
+ *        «tomar la medicina» c.765 con «medicaci[oó]n»: piso + plantilla
+ *        de título + keyword-OBJETO; test
+ *        ContextIntentEngineMedicacionFloorTest), movida a REGRESIONES.
  *     2) «responder el correo de Ana hoy» — comunicación pendiente.
  *     3) «contestar a Juan esta tarde» — variante coloquial de la 2.
  *     4) «hacerme un análisis de sangre el lunes» — salud (reflexivo
@@ -54,13 +58,15 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "tomar la medicación a las 8",
         "responder el correo de Ana hoy",
         "contestar a Juan esta tarde",
         "hacerme un análisis de sangre el lunes",
         "hacer la declaración de la renta este mes",
         "escanear el DNI esta tarde",
         "reclamar la factura del banco mañana",
+        // --- REGRESIÓN c.859: candidata 1 resuelta (lockstep piso+título+
+        // keyword «medicaci[oó]n»); era NULL en c.857 ---
+        "tomar la medicación a las 8", // TASK
         // --- REGRESIONES de la clase (ya capturan en c.857) ---
         "pasar la ITV la semana que viene", // TASK
         "cambiar el aceite del coche el sábado", // TASK
