@@ -49,7 +49,14 @@ import com.ordia.app.context.ContextIntentEngine
  *        ContextIntentEngineContestarAPersonaFloorTest), movida a
  *        REGRESIONES.
  *     4) «hacerme un análisis de sangre el lunes» — salud (reflexivo
- *        «hacerme», hermano del «cortarme el pelo» c.7xx).
+ *        «hacerme», hermano del «cortarme el pelo» c.842).
+ *        RESUELTA en c.862 (piso NUEVO acotado al objeto «an[aá]lisis»
+ *        con enclítico reflexivo EXIGIDO — la forma desnuda «hacer un
+ *        análisis» es bivalente: análisis de datos/estudio — en
+ *        [ERRAND_FLOORS] + plantilla de título; CERO cambios en
+ *        ContextIntent.kt: la keyword TASK «hacer» es subcadena de
+ *        «hacerme»; test ContextIntentEngineAnalisisSangreFloorTest),
+ *        movida a REGRESIONES.
  *     5) «hacer la declaración de la renta este mes» — trámite anual.
  *     6) «escanear el DNI esta tarde» — gestión documental.
  *     7) «reclamar la factura del banco mañana» — finanzas hogar.
@@ -72,7 +79,6 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "hacerme un análisis de sangre el lunes",
         "hacer la declaración de la renta este mes",
         "escanear el DNI esta tarde",
         "reclamar la factura del banco mañana",
@@ -86,6 +92,10 @@ fun main() {
         // «contestar a <persona>» + keyword-FRASE «contestar a»); era
         // NULL en c.857 ---
         "contestar a Juan esta tarde", // TASK
+        // --- REGRESIÓN c.862: candidata 4 resuelta (piso nuevo acotado
+        // «hacer+enclítico+an[aá]lisis» en ERRAND_FLOORS); era NULL en
+        // c.857 ---
+        "hacerme un análisis de sangre el lunes", // ERRAND
         // --- REGRESIONES de la clase (ya capturan en c.857) ---
         "pasar la ITV la semana que viene", // TASK
         "cambiar el aceite del coche el sábado", // TASK

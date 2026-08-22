@@ -528,6 +528,43 @@ object ContextIntentEngine {
     // quedan FUERA — candidatas documentadas.
     private val ERRAND_HAIRCUT_FLOOR =
         Regex("""\b(?<!no )cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
+    // Piso analítica de sangre acotado al objeto (c.862, candidata 4/7 de
+    // la sonda persistida `EighthClassAdminProbe.kt` c.857 — OCTAVA clase,
+    // gestiones de adulto — salud cotidiana; sonda PRE
+    // `/tmp/probe862/PreProbe.kt` sobre HEAD ee988d0: 6/6 declarativas
+    // NULL, olvido silencioso P1 — olvidar una analítica tiene
+    // consecuencia real— mientras la envolvente «recuérdame hacerme un
+    // análisis de sangre el lunes» ya enrutaba TASK 0.54 vía candado
+    // c.613: asimetría de ruta hermana de c.765…c.861). Hermana de
+    // «cortarme el pelo» c.842 (reflexiva con desplazamiento, aquí al
+    // laboratorio/centro de salud). «hacer» es bivalente por excelencia
+    // (un favor/un tatuaje/daño/la maleta), así el piso se ACOTA al
+    // objeto `an[aá]lisis` (criterio c.684/c.717/c.731/c.842) y EXIGE el
+    // enclítico reflexivo: la forma desnuda «hacer un análisis» es
+    // bivalente a su vez («hacer un análisis de datos del informe» es
+    // estudio, no analítica médica) — lateral documentada, una forma por
+    // ciclo. El enclítico (me|te|se|nos) sigue el precedente amplio de
+    // equipaje c.836 («hacerse un análisis» es tan cotidiana como
+    // «hacerme un análisis»). `\b` de posición libre (familia c.643/
+    // c.647/c.842): admite acuse («vale, …») y prefijo temporal
+    // («mañana …»); la negación inmediata se bloquea en la propia regex
+    // `(?<!no )` y la duda por la penalización post-pisos
+    // [HEDGE_PENALTY] c.649 (0.45−0.3 → NULL). El envolvente queda
+    // protegido por [imperativeIsWrapped] vía [ERRAND_FLOORS] (fuente
+    // única, lección c.648/c.652). Kind deliberado: ERRAND (doctrina
+    // «la diligencia gobierna» c.842; no APPOINTMENT: bonus-kind sin
+    // pisos y la frase no afirma cita concertada — eso sería «pedir hora
+    // para el análisis», otra forma; no TASK: la familia reflexiva de
+    // desplazamiento vive en ERRAND). Lockstep en DOS puntos (lección
+    // c.616; a diferencia de c.842 NO hace falta keyword — «hacerme»
+    // contiene la keyword TASK «hacer» por subcadena y la frase ya llega
+    // al análisis en producción, hermana de c.860): piso + plantilla de
+    // título en [extractTitle] (pronombre conservado, doctrina c.653).
+    // Sin cláusula dedicada en [imperativeIsNegated]: keyword «hacer»
+    // 0.12 + bono temporal 0.1 = 0.22 < umbral (aritmética c.859/c.860)
+    // y el piso lleva su propio lookbehind.
+    private val ERRAND_BLOOD_TEST_FLOOR =
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?an[aá]lisis\b""")
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -586,6 +623,7 @@ object ContextIntentEngine {
         ERRAND_MEDICAL_RUN_FLOOR,
         ERRAND_FUEL_FLOOR,
         ERRAND_HAIRCUT_FLOOR,
+        ERRAND_BLOOD_TEST_FLOOR,
         ERRAND_DATIVE_FLOOR
     )
     private val STUDY_FLOORS = listOf(
@@ -3370,6 +3408,21 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchHaircut != null) {
                     return "${capitalizeFirst(matchHaircut.groupValues[1])} ${matchHaircut.groupValues[2]}"
+                }
+                // "hacerme un análisis de sangre" → "Hacerme un análisis
+                // de sangre" (c.862, lockstep con [ERRAND_BLOOD_TEST_FLOOR]):
+                // verbo preservado con su enclítico reflexivo (alineación
+                // piso↔título, lección c.616; doctrina c.653); el match
+                // arranca en el verbo, así el acuse ("vale, …") y el
+                // prefijo temporal ("mañana …") no ensucian el título;
+                // [sanitizeTitle] depura el residuo temporal de cola
+                // ("…el lunes").
+                val matchBloodTest = Regex(
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?an[aá]lisis\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchBloodTest != null) {
+                    return "${capitalizeFirst(matchBloodTest.groupValues[1])} ${matchBloodTest.groupValues[2]}"
                 }
                 // "llevarle el almuerzo a papá" / "devolverle el dinero a
                 // Juan" → "Llevarle el almuerzo a papá" (c.854, lockstep
