@@ -2019,6 +2019,28 @@ object NaturalTaskParser {
     )
 
     /**
+     * "tipo N" DESNUDO (sin artículo) con evidencia de reloj inmediata: aproximación
+     * coloquial ("comida tipo 2 de la tarde" ≈ "comida sobre las 2 de la tarde"). El
+     * marcador aproximado "tipo las N" de [approximateTimePatterns] (c.670) exige el
+     * artículo precisamente porque la forma de categoría ("documento tipo 8") va SIN
+     * artículo; pero la forma desnuda con evidencia de reloj ("tipo 2 de la tarde",
+     * "tipo 3 pm", "tipo 10:30") la resolvía el reloj autónomo y "tipo" sobrevivía
+     * como residuo en el título (cita bien fechada, título mutilado: captura
+     * degradada; sonda c.852, lateral (c)). Se consume el marcador (se elimina, NO se
+     * sustituye por "a ": "a 2 de la tarde" no es forma canónica y dejaba "a" como
+     * residuo) y el resto lo reutiliza TODO el flujo del reloj autónomo (resolución +
+     * limpieza), que ya anclaba esa hora. A diferencia de "tipo las N" (el artículo la
+     * hace inequívoca), la forma desnuda es ambigua con la de categoría, así que exige
+     * evidencia de reloj INMEDIATA tras la hora (misma doctrina que "hacia/sobre":
+     * minutos `:MM`, meridiem, parte del día o "horas/hs/h"); la hora en punto sin
+     * evidencia ("reunión tipo 3") y los usos de categoría ("documento tipo 8", "plan
+     * tipo estrategia", "documento tipo 8 personas", "mesa tipo 8 de comedor") NO se
+     * tocan (sin evidencia el lookahead no casa).
+     */
+    private val bareTipoTimePattern =
+        Regex("""(?i)\btipo\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs|h)\b))""")
+
+    /**
      * Introductor de hora directo "para las/la", alternativa a "a las/la" ("reunión para
      * las 9h30", "te veo para las 9 pm", "entrega para la una del mediodía"). A diferencia
      * de [approximateTimePatterns] (marcadores de hora *aproximada*), "para" porta la hora
@@ -3128,6 +3150,14 @@ object NaturalTaskParser {
                 else -> "al $bare"
             }
         }
+
+        // c.868: "tipo N" desnudo con evidencia de reloj inmediata ("comida tipo 2 de
+        // la tarde") se consume ANTES del fold de [approximateTimePatterns] (que sólo
+        // trata la forma con artículo "tipo las N", c.670): se elimina el marcador para
+        // que el reloj autónomo resuelva y limpie la hora sin dejar "tipo" de residuo
+        // en el título. El guard de evidencia de [bareTipoTimePattern] protege los usos
+        // de categoría ("documento tipo 8", "mesa tipo 8 de comedor").
+        working = bareTipoTimePattern.replace(working, "")
 
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
@@ -5687,6 +5717,9 @@ object NaturalTaskParser {
             // de hora aproximada ("a eso de la una y media" solo) muestra "a la una y
             // media" en vez de resucitar "a eso de" crudo. Consistente con c.379/c.381.
             .let { approximateTimePatterns.fold(it) { acc, p -> p.replace(acc, "a ") } }
+            // c.868: respaldo consume "tipo N" desnudo con evidencia de reloj
+            // (simétrico al rewriter en `parse`).
+            .let { bareTipoTimePattern.replace(it, "") }
             .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
 
         return ParsedTaskInput(

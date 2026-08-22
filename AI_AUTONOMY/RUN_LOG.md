@@ -17576,3 +17576,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderEmailFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: e928ec7. HEAD final: e928ec7.
 - Próxima prioridad: laterales c.860 («responder el mensaje»/«al correo»), c.861 («contestar al jefe/a la vecina»), resto c.862…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.868 — 2026-08-22 (openhands)
+- HEAD inicial: 2d75295 (docs backlog c.866, en sync PRE-trabajo). Env JVM re-instalado en este run (entorno nuevo): OpenJDK 21 apt, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`; `JAVA_OPTS=-Xmx4g`. Baseline PRE: OK (5607), smoke 25/25.
+- Seleccionado: lateral parser c.852 **(c)** (BACKLOG fila 7) «comida TIPO 2 de la tarde» [P1 captura degradada — título mutilado]. Zona parser, 0 cambios en `context/` (archivos del hermano).
+- Sonda PRE (obligatoria): efímera `/tmp/probe867/PreProbe.kt` (motor real vía `tools/run_probe.sh`, now = vie 2026-08-21 15:00 UTC = 12:00 ART). RED medido: 6/6 candidatas («tipo 2 de la tarde», «tipo 3 pm», «tipo 10:30», «tipo 7 de la mañana», «tipo 9 de la noche», «tipo 8 am») anclaban la hora CORRECTA pero con residuo «tipo» en el título ('comida tipo'); 5/5 controles NULL («documento tipo 8», «plan tipo estrategia», «reunión tipo 3» desnuda, «documento tipo 8 personas», «mesa tipo 8 de comedor»); 4/4 regresiones limpias. Causa raíz: «tipo las N» (c.670) exige el artículo; la forma desnuda con evidencia de reloj no la consumía ningún reescritor. Hipótesis sondeadas: reescribir a «a » dejaba residuo «a»; ELIMINAR el marcador dejaba título y ancla perfectos.
+- Solución: patrón NUEVO `bareTipoTimePattern` — «tipo N» desnudo se consume SÓLO con evidencia de reloj inmediata (minutos `:MM`, meridiem, parte del día, «horas/hs/h»; doctrina «hacia/sobre») — aplicado ANTES del fold de `approximateTimePatterns` en `parse` y en el respaldo simétrico de `titleFallback`. Determinista (regex), cero random, cero IA fingida, cero UI.
+- TDD: `NaturalTaskParserTipoBareTest.kt` (NUEVO, 15 = 6 capturas + 5 guards + 4 regresiones). RED exacto: 15 run, EXACTAMENTE 6 fallos (las capturas). Sonda POST: 6/6 capturan con título limpio, 5/5 controles NULL, 4/4 regresiones idénticas.
+- COLISIÓN leve (gestionada sin pérdida): fetch PRE-commit reveló c.867 remoto del hermano (context `e928ec7`+`2115224`); `git pull --ff-only` limpio a `2115224` con mis cambios sin commitear intactos, re-numerado propio c.867→c.868 (sed ASCII-safe sólo en mis archivos), suite re-verificada sobre la base fusionada.
+- Tests (post-edición final): `bash tools/run_domain_tests.sh` → **OK (5639 = 5607 + 15 propios + 17 c.867 remoto)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sin tests reducidos/eliminados/falseados. Cero mojibake (python utf-8 en docs, sed ASCII-safe en código).
+- Sonda persistida: `tools/probe/TipoBareTimeProbe.kt` (NUEVA, cabecera RED/GREEN).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Archivos: `NaturalTaskParser.kt`, `NaturalTaskParserTipoBareTest.kt` (nuevo), `tools/probe/TipoBareTimeProbe.kt` (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Próxima prioridad: laterales context acumuladas c.860…c.865; perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
+- **Commits**: (pendiente de hash). **HEAD final**: (pendiente).
