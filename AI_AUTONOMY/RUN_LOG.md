@@ -17640,5 +17640,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite: OK (5694 = 5671+8 hermano+15 sobre base fusionada); smoke 25/25. Cero mojibake (python utf-8).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarAlPisoTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
-- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Commit: d7861fc (+ docs 7020306). HEAD final: 7020306.
 - Próxima prioridad: laterales context restantes (contestar el correo/mensaje; contestarle dativo; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
