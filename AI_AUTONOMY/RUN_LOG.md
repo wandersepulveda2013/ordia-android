@@ -1,3 +1,15 @@
+## Ciclo c.878 (2026-08-22) — feat(context): piso NUEVO «hacer la renta» (lateral c.863 elíptica)
+
+- **HEAD inicial**: `864278e` (hermano, docs runlog STALE c.877); fetch PRE-trabajo limpio; colisión cero. **HEAD final**: ver commits finales.
+- **Problema (P1 olvido silencioso)**: «hacer la renta» — forma coloquial española de la declaración— era NULL desnuda aunque con envoltura «tengo que/hay que» enrutaba; hermanos c.863/c.875/c.877 cubrían formas «declaración»/«declarar». Consecuencia real: sanción fiscal.
+- **Sonda PRE** (efímera `/tmp/probe877/PreHacerRentaProbe.kt` sobre HEAD 4711f2d): desnuda NULL; envolturas HIT; guardas «the rent»/«el amor»/«horario de turnos» NULL.
+- **Solución (lockstep DOS puntos)**: piso acotado al objeto `renta` en `hasStrongTaskImperative` + plantilla en `extractTitle`; CERO cambios en `ContextIntent.kt` (keyword «hacer» ya enruta). Kind TASK (convergente c.863/c.875/c.877; «pagar la renta» sigue PAYMENT).
+- **Test**: `ContextIntentEngineHacerRentaFloorTest.kt` (10 = 3 capturas [este mes, mañana+dueAt, posesivo mi], 4 guards [the rent, el amor, horario, negada], 3 regresiones [c.863, c.877, pagar PAYMENT]).
+- **Suite**: OK (5763 = 5753 + 10), 0 failures; smoke 25/25.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Docs**: `BACKLOG.md` (lateral c.863 elíptica marcada RESUELTA c.878), `CURRENT_STATE.md` (entrada c.878 al frente).
+- **Próxima prioridad**: laterales context restantes («contestarle a Juan» dativa, «fotocopiar/reescanear el DNI», «hacerme la prueba de embarazo», «reclamar una factura» indefinido, «hacerse tatuaje»); perífrasis hermano parser; residual P2 c.818.
+
 
 ## Ciclo c.877 (2026-08-22) — feat(context): piso NUEVO «declarar la renta» (lateral c.863)
 

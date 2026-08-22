@@ -1,4 +1,14 @@
-## Ciclo c.876 [COLISIÓN cycle-ID gestionada sin pérdida: el hermano ocupó c.875 («presentar la declaración de la renta») durante mi trabajo sin commitear; doble fetch PRE/POS-commit atendido con stash→ff-only→pop sobre `b01e44a`, renumeración c.875→c.876 a valores del hermano restablecidos, suite re-verificada sobre base fusionada; NADA del trabajo ajeno tocado] — feat(context): **objeto del piso ERRAND «hacerse análisis» extendido a «prueba(s) de sangre» (lateral c.862, salud coloquial)** [P1 olvido silencioso — formulario de salud más coloquial que «análisis»]: «hacerme la prueba de sangre mañana / el lunes / …» caía a NULL (8/8 candidatas NULL medidas PRE sobre HEAD e53a582 con sonda efímera `/tmp/probe876/PreProbe.kt`, línea de código real); el sinónimo «prueba» sola es bivalente («de sonido», «del coche») — el complemento «de sangre» lo ancla como inequívoca (doctrina objeto-ancla). Fix mínimo lockstep en DOS puntos (lección c.616): (1) objeto del piso en `hasStrongTaskImperative` extendido `an[aá]lisis → (?:an[aá]lisis|pruebas?\s+de\s+sangre)` (enclítico reflexivo EXIGIDO; guards negación/quizá/pasado heredados); (2) plantilla de título en `extractTitle` hermana con captura del objeto completo (grafía preservada, c.653). CERO cambios en `ContextIntent.kt` (keyword TASK «hacer» cubre por subcadena, hermana c.860/c.862/c.863). Guards medidos NULL: «prueba de sonido» (forma desnuda también), «prueba de embarazo» (lateral registrada). Kind ERRAND (doctrina «la diligencia gobierna» c.842). Determinista (regex), cero random, cero IA fingida, cero UI.
+# CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+
+## Ciclo c.878 (2026-08-22) — feat(context): piso NUEVO «hacer la renta» (lateral c.863 elíptica)
+
+- Área: context (ContextIntentEngine, hasStrongTaskImperative + extractTitle).
+- Piso acotado al objeto «renta» (determinante/posesivo opcional) en `hasStrongTaskImperative` + plantilla lockstep en `extractTitle`; CERO cambios en `ContextIntent.kt` (keyword «hacer» ya enruta, hermana c.863/c.877).
+- Sonda PRE efímera `/tmp/probe877/PreHacerRentaProbe.kt` sobre HEAD 4711f2d: desnuda «hacer la renta este mes» NULL (1/1); envolturas «tengo que/hay que hacer la renta…» HIT; guardas «the rent»/«el amor»/«horario de turnos» NULL. Kind TASK (convergente c.863/c.875/c.877; «pagar la renta» —alquiler— sigue PAYMENT).
+- Test `ContextIntentEngineHacerRentaFloorTest.kt` (10 = 3 capturas + 4 guards + 3 regresiones).
+- Suite: OK (5763 = 5753 + 10), 0 failures; smoke 25/25.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+
 
 - **HEAD inicial**: `e53a582` (hash c.874 propio); **base fusionada tras colisión**: `b01e44a` (c.875 hermano). Baseline inicial: OK (5716); base fusionada hermano: OK (5725+9).
 - **Sonda PRE**: 8/8 candidatas NULL (mañana/el lunes/esta tarde/plural/ente/prefijo temporal/temporal delante/desnuda), 6/6 controles NULL (negación, «quizá», pasado, «de sonido» ×2, «de embarazo»), 6/6 regresiones HIT (envolvente candado c.613 incluida).

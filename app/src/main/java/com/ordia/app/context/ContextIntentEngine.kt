@@ -1806,6 +1806,22 @@ object ContextIntentEngine {
             // c.751). Kind decidido: TASK (convergente c.863/c.875;
             // «pagar la renta» —alquiler— sigue PAYMENT, distinto).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )declarar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?renta\b""").containsMatchIn(lower)
+            // c.878: piso acotado «hacer la renta» (lateral c.863,
+            // elipsis del objeto fiscal; en España «hacer la renta» es
+            // la forma coloquial de la declaración de la renta,
+            // hermana elíptica de c.863 — allí se dejó fuera como
+            // candidata propia, medición PRE de este ciclo sobre HEAD
+            // 4711f2d: la forma desnuda «hacer la renta este mes» era
+            // NULL mientras «tengo que/hay que hacer la renta…» ya
+            // enrutaban por envoltura y los bivalentes «hacer the
+            // rent»/«hacer el amor»/«hacer mi horario de turnos»
+            // medidos NULL. Doctrina anti-overreach: una forma por
+            // ciclo). Lockstep con la plantilla de [extractTitle] y
+            // CERO cambios en ContextIntent.kt (keyword «hacer» ya
+            // enruta; hermana de c.863). Kind decidido: TASK,
+            // convergente con c.863/c.875/c.876 («pagar la renta»
+            // —alquiler— sigue PAYMENT, distinto).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?renta\b""").containsMatchIn(lower)
             // c.863: piso acotado «hacer la declaración de la renta»
             // (candidata 5/7 de la sonda c.857 EighthClassAdminProbe,
             // OCTAVA clase — gestiones de adulto; medición PRE sobre
@@ -3137,6 +3153,15 @@ object ContextIntentEngine {
                 // se preserva (doctrina c.653).
                 val matchDeclararRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(declarar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDeclararRenta != null) return "Declarar ${matchDeclararRenta.groupValues[2]}"
+                // c.878: plantilla «hacer la renta» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca
+                // en el verbo, así acuse/prefijo temporal se despojan;
+                // el residuo temporal de cola lo depura
+                // [sanitizeTitle]; «hacer the rent»/«el amor» nunca
+                // llegan aquí porque el piso no los captura). La
+                // grafía del usuario se preserva (doctrina c.653).
+                val matchHacerRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerRenta != null) return "Hacer ${matchHacerRenta.groupValues[2]}"
                 // c.863: plantilla «hacer la declaración de la renta»
                 // (ancla/guard idénticos al piso; lección c.616: el match
                 // arranca en el verbo, así acuse/prefijo temporal se
