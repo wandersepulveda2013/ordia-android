@@ -1,5 +1,13 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.879 (2026-08-22) — feat(context): piso extendido «contestarle» (dativo enclítico, lateral c.861)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).
+- Latente en ciclo c.877/c.878: «contestar a» (c.861) y «contestar <objeto>» (c.872/c.873) cubren formas desnudas, pero el dativo enclítico «contestarle a Juan» rompía la subcadena de la keyword «contestar a» y el piso no dibuja `le`. Consecuencia real: comunicación pendiente olvidada.
+- Medición PRE efímera `/tmp/probe878/PreContestarleProbe.kt` sobre HEAD 55d9d8b: 4/4 candidatas NULL; 4/4 guardas NULL; 3/3 regresiones HIT.
+- Lockstep TRES puntos (lección c.616/c.751): (1) piso con dativo opcional `(?:les?)?` — guardas bivalentes heredadas intactas («al examen»/«a la pregunta»/«a tiempo» FUERA; artículo bloqueado «a los vecinos» guard-NULL como en la forma desnuda c.861); (2) plantilla con mayúscula inicial de la forma dativa (grafía preservada, doctrina c.653); (3) keyword-FRASE «contestarle» (cubre «contestarles» por subcadena, inerte en bloqueos).
+- Próxima prioridad: c.880 laterales restantes de EighthClassAdminProbe («hacerse tatuaje», «contestar la carta», «declarar la renta», «fotocopiar/reescanear el DNI», «reclamar una factura»), perífrasis «me mido la presión/tensión», residual P2. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.878 (2026-08-22) — feat(context): piso NUEVO «hacer la renta» (lateral c.863 elíptica)
 
 - Área: context (ContextIntentEngine, hasStrongTaskImperative + extractTitle).

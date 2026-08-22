@@ -83,6 +83,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // y el piso las rechaza (a+artículo fuera de su alcance). Con bono
         // temporal 0.22 < 0.45 (negada/duda inertes).
         "contestar a",
+        // c.879: keyword-FRASE "contestarle" (lockstep con la extensión
+        // dativa del piso «contestar…», cubre el plural «contestarles» por
+        // subcadena). Sin ella «contestarle a Juan» ni llega al análisis
+        // (el enclítico intercalado rompe la subcadena de «contestar a»).
+        "contestarle",
         // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la

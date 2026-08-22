@@ -17746,3 +17746,32 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado final**: feature «declarar la renta» vive exclusivamente en la versión del hermano (c.877 suyo); esta ejecución queda STALE_RUN con verificación independiente como único valor (protocolo anti-colisión cumplido).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - **Próxima prioridad**: laterales context restantes («contestarle a Juan» enclítico, «hacerse tatuaje», «contestar la carta», «prueba de embarazo», «fotocopiar/reescanear el DNI», «reclamar una factura»); perífrasis «me mido la presión/tensión»; residual P2 c.818. Re-fetch OBLIGATORIO.
+
+
+---
+
+## c.879 (2026-08-22) — feat(context): piso extendido «contestarle» (dativo enclítico, lateral c.861)
+
+- **HEAD inicial**: `55d9d8b` (c.878 «hacer la renta»). Baseline: OK (5763).
+- **Área**: context (ContextIntentEngine piso+plantilla; ContextIntent.kt keyword).
+- **Latente**: «contestar a» (c.861) y «contestar <objeto>» (c.872/c.873), pero el
+  dativo enclítico «contestarle a Juan» rompía la subcadena de la keyword y el
+  piso no dibuja `le`. Consecuencia real: comunicación pendiente olvidada.
+- **Sonda PRE** efímera `/tmp/probe878/PreContestarleProbe.kt` sobre HEAD 55d9d8b:
+  4/4 candidatas NULL; 4/4 guardas NULL; 3/3 regresiones HIT.
+- **Fix mínimo** (lockstep TRES puntos, lección c.616/c.751): (1) piso con dativo
+  opcional `(?:les?)?` — guardas bivalentes heredadas intactas («al examen»/
+  «a la pregunta»/«a tiempo» FUERA; artículo bloqueado «a los vecinos» guard-NULL,
+  como la forma desnuda c.861); (2) plantilla con mayúscula inicial de la forma
+  dativa (grafía preservada, doctrina c.653); (3) keyword-FRASE «contestarle»
+  (cubre «contestarles» por subcadena, inerte en bloqueos).
+- **TDD**: `ContextIntentEngineContestarleFloorTest.kt` (10 = 3 capturas + 4 guards +
+  3 regresiones). RED en sonda PRE confirmado.
+- **OK**: 5773 tests (5763 + 10), 0 failures; smoke 25/25. Cero mojibake (utf-8).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- **Próxima prioridad**: c.880 laterales restantes EighthClassAdminProbe («hacerse
+  tatuaje», «contestar la carta», «declarar la renta», «fotocopiar/reescanear el
+  DNI», «reclamar una factura»); perífrasis «me mido la presión/tensión»;
+  residual P2. Re-fetch OBLIGATORIO.
+
+---
