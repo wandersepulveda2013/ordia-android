@@ -17727,3 +17727,10 @@ a un permiso persistente frágil y silencioso ante fallos.
   «fotocopiar/reescanear el DNI», «reclamar una factura»); perífrasis
   «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano.
   Re-fetch OBLIGATORIO.
+
+---
+## STALE_RUN c.877 (2026-08-22, este run) — feat(context): «declarar la renta» intentada por dos runs en paralelo; el hermano piso NUEVO en `4873e24`+`84ef421` (11 tests); mi trabajo duplicado descartado SIN destructividad
+- **Cronología**: (1) HEAD inicial `b01e44a` (c.875 hermano); medí PRE NULL «declarar la renta» (5/5 candidatas NULL, 6/6 controles NULL, 3/3 regresiones HIT, sonda efímera `/tmp/probe876`); (2) RED TDD propio EXACTAMENTE 5 fallos; (3) mi GREEN sobre base fusionada `e521f6d` OK (5755 = 5742 + 13) con lockstep TRES puntos (piso+plantilla+keyword «declarar»); (4) fetch PRE-commit reveló colisión hermano `e521f6d` (c.876 «prueba de sangre») → stash→ff-only→pop (zonas disjuntas, auto-merge limpio) → renumber c.876→c.877; (5) segundo fetch PRE-push reveló `4711f2d` (hermano c.877 MISMA «declarar la renta», test homónimo, 11 tests) → **duplicado total**: stash→pull --rebase→stash drop, todo el árbol limpio en HEAD hermano; (6) verificación independiente de la impl. del hermano: suite **OK (5753 tests)**, 0 failures; NADA del trabajo ajeno tocado, NO force/NO reset --hard/main intacto, sonda efímera y duplicados retirados.
+- **Estado final**: feature «declarar la renta» vive exclusivamente en la versión del hermano (c.877 suyo); esta ejecución queda STALE_RUN con verificación independiente como único valor (protocolo anti-colisión cumplido).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- **Próxima prioridad**: laterales context restantes («contestarle a Juan» enclítico, «hacerse tatuaje», «contestar la carta», «prueba de embarazo», «fotocopiar/reescanear el DNI», «reclamar una factura»); perífrasis «me mido la presión/tensión»; residual P2 c.818. Re-fetch OBLIGATORIO.
