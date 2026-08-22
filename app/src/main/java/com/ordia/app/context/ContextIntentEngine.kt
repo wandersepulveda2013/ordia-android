@@ -1802,6 +1802,41 @@ object ContextIntentEngine {
             // convergencia con la envolvente «recuérdame escanear el
             // DNI…» (c.613, TASK).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b""").containsMatchIn(lower)
+            // c.865: piso acotado «reclamar la factura» — séptimo y
+            // último gap medido NULL en c.857 por la sonda persistida
+            // tools/probe/EighthClassAdminProbe.kt (octava clase:
+            // gestiones de la vida adulta — finanzas del hogar;
+            // medición PRE c.865 sobre HEAD 52371cf: 6/6 declarativas
+            // NULL — olvido silencioso P1: un cobro indebido del banco/
+            // la luz que no se reclama a tiempo — mientras la envolvente
+            // «recuérdame reclamar la factura del banco mañana» ya
+            // enrutaba TASK 0.45 vía candado c.613: asimetría de ruta
+            // hermana de c.765…c.864). El verbo «reclamar» es bivalente
+            // (el premio/el turno/al camarero — NUNCA keyword), así el
+            // piso se ACOTA al objeto `facturas?`; los bivalentes
+            // «reclamar el premio…»/«reclamar al banco…» (sin objeto
+            // factura) quedan FUERA (medidos NULL en la sonda PRE).
+            // Lockstep en DOS puntos (lección c.616; CERO cambios en
+            // ContextIntent.kt: la keyword «factura» —lista junto a
+            // «pagar»/«recibo»— ya lleva la frase al análisis, hermana
+            // de c.860/c.862/c.863; a diferencia de c.864 no hace falta
+            // keyword nueva). Kind decidido: TASK, en deliberación
+            // contra PAYMENT/ERRAND/CALL — reclamar un cobro es una
+            // gestión (escrita o telefónica, sin desplazamiento),
+            // hermana de «responder el correo» c.860 y distinta de
+            // «pagar la factura» (PAYMENT: sentido contrario del
+            // dinero); convergencia con la envolvente c.613 (TASK).
+            // Anti-overreach: determinante/posesivo opcional
+            // (el/la/los/las/mi/tu/su — patrón hermano), `\b` final,
+            // `(?<!no )` bloquea la negada, pasado «reclamé…»/suelto
+            // «reclamar»/sustantivo «la reclamación…» no casan, duda
+            // penalizada post-piso (hedge c.649); sin cláusula dedicada
+            // en [imperativeIsNegated]: keyword «factura» 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral (aritmética c.859…c.864).
+            // Acotado deliberado (una forma por ciclo): «reclamar una
+            // factura…» (indefinido, medida NULL) queda FUERA como
+            // candidata propia.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reclamar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?facturas?\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -3042,6 +3077,17 @@ object ContextIntentEngine {
                 // c.653).
                 val matchEscanearDni = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEscanearDni != null) return "Escanear ${matchEscanearDni.groupValues[2]}"
+                // c.865: plantilla «reclamar la factura» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en
+                // el verbo, así acuse/prefijo temporal se despojan; el
+                // residuo temporal de cola lo depura [sanitizeTitle]; el
+                // complemento —«del banco», «de la luz»— se conserva:
+                // identifica el emisor, misma gestión; los bivalentes
+                // «reclamar el premio…»/«al banco…» nunca llegan aquí
+                // porque el piso no los captura). La grafía del usuario
+                // se preserva (doctrina c.653).
+                val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchReclamarFactura != null) return "Reclamar ${matchReclamarFactura.groupValues[2]}"
 
                 null
             }

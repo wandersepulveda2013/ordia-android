@@ -83,6 +83,20 @@ import com.ordia.app.context.ContextIntentEngine
  *        código QR…» (otros objetos), «fotocopiar el DNI…» (verbo
  *        distinto) y «reescanear el DNI…» (prefijo re-).
  *     7) «reclamar la factura del banco mañana» — finanzas hogar.
+ *        RESUELTA en c.865 (piso NUEVO acotado al objeto «facturas?»
+ *        con el verbo bivalente «reclamar» —el premio/el turno/al
+ *        camarero: NUNCA keyword— en [hasStrongTaskImperative] +
+ *        plantilla de título; CERO cambios en ContextIntent.kt: la
+ *        keyword «factura» ya lleva la frase al análisis, hermana de
+ *        c.860/c.862/c.863; kind TASK — gestión sin desplazamiento,
+ *        distinta de «pagar la factura» PAYMENT; test
+ *        ContextIntentEngineReclamarFacturaFloorTest), movida a
+ *        REGRESIONES. Lateral medida NULL (candidata propia):
+ *        «reclamar una factura…» (indefinido — el piso se acota al
+ *        determinante definido/posesivo, patrón hermano).
+ *        **CLASE OCTAVA AGOTADA en c.865 (7/7 resueltas)**: quedan como
+ *        candidatas propias las laterales registradas en cada ciclo
+ *        (c.859…c.865) — ver BACKLOG.
  *   REGRESIONES — 24 HITs confirmados: 17 formas de la clase que YA
  *   capturan (ITV/aceite/ruedas/lavar coche, pasaporte, firmar
  *   contrato, cita previa, hipoteca/alquiler PAYMENT, revisar factura,
@@ -101,8 +115,13 @@ import com.ordia.app.context.ContextIntentEngine
 fun main() {
     val now = 1723939200000L
     val cases = listOf(
-        // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "reclamar la factura del banco mañana",
+        // --- CAPTURAS (gaps medidos NULL en c.857): NINGUNA — clase
+        // AGOTADA en c.865 (7/7) ---
+        // --- REGRESIÓN c.865: candidata 7 resuelta (piso nuevo acotado
+        // «reclamar la factura» + plantilla de título; CERO cambios en
+        // ContextIntent.kt — keyword «factura» previa); era NULL en
+        // c.857 ---
+        "reclamar la factura del banco mañana", // TASK
         // --- REGRESIÓN c.864: candidata 6 resuelta (piso nuevo acotado
         // «escanear el DNI» + plantilla de título + lockstep
         // keyword-VERBO «escanear»); era NULL en c.857 ---
