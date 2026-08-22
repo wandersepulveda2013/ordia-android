@@ -17857,3 +17857,30 @@ a un permiso persistente frágil y silencioso ante fallos.
   renta» periodo); auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
 
 ---
+## Ciclo c.883 (2026-08-22) — feat(context): extensión acotada piso «escanear <documento>» (laterales c.864)
+
+- **Área**: context (ContextIntentEngine hasStrongTaskImperative +
+  extractTitle; CERO cambios en `ContextIntent.kt`).
+- **Latente**: c.864 cerró «escanear el DNI»; las laterales medidas NULL
+  «contrato», «notas» (escritas) y «código QR» seguían sin capturar (P1,
+  evitar olvidos en gestiones de la vida adulta).
+- **Sonda PRE** efímera `/tmp/probe883/ProbeScanObjects.kt`: 4/4 candidatas
+  NULL, 2/2 guards NULL, 2/2 regresiones HIT (envolvente c.613 + «escanear
+  el DNI»).
+- **Fix mínimo** (lockstep DOS puntos, lección c.615 — una extensión por
+  ciclo): objeto acotado `dni|contratos?|notas?|código QR` (tilde tolerada)
+  en piso + plantilla. Guards: negada/narrativa/reescanear intactas;
+  «fotocopiar» (verbo distinto) sigue NULL como lateral.
+- **TDD**: `ContextIntentEngineEscanearDniFloorTest` extendido (test
+  «laterales NULL» reemplazado por capturas c.883; intencionalidad
+  conservada — misma bandeja, no verde artificial).
+- **OK**: 5799 tests vía `tools/run_domain_tests.sh`; smoke 25/25;
+  AutomationEngine smoke 9/9. Cero mojibake (edición utf-8 vía python).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **Próxima prioridad**: laterales restantes clase OCTAVA («reclamar una
+  factura», «fotocopiar/reescanear el DNI», «prueba de sonido» dominio a
+  decidir, «me mido la presión/tensión» perífrasis); tras agotar, auditoría
+  de clase NOVENA. Re-fetch OBLIGATORIO.
+
+---
