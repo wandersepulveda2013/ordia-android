@@ -17589,4 +17589,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - Archivos: `NaturalTaskParser.kt`, `NaturalTaskParserTipoBareTest.kt` (nuevo), `tools/probe/TipoBareTimeProbe.kt` (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Próxima prioridad: laterales context acumuladas c.860…c.865; perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
-- **Commits**: (pendiente de hash). **HEAD final**: (pendiente).
+- **Commits**: 8d4adbd. **HEAD final**: 8d4adbd (commit c.868).
