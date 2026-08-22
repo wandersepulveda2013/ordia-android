@@ -17544,6 +17544,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Sonda persistida c.857 POST: 6 NULLs de 37 = 0 candidatas + 6 controles; 31 HITs — CLASE OCTAVA AGOTADA (7/7). Anotada REGRESIÓN c.865 + cabecera de agotamiento.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - Archivos: ContextIntentEngine.kt (+46), ContextIntentEngineReclamarFacturaFloorTest.kt (nuevo), EighthClassAdminProbe.kt (+11/-2), CURRENT_STATE.md, BACKLOG.md, RUN_LOG.md.
-- Commit: pendiente de registrar (se añade el hash en el siguiente commit de docs).
-- HEAD final: pendiente.
+- Commit: 07d1e26 (feat c.865).
+- HEAD final: 07d1e26.
 - Próxima prioridad: clase OCTAVA AGOTADA → revisión de producto/descubrimiento para la NOVENA clase (o explotar laterales acumuladas c.859…c.865). Persisten: perífrasis «me mido la presión/tensión», residual P2 c.818, temporales desnudas BLOCKED-humano.
