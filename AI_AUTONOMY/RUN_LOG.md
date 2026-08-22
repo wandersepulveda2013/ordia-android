@@ -17690,8 +17690,7 @@ a un permiso persistente frágil y silencioso ante fallos.
   hermano (`b01e44a`, «presentar la declaración de la renta», zona disjunta — piso
   «presentar» + keyword) → stash→pull --ff-only→pop (auto-merge limpio) → renumeración
   c.875→c.876 con los dos comentarios del hermano restablecidos a c.875 → suite
-  re-verificada sobre base fusionada. **HEAD final**: (commit c.876; hash en `git log`
-  tras push).
+  re-verificada sobre base fusionada. **HEAD final**: `fe45605`.
 - **Sonda PRE** (efímera `/tmp/probe876/PreProbe.kt`, motor real): 8/8 candidatas NULL
   (reflexivas ex tute/ente, sing/pl, acuse «vale», temporal delante, sin fecha);
   6/6 controles NULL (negación, «quizá», pasado, «de sonido» ×2, «de embarazo»);
