@@ -17559,4 +17559,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - Acotado deliberado: laterales c.852 (b) asimetría horaria «sobre las 5»/«alrededor de las 7», (c) residuo «tipo» en título, (d) horas pasadas del mismo día siguen OPEN para el área parser (una lateral por ciclo).
 - Próxima prioridad: laterales parser c.852 (b)/(c)/(d) verificando (d) contra tests existentes; o laterales context acumuladas c.859…c.865; o revisión de producto para la NOVENA clase. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- Commits: ver git log. **HEAD final**: ver git log.
+- **Commits**: `fdda32d`. **HEAD final**: `fdda32d` (commit c.866).
