@@ -17560,3 +17560,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Acotado deliberado: laterales c.852 (b) asimetría horaria «sobre las 5»/«alrededor de las 7», (c) residuo «tipo» en título, (d) horas pasadas del mismo día siguen OPEN para el área parser (una lateral por ciclo).
 - Próxima prioridad: laterales parser c.852 (b)/(c)/(d) verificando (d) contra tests existentes; o laterales context acumuladas c.859…c.865; o revisión de producto para la NOVENA clase. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
 - **Commits**: `fdda32d`. **HEAD final**: `fdda32d` (commit c.866).
+
+## c.866 — 2026-08-22 (openhands) — STALE_RUN (colisión gestionada sin pérdida)
+- HEAD inicial: c9cfb80. Trabajo propio: fix parser lateral c.852(a) «weekday + de esta semana» (anulación del blando; test 9, RED exacto 4 fallos, GREEN 9/9, suite OK 5603, sonda PRE/POST paridad con hermanas).
+- COLISIÓN: fetch PRE-commit reveló que el hermano ya había pusheado su c.866 (fdda32d+eac2cf1+2d75295) resolviendo el MISMO lateral con diseño más completo (semana ISO actual, formas directa+inversa, 13 tests, sonda persistida).
+- Protocolo anti-colisión: descarte seguro del duplicado propio (checkout 4 archivos + rm test untracked), pull --ff-only a 2d75295, re-verificación suite OK (5607). Nada del trabajo ajeno tocado.
+
+## c.867 — 2026-08-22 (openhands)
+- HEAD inicial: 2d75295 (post-colisión c.866, en sync PRE-trabajo). SIN colisión.
+- Seleccionado: lateral c.860 «responder el email hoy» (explotar la clase OCTAVA agotada; zona context DISJUNTA del parser del hermano). Sonda PRE efímera /tmp/probe867/PreProbe.kt: 7/7 candidatas NULL, 5/5 controles, 6/6 regresiones HIT (envolvente email ya ruteaba por candado c.613).
+- Cambios (lockstep TRES puntos): piso hasStrongTaskImperative objeto `(?:correos?|emails?)` + plantilla extractTitle + keyword-OBJETO «email» en ContextIntent.kt. Kind TASK. Sin cláusula imperativeIsNegated (0.22 < umbral).
+- Tests: ContextIntentEngineResponderEmailFloorTest.kt (NUEVO, 17 = 7 capturas + 5 guards + 5 regresiones). RED exacto: EXACTAMENTE 7 fallos. Sonda POST: 7/7 HIT título fiel, controles y regresiones intactos.
+- Suite: OK (5624 = 5607+17); smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderEmailFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Próxima prioridad: laterales c.860 («responder el mensaje»/«al correo»), c.861 («contestar al jefe/a la vecina»), resto c.862…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.

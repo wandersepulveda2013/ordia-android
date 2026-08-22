@@ -161,7 +161,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "farmacia", "mandado", "despensa", "víveres",
         "ir al super", "ir a comprar")),
     ERRAND("Diligencia", listOf("diligencia", "trámite", "banco", "oficina",
-        "correo", "paquete", "devolver", "recoger",
+        // c.867: keyword-OBJETO «email» (lockstep del piso «responder el
+        // correo/email», lección c.751/c.859: sin ella la frase ni llega al
+        // análisis). 0.12 sola < umbral y el piso exige el verbo+objeto, así
+        // no roba rutas.
+        "correo", "email", "paquete", "devolver", "recoger",
         "dejar", "pagar", "factura", "recibo",
         // c.718: parada de trámite (lockstep keyword↔piso `ERRAND_STOPBY_FLOOR`,
         // lección c.639/c.717). El destino lo acota el piso; el keyword sólo
