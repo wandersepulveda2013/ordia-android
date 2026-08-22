@@ -93,6 +93,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // español). Bivalente medido en sonda PRE: «la carta del
         // restaurante/menú» 0.12 < umbral sola, inerte.
         "carta",
+        // c.881: keyword-OBJETO "tatuaje" (lockstep con la extensión del
+        // piso «hacerse» c.862; 0.12 sola inerte y el piso exige el verbo
+        // reflexivo + objeto acotado, anti-overreach).
+        "tatuaje",
         // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la

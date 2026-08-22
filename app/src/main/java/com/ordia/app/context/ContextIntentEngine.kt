@@ -582,7 +582,10 @@ object ContextIntentEngine {
     // TASK «hacer» por subcadena (hermana de c.860/c.862). Sin cláusula
     // dedicada en [imperativeIsNegated] (aritmética c.859/c.860/c.862).
     private val ERRAND_BLOOD_TEST_FLOOR =
-        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre)\b""")
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?)\b""")
+            // c.881: objeto «tatuaje» en la familia «hacerse» (lateral medida
+            // NULL c.862, hermana de análisis/prueba-de-sangre; gestión
+            // personal acotada al objeto, anti-overreach).
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -3665,7 +3668,7 @@ object ContextIntentEngine {
                 // ("…el lunes"). Objeto extendido al sinónimo «prueba(s)
                 // de sangre» (c.876, lockstep con el piso).
                 val matchBloodTest = Regex(
-                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre)\b.*)""",
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBloodTest != null) {

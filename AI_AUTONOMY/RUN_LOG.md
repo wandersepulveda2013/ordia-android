@@ -17800,3 +17800,29 @@ a un permiso persistente frágil y silencioso ante fallos.
   renta» periodo); auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
 
 ---
+
+## c.881 (2026-08-22) — feat(context): objeto «tatuaje» en la familia «hacerse» (lateral medida c.862)
+
+- **HEAD inicial**: `caba490` (c.880 «carta» en «contestar»). Baseline: OK (5781).
+- **Área**: context (ContextIntentEngine piso+plantilla; ContextIntent.kt keyword).
+- **Latente**: el piso c.862 «hacerme/hacerse» (extendido c.876 con «prueba de
+  sangre») quedaba acotado al dominio médico; la gestión estética objetada
+  quedaba NULL. Consecuencia real: cita/gestión personal olvidada (dominio).
+- **Sonda PRE** efímera `/tmp/probe881/PreTatuajeProbe.kt` sobre HEAD caba490:
+  3/3 candidatas NULL; 1/1 guard NULL (negada); 2/2 regresiones HIT.
+- **Fix mínimo** (lockstep TRES puntos, lección c.616/c.751): (1) piso
+  `tatuajes?` en la alternativa acotada; (2) plantilla lockstep; (3)
+  keyword-OBJETO «tatuaje» (inerte sola).
+- **Sentinel c.862 reemplazada**: el guard bivalente «tatuaje»-NULL pasó a ser
+  captura intencional; nuevo sentinel «masaje» conserva la intención (no es
+  verde artificial).
+- **TDD**: `ContextIntentEngineHacerseTatuajeFloorTest.kt` (8 = 3 capturas +
+  guard + envolvente + hermana). RED confirmado en PRE.
+- **OK**: 5787 tests, 0 failures; smoke 25/25. Cero mojibake (utf-8).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- **Próxima prioridad**: c.882 laterales restantes («prueba de embarazo»,
+  «reclamar una factura», «escanear contrato/notas/QR», «fotocopiar/reescanear
+  el DNI», «me mido la presión/tensión», «declarar la renta» periodo);
+  auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
+---

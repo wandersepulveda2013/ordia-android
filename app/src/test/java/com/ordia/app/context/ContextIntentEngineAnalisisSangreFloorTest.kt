@@ -141,8 +141,10 @@ class ContextIntentEngineAnalisisSangreFloorTest {
     }
 
     @Test
-    fun `bivalente tatuaje descartada`() {
-        assertNull(analyze("hacerme un tatuaje el lunes"))
+    fun `bivalente masaje descartada`() {
+        // Sentinel bivalente reemplazada: «tatuaje» pasó a ser objeto
+        // capturado en c.881 (ver `ContextIntentEngineHacerseTatuajeFloorTest`).
+        assertNull(analyze("hacerme un masaje el lunes"))
     }
 
     @Test

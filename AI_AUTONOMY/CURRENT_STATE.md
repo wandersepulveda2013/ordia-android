@@ -1,5 +1,17 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.881 (2026-08-22) — feat(context): objeto «tatuaje» en la familia «hacerse» (lateral medida c.862)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).
+- Latente: el piso «hacerme/hacerse» (c.862, extendido con «prueba de sangre» c.876) quedaba acotado al dominio médico; la gestión estética objetada («hacer(se/me) un tatuaje») quedaba NULL. Consecuencia real: una cita/gestión personal olvidada en el dominio hermano.
+- Sonda efímera `/tmp/probe881/PreTatuajeProbe.kt` sobre HEAD caba490: 3/3 candidatas NULL («un tatuaje el lunes», «tatuaje mañana», «el tatuaje el sábado»); 1/1 guard NULL (negada); 2/2 regresiones HIT (envolvente c.613 + hermana c.876).
+- Fix mínimo (lockstep TRES puntos, lección c.616/c.751): (1) piso `ERRAND_BLOOD_TEST_FLOOR` objeto `tatuajes?`; (2) plantilla lockstep (grafía, doctrina c.653); (3) keyword-OBJETO «tatuaje» (0.12 sola inerte; piso exige verbo+objeto acotado).
+- Sentinel c.862 reemplazada: el guard «tatuaje»-NULL pasó a ser captura intencional; nuevo sentinel «masaje». Intencionalidad conservada (no verde artificial).
+- Test `ContextIntentEngineHacerseTatuajeFloorTest.kt` (8 = 3 capturas + 1 guard negada + 2 envolvente/hermana + regresiones).
+- Suite: OK (5787 = 5781 + 8 − 2 = re-based? ojo: cuenta neta = 5781 + 6 nuevas = 5787), 0 failures; smoke 25/25.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: c.882 laterales restantes («prueba de embarazo», «reclamar una factura», «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI», «me mido la presión/tensión» perífrasis, «declarar la renta» periodo); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.880 (2026-08-22) — feat(context): objeto «carta» en el piso «contestar» (lateral c.873)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).
