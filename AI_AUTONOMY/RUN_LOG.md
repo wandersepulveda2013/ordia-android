@@ -17653,6 +17653,26 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarObjetoFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: 8a5d545. HEAD final: 8a5d545.
 - Próxima prioridad: laterales context restantes (contestarle dativo; contestar la carta; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.875 — «presentar la declaración de la renta» (piso acotado; renumerado tras colisión cycle-ID: hermano ocupó c.874)
+
+- **HEAD inicial**: d153b82 (hermano c.873 «contestar» objeto acotado, 5709 OK)
+- **Sonda PRE**: 3/3 candidatas NULL («presentar la declaración de la renta»
+  + «este mes» / «mañana» / «vale, …»); 5/5 controles NULL (negación,
+  «quizá», pasado «presenté», «solicitud», «documentación de Ana»); 3/3
+  regresiones HIT.
+- **RED**: `ContextIntentEnginePresentarDeclaracionFloorTest` (9 casos) →
+  3 fallos exactos (los 3 capturables).
+- **Fix mínimo**: keyword-VERBO «presentar» en `ContextIntentKind.TASK` +
+  piso acotado anclado (`$ACK_PREFIX` / `$TASK_FLOOR_TEMPORAL`, guard
+  `(?<!no )`) + plantilla de título lockstep en `extractTitle`. Corrección
+  de test: la cola temporal «mañana» se despoja de `title` y ancla
+  `dueAt` (lección c.616).
+- **OK**: 5725 tests (5716 base fusionada + 9), 25/25 smoke.
+- **HEAD final**: (commit c.875)
+- **Próxima prioridad**: «declarar la renta» (lateral c.863 aún NULL) u
+  otra lateral fiscal.
+
 ## c.874 — 2026-08-22 (openhands) — colisión gestionada sin pérdida ni sobrescritura
 - Dos runs paralelos implementaron el MISMO lateral c.861 «contestar el correo/mensaje/email» (zona context). El hermano pusheó primero (`d7861fc` c.872-remoto «contestar al/a la persona» + `8a5d545` c.873-remoto «contestar el correo/mensaje/email» + docs; test con el MISMO nombre de archivo que el mío).
 - Protocolo anti-colisión (precedente c.867/c.868/c.869-colisión): fetch PRE-push reveló el avance remoto; mi commit local duplicado NO pusheado descartado de forma segura realineando la rama a `42c09db` (git checkout de mis archivos + pull --ff-only). Nada del trabajo ajeno tocado ni sobrescrito; cero force push, cero rebase destructivo.

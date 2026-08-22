@@ -144,7 +144,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "reescanear" la contiene pero 0.12 sola queda bajo el umbral y
         // el piso anclado la excluye (precedente "descargar"/"cargar"
         // c.853). "el DNI está caducado" sigue descartado.
-        "escanear")),
+        "escanear",
+        // c.875: keyword-VERBO "presentar" (lockstep con el piso acotado
+        // "presentar la declaración de la renta", ver ContextIntentEngine
+        // .hasStrongTaskImperative; lección c.751: sin ella la notificación
+        // ni llega al análisis). Bivalente: la frase-objeto la acota al
+        // piso ("presentar la solicitud/documentación" medidas NULL).
+        "presentar")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

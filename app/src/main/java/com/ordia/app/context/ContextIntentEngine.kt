@@ -1769,6 +1769,14 @@ object ContextIntentEngine {
             // Lockstep con la plantilla de [extractTitle]; keywords-OBJETO
             // «correo»/«email»/«mensaje» ya existen (ContextIntent.kt).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar\s+(?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?)\b|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w)""").containsMatchIn(lower)
+            // c.875: piso acotado «presentar la declaración de la renta»
+            // (lateral c.863, objeto fiscal; medición PRE de este ciclo:
+            // 3/3 declarativas NULL mientras «presentar la solicitud»/
+            // «la documentación» medidas guard-NULL — doctrina
+            // anti-overreach: una forma por ciclo). Lockstep con la
+            // plantilla de [extractTitle]; keyword-VERBO «presentar»
+            // añadida a [ContextIntentKind.TASK] (lección c.751).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )presentar\s+la\s+declaraci[oó]n\s+de\s+la\s+renta\b""").containsMatchIn(lower)
             // c.863: piso acotado «hacer la declaración de la renta»
             // (candidata 5/7 de la sonda c.857 EighthClassAdminProbe,
             // OCTAVA clase — gestiones de adulto; medición PRE sobre
@@ -3083,6 +3091,14 @@ object ContextIntentEngine {
                 // del usuario se preserva (doctrina c.653).
                 val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar)\s+((?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?)\b.*|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*))""", RegexOption.IGNORE_CASE).find(original)
                 if (matchContestarA != null) return "Contestar ${matchContestarA.groupValues[2]}"
+                // c.875: plantilla «presentar la declaración de la
+                // renta» (ancla/guard idénticos al piso; lección c.616:
+                // el match arranca en el verbo, así acuse/prefijo
+                // temporal se despojan; el residuo temporal de cola lo
+                // depura [sanitizeTitle]). La grafía del usuario se
+                // preserva (doctrina c.653).
+                val matchPresentarDeclaracion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(presentar)\s+(la\s+declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPresentarDeclaracion != null) return "Presentar ${matchPresentarDeclaracion.groupValues[2]}"
                 // c.863: plantilla «hacer la declaración de la renta»
                 // (ancla/guard idénticos al piso; lección c.616: el match
                 // arranca en el verbo, así acuse/prefijo temporal se
