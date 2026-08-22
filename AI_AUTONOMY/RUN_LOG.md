@@ -17459,4 +17459,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: plural «las medicaciones», «cargar el carro» LatAm (diagonal dialectal anotada en ContextIntentEngine c.851) y las candidatas 2–7 de la sonda quedan FUERA como candidatas propias.
 - **Próxima prioridad**: candidata 2/7 sonda c.857 «responder el correo de Ana hoy» (comunicación pendiente; «llamar»/«hablar» tienen CALL pero «responder el correo» no tiene nada — medir guards «responder» bivalente antes de implementar). Persisten: candidatas 3–7, perífrasis «me mido la presión/tensión» (guards c.841/c.843), residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- **Commits**: (ver git log). **HEAD final**: (ver git log).
+- **Commits**: `2114a1a`. **HEAD final**: `2114a1a` (feat c.859 + docs).
