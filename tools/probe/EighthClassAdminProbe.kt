@@ -58,6 +58,17 @@ import com.ordia.app.context.ContextIntentEngine
  *        «hacerme»; test ContextIntentEngineAnalisisSangreFloorTest),
  *        movida a REGRESIONES.
  *     5) «hacer la declaración de la renta este mes» — trámite anual.
+ *        RESUELTA en c.863 (piso NUEVO acotado a la frase-objeto
+ *        «declaraci[oó]n\s+de\s+la\s+renta» — el objeto desnudo
+ *        «declaración» es bivalente: de amor/jurada, medidas NULL — en
+ *        [hasStrongTaskImperative] + plantilla de título; CERO cambios
+ *        en ContextIntent.kt: la keyword TASK «hacer» ya lleva la frase
+ *        al análisis, hermana de c.860/c.862; test
+ *        ContextIntentEngineDeclaracionRentaFloorTest), movida a
+ *        REGRESIONES. Laterales medidas NULL (candidatas propias):
+ *        «declarar la renta…», «presentar la declaración de la renta…»,
+ *        «hacer la renta…» (elipsis) y «hacer la declaración este mes»
+ *        (desnuda).
  *     6) «escanear el DNI esta tarde» — gestión documental.
  *     7) «reclamar la factura del banco mañana» — finanzas hogar.
  *   REGRESIONES — 24 HITs confirmados: 17 formas de la clase que YA
@@ -79,9 +90,12 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "hacer la declaración de la renta este mes",
         "escanear el DNI esta tarde",
         "reclamar la factura del banco mañana",
+        // --- REGRESIÓN c.863: candidata 5 resuelta (piso nuevo acotado
+        // «declaraci[oó]n de la renta» + plantilla de título); era NULL
+        // en c.857 ---
+        "hacer la declaración de la renta este mes", // TASK (dueAt=false: «este mes»)
         // --- REGRESIÓN c.859: candidata 1 resuelta (lockstep piso+título+
         // keyword «medicaci[oó]n»); era NULL en c.857 ---
         "tomar la medicación a las 8", // TASK

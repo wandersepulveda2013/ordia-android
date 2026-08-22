@@ -1740,6 +1740,42 @@ object ContextIntentEngine {
             // (enclítico) quedan FUERA como candidatas propias (medidas
             // NULL en la sonda c.861).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar\s+a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w""").containsMatchIn(lower)
+            // c.863: piso acotado «hacer la declaración de la renta»
+            // (candidata 5/7 de la sonda c.857 EighthClassAdminProbe,
+            // OCTAVA clase — gestiones de adulto; medición PRE sobre
+            // HEAD 65c5dd6: 6/6 declarativas NULL — olvido silencioso
+            // P1, EL trámite anual con plazo y multa — mientras la
+            // envolvente «recuérdame hacer la declaración de la renta
+            // este mes» ya enrutaba TASK 0.45 vía candado c.613:
+            // asimetría de ruta hermana de c.765…c.862). El verbo
+            // «hacer» es bivalente por excelencia y el objeto desnudo
+            // «declaración» también («una declaración de amor»/«la
+            // declaración jurada» — ambas medidas NULL), así el piso se
+            // ACOTA a la frase-objeto completa `declaraci[oó]n\s+de\s+
+            // la\s+renta` (inequívoca: el trámite fiscal; la grafía
+            // [oó] admite la forma sin tilde, precedente c.772/c.859).
+            // Lockstep en DOS puntos (lección c.616; CERO cambios en
+            // ContextIntent.kt: la keyword TASK «hacer» ya lleva la
+            // frase al análisis, hermana de c.860/c.862): piso +
+            // plantilla de título. Kind decidido: TASK, en deliberación
+            // contra PAYMENT/ERRAND/APPOINTMENT — es un trámite con
+            // plazo (hermano de «votar» c.752, «pasar la ITV» c.768,
+            // «renovar el DNI» c.698, «tramitar el pasaporte» c.822),
+            // no un pago («pagar la renta» —alquiler— es PAYMENT,
+            // distinto), sin desplazamiento ni cita. Anti-overreach:
+            // `(?<!no )` bloquea la negada, pasado «hice…»/suelto
+            // «declaración de la renta» no casa, duda penalizada
+            // post-piso (hedge c.649); sin cláusula dedicada en
+            // [imperativeIsNegated]: keyword «hacer» 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral (aritmética c.859/c.860/
+            // c.862). Artículo/posesivo opcional («mi declaración…»).
+            // Acotado deliberado (una forma por ciclo, medidas NULL en
+            // la sonda PRE): «hacer la declaración este mes» (desnuda,
+            // bivalente), «declarar la renta…» (verbo distinto),
+            // «presentar la declaración de la renta…» (verbo distinto)
+            // y «hacer la renta este mes» (elipsis del objeto) quedan
+            // FUERA como candidatas propias.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -2957,6 +2993,17 @@ object ContextIntentEngine {
                 // del usuario se preserva (doctrina c.653).
                 val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar)\s+(a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchContestarA != null) return "Contestar ${matchContestarA.groupValues[2]}"
+                // c.863: plantilla «hacer la declaración de la renta»
+                // (ancla/guard idénticos al piso; lección c.616: el match
+                // arranca en el verbo, así acuse/prefijo temporal se
+                // despojan; el residuo temporal de cola lo depura
+                // [sanitizeTitle]; los bivalentes «hacer una declaración
+                // de amor…»/«la declaración jurada…» nunca llegan aquí
+                // porque el piso no los captura). La grafía del usuario
+                // se preserva (doctrina c.653): «Hacer la declaracion…»
+                // sin tilde queda tal cual.
+                val matchDeclaracionRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDeclaracionRenta != null) return "Hacer ${matchDeclaracionRenta.groupValues[2]}"
 
                 null
             }
