@@ -47,6 +47,11 @@ import com.ordia.app.context.ContextIntentEngine
  * REGRESIÓN c.848: «poner una lavadora» ya captura (diagonal «una» del
  * piso c.729 → HOUSEHOLD 0.45, «Poner una lavadora», dueAt) — el caso
  * queda abajo como regresión de la diagonal c.848.
+ * REGRESIÓN c.850: «llevar a los niños al cole» ya captura (diagonal
+ * coloquial «cole» del piso c.773 → ERRAND 0.45, «Llevar a los niños al
+ * cole», dueAt) — el caso queda abajo como regresión de la diagonal
+ * c.850; «al parque» (ocio, NO educativo) sigue NULL como candidata
+ * propia (una forma por ciclo).
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -60,8 +65,12 @@ fun main() {
         "quedar con el dentista el lunes",
         "quedar para cenar el sábado",
         "quedamos con Ana el viernes",
-        // --- CAPTURAS: «llevar a + persona» (trayecto escolar/familiar) ---
+        // --- REGRESIÓN c.850: la diagonal coloquial «cole» del trayecto
+        // escolar ya captura (extensión del piso c.773 → HIT ERRAND 0.45
+        // con título «Llevar a los niños al cole» y dueAt) ---
         "llevar a los niños al cole mañana",
+        // --- CAPTURAS: «llevar a + persona» (trayecto familiar — destino
+        // de ocio NO educativo; candidata propia, una forma por ciclo) ---
         "llevar a los niños al parque mañana",
         // --- CAPTURAS: dativo enclítico llevar/devolver (clase sexta, dativo) ---
         "llevarle el almuerzo a papá mañana",
