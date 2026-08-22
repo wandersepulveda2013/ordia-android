@@ -582,7 +582,7 @@ object ContextIntentEngine {
     // TASK «hacer» por subcadena (hermana de c.860/c.862). Sin cláusula
     // dedicada en [imperativeIsNegated] (aritmética c.859/c.860/c.862).
     private val ERRAND_BLOOD_TEST_FLOOR =
-        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo)\b""")
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido)\b""")
             // c.881: objeto «tatuaje» en la familia «hacerse» (lateral medida
             // NULL c.862, hermana de análisis/prueba-de-sangre; gestión
             // personal acotada al objeto, anti-overreach).
@@ -590,6 +590,12 @@ object ContextIntentEngine {
             // medida NULL con sonda efímera /tmp/probe881/PreEmbarazoProbe.kt
             // sobre HEAD 3aed02d: 4/4 candidatas NULL → P1 evitar olvidos;
             // gestión de salud deferida de alta relevancia personal).
+            // c.889: objeto «prueba(s) de sonido» — última lateral de la
+            // familia, medida NULL con sonda persistida
+            // tools/probe/PruebaSonidoProbe.kt (7/7 candidatas NULL, guard
+            // registrada en el test c.876 convertida a captura, precedente
+            // c.843). Soundcheck del músico/técnico/evento con desplazamiento;
+            // el ancla `de sonido` excluye el bivalente «prueba del coche».
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -3763,9 +3769,10 @@ object ContextIntentEngine {
                 // [sanitizeTitle] depura el residuo temporal de cola
                 // ("…el lunes"). Objeto extendido al sinónimo «prueba(s)
                 // de sangre» (c.876, lockstep con el piso), al tatuaje
-                // (c.881) y a «prueba(s) de embarazo» (c.882).
+                // (c.881), a «prueba(s) de embarazo» (c.882) y a
+                // «prueba(s) de sonido» (c.889).
                 val matchBloodTest = Regex(
-                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo)\b.*)""",
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBloodTest != null) {

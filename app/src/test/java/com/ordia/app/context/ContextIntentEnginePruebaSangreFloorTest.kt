@@ -29,7 +29,9 @@ import org.junit.Test
  * deliberado (una forma por ciclo): «prueba del coche» (test-drive) y
  * la forma desnuda quedan FUERA como laterales registradas en BACKLOG.
  * La lateral «prueba de embarazo» se resolvió en c.882 (clase
- * `ContextIntentEnginePruebaEmbarazoFloorTest`).
+ * `ContextIntentEnginePruebaEmbarazoFloorTest`); la lateral «prueba de
+ * sonido» se resolvió en c.889 (clase
+ * `ContextIntentEnginePruebaSonidoFloorTest`).
  */
 class ContextIntentEnginePruebaSangreFloorTest {
 
@@ -127,10 +129,15 @@ class ContextIntentEnginePruebaSangreFloorTest {
     }
 
     @Test
-    fun `bivalente sonido descartada`() {
-        // «prueba» sola es bivalente (soundcheck): el complemento
-        // «de sangre» es el ancla; sin él NO se captura.
-        assertNull(analyze("hacerme la prueba de sonido el viernes"))
+    fun `lateral sonido resuelta c889`() {
+        // La lateral «prueba de sonido» (guard NULL desde c.876) se
+        // resolvió en c.889: captura como ERRAND hermana de la familia
+        // «hacerse»; el objeto bivalente de la guarda pasa a
+        // `coche` (ver `ContextIntentEnginePruebaSonidoFloorTest`).
+        val i = analyze("hacerme la prueba de sonido el viernes")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        assertEquals("Hacerme la prueba de sonido", i.title)
     }
 
     @Test
