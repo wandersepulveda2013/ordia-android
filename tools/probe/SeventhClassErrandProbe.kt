@@ -44,6 +44,9 @@ import com.ordia.app.context.ContextIntentEngine
  * REGRESIÓN c.847: la familia «quedar con/para» ya captura (piso nuevo
  * c.847 → MEETING 0.45/0.54, título con el verbo del usuario, dueAt) —
  * los 4 casos quedan abajo como casos de regresión del piso c.847.
+ * REGRESIÓN c.848: «poner una lavadora» ya captura (diagonal «una» del
+ * piso c.729 → HOUSEHOLD 0.45, «Poner una lavadora», dueAt) — el caso
+ * queda abajo como regresión de la diagonal c.848.
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -63,7 +66,9 @@ fun main() {
         // --- CAPTURAS: dativo enclítico llevar/devolver (clase sexta, dativo) ---
         "llevarle el almuerzo a papá mañana",
         "devolverle el dinero a Juan mañana",
-        // --- CAPTURAS: artículo indeterminado en electrodomésticos ---
+        // --- REGRESIÓN c.848: artículo indeterminado en electrodomésticos
+        // (era NULL en c.845; diagonal «una» del piso c.729 → HIT HOUSEHOLD
+        // 0.45, título «Poner una lavadora», dueAt) ---
         "poner una lavadora esta tarde",
         // --- CAPTURAS: reflexivo «apuntarse» ---
         "apuntarse al gimnasio mañana",

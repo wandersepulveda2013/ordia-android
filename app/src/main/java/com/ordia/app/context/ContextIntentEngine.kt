@@ -163,9 +163,15 @@ object ContextIntentEngine {
     // la lavadora" es EL quehacer doméstico canónico con "poner". El verbo
     // suelto ("la mesa"/"el teléfono") es demasiado genérico para posición
     // libre, así se acota al objeto `lavadora` (familia de [HOUSEHOLD_TRASH_FLOOR]
-    // c.717 / [HOUSEHOLD_BED_FLOOR] c.728).
+    // c.717 / [HOUSEHOLD_BED_FLOOR] c.728). c.848: el artículo indeterminado
+    // «una» también casa (candidata 3/6 de la sonda persistida c.845
+    // `tools/probe/SeventhClassErrandProbe.kt` — asimetría de artículo:
+    // «poner LA lavadora» capturaba y «poner UNA lavadora» caía a NULL;
+    // lockstep con la plantilla de título, lección c.717). Acotado
+    // deliberado (una forma por ciclo): «un lavavajillas» (piso hermano
+    // c.738) y el plural «unas lavadoras» quedan FUERA.
     private val HOUSEHOLD_WASHER_FLOOR =
-        Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?lavadora\b""")
+        Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+|una\s+)?lavadora\b""")
     // Piso faena doméstica "poner el lavavajillas" (c.738, forma 2/7 de la
     // CUARTA clase cotidiana — quehaceres de objeto acotado sobre verbos
     // bivalentes, sonda `FourthClassChoreProbe.kt` c.734): "poner el
@@ -2872,11 +2878,12 @@ object ContextIntentEngine {
                 if (matchColada != null) {
                     return "${capitalizeFirst(matchColada.groupValues[1])} ${matchColada.groupValues[2]}"
                 }
-                // "poner (la) lavadora …" → "Poner la lavadora …" (c.729):
-                // verbo preservado (alineación pisos↔títulos, lección c.717)
-                // y objeto restringido como en [HOUSEHOLD_WASHER_FLOOR].
+                // "poner (la|una) lavadora …" → "Poner la|una lavadora …"
+                // (c.729, diagonal «una» c.848): verbo preservado
+                // (alineación pisos↔títulos, lección c.717) y objeto
+                // restringido como en [HOUSEHOLD_WASHER_FLOOR].
                 val matchPoner = Regex(
-                    """\b(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+)?lavadora\b.*)""",
+                    """\b(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+|una\s+)?lavadora\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchPoner != null) {
