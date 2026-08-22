@@ -1882,7 +1882,7 @@ object ContextIntentEngine {
             // notaría, ayuntamiento). Ancla/guard idénticos a c.698/
             // c.860/c.863; objeto ACOTADO (dni/contrato/notas/código
             // QR — extensiones medidas NULL en la sonda PRE de cada
-            // ciclo): «contrato(s)» desde c.883 (lateral c.864), DRIs
+            // ciclo): «contrato(s)» desde c.884 (lateral c.864), DRIs
             // de gestión y bancarios; «notas» (notas escritas, no
             // calificaciones — la guard «las notas que saqué en clase»
             // queda fuera por ancla); «código QR». Las compuestas
@@ -2026,6 +2026,27 @@ object ContextIntentEngine {
             // neumáticos» CAPTURA — tarea real de mantenimiento del
             // vehículo (hermana de «echar gasolina» c.829), no overreach.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir(?:me)?\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b""").containsMatchIn(lower)
+            // Piso "me mido la presión/tensión" (c.883 — salud/autocuidado;
+            // perífrasis CONJUGADA de 1ª persona, diagonal de c.772/c.775/
+            // c.840/c.843; NULL PRE verificado por sonda efímera
+            // `/tmp/probe883/LateralProbe.kt`; candidata documentada desde
+            // c.841/c.843 como guard de contrato simétrico — UNA por ciclo,
+            // doctrina de la sonda, movida ahora a captura). La forma «me
+            // mido» es el autocuidado expresado en presente de 1ª persona
+            // («I measure my blood pressure»), la más cotidiana del habla;
+            // el piso se ACOTA a la pareja exacta conjugado+objeto (unidad
+            // = la conjugación; los objetos `presión`/`tensión` ya eran
+            // keywords c.775/c.772 → lockstep coste-cero, cero cambios en
+            // ContextIntent.kt). SIN plural («las presiones/las tensiones»
+            // son exigencias sociales, otra semántica); la 2ª persona
+            // «midete…» y el conjugado solo «me mido» quedan FUERA
+            // (anti-overreach); el pasado «me medí…» no casa. Misma
+            // ancla/guard de los hermanos: ^/ACK/temporal + `(?<!no )`;
+            // negación sin cláusula dedicada (keyword 0.12 + bono temporal
+            // 0.1 = 0.22 < umbral, hermana c.765…c.772). Decisión de
+            // alcance: «me mido la presión de los neumáticos» CAPTURA —
+            // hermana de la decisión c.843 (vehículo), no overreach.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )me\s+mido\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:presi[oó]n|tensi[oó]n)\b""").containsMatchIn(lower)
             // Piso "hacer copia de seguridad" (c.774, quinta clase — hogar-
             // tecnología; dispersión epoch-day 20686 % 3 = 1 sobre el pool
             // OPEN residual de 3; NULL PRE verificado por la sonda sobre
@@ -3113,6 +3134,14 @@ object ContextIntentEngine {
                 // (hermano c.836/c.840).
                 val matchMedirPresion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir(?:me)?)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMedirPresion != null) return "${capitalizeFirst(matchMedirPresion.groupValues[1])} ${matchMedirPresion.groupValues[2]}"
+                // c.883: plantilla "me mido la presión/tensión" (perífrasis
+                // conjugada de 1ª persona — ancla/guard idénticos al piso;
+                // el conjugado+pronombre se conserva en el título
+                // «Me mido…», precedente c.770 «Tomarme la pastilla»,
+                // doctrina c.653; conjugado capitalizado desde el match,
+                // hermano c.836/c.840/c.843).
+                val matchMeMido = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(me\s+mido)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:presi[oó]n|tensi[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMeMido != null) return "${capitalizeFirst(matchMeMido.groupValues[1])} ${matchMeMido.groupValues[2]}"
                 // c.774: plantilla "hacer copia de seguridad" (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
                 // verbo, así acuse/prefijo temporal se despojan; el residuo
@@ -3189,7 +3218,7 @@ object ContextIntentEngine {
                 // sin tilde queda tal cual.
                 val matchDeclaracionRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDeclaracionRenta != null) return "Hacer ${matchDeclaracionRenta.groupValues[2]}"
-                // c.864/c.883: plantilla «escanear el documento» (ancla/
+                // c.864/c.884: plantilla «escanear el documento» (ancla/
                 // guard idénticos al piso; lección c.616: el match arranca
                 // en el verbo, así acuse/prefijo temporal se despojan; el
                 // residuo temporal de cola lo depura [sanitizeTitle]; el

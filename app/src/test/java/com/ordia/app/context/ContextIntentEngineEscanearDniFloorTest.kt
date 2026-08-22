@@ -18,7 +18,7 @@ import org.junit.Test
  * ancla de inicio/acuse/prefijo temporal, guard anti-negación `(?<!no )`
  * y objeto ACOTADO con determinante opcional (el/la/los/las/mi/tu/su):
  * «dni» desde c.864; «contrato(s)», «notas» (escritas) y «código QR»
- * desde c.883 (laterales medidas NULL en su sonda PRE). El resto de
+ * desde c.884 (laterales medidas NULL en su sonda PRE). El resto de
  * objetos desnudos sigue FUERA (doctrina anti-overreach: extensiones
  * acotadas, medidas NULL ciclo a ciclo).
  * Las formas compuestas («escanear el DNI y enviarlo al banco…»,
@@ -120,8 +120,8 @@ class ContextIntentEngineEscanearDniFloorTest {
     }
 
     @Test
-    fun `extension c883 - contrato notas y codigo QR capturan TASK`() {
-        // c.883: extensiones medidas NULL en la sonda PRE (/tmp/probe883/).
+    fun `extension c884 - contrato notas y codigo QR capturan TASK`() {
+        // c.884: extensiones medidas NULL en la sonda PRE (/tmp/probe883/).
         // Contratos (gestión) y notas (escritas) y código QR convergen con
         // la envolvente c.613 en TASK.
         val r1 = analyze("escanear el contrato mañana")
