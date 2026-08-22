@@ -1,3 +1,10 @@
+## Ciclo c.858 [SIN colisión cycle-ID: fetch PRE-trabajo y pre-commit, remoto intacto `6d98103`] — test(context): HEAD remoto ROJO corregido — expectativas del test c.856 «apuntarse … esta semana» alineadas al comportamiento deliberado documentado (título preserva «esta semana», dueAt=null por decisión del motor de no anclar períodos sin calificador). Cero cambios de producto. Suite restaurada: **OK (5497)**, 0 failures; filtered ApuntarseFloor 14/14.
+
+- **HEAD inicial**: `6d98103`. Env JVM nuevo instalado desde cero (JDK 21 `/tmp/jdk21`, kotlinc 2.1.20, jars `/tmp/libs`). Baseline PRE: 5497 run, **1 failure** (el test c.856 inconsistente con su propia documentación).
+- **Causa raíz**: el test `apuntarseAUnCursoDeCocina_capturesNote` (c.856) quedó commiteado con las expectativas pre-corrección (título despojado + dueAt no nulo) mientras el RUN_LOG de c.856 documentaba lo contrario (información preservada; «esta semana» no ancla). El motor es correcto y deliberado; el test estaba mal.
+- **Fix**: 2 expectativas corregidas + comentario documentando la decisión. Sin reducción de cobertura.
+- **Próxima prioridad**: candidata 1/7 sonda c.857 «tomar la medicación a las 8» (extensión del objeto del piso c.765, lockstep keyword). Re-fetch OBLIGATORIO.
+
 ## Ciclo c.857 [SIN colisión cycle-ID: fetch PRE-trabajo y pre-commit, remoto intacto `26d96e0` (mis propias docs c.856)] — docs/test (sonda): auditoría de DESCUBRIMIENTO clase OCTAVA (gestiones de la vida adulta: vehículo, trámites, finanzas del hogar, documentos, comunicaciones pendientes, salud cotidiana), sonda persistida `tools/probe/EighthClassAdminProbe.kt`
 
 - **HEAD inicial**: `26d96e0` (docs c.856, en sync PRE-trabajo y pre-commit). **HEAD final**: `17b43af` (commit c.857). Env JVM reutilizado intacto (JDK 21 `/tmp/jdk21`, kotlinc 2.1.20, jars `/tmp/libs`). Auth git `github_token`.

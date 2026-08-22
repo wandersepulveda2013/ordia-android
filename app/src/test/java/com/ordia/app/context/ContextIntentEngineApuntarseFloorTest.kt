@@ -66,13 +66,18 @@ class ContextIntentEngineApuntarseFloorTest {
         assertNotNull(intent.dueAt)
     }
 
+    // «esta semana» (sin calificador) NO ancla fecha en [extractDateTime]
+    // (decisión deliberada del motor: no inventar fechas a partir de
+    // «semana»/«mes»/«año» sueltos) y tampoco se despoja del título
+    // (información preservada): la nota nace con la acotación temporal
+    // visible en el título y sin dueAt.
     @Test
     fun apuntarseAUnCursoDeCocina_capturesNote() {
         val intent = analyze("apuntarse a un curso de cocina esta semana")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.NOTE, intent!!.kind)
-        assertEquals("Apuntarse a un curso de cocina", intent.title)
-        assertNotNull(intent.dueAt)
+        assertEquals("Apuntarse a un curso de cocina esta semana", intent.title)
+        assertNull(intent.dueAt)
     }
 
     @Test
