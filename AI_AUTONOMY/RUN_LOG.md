@@ -17359,7 +17359,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: otros vehículos («cargar la furgoneta», «cargar el camión») quedan FUERA como candidatas propias.
 - **Próxima prioridad**: candidatas sonda c.845 (UNA por ciclo): 5) dativo enclítico «llevarle/devolverle» («llevarle el almuerzo a papá mañana»); 6) reflexivo «apuntarse a» («apuntarse al gimnasio mañana»). Candidatas laterales parser registradas (c.852, área del hermano): weekday+«de esta semana» / «sobre|alrededor de las N» / residuo «tipo» / hora bare pasada (verificar si deliberado). Re-fetch OBLIGATORIO pre-commit (colisiones c.826…c.852).
-- **Commits**: (ver git log). **HEAD final**: (ver git log).
+- **Commits**: `2a3199f` (feat piso dativo 2ª oleada). **HEAD final**: `2a3199f`.
 
 ## 2026-08-22 — Ciclo c.854 (OpenHands, área context) [renumber c.853→c.854 por COLISIÓN cycle-ID con c.853 remoto «cargar el coche» (`f3f4519`); resolución NO destructiva: sed + `git stash -u` → `git pull --ff-only` → `git stash pop` AUTO-MERGE LIMPIO (0 conflictos)]
 
