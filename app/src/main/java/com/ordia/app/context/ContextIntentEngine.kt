@@ -1506,7 +1506,17 @@ object ContextIntentEngine {
             // opcional, `\b` final ("celularcito" no casa), `(?<!no )`
             // bloquea la negada, sustantivo "la carga del celular"/pasado
             // "cargué…"/suelto "cargar" no casa.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b""").containsMatchIn(lower)
+            // c.851: el objeto admite la diagonal DIALECTAL `m[oó]vil`
+            // (candidata 4/6 de la sonda persistida c.845; NULL PRE
+            // re-verificado sobre HEAD 09ea0b1: «cargar el móvil esta
+            // noche» → NULL mientras «cargar el celular hoy» capturaba —
+            // «móvil» es LA forma de España, hermana de «cole» c.850 y
+            // de «una lavadora» c.848; `[oó]` admite la grafía sin
+            // tilde, hermana `tensi[oó]n` c.772). Lockstep keyword-
+            // OBJETO "móvil" (lección c.751). Acotado deliberado (una
+            // forma por ciclo): «cargar el coche» (bivalente real:
+            // equipaje del viaje vs carga del VE) queda FUERA.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:celular|m[oó]vil)(?:es)?\b""").containsMatchIn(lower)
             // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
             // c.750, candidato cívico "votar"): "votar <complemento/día>".
             // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
@@ -2643,7 +2653,10 @@ object ContextIntentEngine {
                 // celular (ancla/guard idénticos al piso; lección c.616: el
                 // match arranca en el verbo, así acuse/prefijo temporal se
                 // despojan). El verbo gobierna el contenido y se PRESERVA.
-                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // c.851: el objeto admite la diagonal dialectal `m[oó]vil`
+                // (lockstep con el piso, lección c.717; título preserva la
+                // grafía del usuario: "Cargar el móvil" / "Cargar el movil").
+                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:celular|m[oó]vil)(?:es)?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
                 // c.752: misma plantilla para "votar" (ancla/guard idénticos
                 // al piso; verbo unívoco, complemento libre).

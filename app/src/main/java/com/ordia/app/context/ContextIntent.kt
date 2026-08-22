@@ -42,6 +42,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NO se añade el verbo "cargar": bivalente (el archivo/la tarjeta/
         // gasolina) y subcadena de "descargar" (c.725).
         "celular",
+        // c.851: keyword-OBJETO "móvil" (lockstep con la diagonal dialectal
+        // del piso "cargar el celular", lección c.751: sin ella la
+        // notificación sin palabra gatillo ni llega al análisis en
+        // producción). La subcadena de "automóvil" suma 0.12 inerte <
+        // umbral (mismo argumento que "extensión"/"pretensión" c.772):
+        // "el automóvil está sucio" sigue descartado.
+        "móvil",
         // c.752: keyword-verbo "votar" (lockstep con el piso; verbo
         // unívoco, ningún objeto bivalente queda abierto).
         "votar",

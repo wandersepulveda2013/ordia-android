@@ -52,6 +52,12 @@ import com.ordia.app.context.ContextIntentEngine
  * cole», dueAt) — el caso queda abajo como regresión de la diagonal
  * c.850; «al parque» (ocio, NO educativo) sigue NULL como candidata
  * propia (una forma por ciclo).
+ * REGRESIÓN c.851: «cargar el móvil esta noche» ya captura (diagonal
+ * dialectal «móvil» del piso «cargar el celular» c.751 → TASK 0.45,
+ * «Cargar el móvil», dueAt; NULLs 16→15) — el caso queda abajo como
+ * regresión de la diagonal c.851; «cargar el coche» (bivalente real:
+ * equipaje del viaje vs carga del VE) sigue NULL como candidata propia
+ * (una forma por ciclo).
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
