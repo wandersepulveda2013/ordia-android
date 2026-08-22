@@ -17420,4 +17420,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: «anotarse a» (variante dialectal rioplatense del mismo reflexivo) y «apuntarme/apuntarte/apuntarnos» (otras personas del enclítico — la natural bajo envolvente «recuérdame apuntarme…» ya la gobierna TASK vía c.613) quedan FUERA como candidatas propias si se miden.
 - **Próxima prioridad**: sonda c.845 AGOTADA → nueva sonda de descubrimiento (OCTAVA clase, convención c.845) en área context o cambio de área. Candidatas laterales parser registradas (c.852): weekday+«de esta semana» (pierde el día explícito) / asimetría «sobre|alrededor de las N» / residuo «tipo» / hora bare pasada (05:00 a mediodía); «pagar el alquiler el día N» (dueAt=false, verificar parser «día N»). Re-fetch OBLIGATORIO pre-trabajo y pre-commit (colisiones c.826…c.854).
-- **Commits**: (ver git log). **HEAD final**: (ver git log).
+- **Commits**: `09ccfca`. **HEAD final**: `09ccfca` (commit c.856).
