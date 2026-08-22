@@ -17517,4 +17517,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: laterales medidas NULL en la sonda PRE («hacer la declaración este mes» — desnuda, bivalente —, «declarar la renta mañana», «presentar la declaración de la renta este mes», «hacer la renta este mes» — elipsis) quedan FUERA como candidatas propias (registradas en BACKLOG).
 - **Próxima prioridad**: candidata 6/7 sonda c.857 «escanear el DNI esta tarde» (gestión documental — paradoja medida c.857: «renovar el DNI» HIT, «escanear el DNI» NULL; medir guards antes de implementar). Persisten: candidata 7/7, laterales c.860/c.861/c.862/c.863, perífrasis «me mido la presión/tensión» (guards c.841/c.843), residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- **Commits**: (pendiente del hash tras commit). **HEAD final**: (idem).
+- **Commits**: `0b20fe7`. **HEAD final**: `0b20fe7` (commit c.863).
