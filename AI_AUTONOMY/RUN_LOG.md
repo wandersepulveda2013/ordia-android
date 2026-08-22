@@ -17870,3 +17870,16 @@ a un permiso persistente frágil y silencioso ante fallos.
   renta» periodo); auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
 
 ---
+
+## Ciclo c.884 (2026-08-22) — feat(context): «reclamar una factura» (indefinido)
+
+- HEAD inicial: `456e7ff` (c.883 propio; pull --ff-only limpio sin colisión)
+- Problema: lateral NULL medida en sonda c.865 — forma indefinida «reclamar una factura» descartada (P1, gestión financiera cotidiana)
+- Sonda PRE `tools/probe/ReclamarUnaFacturaProbe.kt` (persistida): 3 candidatas NULL, 5 guards NULL, 3 regresiones HIT
+- Solución: alternancia `un|una` en determinante opcional del piso c.865 + plantilla lockstep (c.616); CERO cambios `ContextIntent.kt`
+- Tests: `ContextIntentEngineReclamarUnaFacturaFloorTest.kt` (14, NUEVO) — RED exacto 4/14 → GREEN 14/14
+- Suite: **OK (5839 = 5825 + 14)**; smoke 25/25; `JAVA_OPTS=-Xmx6g` (anti-OOM documentado)
+- Sonda POST: candidatas HIT 0.45 títulos limpios; guards NULL intactas
+- NO VERIFICADO: Android/gradle/UI/Room
+- HEAD final: pendiente commit
+- Próxima prioridad: laterales octava clase («hacerme la prueba de sonido», «escanear contrato/notas/QR», «fotocopiar/reescanear el DNI»)

@@ -1,5 +1,18 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.884 (2026-08-22) — feat(context): artículo indefinido «reclamar una factura» (lateral medida c.865)
+
+- Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).
+- Latente: la ruta c.865 «reclamar la factura» (definido/posesivo) dejó como lateral NULL medida la forma INDEFINIDA «reclamar una factura» — el determinante opcional del piso excluía `un|una` (lección de asimetría c.848 «una lavadora» / c.880 «una carta»). Consecuencia real: «tengo que reclamar una factura del banco» — gestión financiera cotidiana — se descartaba en silencio; cobro indebido no reclamado (P1, evitar olvidos).
+- Sonda PRE persistida `tools/probe/ReclamarUnaFacturaProbe.kt` sobre HEAD 456e7ff (13 casos): 3 candidatas NULL («reclamar una factura mañana/esta tarde/del banco»), 5 guards NULL («un premio/un turno/negada/quizá/pasado»), 3 regresiones HIT («la/mi/las facturas» 0.45).
+- Piso (lockstep DOS puntos, lección c.616): alternancia `un|una` añadida en el determinante opcional del piso c.865 y de la plantilla anti-doblete — los bivalentes indefinidos («reclamar un premio…» / «reclamar un turno…») quedan FUERA porque el objeto-ancla sigue siendo `facturas?`.
+- Test `ContextIntentEngineReclamarUnaFacturaFloorTest.kt` (14 = 4 capturas + 6 guards + 3 regresiones + 1 envolvente c.613). RED exacto: 14 run, EXACTAMENTE 4 fallos (las capturas); guards/regresiones verdes desde RED.
+- OOM del filtrado documentado: `OutOfMemoryError` heap en compilación completa (268 fuentes) → `JAVA_OPTS=-Xmx6g` (el script pasa JAVA_OPTS al wrapper kotlinc).
+- Suite: OK (5839 = 5825 + 14), 0 failures; smoke 25/25. Cero mojibake (python utf-8).
+- Sonda POST re-ejecutada (`tools/run_probe.sh`): las 3 candidatas → HIT TASK 0.45 títulos limpios («Reclamar una factura…») dueAt; guards NULL intactas; regresiones HIT.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: laterales restantes de la octava clase («hacerme la prueba de sonido» decisión de dominio, «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI»); re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.883 (2026-08-22) — feat(context): perífrasis conjugada «me mido la presión/tensión» (candidata guard-de-contrato desde c.841/c.843)
 
 - Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).

@@ -1931,8 +1931,10 @@ object ContextIntentEngine {
             // temporal 0.1 = 0.22 < umbral (aritmética c.859…c.864).
             // Acotado deliberado (una forma por ciclo): «reclamar una
             // factura…» (indefinido, medida NULL) queda FUERA como
-            // candidata propia.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reclamar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?facturas?\b""").containsMatchIn(lower)
+            // candidata propia. c.884: alternancia un|una admitida
+            // (asimetría de artículo indefinido, hermana c.848/c.880);
+            // bivalentes «un premio/un turno» fuera — ancla facturas?.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reclamar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -3236,8 +3238,9 @@ object ContextIntentEngine {
                 // identifica el emisor, misma gestión; los bivalentes
                 // «reclamar el premio…»/«al banco…» nunca llegan aquí
                 // porque el piso no los captura). La grafía del usuario
-                // se preserva (doctrina c.653).
-                val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // se preserva (doctrina c.653). c.884: un|una admitidas
+                // (misma alternancia que el piso).
+                val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReclamarFactura != null) return "Reclamar ${matchReclamarFactura.groupValues[2]}"
 
                 null
