@@ -17621,7 +17621,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite: OK (5671 = 5656+15); smoke 25/25. Cero mojibake (python utf-8).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineResponderAlCorreoFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
-- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Commit: 0bc1254. HEAD final: 0bc1254.
 - Próxima prioridad: laterales context c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
  HEAD
 ## c.869-colisión — 2026-08-22 (openhands) — duplicado gestionado sin pérdida ni sobrescritura
