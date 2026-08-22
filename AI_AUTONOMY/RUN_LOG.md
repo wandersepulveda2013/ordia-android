@@ -17661,5 +17661,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Aporte residual conservado (7 casos NO cubiertos por el test del hermano, persistidos en su archivo): plural «los correos», posesivo «mi correo», contracción «al»+objeto, guard «la pregunta» NULL, envolvente candado c.613, regresión «responder al correo» c.870, verbo suelto NULL. Sonda residual end-to-end /tmp/probe872/ResidualProbe.kt: 7/7 OK.
 - Suite con residuales: **OK (5716 = 5709 + 7)**, 0 failures; smoke 25/25. Cero mojibake (python utf-8).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
-- Ciclo renumbrado c.874 (c.872 y c.873 ocupados por el hermano durante mi trabajo — lección reafirmada: en zona caliente, sonda+implementación atómicas).
+- Ciclo renumbrado c.874 (c.872 y c.873 ocupados por el hermano durante mi trabajo — lección reafirmada: en zona caliente, sonda+implementación atómicas). Commit: e2aa23f. HEAD final: e2aa23f.
 - Próxima prioridad: laterales context restantes c.862…c.865 («hacerme la prueba de sangre», «fotocopiar/reescanear el DNI», «reclamar una factura», «contestarle a Juan» enclítico); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
