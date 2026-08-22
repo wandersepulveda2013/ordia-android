@@ -72,6 +72,12 @@ import com.ordia.app.context.ContextIntentEngine
  * de ocio familiar «parque» del piso c.773 — levantamiento deliberado
  * de la restricción educativa → ERRAND, «Llevar a los niños al
  * parque», dueAt) — el caso queda abajo como regresión de c.852.
+ * REGRESIÓN c.854: el dativo enclítico «llevarle/devolverle <objeto> a
+ * <persona>» ya captura (piso nuevo c.854 `ERRAND_DATIVE_FLOOR` → ERRAND
+ * 0.45, título con el pronombre conservado, dueAt; NULLs 13→11 tras el
+ * «cargar el coche» c.853 remoto) — los 2 casos quedan abajo como
+ * regresión del piso c.854; «apuntarse al gimnasio» (reflexivo) sigue
+ * NULL como candidata propia (una forma por ciclo).
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -93,7 +99,10 @@ fun main() {
         // captura (extensión del piso c.773 → HIT ERRAND con título
         // «Llevar a los niños al parque» y dueAt) ---
         "llevar a los niños al parque mañana",
-        // --- CAPTURAS: dativo enclítico llevar/devolver (clase sexta, dativo) ---
+        // --- REGRESIÓN c.854: el dativo enclítico «llevarle/devolverle»
+        // (eran NULL en c.845; piso c.854 `ERRAND_DATIVE_FLOOR` → HIT
+        // ERRAND 0.45 con título «Llevarle el almuerzo a papá» /
+        // «Devolverle el dinero a Juan» y dueAt) ---
         "llevarle el almuerzo a papá mañana",
         "devolverle el dinero a Juan mañana",
         // --- REGRESIÓN c.848: artículo indeterminado en electrodomésticos

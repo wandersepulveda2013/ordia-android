@@ -169,7 +169,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // queda bajo el umbral: el futuro conjugado "repostaré el coche
         // mañana" (keyword 0.12 + bono temporal 0.1 = 0.22 < 0.45) sigue
         // descartado.
-        "repostar")),
+        "repostar",
+        // c.854: keyword-VERBO-enclítico "llevarle" (lockstep keyword↔piso
+        // `ERRAND_DATIVE_FLOOR` "llevarle/devolverle <objeto> a <persona>",
+        // lección c.751: sin ella la notificación "llevarle el informe al
+        // jefe" sin otra keyword ni llegaría al análisis en producción).
+        // Subcadena: también casa "llevarles". La forma NO enclítica
+        // "llevar" sigue sin ser keyword (bivalente, c.773). La forma
+        // figurada ("llevarle la contraria/ventaja") suma 0.12 inerte
+        // (<0.45 sin piso, que además la bloquea con su guard). Con bono
+        // temporal 0.22 < 0.45 (negada/duda inertes). "devolverle" no
+        // necesita keyword propia: la cubre "devolver" por subcadena.
+        "llevarle")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",

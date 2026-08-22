@@ -528,6 +528,39 @@ object ContextIntentEngine {
     // quedan FUERA — candidatas documentadas.
     private val ERRAND_HAIRCUT_FLOOR =
         Regex("""\b(?<!no )cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
+    // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
+    // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
+    // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
+    // mañana» y «devolverle el dinero a Juan mañana» caían a NULL — olvido
+    // silencioso P1— mientras la forma no enclítica «devolver las llaves a
+    // Marta» ya capturaba ERRAND por el piso genérico `ERRAND_VERBS`
+    // c.639). El dativo enclítico es LA forma cotidiana del encargo a
+    // tercero («llevarle/devolverle <objeto> a <persona>»): el pronombre
+    // «le/les» pegado al infinitivo no casa el piso genérico (`\s` tras el
+    // verbo) y «llevarle» no activa keyword alguna («llevar» es bivalente
+    // y nunca fue keyword — c.773). Verbo acotado a los 2 verbos del
+    // encargo con dativo (criterio c.684/c.717: «llevar/devolver» son
+    // bivalentes sin el dativo, así el ancla inequívoca es la pareja
+    // verbo+«le/les»); el objeto queda libre (`\s+\w`, como el piso
+    // genérico c.639). Guard anti-figurado: «llevarle la contraria/
+    // ventaja/la delantera (a alguien)» no casan (lookahead sobre el
+    // objeto — son locuciones, no encargos). `\b` de posición libre
+    // (familia c.643/c.647): admite acuse («vale, …») y prefijo temporal
+    // («mañana …»); la negación inmediata se bloquea en la propia regex
+    // `(?<!no )` y de nuevo en [imperativeIsNegated] (cinturón y tirantes,
+    // precedente c.829). El envolvente («recuérdame llevarle el almuerzo a
+    // papá»→TASK) queda protegido por [imperativeIsWrapped] vía
+    // [ERRAND_FLOORS] (fuente única, lección c.648/c.652). Kind
+    // deliberado: ERRAND (gestión de desplazamiento hacia un tercero,
+    // hermana de «devolver las llaves a Marta» c.639), no TASK. Lockstep
+    // keyword-VERBO-enclítico «llevarle» en [ContextIntentKind.ERRAND]
+    // (lección c.751; «devolverle» ya la cubre «devolver» por subcadena) +
+    // plantilla de título en [extractTitle] (lección c.616/c.717,
+    // pronombre conservado, doctrina c.653). Acotado deliberado (una forma
+    // por ciclo): la candidata 6/6 «apuntarse a» reflexivo queda FUERA
+    // como candidata propia.
+    private val ERRAND_DATIVE_FLOOR =
+        Regex("""\b(?<!no )(?:llevar|devolver)les?\s+(?!la\s+contraria\b|la\s+delantera\b|ventaja\b)\w""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
@@ -536,7 +569,8 @@ object ContextIntentEngine {
         ERRAND_SCHOOL_RUN_FLOOR,
         ERRAND_MEDICAL_RUN_FLOOR,
         ERRAND_FUEL_FLOOR,
-        ERRAND_HAIRCUT_FLOOR
+        ERRAND_HAIRCUT_FLOOR,
+        ERRAND_DATIVE_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -2125,6 +2159,19 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""").containsMatchIn(lower)
         ) return true
+        // "llevarle/devolverle <objeto>" (ERRAND, piso dativo enclítico
+        // c.854): la keyword-verbo-enclítico "llevarle" (lockstep c.854,
+        // lección c.751) + el bono temporal elevarían el score sin pasar
+        // por el piso (cuyo lookbehind sí la bloquea), así la negación se
+        // bloquea también aquí (cinturón y tirantes, precedente c.829). El
+        // dativo pegado («no devolverle el dinero») no casa la cláusula
+        // genérica de arriba (su `\b` tras "devolver" exige verbo suelto),
+        // así esta cláusula además cubre la negación con objeto
+        // intercalado ("no llevarle el almuerzo a papá") que el
+        // lookbehind inmediato no ve.
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+(?:llevar|devolver)les?\s+\w""").containsMatchIn(lower)
+        ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
@@ -3209,6 +3256,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchHaircut != null) {
                     return "${capitalizeFirst(matchHaircut.groupValues[1])} ${matchHaircut.groupValues[2]}"
+                }
+                // "llevarle el almuerzo a papá" / "devolverle el dinero a
+                // Juan" → "Llevarle el almuerzo a papá" (c.854, lockstep
+                // con [ERRAND_DATIVE_FLOOR]): el match arranca en el verbo
+                // con su dativo enclítico conservado (doctrina c.653 — el
+                // pronombre es parte del verbo tal como lo dijo el
+                // usuario), así el acuse ("vale, …") y el prefijo temporal
+                // ("mañana …") no ensucian el título (lección c.616);
+                // [sanitizeTitle] depura el residuo temporal de cola
+                // ("…mañana"/"…el lunes").
+                val matchDative = Regex(
+                    """\b(?<!no )(llevarles?|devolverles?)\s+(.+)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDative != null) {
+                    return "${capitalizeFirst(matchDative.groupValues[1])} ${matchDative.groupValues[2]}"
                 }
                 null
             }
