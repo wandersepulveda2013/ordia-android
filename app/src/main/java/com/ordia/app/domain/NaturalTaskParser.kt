@@ -2037,7 +2037,7 @@ object NaturalTaskParser {
      * tipo estrategia", "documento tipo 8 personas", "mesa tipo 8 de comedor") NO se
      * tocan (sin evidencia el lookahead no casa).
      */
-    // c.870: la fracción "y media/cuarto/veinte/..." puede intercalarse entre la hora y
+    // c.871: la fracción "y media/cuarto/veinte/..." puede intercalarse entre la hora y
     // la parte del día ("tipo 5 y media de la tarde", "tipo cinco y media de la tarde"):
     // el reloj autónomo resuelve esa forma, así que el puente `(?:\s+$CLOCK_FRACTION_Y)?`
     // la admite SOLO como tránsito hacia la parte del día. Fracción sin parte del día

@@ -4,7 +4,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Sonda c.870: "tipo N" desnudo con FRACCIÓN entre hora y parte del día
+ * Sonda c.871: "tipo N" desnudo con FRACCIÓN entre hora y parte del día
  * ("salir tipo 5 y media de la tarde"). Antes: el reloj autónomo anclaba la hora
  * pero "tipo" sobrevivía como residuo en el título. Uso: tools/run_probe.sh.
  * OJO: pasar SIEMPRE `zone` explícita a parse(); sin ella el motor usa

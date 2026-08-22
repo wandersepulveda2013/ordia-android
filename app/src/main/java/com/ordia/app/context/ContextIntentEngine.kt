@@ -1717,7 +1717,11 @@ object ContextIntentEngine {
             // con la plantilla de [extractTitle] y con la keyword-OBJETO
             // «mensaje» de ContextIntent.kt (sin ella la frase ni llega al
             // análisis, hermana de c.859/c.864/c.867).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mensajes?)\b""").containsMatchIn(lower)
+            // c.870: contracción «al» (= a + el) ante el objeto acotado
+            // (lateral registrada en la sonda c.860; 6/6 candidatas NULL
+            // medidas PRE sobre HEAD 7341168). Lockstep con la plantilla de
+            // [extractTitle]; las keywords ya existen (correo/email/mensaje).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mensajes?)\b""").containsMatchIn(lower)
             // c.861 (candidata 3/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD b4e12fb,
@@ -3056,7 +3060,7 @@ object ContextIntentEngine {
                 // bivalente "responder en el examen…" nunca llega aquí
                 // porque el piso no lo captura). La grafía del usuario se
                 // preserva (doctrina c.653).
-                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mensajes?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mensajes?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchResponderCorreo != null) return "Responder ${matchResponderCorreo.groupValues[2]}"
                 // c.861: plantilla «contestar a <persona>» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el

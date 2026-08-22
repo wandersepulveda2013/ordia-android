@@ -72,7 +72,7 @@ class NaturalTaskParserTipoBareTest {
         assertEquals(LocalTime.of(8, 0), hora(r))
     }
 
-    // --- c.870: fracciones "N y media/cuarto/..." entre hora y parte del día ---
+    // --- c.871: fracciones "N y media/cuarto/..." entre hora y parte del día ---
 
     @Test fun tipoFraccionYMediaTardeCapturaYLimpiaTitulo() {
         val r = NaturalTaskParser.parse("salir tipo 5 y media de la tarde", now, zone)
