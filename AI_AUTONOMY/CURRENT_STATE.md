@@ -1,5 +1,18 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.882 (2026-08-22) — feat(context): objeto «prueba de embarazo» en la familia «hacerse» (lateral medida c.876)
+
+- Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).
+- Latente: la c.881 («tatuaje», resuelta por run hermano mientras mi sonda corría) no cerraba la lateral de salud que yo medí NULL desde c.871: «hacerme/hacerse la prueba de embarazo». Consecuencia real: una gestión de salud deferida de alta relevancia olvidada por el capturador (P1, evitar olvidos).
+- Sonda PRE efímera `/tmp/probe881/PreEmbarazoProbe.kt` sobre HEAD 3aed02d (post-hermano, re-fetch obligatorio): 4/4 candidatas NULL, 4/4 guards NULL, 4/4 regresiones HIT (envolvente c.613 incluida).
+- Fix mínimo (lockstep DOS puntos, lección c.616 — el hermano de c.881 añadió keyword porque «tatuaje» no era keyword; aquí «hacer» ya es keyword y «embarazo» llega por subcadena de «hacerme», igual que sangre/análisis): (1) piso `ERRAND_BLOOD_TEST_FLOOR` objeto «pruebas? de embarazo»; (2) plantilla de título lockstep (grafía, doctrina c.653).
+- Sentinel c.876 reemplazada: el guard «embarazo queda fuera como lateral» pasó a ser captura intencional («lateral embarazo resuelta c882»). Intencionalidad conservada. RED exacto: 4 fallos de 5799 (sólo las 4 capturas nuevas).
+- Test `ContextIntentEnginePruebaEmbarazoFloorTest.kt` (12 = 4 capturas + 1 envolvente + 4 guards + 3 regresiones).
+- Suite: OK (5799 = 5787 + 12), 0 failures; smoke 25/25. Cero mojibake (utf-8 vía python heredoc).
+- Anti-colisión ejercida: tras sonda PRE el hermano publicó c.881 (tatuaje) en 3aed02d; pivote a la siguiente lateral sin solape.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: laterales restantes («prueba de sonido» guard/domínio a decidir, «reclamar una factura», «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI», «me mido la presión/tensión» perífrasis, «declarar la renta» periodo); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.881 (2026-08-22) — feat(context): objeto «tatuaje» en la familia «hacerse» (lateral medida c.862)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).

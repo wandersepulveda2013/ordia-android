@@ -17826,3 +17826,34 @@ a un permiso persistente frágil y silencioso ante fallos.
   auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
 
 ---
+## c.882 (2026-08-22) — feat(context): objeto «prueba de embarazo» en la familia «hacerse» (lateral c.876)
+
+- **HEAD inicial**: `3aed02d` (c.881 hermano «tatuaje», re-fetch tras medición
+  PRE — anti-colisión ejercida, no duplica trabajo). Baseline: OK (5787).
+- **Área**: context (ContextIntentEngine piso+plantilla; CERO cambios en
+  `ContextIntent.kt` — «hacer» keyword enruta «hacerme», hermana
+  sangre/análisis).
+- **Latente**: la lateral de salud «hacerme/hacerse la prueba de embarazo»
+  (registrada deferida desde c.876) seguía NULL. Gestión de salud deferida
+  olvidada por capturador (P1, evitar olvidos).
+- **Sonda PRE** efímera `/tmp/probe881/PreEmbarazoProbe.kt` sobre HEAD
+  3aed02d: 4/4 candidatas NULL; 4/4 guards NULL; 4/4 regresiones HIT.
+- **Fix mínimo** (lockstep DOS puntos, lección c.616): (1) piso
+  `ERRAND_BLOOD_TEST_FLOOR` objeto `pruebas? de embarazo`; (2) plantilla de
+  título lockstep (grafía, doctrina c.653).
+- **Sentinel c.876 reemplazada**: guard «embarazo queda fuera» → captura
+  intencional («lateral embarazo resuelta c882»). RED exacto: 4 fallos de
+  5799 (solo las 4 capturas). Intencionalidad conservada.
+- **TDD**: `ContextIntentEnginePruebaEmbarazoFloorTest.kt` (12 = 4 capturas +
+  1 envolvente + 4 guards + 3 regresiones). POST sonda: 4/4 títulos exactos,
+  4/4 guards NULL, 4/4 regresiones HIT.
+- **OK**: 5799 tests (5787 + 12), 0 failures; smoke 25/25. Cero mojibake
+  (python heredoc utf-8).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **Próxima prioridad**: laterales restantes («prueba de sonido» dominio a
+  decidir, «reclamar una factura», «escanear contrato/notas/QR»,
+  «fotocopiar/reescanear el DNI», «me mido la presión/tensión», «declarar la
+  renta» periodo); auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
+---

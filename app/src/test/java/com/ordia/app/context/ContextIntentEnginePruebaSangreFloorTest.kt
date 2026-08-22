@@ -26,9 +26,10 @@ import org.junit.Test
  * en [ContextIntent.kt]: «hacerme» contiene la keyword TASK «hacer» por
  * subcadena (hermana de c.860/c.862). Sin cláusula dedicada en
  * [imperativeIsNegated] (aritmética c.859/c.860/c.862). Acotado
- * deliberado (una forma por ciclo): «prueba de embarazo», «prueba del
- * coche» (test-drive) y la forma desnuda quedan FUERA como laterales
- * registradas en BACKLOG.
+ * deliberado (una forma por ciclo): «prueba del coche» (test-drive) y
+ * la forma desnuda quedan FUERA como laterales registradas en BACKLOG.
+ * La lateral «prueba de embarazo» se resolvió en c.882 (clase
+ * `ContextIntentEnginePruebaEmbarazoFloorTest`).
  */
 class ContextIntentEnginePruebaSangreFloorTest {
 
@@ -139,10 +140,14 @@ class ContextIntentEnginePruebaSangreFloorTest {
     }
 
     @Test
-    fun `embarazo queda fuera como lateral`() {
-        // «prueba de embarazo» es otra compra/gestión (lateral
-        // registrada): acotado deliberado a «de sangre» este ciclo.
-        assertNull(analyze("hacerme la prueba de embarazo"))
+    fun `lateral embarazo resuelta c882`() {
+        // La lateral «prueba de embarazo» (deferida en c.876) se resolvió
+        // en c.882: ahora captura como ERRAND hermana de la familia
+        // «hacerse» (ver `ContextIntentEnginePruebaEmbarazoFloorTest`).
+        val i = analyze("hacerme la prueba de embarazo")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        assertEquals("Hacerme la prueba de embarazo", i.title)
     }
 
     // ---- Regresiones ----
