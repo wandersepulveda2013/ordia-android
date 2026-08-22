@@ -8,9 +8,10 @@
 //
 // Resultado POST c.846: TODAS las formas documentadas resuelven correctamente;
 // «entregar después de mañana» → +2 días (fix c.846: antes +1, P1 fecha errónea).
-// Hallazgo lateral (candidata BACKLOG): «en una semana difícil» secuestra
-// contenido (dueAt +7d, título 'difícil') — «en una <unidad> <adjetivo>» debería
-// exigir final de frase o conector para no fechar contenido legítimo.
+// Hallazgo lateral RESUELTO c.849: «en una semana difícil» ya NO secuestra
+// contenido (antes dueAt +7d, título 'difícil'; ahora dueAt=null y título
+// íntegro) — el ancla con artículo indefinido exige fin de frase o conector/
+// determinante tras la unidad (guard articleRelativeHijacksContent).
 import com.ordia.app.domain.NaturalTaskParser
 import java.time.ZoneId
 import java.time.ZonedDateTime

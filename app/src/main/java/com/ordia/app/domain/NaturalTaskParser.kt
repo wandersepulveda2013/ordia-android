@@ -365,6 +365,40 @@ object NaturalTaskParser {
         """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a|de\s+hoy\s+en)\s+(un\s+par\s+de|unos|unas|\d{1,3}(?:[.,]\d+)?|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
     )
     /**
+     * Guard anti-secuestro (c.849) de [relativePattern]: con artículo indefinido
+     * ("un/una/unos/unas"), "en una <unidad> <adjetivo>" es una frase nominal
+     * descriptiva — "en una semana difícil" = "durante una semana difícil", no
+     * un ancla temporal. Antes se robaba "en una semana" (+7d) y el adjetivo
+     * quedaba como TÍTULO ("difícil"): tarea inventada, agendada y con el
+     * contenido real destruido. El ancla con artículo exige fin de frase,
+     * puntuación o conector/determinante tras la unidad; si sigue una palabra
+     * de contenido (adjetivo), no se fecha y el contenido se conserva íntegro
+     * (queda en la bandeja sin fecha: visible, no agendado en falso). Con
+     * dígitos NO aplica: "en 3 días hábiles" sí es un plazo (cantidad contada,
+     * no descripción). "un par de" tampoco: cuantifica, no describe.
+     */
+    private val relativeArticleQuantifiers = setOf("un", "una", "unos", "unas")
+    private val relativeSafeFollowers = setOf(
+        // Preposiciones y conectores que introducen más contenido de la tarea.
+        "a", "al", "ante", "bajo", "con", "contra", "de", "del", "desde", "en",
+        "entre", "hacia", "hasta", "para", "por", "según", "sin", "sobre", "tras",
+        "y", "e", "o", "u", "que", "como", "más", "mas", "menos",
+        // Determinantes: "pagar en una semana el alquiler" sí es plazo.
+        "el", "la", "los", "las", "mi", "mis", "tu", "tus", "su", "sus",
+        // Adverbios de aproximación al plazo: "en una semana máximo/exactamente".
+        "aprox", "aproximadamente", "exactamente", "justo",
+        "máximo", "maximo", "mínimo", "minimo"
+    )
+
+    private fun articleRelativeHijacksContent(match: MatchResult, text: String): Boolean {
+        if (match.groupValues[1].lowercase() !in relativeArticleQuantifiers) return false
+        val rest = text.substring(match.range.last + 1).trimStart()
+        if (rest.isEmpty() || !rest.first().isLetter()) return false
+        val nextWord = rest.takeWhile { it.isLetter() }.lowercase()
+        return nextWord !in relativeSafeFollowers
+    }
+
+    /**
      * Idioma "de hoy en ocho/quince/N (días)" SIN unidad explícita: coloquialismo
      * cotidiano (España y LatAm) para "+N días". Antes NO casaba ningún patrón
      * relativo (no hay unidad), el keyword "hoy" agendaba la tarea PARA HOY y el
@@ -3426,7 +3460,11 @@ object NaturalTaskParser {
         deHoyEnIdiomMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
-        val relativeMatch = relativePattern.find(working)
+        // Guard c.849: con artículo indefinido se descarta el candidato cuya unidad
+        // va seguida de una palabra de contenido (frase nominal: "en una semana
+        // difícil"); se toma el primer candidato que NO secuestra contenido.
+        val relativeMatch = relativePattern.findAll(working)
+            .firstOrNull { !articleRelativeHijacksContent(it, working) }
         val relativeDueAt = relativeMatch?.let { match ->
             // La cantidad admite parte decimal ("en 1.5 horas"/"en 2,5 días", forma
             // habitual con coma decimal en español). Antes el patrón solo aceptaba

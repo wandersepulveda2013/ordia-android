@@ -3895,6 +3895,75 @@ class NaturalTaskParserTest {
         assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
     }
 
+    // ── Guard "en una <unidad> <adjetivo>" (c.849) ──
+    // Con artículo indefinido, "en una semana difícil" es una frase nominal
+    // descriptiva ("durante una semana difícil"), no un ancla temporal. Antes
+    // relativePattern robaba "en una semana" (+7d) y el adjetivo quedaba como
+    // TÍTULO ("difícil"): tarea inventada, agendada y con el contenido real
+    // destruido (P1: captura corrompida). El ancla con artículo debe exigir fin
+    // de frase, puntuación o conector/determinante tras la unidad; si sigue una
+    // palabra de contenido, no se fecha. Con dígitos NO aplica ("en 3 días
+    // hábiles" sí es un plazo).
+
+    @Test fun enUnaSemanaDificilNoFabricaFechaNiDestruyeContenido() {
+        val result = NaturalTaskParser.parse("en una semana difícil", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("en una semana difícil", result.title)
+    }
+
+    @Test fun estoyEnUnaSemanaDificilNoFabricaFecha() {
+        val result = NaturalTaskParser.parse("estoy en una semana difícil", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("estoy en una semana difícil", result.title)
+    }
+
+    @Test fun dentroDeUnaSemanaDificilNoFabricaFecha() {
+        val result = NaturalTaskParser.parse("dentro de una semana difícil", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("dentro de una semana difícil", result.title)
+    }
+
+    @Test fun enUnaSemanaMuyOcupadaNoFabricaFecha() {
+        val result = NaturalTaskParser.parse("en una semana muy ocupada", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("en una semana muy ocupada", result.title)
+    }
+
+    @Test fun enUnosDiasDificilesNoFabricaFecha() {
+        val result = NaturalTaskParser.parse("en unos días difíciles", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("en unos días difíciles", result.title)
+    }
+
+    // Guardas: la familia legítima sigue fechando.
+
+    @Test fun reunionEnUnaSemanaSigueFechando() {
+        val result = NaturalTaskParser.parse("reunión en una semana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(now + 7 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enUnaSemanaYMediaSigueFechando() {
+        val result = NaturalTaskParser.parse("entregar en una semana y media", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(now + 7 * 24 * 60 * 60_000L + 7 * 24 * 60 * 60_000L / 2, result.dueAt)
+    }
+
+    @Test fun enUnaSemanaConConectorSigueFechando() {
+        val result = NaturalTaskParser.parse("llamar en una semana con Ana", now, zone)
+        assertEquals(now + 7 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enUnaSemanaConDeterminanteSigueFechando() {
+        val result = NaturalTaskParser.parse("pagar en una semana el alquiler", now, zone)
+        assertEquals(now + 7 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enDiasHabilesConDigitoSigueFechando() {
+        val result = NaturalTaskParser.parse("entregar en 3 días hábiles", now, zone)
+        assertEquals(now + 3 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
     // ── Regresión: meridiem sin tilde ("12 de la manana" = 00:00, no 12:00) ──
     // Antes "12 de la manana" se agendaba a 12:00 (mediodía) mientras "12 de la
     // mañana" caía a 00:00 (madrugada) por una asimetría en la comparación del
