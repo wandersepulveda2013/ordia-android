@@ -72,6 +72,66 @@ class NaturalTaskParserTipoBareTest {
         assertEquals(LocalTime.of(8, 0), hora(r))
     }
 
+    // --- c.870: fracciones "N y media/cuarto/..." entre hora y parte del día ---
+
+    @Test fun tipoFraccionYMediaTardeCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("salir tipo 5 y media de la tarde", now, zone)
+        assertNotNull("tipo 5 y media de la tarde debe anclar hora", r.dueAt)
+        assertEquals("salir", r.title.trim())
+        assertEquals(LocalTime.of(17, 30), hora(r))
+    }
+
+    @Test fun tipoFraccionYCuartoTardeCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("salir tipo 5 y cuarto de la tarde", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("salir", r.title.trim())
+        assertEquals(LocalTime.of(17, 15), hora(r))
+    }
+
+    @Test fun tipoFraccionYMediaMananaCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("cita tipo 10 y media de la mañana", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("cita", r.title.trim())
+        assertEquals(LocalTime.of(10, 30), hora(r))
+    }
+
+    @Test fun tipoFraccionYMediaNocheCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("cena tipo 9 y media de la noche", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("cena", r.title.trim())
+        assertEquals(LocalTime.of(21, 30), hora(r))
+    }
+
+    @Test fun tipoFraccionHoraEscritaCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("salir tipo cinco y media de la tarde", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("salir", r.title.trim())
+        assertEquals(LocalTime.of(17, 30), hora(r))
+    }
+
+    @Test fun tipoFraccionMinutosEscritosCapturaYLimpiaTitulo() {
+        val r = NaturalTaskParser.parse("salir tipo 5 y veinte de la tarde", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("salir", r.title.trim())
+        assertEquals(LocalTime.of(17, 20), hora(r))
+    }
+
+    @Test fun tipoFraccionSinParteDelDiaNoSeToca() {
+        // "tipo 2 y media" sin evidencia posterior: el reloj autónomo NO resuelve la
+        // fracción desnuda, así que "tipo" no se consume (título íntegro, dueAt=null).
+        val r = NaturalTaskParser.parse("comida tipo 2 y media", now, zone)
+        assertNull(r.dueAt)
+        assertEquals("comida tipo 2 y media", r.title.trim())
+    }
+
+    @Test fun tipoFraccionMeridiemNoSeToca() {
+        // "tipo 3 y cuarto pm": fracción+meridiem no la resuelve el reloj autónomo;
+        // consumir "tipo" mutilaría el título sin agendar. No se toca.
+        val r = NaturalTaskParser.parse("cita tipo 3 y cuarto pm", now, zone)
+        assertNull(r.dueAt)
+        assertEquals("cita tipo 3 y cuarto pm", r.title.trim())
+    }
+
     // --- guards: usos de categoría / ambiguos NO se tocan ---
 
     @Test fun tipoCategoriaSinEvidenciaNoSeToca() {

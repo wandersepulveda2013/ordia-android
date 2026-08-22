@@ -2037,8 +2037,14 @@ object NaturalTaskParser {
      * tipo estrategia", "documento tipo 8 personas", "mesa tipo 8 de comedor") NO se
      * tocan (sin evidencia el lookahead no casa).
      */
+    // c.870: la fracción "y media/cuarto/veinte/..." puede intercalarse entre la hora y
+    // la parte del día ("tipo 5 y media de la tarde", "tipo cinco y media de la tarde"):
+    // el reloj autónomo resuelve esa forma, así que el puente `(?:\s+$CLOCK_FRACTION_Y)?`
+    // la admite SOLO como tránsito hacia la parte del día. Fracción sin parte del día
+    // ("tipo 2 y media") o con meridiem ("tipo 3 y cuarto pm") no las resuelve el reloj
+    // autónomo: consumir "tipo" mutilaría el título sin agendar → quedan fuera.
     private val bareTipoTimePattern =
-        Regex("""(?i)\btipo\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs|h)\b))""")
+        Regex("""(?i)\btipo\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)|(?:\s+$CLOCK_FRACTION_Y)?\s*(?:de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs|h)\b))""")
 
     /**
      * Introductor de hora directo "para las/la", alternativa a "a las/la" ("reunión para
