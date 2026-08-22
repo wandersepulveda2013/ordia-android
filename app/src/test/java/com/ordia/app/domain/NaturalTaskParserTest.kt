@@ -3842,6 +3842,59 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // ── "después de mañana" ≡ "pasado mañana" (c.846) ──
+    // Forma coloquial extendidísima de "pasado mañana" (el día después de mañana).
+    // Antes la "mañana" interna casaba con mananaAsDate → fecha +1 (la tarea se
+    // agendaba un día ANTES de lo pedido: fecha errónea silenciosa, P1). Debe
+    // comportarse exactamente como "pasado mañana": fecha +2, hora canónica,
+    // título limpio, con y sin tildes, compacta con parte del día.
+
+    @Test fun despuesDeMananaEsPasadoMananaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Entregar el informe después de mañana", now, zone)
+        assertEquals("Entregar el informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeMananaSinTildeEsPasadoMananaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita despues de manana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeMananaTardeEsPasadoManana15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita después de mañana tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeMananaNocheEsPasadoManana21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Vuelo después de mañana noche", now, zone)
+        assertEquals("Vuelo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeMananaConHoraExplicitaEsPasadoMananaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a Ana después de mañana a las 8", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Guardas: el prefijo "después de" no invade las formas existentes.
+
+    @Test fun despuesDeLaReunionSigueSinFecha() {
+        val result = NaturalTaskParser.parse("llamar después de la reunión", now, zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun despuesAdverbioSoloSigueMasTresHoras() {
+        val result = NaturalTaskParser.parse("llamar después", now, zone)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
     // ── Regresión: meridiem sin tilde ("12 de la manana" = 00:00, no 12:00) ──
     // Antes "12 de la manana" se agendaba a 12:00 (mediodía) mientras "12 de la
     // mañana" caía a 00:00 (madrugada) por una asimetría en la comparación del
@@ -13141,10 +13194,13 @@ class NaturalTaskParserTest {
     }
 
     @Test fun despuesDeMananaLimpiaTituloSinDejarDespues() {
-        // "después de mañana" → 2026-07-30.
+        // c.846: "después de mañana" ≡ "pasado mañana" (forma coloquial fija del día
+        // después de mañana) → 2026-07-31. Antes resolvía a 2026-07-30 por la "mañana"
+        // interna (fecha errónea, un día antes de lo pedido). La limpieza del título
+        // ("cobrar", sin "después" huérfano) se mantiene como en c.548.
         val result = NaturalTaskParser.parse("cobrar después de mañana", now, zone)
         assertEquals("cobrar", result.title)
-        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun despuesDel15LimpiaTituloSinDejarDespues() {

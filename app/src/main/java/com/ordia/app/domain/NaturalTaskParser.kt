@@ -2407,7 +2407,10 @@ object NaturalTaskParser {
      * la resuelve el `when` de fecha existente ("hoy"→hoy, "mañana"→+1, etc.).
      */
     private val compactDayPartOfDayPattern =
-        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|ma[nñ]ana|hoy|anteayer|antier|ayer)\s+(tarde|noche|madrugada)\b""")
+        // "después de mañana" (≡ "pasado mañana", c.846) va ANTES que "mañana"
+        // suelto: si no, la forma compacta "después de mañana tarde" casaba sólo
+        // "mañana tarde" y dejaba "después" como residuo huérfano en el título.
+        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|despu[eé]s\s+de\s+ma[nñ]ana|ma[nñ]ana|hoy|anteayer|antier|ayer)\s+(tarde|noche|madrugada)\b""")
     private val compactDayPartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -4494,6 +4497,12 @@ object NaturalTaskParser {
             // como residuo en el título (P1: cita 2 días antes y título corrupto).
             Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
             Regex("""(?i)\bpasado\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+            // "después de mañana" ≡ "pasado mañana" (el día después de mañana, +2):
+            // forma coloquial extendidísima. Antes la "mañana" interna casaba con
+            // mananaAsDate → +1 día (P1: tarea agendada un día ANTES de lo pedido,
+            // fecha errónea silenciosa). Debe ir ANTES que "mañana" suelto, igual
+            // que "antepasado mañana"/"pasado mañana".
+            Regex("""(?i)\bdespu[eé]s\s+de\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             // "mañana" como fecha (el día de mañana) sólo si NO forma parte de un
             // marcador de parte del día ("de la mañana", "por la mañana", "a la
             // mañana"). Antes, "Reunión a las 9 de la mañana" se fechaba en MAÑANA
@@ -5306,6 +5315,13 @@ object NaturalTaskParser {
             // "en adelante" en el título (P3, follow-up de c.667). Se consume la frase
             // íntegra antes del borrado genérico de abajo.
             .replace(Regex("""(?i)\bde\s+hoy\s+en\s+adelante\b"""), " ")
+            // c.846 — "después de mañana" ≡ "pasado mañana" (fecha +2 resuelta en el
+            // `when` de fecha): se consume la frase ÍNTEGRA antes del borrado genérico
+            // de abajo. Si no, el genérico consume sólo "de mañana" y deja "después"
+            // huérfano al final: el recorte de conector final (c.548) sólo conoce
+            // "después" CON tilde, así "Cita despues de manana" quedaba "Cita despues"
+            // (título degradado, P1 captura). Con tilde ya salía limpio vía c.548.
+            .replace(Regex("""(?i)\bdespu[eé]s\s+de\s+ma[nñ]ana\b"""), " ")
             // Calificador "de/del/desde + día relativo" ("reunión de mañana", "tarea de hoy",
             // "cita de ayer", "llamada de pasado mañana", "trabajo desde hoy", "estudio desde
             // mañana"): la preposición "de"/"del"/"desde" antes de un marcador de día relativo
