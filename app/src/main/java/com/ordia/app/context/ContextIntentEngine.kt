@@ -1522,10 +1522,23 @@ object ContextIntentEngine {
             // «móvil» es LA forma de España, hermana de «cole» c.850 y
             // de «una lavadora» c.848; `[oó]` admite la grafía sin
             // tilde, hermana `tensi[oó]n` c.772). Lockstep keyword-
-            // OBJETO "móvil" (lección c.751). Acotado deliberado (una
-            // forma por ciclo): «cargar el coche» (bivalente real:
-            // equipaje del viaje vs carga del VE) queda FUERA.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:celular|m[oó]vil)(?:es)?\b""").containsMatchIn(lower)
+            // OBJETO "móvil" (lección c.751).
+            // c.853: el objeto admite «coche» (candidata de la sonda
+            // persistida c.845, acotada en c.851 pendiente de deliberación
+            // de la bivalencia). DELIBERACIÓN: «cargar el coche» es
+            // bivalente REAL (equipaje del viaje vs carga del VE) pero
+            // AMBAS lecturas son deberes genuinos del usuario y el título
+            // preserva sus palabras exactas sin desambiguar — no hay
+            // corrupción de datos ni agenda inventada; el error benigno es
+            // capturar un deber real, el maligno era el olvido silencioso.
+            // Lockstep keyword-OBJETO "coche" (lección c.751; la subcadena
+            // de «cochera»/«cochecito» suma 0.12 inerte < umbral, mismo
+            // argumento que «automóvil» c.851). Siguen FUERA los objetos
+            // cuya segunda lectura NO es un deber personal: «la tarjeta»
+            // (recarga/pago), «el archivo» (acción informática). Acotado
+            // deliberado (una forma por ciclo): «cargar el carro»
+            // (diagonal dialectal LatAm) queda como candidata propia.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b""").containsMatchIn(lower)
             // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
             // c.750, candidato cívico "votar"): "votar <complemento/día>".
             // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
@@ -2665,7 +2678,10 @@ object ContextIntentEngine {
                 // c.851: el objeto admite la diagonal dialectal `m[oó]vil`
                 // (lockstep con el piso, lección c.717; título preserva la
                 // grafía del usuario: "Cargar el móvil" / "Cargar el movil").
-                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:celular|m[oó]vil)(?:es)?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // c.853: el objeto admite «coche» (lockstep con el piso;
+                // bivalencia deliberada — el título preserva las palabras
+                // del usuario: "Cargar el coche antes del viaje").
+                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
                 // c.752: misma plantilla para "votar" (ancla/guard idénticos
                 // al piso; verbo unívoco, complemento libre).

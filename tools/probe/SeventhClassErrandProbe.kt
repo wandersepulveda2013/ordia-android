@@ -56,8 +56,18 @@ import com.ordia.app.context.ContextIntentEngine
  * dialectal «móvil» del piso «cargar el celular» c.751 → TASK 0.45,
  * «Cargar el móvil», dueAt; NULLs 16→15) — el caso queda abajo como
  * regresión de la diagonal c.851; «cargar el coche» (bivalente real:
- * equipaje del viaje vs carga del VE) sigue NULL como candidata propia
- * (una forma por ciclo).
+ * equipaje del viaje vs carga del VE) — RESUELTO en c.853 (bloque
+ * siguiente; NULLs 15→14).
+ * REGRESIÓN c.853: «cargar el coche antes del viaje» ya captura
+ * (objeto «coche» del piso «cargar el celular» c.751, junto a la
+ * diagonal «móvil» c.851 → TASK 0.45, «Cargar el coche antes del
+ * viaje», dueAt). Bivalente real (equipaje vs VE): ambas lecturas
+ * son compromisos TASK; no hace falta desambiguar (título fiel).
+ * El verbo «cargar» NO se registra como keyword (bivalente y
+ * subcadena de «descargar» c.725); el piso basta. Hallazgo TDD: el
+ * plural de «coche» es «coches» (coche+s), no «coche+es» — el test
+ * `captura plural coches` lo detectó y el grupo del objeto quedó
+ * `(?:(?:celular|m[oó]vil)(?:es)?|coches?)`.
  * REGRESIÓN c.852: «llevar a los niños al parque» ya captura (destino
  * de ocio familiar «parque» del piso c.773 — levantamiento deliberado
  * de la restricción educativa → ERRAND, «Llevar a los niños al
@@ -92,7 +102,8 @@ fun main() {
         "poner una lavadora esta tarde",
         // --- CAPTURAS: reflexivo «apuntarse» ---
         "apuntarse al gimnasio mañana",
-        // --- CAPTURAS: «cargar» dispositivos ---
+        // --- REGRESIONES c.851/c.853: «cargar» dispositivos (eran NULL
+        // en c.845; HIT TASK 0.45 con título fiel y dueAt) ---
         "cargar el móvil esta noche",
         "cargar el coche antes del viaje",
         // --- REGRESIONES: deben reportar HIT ---

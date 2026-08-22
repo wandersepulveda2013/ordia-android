@@ -49,6 +49,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // umbral (mismo argumento que "extensión"/"pretensión" c.772):
         // "el automóvil está sucio" sigue descartado.
         "móvil",
+        // c.853: keyword-OBJETO "coche" (lockstep con la extensión del piso
+        // "cargar el celular/móvil", lección c.751). La subcadena de
+        // "cochera"/"cochecito" suma 0.12 inerte < umbral (mismo argumento
+        // que "automóvil" c.851): "la cochera está cerrada" sigue
+        // descartado.
+        "coche",
         // c.752: keyword-verbo "votar" (lockstep con el piso; verbo
         // unívoco, ningún objeto bivalente queda abierto).
         "votar",

@@ -19,9 +19,12 @@ import org.junit.Test
  * ella la notificación sin palabra gatillo ni llega al análisis en
  * producción; la subcadena de «automóvil» suma 0.12 inerte < umbral,
  * mismo argumento que «extensión»/«pretensión» c.772).
- * Acotado deliberado (una forma por ciclo): «cargar el coche» (objeto
- * bivalente real: equipaje del viaje vs carga del VE — requiere
- * deliberación propia) queda FUERA como candidata propia.
+ * Acotado deliberado c.851 (una forma por ciclo): «cargar el coche»
+ * (objeto bivalente real: equipaje del viaje vs carga del VE — requiere
+ * deliberación propia) quedó FUERA como candidata propia — RESUELTO en
+ * c.853 (la deliberación concluyó que ambas lecturas son deberes genuinos
+ * y el título preserva las palabras del usuario; el guard de exclusión se
+ * reescribió como regresión cruzada de captura, precedente c.852).
  */
 class ContextIntentEngineCargarMovilFloorTest {
 
@@ -120,14 +123,19 @@ class ContextIntentEngineCargarMovilFloorTest {
     }
 
     @Test
-    fun `coche bivalente queda fuera`() {
-        // Acotado deliberado c.851: «cargar el coche» es bivalente real
-        // (meter el equipaje del viaje vs cargar el vehículo eléctrico) —
-        // candidata propia, una forma por ciclo.
+    fun `regresión cruzada c853 coche captura`() {
+        // Regresión cruzada c.853 (reescritura del guard de exclusión
+        // deliberada c.851 — la restricción se levantó deliberadamente en
+        // c.853 tras la deliberación de la bivalencia: ambas lecturas,
+        // equipaje del viaje y carga del VE, son deberes genuinos y el
+        // título preserva las palabras del usuario; ni eliminado ni
+        // degradado, precedente c.852).
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "cargar el coche antes del viaje", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Cargar el coche antes del viaje", intent.title)
     }
 
     @Test
