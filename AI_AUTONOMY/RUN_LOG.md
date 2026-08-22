@@ -17252,4 +17252,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Hallazgo lateral (BACKLOG)**: «en una semana difícil» secuestra contenido (dueAt +7d, título 'difícil') — candidata para ciclo futuro.
 - **Próxima prioridad**: candidata lateral «en una <unidad> <adjetivo>» (UNA por ciclo) o candidatas hermano c.845; re-fetch OBLIGATORIO (SEIS colisiones previas).
-- **Commits**: pendiente de registrar. **HEAD final**: pendiente docs-commit.
+- **Commits**: `215640e` (fix + tests + sonda + docs c.846). **HEAD final**: `215640e` (+ registro docs).
