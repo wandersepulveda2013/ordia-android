@@ -6,7 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Piso c.884 — «reclamar una factura»: lateral medida NULL en la sonda
+ * Piso c.886 — «reclamar una factura»: lateral medida NULL en la sonda
  * c.865 que quedó como candidata propia (asimetría de artículo
  * indefinido, hermana de c.848 «una lavadora» y de la c.880 «una
  * carta»). La gestión financiera más cotidiana («tengo que reclamar una

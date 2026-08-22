@@ -16,10 +16,11 @@ import org.junit.Test
  *
  * El piso vive en [ContextIntentEngine.hasStrongTaskImperative] y exige:
  * ancla de inicio/acuse/prefijo temporal, guard anti-negación `(?<!no )`
- * y objeto acotado a «dni» con determinante opcional (el/la/los/las/mi/tu/su).
- * El objeto desnudo «escanear X» queda FUERA: «escanear el contrato»/
- * «las notas»/«el código QR» medidos NULL (laterales registradas como
- * candidatas propias, doctrina anti-overreach: una forma por ciclo).
+ * y objeto ACOTADO con determinante opcional (el/la/los/las/mi/tu/su):
+ * «dni» desde c.864; «contrato(s)», «notas» (escritas) y «código QR»
+ * desde c.884 (laterales medidas NULL en su sonda PRE). El resto de
+ * objetos desnudos sigue FUERA (doctrina anti-overreach: extensiones
+ * acotadas, medidas NULL ciclo a ciclo).
  * Las formas compuestas («escanear el DNI y enviarlo al banco…»,
  * «escanear el DNI por las dos caras…») capturan con el piso: el match
  * arranca en el verbo y el título conserva el resto de la frase (son la
@@ -119,14 +120,34 @@ class ContextIntentEngineEscanearDniFloorTest {
     }
 
     @Test
-    fun `laterales con otro objeto permanecen NULL - candidatas propias`() {
-        // Doctrina anti-overreach: una forma por ciclo. El piso está acotado
-        // al objeto «dni»; estos objetos se miden NULL y quedan registrados
-        // en EighthClassAdminProbe como candidatas laterales.
-        assertNull(analyze("escanear el contrato mañana"))
-        assertNull(analyze("escanear las notas esta tarde"))
-        assertNull(analyze("escanear el código QR mañana"))
-        assertNull("verbo distinto", analyze("fotocopiar el DNI mañana"))
+    fun `extension c884 - contrato notas y codigo QR capturan TASK`() {
+        // c.884: extensiones medidas NULL en la sonda PRE (/tmp/probe883/).
+        // Contratos (gestión) y notas (escritas) y código QR convergen con
+        // la envolvente c.613 en TASK.
+        val r1 = analyze("escanear el contrato mañana")
+        assertNotNull(r1)
+        assertEquals(ContextIntentKind.TASK, r1!!.kind)
+        assertEquals("Escanear el contrato", r1.title)
+        assertNotNull(r1.dueAt)
+
+        val r2 = analyze("escanear las notas esta tarde")
+        assertNotNull(r2)
+        assertEquals(ContextIntentKind.TASK, r2!!.kind)
+        assertEquals("Escanear las notas", r2.title)
+
+        val r3 = analyze("escanear el código QR mañana")
+        assertNotNull(r3)
+        assertEquals(ContextIntentKind.TASK, r3!!.kind)
+        assertEquals("Escanear el código QR", r3.title)
+
+        val r4 = analyze("escanear el contrato y enviarlo mañana")
+        assertNotNull(r4)
+        assertEquals(ContextIntentKind.TASK, r4!!.kind)
+        assertEquals("Escanear el contrato y enviarlo", r4.title)
+        assertNotNull(r4.dueAt)
+
+        assertNull("verbo distinto (lateral candidata)",
+            analyze("fotocopiar el DNI mañana"))
     }
 
     @Test

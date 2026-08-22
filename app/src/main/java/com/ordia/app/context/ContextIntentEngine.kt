@@ -1872,32 +1872,34 @@ object ContextIntentEngine {
             // y «hacer la renta este mes» (elipsis del objeto) quedan
             // FUERA como candidatas propias.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b""").containsMatchIn(lower)
-            // c.864: piso acotado «escanear el DNI» — sexto gap medido
-            // NULL en c.857 por tools/probe/EighthClassAdminProbe.kt
-            // (octava clase: gestiones de la vida adulta — gestión
-            // documental). Sin piso se DESCARTABA: «escanear» no era
-            // keyword ni verbo de piso (0.0). Consecuencia real: no
-            // digitalizar el DNI a tiempo para el trámite que lo exige
-            // (banco, notaría, ayuntamiento). Ancla/guard idénticos a
-            // c.698/c.860/c.863; objeto acotado a «dni» con determinante
-            // opcional: «escanear el contrato…»/«las notas…»/«el código
-            // QR…» medidos NULL (laterales, candidatas propias — doctrina
-            // anti-overreach: una forma por ciclo); las compuestas
-            // «escanear el DNI y enviarlo al banco…»/«por las dos
-            // caras…» capturan (misma gestión, no bivalencia). Negación
-            // sin cláusula en [imperativeIsNegated]: keyword «escanear»
-            // 0.12 + bono temporal 0.1 = 0.22 < umbral (aritmética
-            // c.859/c.860/c.862/c.863) y el piso lleva (?<!no ). El
-            // prefijo re- («reescanear») queda excluido por el ancla
-            // (lookahead directo tras «escanear»; lateral candidata).
-            // Lockstep keyword-VERBO «escanear» en [ContextIntentKind.TASK]
-            // (lección c.751; verbo monosemántico, precedente c.752
-            // «votar») + plantilla de título. Kind TASK (no ERRAND):
-            // acción única completable sin desplazamiento; precedente
-            // c.698 «renovar el DNI» (gestión documental TASK) y
+            // c.864: piso acotado «escanear <objeto documental>» —
+            // sexto gap medido NULL en c.857 por
+            // tools/probe/EighthClassAdminProbe.kt (octava clase:
+            // gestiones de la vida adulta — gestión documental). Sin
+            // piso se DESCARTABA: «escanear» no era keyword ni verbo de
+            // piso (0.0). Consecuencia real: no digitalizar el
+            // documento a tiempo para el trámite que lo exige (banco,
+            // notaría, ayuntamiento). Ancla/guard idénticos a c.698/
+            // c.860/c.863; objeto ACOTADO (dni/contrato/notas/código
+            // QR — extensiones medidas NULL en la sonda PRE de cada
+            // ciclo): «contrato(s)» desde c.884 (lateral c.864), DRIs
+            // de gestión y bancarios; «notas» (notas escritas, no
+            // calificaciones — la guard «las notas que saqué en clase»
+            // queda fuera por ancla); «código QR». Las compuestas
+            // («escanear el contrato y enviarlo mañana») capturan:
+            // misma gestión, no bivalencia. Negación sin cláusula en
+            // [imperativeIsNegated]: keyword «escanear» 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral (aritmética c.859/c.860/
+            // c.862/c.863) y el piso lleva (?<!no ). El prefijo re-
+            // («reescanear») queda excluido por el ancla (lateral
+            // candidata). Lockstep keyword-VERBO «escanear» en
+            // [ContextIntentKind.TASK] (lección c.751; verbo
+            // monosemántico, precedente c.752 «votar») + plantilla de
+            // título. Kind TASK (no ERRAND): acción única completable
+            // sin desplazamiento; precedente c.698 «renovar el DNI» y
             // convergencia con la envolvente «recuérdame escanear el
-            // DNI…» (c.613, TASK).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b""").containsMatchIn(lower)
+            // contrato…» (c.613, TASK).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -1931,7 +1933,7 @@ object ContextIntentEngine {
             // temporal 0.1 = 0.22 < umbral (aritmética c.859…c.864).
             // Acotado deliberado (una forma por ciclo): «reclamar una
             // factura…» (indefinido, medida NULL) queda FUERA como
-            // candidata propia. c.884: alternancia un|una admitida
+            // candidata propia. c.885: alternancia un|una admitida
             // (asimetría de artículo indefinido, hermana c.848/c.880);
             // bivalentes «un premio/un turno» fuera — ancla facturas?.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reclamar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b""").containsMatchIn(lower)
@@ -3218,18 +3220,16 @@ object ContextIntentEngine {
                 // sin tilde queda tal cual.
                 val matchDeclaracionRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDeclaracionRenta != null) return "Hacer ${matchDeclaracionRenta.groupValues[2]}"
-                // c.864: plantilla «escanear el DNI» (ancla/guard
-                // idénticos al piso; lección c.616: el match arranca en
-                // el verbo, así acuse/prefijo temporal se despojan; el
+                // c.864/c.885: plantilla «escanear el documento» (ancla/
+                // guard idénticos al piso; lección c.616: el match arranca
+                // en el verbo, así acuse/prefijo temporal se despojan; el
                 // residuo temporal de cola lo depura [sanitizeTitle]; el
                 // resto de la frase —«y enviarlo al banco», «por las dos
                 // caras»— se conserva: es la misma gestión, no un objeto
-                // bivalente; los bivalentes «escanear el contrato…»/
-                // «las notas…» nunca llegan aquí porque el piso no los
-                // captura). La grafía del usuario se preserva (doctrina
-                // c.653).
-                val matchEscanearDni = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b.*)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchEscanearDni != null) return "Escanear ${matchEscanearDni.groupValues[2]}"
+                // bivalente). Objeto ACOTADO (dni/contrato/notas/código
+                // QR). La grafía del usuario se preserva (doctrina c.653).
+                val matchEscanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEscanearDoc != null) return "Escanear ${matchEscanearDoc.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el
@@ -3238,7 +3238,7 @@ object ContextIntentEngine {
                 // identifica el emisor, misma gestión; los bivalentes
                 // «reclamar el premio…»/«al banco…» nunca llegan aquí
                 // porque el piso no los captura). La grafía del usuario
-                // se preserva (doctrina c.653). c.884: un|una admitidas
+                // se preserva (doctrina c.653). c.885: un|una admitidas
                 // (misma alternancia que el piso).
                 val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReclamarFactura != null) return "Reclamar ${matchReclamarFactura.groupValues[2]}"

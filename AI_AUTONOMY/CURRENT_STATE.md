@@ -1,6 +1,6 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
-## Ciclo c.884 (2026-08-22) — feat(context): artículo indefinido «reclamar una factura» (lateral medida c.865)
+## Ciclo c.886 (2026-08-22) — feat(context): artículo indefinido «reclamar una factura» (lateral medida c.865)
 
 - Área: context (ContextIntentEngine piso + extractTitle; CERO cambios en ContextIntent.kt).
 - Latente: la ruta c.865 «reclamar la factura» (definido/posesivo) dejó como lateral NULL medida la forma INDEFINIDA «reclamar una factura» — el determinante opcional del piso excluía `un|una` (lección de asimetría c.848 «una lavadora» / c.880 «una carta»). Consecuencia real: «tengo que reclamar una factura del banco» — gestión financiera cotidiana — se descartaba en silencio; cobro indebido no reclamado (P1, evitar olvidos).
@@ -26,6 +26,19 @@
 - Sonda POST re-ejecutada (`tools/run_probe.sh`): las 2 perífrasis HIT TASK 0.45 «Me mido la presión/tensión» dueAt; laterales restantes NULL intactas; controles HIT.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - Próxima prioridad: laterales restantes («hacerme la prueba de sonido» decisión de dominio, «reclamar una factura» indefinido, «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI», singular indefinido residuales P2); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
+## Ciclo c.884 (2026-08-22) — feat(context): extensión acotada del piso c.864 «escanear <documento>» con contrato/notas/código QR (laterales medidas c.864)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt — keyword-VERBO «escanear» ya existía desde c.864).
+- Latente: c.864 cerró «escanear el DNI» pero dejó medidas NULL las laterales «escanear el contrato/las notas/el código QR» (gestiones de la vida adulta reales y frecuentes: contrato, notas escritas —no calificaciones—, QR). Consecuencia real: digitalizar un documento a tiempo para el trámite que lo exige olvidado por el capturador (P1, evitar olvidos).
+- Sonda PRE efímera `/tmp/probe883/ProbeScanObjects.kt`: 4/4 candidatas NULL (contrato, notas, código QR, compuesta contrato+enviarlo), 2/2 guards NULL (negada «no escanear…», narrativa «escaneé…»), 2/2 regresiones HIT (envolvente c.613 TASK 0.54 + regresión «escanear el DNI» TASK 0.45).
+- Fix mínimo (lockstep DOS puntos, lección c.615/c.616 — el piso c.864 ya tenía keyword; se extiende SOLO la alternación del objeto en piso+plantilla): `(?:dni|contratos?|notas?|c[óo]digo\s+qr)`. «notas» = notas escritas (bivalencia de calificaciones descartada: con «escanear» la lectura dominante es documental; la guard «las notas que saqué en clase» sin verbo queda NULL igualmente); «código QR» con tilde/sin tilde tolerada.
+- Test `ContextIntentEngineEscanearDniFloorTest` extendido: el test «laterales NULL» reemplazado por «extension c883 capturan TASK» (intencionalidad conservada, no verde artificial); guards comprimidas.
+- Anti-colisión: el hermano publicó c.883 («me mido la presión», 456e7ff) durante mi suite; re-numerado a c.884 (precedente c.555→c.557), merge no destructivo.
+- Suite: OK (5799) pre-merge; post-merge con c.883 hermano OK (5825) vía tools/run_domain_tests.sh; smoke 25/25 en run_domain_checks.sh; AutomationEngine smoke 9/9. Cero mojibake (edición utf-8 vía python).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: laterales restantes («reclamar una factura», «fotocopiar/reescanear el DNI», «prueba de sonido» decisión de dominio); auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO (anti-colisión ejercida: «me mido la presión/tensión» resuelta por el hermano c.883 en 456e7ff).
+
 
 ## Ciclo c.882 (2026-08-22) — feat(context): objeto «prueba de embarazo» en la familia «hacerse» (lateral medida c.876)
 
