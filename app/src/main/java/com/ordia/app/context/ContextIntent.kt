@@ -110,7 +110,9 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "especialista", "consulta", "revisión", "chequeo", "terapia",
         "psicólogo", "nutricionista")),
     MEETING("Reunión", listOf("reunión con", "reunión de", "junta", "encuentro",
-        "quedar con", "vernos", "nos vemos", "quedamos")),
+        "quedar con", "vernos", "nos vemos", "quedamos",
+        // c.847: lockstep del piso «quedar con|para» (lección c.751).
+        "quedamos con", "quedar para")),
     STUDY("Estudio", listOf("estudiar", "estudio", "examen", "prueba", "curso",
         "tarea escolar", "lección", "práctica", "ejercicio",
         "repasar", "preparar examen")),

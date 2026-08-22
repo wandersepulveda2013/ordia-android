@@ -41,6 +41,9 @@ import com.ordia.app.context.ContextIntentEngine
  *   biblioteca/llaves, lavadora/lavavajillas, perro, luz, DNI, médico).
  *   CONTROLES — 10 NULLs correctos (negación, duda, pasado, aislado,
  *   figurado «quedar bien»/«quedar pendiente», imperativo «quédate»).
+ * REGRESIÓN c.847: la familia «quedar con/para» ya captura (piso nuevo
+ * c.847 → MEETING 0.45/0.54, título con el verbo del usuario, dueAt) —
+ * los 4 casos quedan abajo como casos de regresión del piso c.847.
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -48,7 +51,8 @@ import com.ordia.app.context.ContextIntentEngine
 fun main() {
     val now = 1723939200000L
     val cases = listOf(
-        // --- CAPTURAS: «quedar con/para» (familia entera NULL en c.845) ---
+        // --- REGRESIONES c.847: «quedar con/para» (eran NULL en c.845;
+        // piso c.847 → HIT MEETING 0.45/0.54 con título y dueAt) ---
         "quedar con Ana el viernes",
         "quedar con el dentista el lunes",
         "quedar para cenar el sábado",

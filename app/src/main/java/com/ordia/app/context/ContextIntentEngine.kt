@@ -122,6 +122,24 @@ object ContextIntentEngine {
     // activa el piso).
     private val MEETING_FLOOR =
         Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""")
+    // c.847: piso de plan social «quedar con|para <persona/plan>» (candidata
+    // 1/6 de la clase SÉPTIMA de formas cotidianas, sonda persistida
+    // `tools/probe/SeventhClassErrandProbe.kt` c.845; NULL PRE verificado por
+    // la propia sonda: las 4 formas «quedar con Ana el viernes», «quedar con
+    // el dentista el lunes», «quedar para cenar el sábado» y «quedamos con
+    // Ana el viernes» daban NULL — keyword 0.12 + bono específico 0.2 +
+    // fecha 0.1 = 0.42 < 0.45, asimetría de ruta hermana de c.616…c.842).
+    // Olvido silencioso P1: «quedar con X» es EL plan social canónico en
+    // español. «quedar» es polivalente (acuerdo «quedar pendiente»,
+    // figurado «quedar bien», dativo «quédate con», pasado «quedé»), así el
+    // piso se ACOTA a infinitivo «quedar» + presente pactado «quedamos»
+    // seguidos de con/para + objeto (criterio c.684/c.731). Acotado
+    // deliberado (una forma por ciclo): pasado «quedamos con X ayer» (su
+    // dueAt pasado hereda el patrón del piso hermano «reunión con el equipo
+    // ayer» — candidata), dativo «quedarle», locativo «quedar en» y
+    // envolvente de obligación «tengo que quedar…» quedan FUERA.
+    private val MEETING_QUEDAR_FLOOR =
+        Regex("""\b(?<!no )(?:quedar|quedamos)\s+(?:con|para)\s+\S""")
     private val HOUSEHOLD_FLOOR =
         Regex("""\b(?<!no )($HOUSEHOLD_VERBS)\s+\w""")
     // Piso faena doméstica acotado al objeto (c.717, forma 7/14 de la SEGUNDA
@@ -664,7 +682,7 @@ object ContextIntentEngine {
     // de "comprar" (c.651) sigue SIN registro: exige verbo al inicio o tras
     // acuse; un envolvente nunca lo activa.
     private val WRAPPABLE_PATTERNS: Map<ContextIntentKind, List<Regex>> = mapOf(
-        ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
+        ContextIntentKind.MEETING to listOf(MEETING_FLOOR, MEETING_QUEDAR_FLOOR),
         ContextIntentKind.HOUSEHOLD to HOUSEHOLD_FLOORS,
         ContextIntentKind.EXERCISE to EXERCISE_FLOORS,
         ContextIntentKind.ERRAND to ERRAND_FLOORS,
@@ -1775,7 +1793,8 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongMeetingImperative(lower: String): Boolean =
-        MEETING_FLOOR.containsMatchIn(lower)
+        MEETING_FLOOR.containsMatchIn(lower) ||
+            MEETING_QUEDAR_FLOOR.containsMatchIn(lower)
 
     /**
      * Imperativos de pago inequívocos (c.630, c.651, c.746). "pagar <objeto>".
@@ -2015,6 +2034,14 @@ object ContextIntentEngine {
             if (Regex("""\bno\s+ir\s+al\s+gimnasio""").containsMatchIn(lower)) return true
             if (Regex("""\bno\s+hacer\s+(yoga|pesas|deporte)""").containsMatchIn(lower)) return true
         }
+        // «quedar con/para» (MEETING, piso acotado c.847) es imperativo
+        // multi-palabra: las keywords «quedar con»/«quedamos con»/«quedar
+        // para» (lockstep c.847) + el bono temporal elevarían el score sin
+        // pasar por el piso (cuyo lookbehind sí la bloquea), así la negación
+        // se bloquea también aquí (cinturón y tirantes, precedente c.829).
+        if (kind == ContextIntentKind.MEETING &&
+            Regex("""\bno\s+(?:quedar|quedamos)\s+(?:con|para)\b""").containsMatchIn(lower)
+        ) return true
         // "preparar el examen" es imperativo de STUDY acotado (no verbo simple).
         if (kind == ContextIntentKind.STUDY &&
             Regex("""\bno\s+preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
@@ -2197,7 +2224,8 @@ object ContextIntentEngine {
             }
             ContextIntentKind.MEETING -> {
                 var s = 0f
-                if (Regex("""(quedar|vernos|quedamos|encuentro) (con|en|a las)""").containsMatchIn(lower)) s += 0.2f
+                // c.847: «para» añadida (plan «quedar para cenar», piso c.847).
+                if (Regex("""(quedar|vernos|quedamos|encuentro) (con|para|en|a las)""").containsMatchIn(lower)) s += 0.2f
                 if (Regex("""reunión (con|de|del)""").containsMatchIn(lower)) s += 0.2f
                 if (lower.contains("nos vemos")) s += 0.1f
                 s
@@ -2729,6 +2757,14 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.MEETING -> {
+                // c.847: las formas «quedar|quedamos con|para» (piso de plan
+                // social c.847) preservan el verbo del usuario (doctrina
+                // c.653): «quedar con Ana el viernes» → «Quedar con Ana»,
+                // no «Reunión: con Ana» (un plan social no es una reunión
+                // formal). Las demás formas («quedamos en la playa») caen al
+                // template histórico.
+                val quedar = Regex("""\b(?:quedar|quedamos)\s+(?:con|para)\s+.+""", RegexOption.IGNORE_CASE).find(original)
+                if (quedar != null) return capitalizeFirst(quedar.value)
                 val match = Regex("""(reunión|quedar|vernos|quedamos) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "Reunión: ${capitalizeFirst(match.groupValues[2])}"
                 null
