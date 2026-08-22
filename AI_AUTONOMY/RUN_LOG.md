@@ -17637,7 +17637,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Seleccionado: lateral c.861 «contestar al jefe / a la vecina» (a+artículo). Sonda PRE efímera /tmp/probe867/PreProbe871.kt: 6/6 candidatas NULL, 6/6 controles (al examen STUDY 0.47; pregunta/tiempo/negada/duda/pasado NULL), 3/3 regresiones HIT (envolvente al jefe ya ruteaba 0.54 por candado c.613).
 - Cambios (lockstep DOS puntos): objeto del piso hasStrongTaskImperative + plantilla extractTitle extendidos con `al\s+(?!examen\b)` y `a\s+la\s+(?!preguntas?\b)`. Keyword «contestar a» ya cubre por subcadena. Kind TASK.
 - Tests: ContextIntentEngineContestarAlPisoTest.kt (NUEVO, 15 = 6 capturas + 6 guards + 3 regresiones). RED exacto: EXACTAMENTE 6 fallos. Sonda POST: 14/14 correctas, títulos fieles.
-- Suite: OK (5686 = 5671+15); smoke 25/25. Cero mojibake (python utf-8).
+- Suite: OK (5694 = 5671+8 hermano+15 sobre base fusionada); smoke 25/25. Cero mojibake (python utf-8).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarAlPisoTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.

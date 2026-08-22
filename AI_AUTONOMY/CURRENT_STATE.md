@@ -15,7 +15,7 @@
 - **HEAD inicial**: `7a8e138` (mi propio push docs c.870). Baseline: OK (5671), smoke 25/25.
 - **Sonda PRE**: 6/6 candidatas NULL, 6/6 controles correctos («al examen» STUDY 0.47; pregunta/tiempo/negada/duda/pasado NULL), 3/3 regresiones HIT (a Juan; envolvente «recuérdame contestar al jefe mañana» → TASK 0.54 por candado c.613, ya ruteaba).
 - **TDD**: `ContextIntentEngineContestarAlPisoTest.kt` (NUEVO, 15 = 6 capturas + 6 guards + 3 regresiones). RED exacto: EXACTAMENTE 6 fallos. Sonda POST: 14/14 correctas, títulos fieles («Contestar al jefe», «Contestar a la vecina», «Contestar al mensaje del grupo»).
-- **Tests**: `bash tools/run_domain_tests.sh` → **OK (5686 = 5671 + 15)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Cero mojibake (python utf-8).
+- **Tests**: `bash tools/run_domain_tests.sh` → **OK (5694 = 5671 + 8 hermano + 15 sobre base fusionada)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Cero mojibake (python utf-8).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Próxima prioridad**: laterales context restantes («contestar el correo/mensaje», «contestarle a Juan» dativo, «hacerse tatuaje», «reclamar una factura», «responder a Juan»…); perífrasis «me mido la presión/tensión», residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
  4fff28d (feat(context): contracciones «al»/«a la» en el piso «contestar a <persona>» (c.872))
