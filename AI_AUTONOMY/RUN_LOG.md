@@ -15334,3 +15334,34 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: laterales restantes («reescanear el DNI»
   prefijo re-, «hacerme la prueba de sonido» dominio a decidir); tras
   agotar, auditoría de clase NOVENA. Re-fetch OBLIGATORIO.
+## Ciclo c.887 (2026-08-22) — STALE_RUN: duplicado con hermano (re-fetch antes de push) — descartado no destructivo
+- **HEAD inicial**: `d9a45b5` (grafted, baseline OK 5839). Dedicado a la
+  lateral c.864 «fotocopiar <objeto documental>» — la cola documental de
+  la octava clase: piso en `hasStrongTaskImperative` + plantilla de título
+  + keyword-VERBO, lockstep TRES puntos (lección c.616/c.751), RED exacto
+  (EXACTAMENTE 4 fallos: 4 capturas) → GREEN **OK (5847)** local (grupo de
+  objetos más ancho: `contratos?`/`documentos?` además de `dni`).
+- **Colisión real**: al re-fetch antes del push (doctrina ANTI-COLISIÓN)
+  el remoto salta `d9a45b5..96b2faa` y el hermano publica `a16f1bf` —
+  EXACTAMENTE el mismo ciclo c.887 «fotocopiar el DNI», acotado
+  deliberadamente a `dni` (documenta `contratos?|documentos?` y
+  «reescanear» como laterales-candidatas; suite OK (5843)).
+- **Resolución no destructiva** (precedente c.759 duplicado): stash→
+  rebase ff-only→stash pop (6 conflictos; mi duplicado y su versión
+  convivían) → `git stash drop` + `git checkout HEAD -- <7 archivos>` +
+  eliminados mis 2 archivos nuevos (test `ContextIntentEngineFotocopiarDocFloorTest.kt`,
+  sonda `tools/probe/LateralesOctavaC887Probe.kt`). CERO sobrescritura del
+  trabajo del hermano; árbol limpio en su HEAD.
+- **Verificación honesta sobre HEAD remoto**: suite JVM **OK (5843)**,
+  smoke **25/25** (`tools/run_domain_checks.sh`).
+- **Estado**: STALE_RUN. Cambios míos descartados por duplicación; el
+  hermano domina. Único aporte de esta run: la evidencia de que la
+  extensión de objeto (`contratos?|documentos?`) es viable con el mismo
+  lockstep (GREEN local OK (5847)) — anotada como hipótesis disponible
+  para un ciclo futuro del hermano si así lo decide (UNA por ciclo).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **Próxima prioridad** (según memoria del hermano): «hacerme la prueba
+  de sonido» (decidir dominio), «reescanear el DNI»; al agotar, auditoría
+  de clase NOVENA. Re-fetch OBLIGATORIO.
+---
