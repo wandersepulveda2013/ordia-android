@@ -15,9 +15,10 @@ import org.junit.Test
  * la lista de destinos educativos del piso `ERRAND_SCHOOL_RUN_FLOOR` admite
  * «cole» en los 2 puntos lockstep (piso + plantilla de título, lección
  * c.717); keyword-OBJETO «niños» ya existe (c.773) → lockstep coste-cero.
- * Acotado deliberado (una forma por ciclo): «al parque» (destino de ocio
- * NO educativo — la deliberación c.773 restringió el piso a destinos
- * educativos) queda FUERA como candidata propia.
+ * c.852: el acotamiento «al parque queda fuera» (destino de ocio NO
+ * educativo, restricción deliberada c.773) se LEVANTA deliberadamente
+ * (candidata 3/6 de la misma sonda, una forma por ciclo) — cobertura en
+ * `ContextIntentEngineLlevarNinosParqueFloorTest.kt`.
  */
 class ContextIntentEngineLlevarNinosColeFloorTest {
 
@@ -117,15 +118,18 @@ class ContextIntentEngineLlevarNinosColeFloorTest {
     }
 
     @Test
-    fun `destino no educativo parque queda fuera`() {
-        // Acotado deliberado c.850: sólo la diagonal coloquial «cole» del
-        // destino educativo; «al parque» (ocio familiar — la deliberación
-        // c.773 restringió el piso a destinos educativos) es candidata
-        // propia, una forma por ciclo.
+    fun `destino ocio parque captura desde c852`() {
+        // Regresión cruzada c.852: la restricción deliberada c.773/c.850
+        // («al parque» — ocio familiar — fuera) se levantó como candidata
+        // 3/6 de la sonda c.845 (una forma por ciclo); la cobertura plena
+        // vive en `ContextIntentEngineLlevarNinosParqueFloorTest.kt` y este
+        // test queda como guard de no-regresión de la captura compartida.
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a los niños al parque mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a los niños al parque", intent.title)
     }
 
     // ---- Regresiones del piso c.773 (destinos educativos intactos) ----

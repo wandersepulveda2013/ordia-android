@@ -51,13 +51,17 @@ import com.ordia.app.context.ContextIntentEngine
  * coloquial «cole» del piso c.773 → ERRAND 0.45, «Llevar a los niños al
  * cole», dueAt) — el caso queda abajo como regresión de la diagonal
  * c.850; «al parque» (ocio, NO educativo) sigue NULL como candidata
- * propia (una forma por ciclo).
+ * propia (una forma por ciclo) — RESUELTO en c.852 (bloque siguiente).
  * REGRESIÓN c.851: «cargar el móvil esta noche» ya captura (diagonal
  * dialectal «móvil» del piso «cargar el celular» c.751 → TASK 0.45,
  * «Cargar el móvil», dueAt; NULLs 16→15) — el caso queda abajo como
  * regresión de la diagonal c.851; «cargar el coche» (bivalente real:
  * equipaje del viaje vs carga del VE) sigue NULL como candidata propia
  * (una forma por ciclo).
+ * REGRESIÓN c.852: «llevar a los niños al parque» ya captura (destino
+ * de ocio familiar «parque» del piso c.773 — levantamiento deliberado
+ * de la restricción educativa → ERRAND, «Llevar a los niños al
+ * parque», dueAt) — el caso queda abajo como regresión de c.852.
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -75,8 +79,9 @@ fun main() {
         // escolar ya captura (extensión del piso c.773 → HIT ERRAND 0.45
         // con título «Llevar a los niños al cole» y dueAt) ---
         "llevar a los niños al cole mañana",
-        // --- CAPTURAS: «llevar a + persona» (trayecto familiar — destino
-        // de ocio NO educativo; candidata propia, una forma por ciclo) ---
+        // --- REGRESIÓN c.852: el destino de ocio familiar «parque» ya
+        // captura (extensión del piso c.773 → HIT ERRAND con título
+        // «Llevar a los niños al parque» y dueAt) ---
         "llevar a los niños al parque mañana",
         // --- CAPTURAS: dativo enclítico llevar/devolver (clase sexta, dativo) ---
         "llevarle el almuerzo a papá mañana",
