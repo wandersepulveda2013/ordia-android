@@ -17600,5 +17600,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite post-fusión (base 3503ac3): OK (5656 = 5639+17); smoke 25/25. Cero mojibake (python utf-8).
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderMensajeFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
-- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Commit: eb340db. HEAD final: eb340db.
 - Próxima prioridad: laterales context c.860 («responder al correo») y c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
