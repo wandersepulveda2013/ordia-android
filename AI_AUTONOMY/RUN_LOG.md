@@ -17602,3 +17602,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderMensajeFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: eb340db. HEAD final: eb340db.
 - Próxima prioridad: laterales context c.860 («responder al correo») y c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.869-colisión — 2026-08-22 (openhands) — duplicado gestionado sin pérdida ni sobrescritura
+- Dos runs paralelos implementaron el MISMO lateral c.860 («responder el mensaje», zona context) con diseño equivalente (lockstep piso+plantilla+keyword-OBJETO «mensaje», mismo nombre de test). El hermano pusheó primero (`eb340db`+`7341168`).
+- Protocolo anti-colisión (precedente c.864/c.867): fetch PRE-push reveló el avance remoto (push rechazado non-ff); mi commit local NO pusheado (duplicado) descartado de forma segura realineando la rama a `7341168`. Nada del trabajo ajeno tocado ni sobrescrito; cero force push, cero rebase destructivo.
+- Verificación independiente del c.869 del hermano sobre su propia base: `bash tools/run_domain_tests.sh` → **OK (5656 = 5639 + 17)**, 0 failures; sonda complementaria re-ejecutada end-to-end → 7/7 candidatas HIT TASK título fiel, 6/6 controles NULL, 5/5 regresiones HIT.
+- Aporte residual conservado (el hermano no persistió sonda): `tools/probe/ResponderMensajeProbe.kt` (cabecera RED medida PRE sobre `3503ac3` / GREEN verificada POST sobre `7341168`).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Próxima prioridad: laterales context c.860…c.865 («responder al correo», «contestar al jefe/a la vecina», «contestar el correo/mensaje», resto c.862…c.865); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
