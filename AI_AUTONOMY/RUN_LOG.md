@@ -1,3 +1,14 @@
+
+## Ciclo c.877 (2026-08-22) — feat(context): piso NUEVO «declarar la renta» (lateral c.863)
+
+- **HEAD inicial**: `b01e44a` (propio c.875); fetch PRE-trabajo, remoto intacto; sin colisión cycle-ID. **HEAD final**: ver commit final (fix+docs).
+- **Problema (P1 olvido silencioso)**: «declarar la renta mañana / este mes / vale, ...» → NULL por verbo bivalente sin piso (elipsis de «hacer la declaración…», familia fiscal c.863/c.875). Consecuencia real: sanción fiscal.
+- **Sonda PRE** (`/tmp/p876/PreProbe876.kt`): 3/3 candidatas NULL; 5/5 controles correctos («el amor», «en el juicio», negada, «quizá», pasado «declaré» NULL); 3/3 regresiones HIT (envolvente candado c.613, «pagar la renta» PAYMENT, c.875 «presentar…»).
+- **Solución (lockstep TRES puntos, lección c.616/c.751)**: (1) piso acotado al objeto «renta» con determinante/posesivo opcional en `hasStrongTaskImperative` con `(?<!no )` y ``; (2) plantilla en `extractTitle` (grafía preservada, c.653); (3) keyword-VERBO «declarar» en `ContextIntent.kt`. Kind TASK. Determinista regex, cero random, cero IA fingida.
+- **TDD**: `ContextIntentEngineDeclararRentaFloorTest.kt` (11 = 3 capturas + 5 guards + 3 regresiones). RED exacto: EXACTAMENTE 3 fallos. GREEN: suite OK (5736 = 5725 + 11), smoke 25/25.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Docs**: `BACKLOG.md` (lateral c.863 marcada RESUELTA c.877; c.875 ya constaba), `CURRENT_STATE.md` (entrada c.877 al frente).
+- **Commits**: ver HEAD final. Próxima prioridad: laterales context restantes («hacer la renta este mes» elíptica, «reclamar una factura», «contestarle a Juan», «hacerse tatuaje», «fotocopiar/reescanear el DNI»); perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano.
 ## Ciclo c.871 (2026-08-22) — fix(parser): «tipo N» desnudo con FRACCIÓN horaria ya NO deja residuo «tipo» (extensión c.868)
 
 - **HEAD inicial**: `3503ac3` (propio c.868); fetch PRE-commit reveló c.869 context del hermano (`eb340db`+`7341168`) → pull --ff-only limpio → renumber c.869→c.870; push rechazado (non-ff): el hermano había pusheado `dc44b5e`+`0bc1254` (SU c.870, «al correo», zona disjunta) → merge --no-rebase (1 CONFLICTO CURRENT_STATE, conservadas AMBAS secciones) → renumber c.870→c.871. **HEAD final**: `f851160` (merge). Commits: `88f0c0d` (fix parser; su mensaje dice «c.870» por el renumber posterior — el ciclo real es **c.871**), `a864a29` (merge+renumber), `f851160` (merge hash c.870 del hermano).

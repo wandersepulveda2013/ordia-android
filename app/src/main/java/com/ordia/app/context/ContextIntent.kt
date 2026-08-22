@@ -150,7 +150,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // .hasStrongTaskImperative; lección c.751: sin ella la notificación
         // ni llega al análisis). Bivalente: la frase-objeto la acota al
         // piso ("presentar la solicitud/documentación" medidas NULL).
-        "presentar")),
+        "presentar",
+        // c.876: keyword-VERBO "declarar" (lockstep con el piso acotado
+        // "declarar la renta", ver ContextIntentEngine
+        // .hasStrongTaskImperative; lección c.751). Bivalente: el piso
+        // la acota al objeto "renta" ("declarar el amor"/"en el juicio"
+        // medidas NULL; 0.12 sola < umbral).
+        "declarar")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
