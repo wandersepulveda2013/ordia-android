@@ -17295,4 +17295,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado**: «en una semana de vacaciones» sigue fechando (conector «de»; ambigüedad aceptada — el error benigno es fechar, el maligno era destruir el título); el guard mira sólo la primera palabra tras la unidad.
 - **Próxima prioridad**: candidatas sonda c.845 (UNA por ciclo): 2) «llevar a + persona»; 3) «una lavadora» (RESUELTO c.848 hermano); 4) «cargar el móvil/coche»; 5) dativo «llevarle/devolverle»; 6) reflexivo «apuntarse a». Persisten: perífrasis «me mido la presión/tensión» (guards c.841/c.843), plural «los pelos»/dativo/«cabello» (c.842); residual P2 c.818 «Icon( null-decorativo»; «debiera/debiese…»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar (NUEVE colisiones con el hermano: c.835/c.836/c.837/c.839/c.840/c.843/c.846/c.847/c.848).
-- **Commits**: `afdd807` (fix + tests + sonda + docs c.849). **HEAD final**: `afdd807`.
+- **Commits**: `11a146e` (fix + tests + sonda + docs c.849). **HEAD final**: `11a146e`.
