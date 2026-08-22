@@ -40,7 +40,9 @@ import com.ordia.app.context.ContextIntentEngine
  *        movida a REGRESIONES.
  *     3) «contestar a Juan esta tarde» — variante coloquial de la 2.
  *        RESUELTA en c.861 (piso NUEVO acotado «contestar a <persona>»:
- *        tras «a» sólo nombre propio o posesivo mi/tu/su — artículos
+ *        tras «a» sólo nombre (propio o común — texto analizado en
+     *        minúsculas, la captura rápida omite mayúsculas) o posesivo
+     *        mi/tu/su — artículos
  *        FUERA por lookahead, «a la pregunta»/«a tiempo» son examen/
  *        adverbio — + plantilla de título + keyword-FRASE «contestar a»
  *        en ContextIntent.kt; test

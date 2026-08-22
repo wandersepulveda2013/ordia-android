@@ -1675,8 +1675,11 @@ object ContextIntentEngine {
             // coloquial de "responder el correo" c.860). El verbo
             // "contestar" es bivalente (a la pregunta/en el examen/al
             // teléfono/a tiempo) → el piso se ACOTA a la referencia
-            // DIRECTA de persona tras "a": nombre propio o posesivo
-            // (mi/tu/su); los artículos quedan FUERA por lookahead —
+            // DIRECTA de persona tras "a": nombre (propio o común —
+            // el texto se analiza en minúsculas y la captura rápida
+            // omite mayúsculas: "contestar a juan esta tarde" captura
+            // igual) o posesivo (mi/tu/su); los artículos quedan FUERA
+            // por lookahead —
             // "contestar a la pregunta"/"a las preguntas"/"a una
             // pregunta" son examen, no comunicación pendiente — y el
             // adverbial "a tiempo" también (contestar a tiempo = con
