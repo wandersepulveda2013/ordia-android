@@ -557,8 +557,9 @@ object ContextIntentEngine {
     // (lección c.751; «devolverle» ya la cubre «devolver» por subcadena) +
     // plantilla de título en [extractTitle] (lección c.616/c.717,
     // pronombre conservado, doctrina c.653). Acotado deliberado (una forma
-    // por ciclo): la candidata 6/6 «apuntarse a» reflexivo queda FUERA
-    // como candidata propia.
+    // por ciclo): la candidata 6/6 «apuntarse a» reflexivo quedó FUERA
+    // como candidata propia — RESUELTA en c.856 (rama reflexiva del
+    // piso [NOTE_FLOOR]).
     //
     // Segunda oleada dativa (c.855 — candidata MEDIDA del descubrimiento
     // post-c.854, registrada en BACKLOG con evidencia; sonda efímera
@@ -612,8 +613,19 @@ object ContextIntentEngine {
     // [imperativeIsWrapped] compartan EXACTAMENTE el mismo patrón. `\s+\w`
     // exige objeto ("apuntar"/"anotar" sueltos, muletilla, no activan) y el
     // lookbehind `(?<!no )` bloquea la negación inmediata.
+    // c.856: la alternativa gana la rama REFLEXIVA «apuntarse a <actividad>»
+    // (candidata restante de la sonda c.845, medida 6/6 NULL post-c.855; la
+    // transitiva «apuntar a los niños al fútbol» ya captura NOTE desde
+    // c.714). La preposición «a» es OBLIGATORIA en esta rama: sin ella el
+    // figurado «apuntarse un tanto» (anotarse un punto) colaría; el objeto
+    // tras ella también lo es («apuntarse a» aislado no casa). Acotado
+    // deliberado (una forma por ciclo): «anotarse a» dialectal y
+    // «apuntarme/apuntarte» (otras personas del enclítico) quedan FUERA
+    // como candidatas propias si se miden. La keyword «apuntar» cubre
+    // «apuntarse» por subcadena (lección c.751): cero cambios en
+    // [ContextIntentKind]. Kind heredado de la hermana transitiva: NOTE.
     private val NOTE_FLOOR =
-        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:apuntar|anotar)\s+\w""")
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:(?:apuntar|anotar)\s+\w|apuntarse\s+a(?:l| la| los| las)?\s+\w)""")
 
     // Regex del piso de PAGO (c.630 inicio, c.651 acuse, c.746 prefijo
     // temporal): "pagar <objeto>" es un imperativo de pago inequívoco en
@@ -2030,6 +2042,7 @@ object ContextIntentEngine {
      * [imperativeIsWrapped] (lección c.648/c.652). Kind decidido: NOTE, en
      * deliberación contra TASK — "apuntar"/"anotar" es el verbo canónico de la
      * nota útil y downstream se materializa como entidad NOTE, no como tarea.
+     * c.856: el piso incluye la rama reflexiva «apuntarse a <actividad>».
      */
     private fun hasStrongNoteImperative(lower: String): Boolean =
         NOTE_FLOOR.containsMatchIn(lower)
@@ -3310,8 +3323,11 @@ object ContextIntentEngine {
                 // "(apuntar|anotar) X" → "Apuntar X"/"Anotar X" (c.714): verbo
                 // preservado (alineación piso↔título, lección c.616); prefijo
                 // de acuse/temporal despojado (el match arranca en el verbo).
-                // Mismo ancla/guard que el piso [NOTE_FLOOR].
-                val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apuntar|anotar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                // Mismo ancla/guard que el piso [NOTE_FLOOR]. c.856: el grupo
+                // gana «apuntarse» (lockstep con la rama reflexiva del piso):
+                // el pronombre enclítico es parte del verbo tal como lo dijo
+                // el usuario (doctrina c.653) → "Apuntarse al gimnasio".
+                val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apuntar|anotar|apuntarse)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }

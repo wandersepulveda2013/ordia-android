@@ -84,7 +84,16 @@ import com.ordia.app.context.ContextIntentEngine
  * dueAt) — los 5 casos quedan abajo como regresión de c.855 junto a 3
  * controles propios (negación/pasado/aislado NULL; NULLs 11→14 de 42:
  * los 3 nuevos son controles, la única captura-candidata restante sigue
- * siendo «apuntarse al gimnasio»).
+ * siendo «apuntarse al gimnasio» — RESUELTO en c.856, bloque siguiente).
+ * REGRESIÓN c.856: el reflexivo «apuntarse a <actividad>» ya captura
+ * (rama reflexiva del piso c.714 `NOTE_FLOOR` → HIT NOTE 0.45 con
+ * título fiel «Apuntarse al gimnasio» y dueAt) — el caso queda abajo
+ * como regresión de c.856 junto a 3 controles propios (negación
+ * «no apuntarse…», figurado «apuntarse un tanto» y aislado
+ * «apuntarse» NULL; NULLs 14→16 de 45: los 3 nuevos son controles y
+ * LA ÚLTIMA captura-candidata de la clase queda RESUELTA — sonda
+ * AGOTADA: 22 NULLs originales c.845 = 12 capturas resueltas
+ * c.847…c.856 + 10 controles correctos).
  * Observación lateral (NO de esta clase): «pagar el alquiler el día 1»
  * captura PAYMENT pero dueAt=false — «el día 1» no ancla fecha; verificar
  * si el parser compacto soporta «día N» antes de registrar candidata.
@@ -124,7 +133,9 @@ fun main() {
         // (era NULL en c.845; diagonal «una» del piso c.729 → HIT HOUSEHOLD
         // 0.45, título «Poner una lavadora», dueAt) ---
         "poner una lavadora esta tarde",
-        // --- CAPTURAS: reflexivo «apuntarse» ---
+        // --- REGRESIÓN c.856: reflexivo «apuntarse a» (era NULL en
+        // c.845; rama reflexiva del piso c.714 `NOTE_FLOOR` → HIT NOTE
+        // 0.45 con título «Apuntarse al gimnasio» y dueAt) ---
         "apuntarse al gimnasio mañana",
         // --- REGRESIONES c.851/c.853: «cargar» dispositivos (eran NULL
         // en c.845; HIT TASK 0.45 con título fiel y dueAt) ---
@@ -157,7 +168,11 @@ fun main() {
         // --- CONTROLES c.855 (dativo 2ª oleada): deben permanecer NULL ---
         "no recogerle al aeropuerto mañana", // negación
         "le recogí a Juan ayer", // narrativa pasado
-        "recogerle" // verbo dativo aislado
+        "recogerle", // verbo dativo aislado
+        // --- CONTROLES c.856 (reflexivo «apuntarse»): deben permanecer NULL ---
+        "no apuntarse al gimnasio", // negación
+        "apuntarse un tanto", // figurado (anotarse un punto)
+        "apuntarse" // verbo aislado
     )
     var nulls = 0
     for (c in cases) {
