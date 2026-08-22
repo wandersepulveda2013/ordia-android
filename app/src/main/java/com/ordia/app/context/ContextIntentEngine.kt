@@ -1667,6 +1667,38 @@ object ContextIntentEngine {
             // ("correoso" no casa), `(?<!no )` bloquea la negada, pasado
             // "respondí…"/suelto "responder" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?correos?\b""").containsMatchIn(lower)
+            // c.861 (candidata 3/7 de la sonda persistida c.857
+            // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
+            // gestiones de adulto; NULL PRE verificado sobre HEAD b4e12fb,
+            // 5/5 candidatas): "contestar a <persona> (esta tarde)" — la
+            // comunicación pendiente dicha a la PERSONA (variante
+            // coloquial de "responder el correo" c.860). El verbo
+            // "contestar" es bivalente (a la pregunta/en el examen/al
+            // teléfono/a tiempo) → el piso se ACOTA a la referencia
+            // DIRECTA de persona tras "a": nombre propio o posesivo
+            // (mi/tu/su); los artículos quedan FUERA por lookahead —
+            // "contestar a la pregunta"/"a las preguntas"/"a una
+            // pregunta" son examen, no comunicación pendiente — y el
+            // adverbial "a tiempo" también (contestar a tiempo = con
+            // prontitud, no a alguien). Lockstep en TRES puntos (lección
+            // c.616/c.751; a diferencia de c.860 aquí SÍ hace falta
+            // keyword — "contestar a Juan" no contiene ninguna previa y en
+            // producción ni llegaría al análisis): piso + plantilla de
+            // título + keyword-FRASE "contestar a" en ContextIntent.kt
+            // (hermana de "llamar a"/"hablar con"). Kind decidido: TASK,
+            // en deliberación contra CALL/NOTE/ERRAND — paridad c.860:
+            // acción de contestar una comunicación pendiente (gestión),
+            // no llamada telefónica, no contenido y sin desplazamiento.
+            // Anti-overreach: `(?<!no )` bloquea la negada, pasado
+            // "contesté…"/suelto "contestar" no casa, duda penalizada
+            // post-piso (hedge c.649); sin cláusula dedicada en
+            // [imperativeIsNegated]: 0.12+0.1=0.22 < umbral (aritmética
+            // c.859/c.860). Acotado deliberado (una forma por ciclo):
+            // "contestar al jefe"/"a la vecina" (a+artículo), "contestar
+            // el correo/mensaje" (objeto) y "contestarle a Juan"
+            // (enclítico) quedan FUERA como candidatas propias (medidas
+            // NULL en la sonda c.861).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar\s+a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -2875,6 +2907,15 @@ object ContextIntentEngine {
                 // preserva (doctrina c.653).
                 val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?correos?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchResponderCorreo != null) return "Responder ${matchResponderCorreo.groupValues[2]}"
+                // c.861: plantilla «contestar a <persona>» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; los
+                // bivalentes «contestar a la pregunta…»/«a tiempo…» nunca
+                // llegan aquí porque el piso no los captura). La grafía
+                // del usuario se preserva (doctrina c.653).
+                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar)\s+(a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s)(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchContestarA != null) return "Contestar ${matchContestarA.groupValues[2]}"
 
                 null
             }

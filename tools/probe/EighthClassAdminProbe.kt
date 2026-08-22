@@ -39,6 +39,13 @@ import com.ordia.app.context.ContextIntentEngine
  *        frase al análisis; test ContextIntentEngineResponderCorreoFloorTest),
  *        movida a REGRESIONES.
  *     3) «contestar a Juan esta tarde» — variante coloquial de la 2.
+ *        RESUELTA en c.861 (piso NUEVO acotado «contestar a <persona>»:
+ *        tras «a» sólo nombre propio o posesivo mi/tu/su — artículos
+ *        FUERA por lookahead, «a la pregunta»/«a tiempo» son examen/
+ *        adverbio — + plantilla de título + keyword-FRASE «contestar a»
+ *        en ContextIntent.kt; test
+ *        ContextIntentEngineContestarAPersonaFloorTest), movida a
+ *        REGRESIONES.
  *     4) «hacerme un análisis de sangre el lunes» — salud (reflexivo
  *        «hacerme», hermano del «cortarme el pelo» c.7xx).
  *     5) «hacer la declaración de la renta este mes» — trámite anual.
@@ -63,7 +70,6 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "contestar a Juan esta tarde",
         "hacerme un análisis de sangre el lunes",
         "hacer la declaración de la renta este mes",
         "escanear el DNI esta tarde",
@@ -74,6 +80,10 @@ fun main() {
         // --- REGRESIÓN c.860: candidata 2 resuelta (piso nuevo acotado
         // «responder el correo»); era NULL en c.857 ---
         "responder el correo de Ana hoy", // TASK
+        // --- REGRESIÓN c.861: candidata 3 resuelta (piso nuevo acotado
+        // «contestar a <persona>» + keyword-FRASE «contestar a»); era
+        // NULL en c.857 ---
+        "contestar a Juan esta tarde", // TASK
         // --- REGRESIONES de la clase (ya capturan en c.857) ---
         "pasar la ITV la semana que viene", // TASK
         "cambiar el aceite del coche el sábado", // TASK

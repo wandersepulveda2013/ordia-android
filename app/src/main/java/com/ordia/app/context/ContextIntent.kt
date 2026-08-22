@@ -71,6 +71,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword (precedente c.772 «tensión»): el piso sí la admite por
         // `[oó]` cuando el texto llega al análisis vía otra keyword.
         "medicación",
+        // c.861: keyword-FRASE "contestar a" (lockstep con el piso acotado
+        // «contestar a <persona>», ver ContextIntentEngine.hasStrongTaskImperative;
+        // lección c.751: sin ella la notificación "contestar a Juan esta
+        // tarde" sin palabra gatillo ni llegaría al análisis en producción —
+        // a diferencia de c.860, ninguna keyword previa la cubre). NO el
+        // verbo suelto "contestar": bivalente (a la pregunta/en el examen/
+        // al teléfono). La frase multi-palabra es hermana de "llamar a"/
+        // "hablar con" (CALL): subcadena de "contestar al…" y de
+        // "contestar a la pregunta", pero ambas suman 0.12 inerte < umbral
+        // y el piso las rechaza (a+artículo fuera de su alcance). Con bono
+        // temporal 0.22 < 0.45 (negada/duda inertes).
+        "contestar a",
         // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la
