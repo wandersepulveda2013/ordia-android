@@ -17474,4 +17474,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: laterales «responder el email…»/«responder el mensaje de…» (medidos NULL en la sonda PRE, registrados en BACKLOG) y la contracción «responder al correo…» quedan FUERA como candidatas propias.
 - **Próxima prioridad**: candidata 3/7 sonda c.857 «contestar a Juan esta tarde» (variante coloquial — «contestar» bivalente: medir guards «en el examen»/«a la pregunta»/pasado «contesté» antes de implementar; valorar generalización del piso a «contestar (a|al)»). Persisten: candidatas 4–7, perífrasis «me mido la presión/tensión» (guards c.841/c.843), residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- **Commits**: (ver git log). **HEAD final**: (ver git log).
+- **Commits**: `fe28ff8`. **HEAD final**: `fe28ff8` (commit c.860).
