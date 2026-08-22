@@ -15406,3 +15406,43 @@ a un permiso persistente frágil y silencioso ante fallos.
   decidir: ¿soundcheck = EVENT?) — última lateral viva de la familia
   «hacerse la prueba»; tras agotar, auditoría de clase NOVENA.
   Re-fetch OBLIGATORIO (remoto puede avanzar entre runs).
+
+2026-08-22 — Run 1 (ciclo c.889) — Autor: local humano → agente OpenHands
+- HEAD inicial: 1c556d7 (c.888 propio, verificado; pull --ff-only limpio,
+  colisión nula, árbol limpio).
+- PROBLEMA seleccionado: P1 «hacerme la prueba de sonido» (soundcheck —
+  el micro del técnico antes del concierto/sión) — ÚLTIMA lateral viva
+  de la familia «hacerse la prueba» (c.862/c.876/c.882), registrada
+  pendiente-de-decisión desde el guard c.876 y el docstring c.882.
+- DECISIÓN de dominio (medida con sonda PRE persistida
+  `tools/probe/PruebaSonidoProbe.kt`, 18 casos): complemento-ancla
+  «de sonido» → CAPTURA como ERRAND (hermana de las singularidades
+  c.876/c.882). Forma desnuda «hacer la prueba de sonido» FUERA
+  (bivalente, doctrina c.862 heredada), «prueba del coche» FUERA
+  (bivalente), nulos/duda/pasado FUERA. Envolvente «recuérdame…»
+  preservada TASK por el candado c.613.
+- TDD estricto (sesión persistente): PRE → RED exacto (5 fallos de
+  5856 + sentinel anterior en NULL) → implementación → GREEN 5861
+  (= 5848 + 13) → regresiones/guards verdes.
+- Fix mínimo (lockstep DOS puntos, lección c.616, hermana de
+  c.860…c.888): piso acotado `hacerme|te|se|nos` + objeto
+  `(?:sangre|embarazo|sonido)` + plantilla de título (grafía
+  preservada, c.653). CERO cambios en `ContextIntent.kt` — la keyword
+  TASK «hacer» es subcadena de «hacerme» (hermana de c.860/c.862).
+- Sentinel c.876 «prueba de sonido NULL» convertida a regresión de
+  captura (precedente c.843; procedimiento hermano de c.882/c.887/
+  c.888): `bivalente sonido descartada` → `lateral sonido resuelta
+  c889` (assertNotNull+kind, espeja el mensaje del hermano c.876
+  pre-fix). Comentario bivalente «coche» intacto.
+- OK: suite 5861 (0 failures) JAVA_OPTS=-Xmx6g; smoke 25/25; sonda
+  POST (run_probe.sh + probe persistida): 8/8 capturas HIT ERRAND
+  0.45 títulos naturales, 6/6 guards NULL, 4/4 regresiones HIT
+  (incluye envolvente 0.54).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- HEAD final: (hash en git log; push a openhands/autonomous-ordia).
+- Próxima prioridad: familia «hacerse la prueba» agotada (sangre
+  c.876 / embarazo c.882 / sonido c.889; forma desnuda decidida
+  bivalente c.862; «prueba del coche» decidida FUERA c.876/c.889).
+  Auditoría de clase NOVENA o feature grande de producto. Re-fetch
+  OBLIGATORIO (remoto puede avanzar entre runs).

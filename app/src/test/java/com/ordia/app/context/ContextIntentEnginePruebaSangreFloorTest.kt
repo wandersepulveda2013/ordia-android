@@ -19,7 +19,8 @@ import org.junit.Test
  * laboratorio/centro de salud). Kind deliberado: ERRAND (misma
  * doctrina). Objeto acotado a `pruebas? de sangre` (criterio
  * c.684/c.717/c.731/c.842/c.862): «prueba» sola es bivalente
- * («prueba de sonido», «prueba del coche»), así el complemento
+ * («prueba del coche»; «prueba de sonido» capturada c.889 como
+ * complemento-ancla hermano), así el complemento
  * «de sangre» es el ancla inequívoca; el enclítico reflexivo sigue
  * EXIGIDO (doctrina c.862: la forma desnuda es bivalente). Lockstep en
  * DOS puntos (lección c.616): piso + plantilla de título. CERO cambios
@@ -127,10 +128,14 @@ class ContextIntentEnginePruebaSangreFloorTest {
     }
 
     @Test
-    fun `bivalente sonido descartada`() {
-        // «prueba» sola es bivalente (soundcheck): el complemento
-        // «de sangre» es el ancla; sin él NO se captura.
-        assertNull(analyze("hacerme la prueba de sonido el viernes"))
+    fun `lateral sonido resuelta c889`() {
+        // Sentinel c.876 convertida a regresión de captura (precedente
+        // c.843; procedimiento hermano c.882): «de sonido» (soundcheck)
+        // decidida IN para ERRAND en c.889.
+        // Espeja el mensaje del hermano c.876 pre-fix.
+        val i = analyze("hacerme la prueba de sonido el viernes")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.ERRAND, i!!.kind)
     }
 
     @Test

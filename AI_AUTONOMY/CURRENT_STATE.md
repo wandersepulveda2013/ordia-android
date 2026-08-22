@@ -1,5 +1,18 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.889 (2026-08-22) — feat(context): piso «hacerme la prueba de sonido» (lateral pendiente-de-decisión c.876/c.882 — familia «hacerse la prueba» agotada)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt).
+- Latente: la familia «hacerse la prueba» (c.862 sangre / c.882 embarazo) dejó NULL medida y documentada (sentinel c.876 + docstring c.882) la tercera singularidad «hacerme la prueba de sonido…» (soundcheck — el micro del técnico antes del concierto) — el errand diagnóstico musical se descartaba en silencio mientras los hermanos de salud capturaban. Consecuencia P1: olvido silencioso de una gestión técnica previa al espectáculo.
+- Decisión de dominio (sonda PRE persistida `tools/probe/PruebaSonidoProbe.kt`, 18 casos): complemento-ancla «de sonido» IN como ERRAND (hermana de las singularidades c.876/c.882); forma desnuda «hacer la prueba de sonido» FUERA (bivalente, doctrina c.862); «prueba del coche» FUERA (bivalente c.876); negación/duda/pasado/verbo-sustantivo FUERA; envolvente «recuérdame…» preservada TASK 0.54 por el candado c.613.
+- Fix (lockstep DOS puntos, lección c.616, hermana de c.860…c.888): (1) piso acotado `hacerme|te|se|nos` + objeto `(?:sangre|embarazo|sonido)`; (2) plantilla de título (grafía preservada, c.653). **CERO cambios en `ContextIntent.kt`** — la keyword TASK «hacer» es subcadena de «hacerme» (hermana de c.860/c.862).
+- Sentinel c.876 «prueba de sonido NULL» convertida a regresión de captura positiva (precedente c.843; hermana de c.882/c.887/c.888): `bivalente sonido descartada` → `lateral sonido resuelta c889`. Bivalente «coche» guard intacto.
+- TDD estricto: PRE → RED exacto (EXACTAMENTE 5 fallos de 5856 = forma desnuda/decisión de guard a resolver) → implementación (10+/3- motor) → GREEN. Test NUEVO `ContextIntentEnginePruebaSonidoFloorTest.kt` (13 = 9 capturas + envolvente + 8 guards + 2 regresión).
+- Suite: OK (5861 = 5848 + 13), 0 failures vía tools/run_domain_tests.sh (JAVA_OPTS=-Xmx6g anti-OOM); smoke 25/25. Cero mojibake (python utf-8).
+- Sonda POST re-ejecutada: 8/8 capturas HIT ERRAND 0.45 títulos naturales («Hacerme/Hacerte/Hacerse/Hacernos la prueba de sonido»), 6/6 guards NULL, 4/4 regresiones HIT.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: familia «hacerse la prueba» AGOTADA (heredera c.862, sin vivas pendientes). Auditoría de clase NOVENA o feature grande de producto (past NINTH-class audit backlog row). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.888 (2026-08-22) — feat(context): piso «reescanear <documento>» (lateral medida c.864)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt).
