@@ -17503,4 +17503,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 - **Acotado deliberado (una forma por ciclo)**: laterales medidos NULL en la sonda PRE («hacer un análisis de sangre el lunes» — forma desnuda bivalente —, «hacerme un tatuaje el lunes», «hacerme la prueba de sangre mañana») quedan FUERA como candidatas propias (registradas en BACKLOG).
 - **Próxima prioridad**: candidata 5/7 sonda c.857 «hacer la declaración de la renta este mes» (trámite anual — «este mes» no ancla fecha, lateral parser ya registrado c.845/c.852; medir guards «declaración jurada»/«declarar la renta»/negación/pasado antes de implementar). Persisten: candidatas 6–7, laterales c.860/c.861/c.862, perífrasis «me mido la presión/tensión» (guards c.841/c.843), residual P2 c.818, temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO pre-trabajo y pre-commit.
-- **Commits**: ver git log. **HEAD final**: ver git log (commit c.862).
+- **Commits**: `3da9651`. **HEAD final**: `3da9651` (commit c.862).
