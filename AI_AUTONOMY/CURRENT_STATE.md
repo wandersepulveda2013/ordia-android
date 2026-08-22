@@ -1,5 +1,13 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## STALE_RUN c.888b (2026-08-22) — docs(ai_autonomy): duplicado con hermano (1c556d7 «reescanear <documento>»); descartado no destructivo; suite OK (5848) verificada
+
+- Área: sin área (plain docs). HEAD inicial `6ecaba6`; durante mi trabajo el hermano publicó `1c556d7` con la MISMA lateral («reescanear <documento>») — el mismo piso-lockstep, mismo nombre de sonda y de test.
+- Resolución NO destructiva (precedente c.887): `git reset --soft HEAD~1` (descomitea mi duplicado) → `git stash -u` (parqueo local) → `git pull --ff-only` a `1c556d7` → verificación honesta en el HEAD del hermano: suite JVM **OK (5848)**, smoke 25/25, AutomationEngine 9/9 → `git stash drop` (mi duplicado descartado). CERO sobrescritura del trabajo del hermano; cero mojibake (python utf-8, rastreocompleto False).
+- Único aporte: evidencia independiente de la viabilidad del lockstep del hermano (mi sonda local PRE 6/6 NULL → POST 6/6 HIT medida sobre el piso propio y descartada).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad (memoria del hermano): «hacerme la prueba de sonido» (decidir dominio — última lateral de la familia «hacerse la prueba»); al agotar, auditoría de clase NOVENA. Re-fetch OBLIGATORIO una vez más antes de empujar.
+
 ## Ciclo c.888 (2026-08-22) — feat(context): piso «reescanear <documento>» (lateral medida c.864)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt).

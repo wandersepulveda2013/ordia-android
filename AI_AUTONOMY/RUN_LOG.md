@@ -15406,3 +15406,17 @@ a un permiso persistente frágil y silencioso ante fallos.
   decidir: ¿soundcheck = EVENT?) — última lateral viva de la familia
   «hacerse la prueba»; tras agotar, auditoría de clase NOVENA.
   Re-fetch OBLIGATORIO (remoto puede avanzar entre runs).
+## STALE_RUN c.888b (2026-08-22) — duplicado con hermano (1c556d7 «reescanear <documento>»); descartado no destructivo
+
+- **HEAD inicial**: `6ecaba6`. El hermano asignó el ciclo c.888 en
+  remoto («reescanear <documento>») mientras mi run local trabajaba en
+  la MISMA lateral — colisión cycle-ID detectada al intentar empujar.
+- **Resolución NO destructiva** (convención c.887): reset --soft HEAD~1 →
+  stash -u → pull --ff-only a `1c556d7` → verificación sobre el HEAD del
+  hermano (suite OK (5848), smoke 25/25, automation 9/9) → stash drop.
+- **Estado**: STALE_RUN. Cero cambios de producto míos; único aporte es
+  la evidencia local PRE/POST idéntica (descartada). docs-only.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales.
+- **Próxima prioridad**: «hacerme la prueba de sonido» (dominio
+  pendiente); al agotar, auditoría clase NOVENA. Re-fetch OBLIGATORIO.
+---
