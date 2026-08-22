@@ -1900,6 +1900,27 @@ object ContextIntentEngine {
             // convergencia con la envolvente «recuérdame escanear el
             // contrato…» (c.613, TASK).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
+            // c.887: piso acotado «fotocopiar el DNI» — lateral medida
+            // NULL desde c.864 (verbo distinto del piso «escanear el
+            // DNI»; la sonda PRE persistida tools/probe/
+            // FotocopiarDniProbe.kt mide 5/5 candidatas NULL — olvido
+            // silencioso P1: la fotocopia del DNI que el trámite exige
+            // (banco, notaría, ayuntamiento; «por las dos caras») no
+            // agenda — mientras la envolvente «recuérdame fotocopiar el
+            // DNI…» ya enruta TASK 0.45 vía candado c.613: asimetría de
+            // ruta hermana de c.765…c.865). Verbo monosemántico
+            // (precedente c.752 «votar» / c.864 «escanear»); ancla/
+            // guard idénticos a c.864/c.865. Lockstep keyword-VERBO
+            // «fotocopiar» en [ContextIntentKind.TASK] (lección c.751;
+            // subcadenas inertes: el sustantivo «fotocopia» y el
+            // pasado «fotocopié…» NO contienen «fotocopiar»; 0.12 sola
+            // < umbral 0.45) + plantilla de título. Kind TASK
+            // (convergente con «escanear el DNI» c.864 — fotocopia
+            // documental hermana del escaneo). Acotado deliberado (UNA
+            // forma por ciclo): «reescanear el DNI…» (prefijo re-) y la
+            // clase de objetos del hermano («contrato»/«notas»/«código
+            // QR») quedan FUERA como laterales candidatas.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )fotocopiar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -3230,6 +3251,15 @@ object ContextIntentEngine {
                 // QR). La grafía del usuario se preserva (doctrina c.653).
                 val matchEscanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEscanearDoc != null) return "Escanear ${matchEscanearDoc.groupValues[2]}"
+                // c.887: plantilla «fotocopiar el DNI» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en
+                // el verbo, así acuse/prefijo temporal se despojan; el
+                // residuo temporal de cola lo depura [sanitizeTitle]; el
+                // resto de la frase —«por las dos caras»— se conserva:
+                // es la misma gestión). Objeto ACOTADO (dni). La grafía
+                // del usuario se preserva (doctrina c.653).
+                val matchFotocopiarDni = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(fotocopiar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFotocopiarDni != null) return "Fotocopiar ${matchFotocopiarDni.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

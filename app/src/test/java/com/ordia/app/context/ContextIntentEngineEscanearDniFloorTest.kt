@@ -146,8 +146,13 @@ class ContextIntentEngineEscanearDniFloorTest {
         assertEquals("Escanear el contrato y enviarlo", r4.title)
         assertNotNull(r4.dueAt)
 
-        assertNull("verbo distinto (lateral candidata)",
-            analyze("fotocopiar el DNI mañana"))
+        // c.887: el verbo distinto «fotocopiar» dejó de ser guard NULL
+        // y se resolvió como piso propio (doctrina: guard convertida a
+        // regresión de captura, intencionalidad conservada — precedente
+        // c.843). El piso «reescanear»/«prueba de sonido» sigue NULL.
+        val fotocopiar = analyze("fotocopiar el DNI mañana")
+        assertNotNull("«fotocopiar el DNI» resuelto en c.887", fotocopiar)
+        assertEquals(ContextIntentKind.TASK, fotocopiar!!.kind)
     }
 
     @Test

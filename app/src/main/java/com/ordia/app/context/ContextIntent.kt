@@ -159,6 +159,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el piso anclado la excluye (precedente "descargar"/"cargar"
         // c.853). "el DNI está caducado" sigue descartado.
         "escanear",
+        // c.887: keyword-VERBO "fotocopiar" (lockstep con el piso acotado
+        // "fotocopiar el DNI", ver ContextIntentEngine.hasStrongTaskImperative;
+        // lección c.751: sin ella una notificación "fotocopiar el DNI mañana"
+        // sin palabra gatillo ni llega al análisis en producción). Verbo
+        // monosemántico (precedente c.864 "escanear"/c.752 "votar"); subcadenas
+        // inertes: el sustantivo "fotocopia" y la forma pasada "fotocopié"
+        // NO contienen "fotocopiar"; 0.12 sola queda bajo el umbral.
+        // "la fotocopia está en el cajón" sigue descartado.
+        "fotocopiar",
         // c.875: keyword-VERBO "presentar" (lockstep con el piso acotado
         // "presentar la declaración de la renta", ver ContextIntentEngine
         // .hasStrongTaskImperative; lección c.751: sin ella la notificación

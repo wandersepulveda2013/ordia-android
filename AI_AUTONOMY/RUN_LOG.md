@@ -15305,3 +15305,32 @@ a un permiso persistente frágil y silencioso ante fallos.
   factura», «fotocopiar/reescanear el DNI», «prueba de sonido» dominio a
   decidir); tras agotar, auditoría de clase NOVENA. Re-fetch OBLIGATORIO.
 ---
+## Ciclo c.887 (2026-08-22) — feat(context): piso «fotocopiar el DNI» (lateral medida c.864)
+- **Área**: context (ContextIntentEngine hasStrongTaskImperative +
+  extractTitle + ContextIntent.kt keyword-VERBO).
+- **HEAD inicial**: d9a45b5 (c.886 propio, pull --ff-only limpio SIN
+  colisión).
+- **Latente**: «fotocopiar el DNI…» (verbo distinto de «escanear» c.864)
+  se descartaba en silencio (0.0): fotocopia documental exigida por el
+  trámite no agendaba — P1.
+- **Sonda PRE persistida** `tools/probe/FotocopiarDniProbe.kt`
+  (run_probe.sh, motor real): 5/5 candidatas NULL, 5/5 guards NULL,
+  regresiones HIT (envolvente c.613 TASK 0.45).
+- **Fix mínimo** (lockstep TRES puntos, lección c.751): piso acotado
+  «fotocopiar» + objeto-ancla `dni` (ancla/guard de c.864) + plantilla
+  de título (grafía preservada, c.653) + keyword-VERBO «fotocopiar»
+  en [TASK] (subcadenas «fotocopia»/«fotocopié» inertes).
+- **Guard c.884** («fotocopiar el DNI mañana» NULL) convertida a
+  regresión de captura — intencionalidad conservada, precedente c.843.
+- **TDD**: `ContextIntentEngineFotocopiarDniFloorTest.kt` NUEVO (4 =
+  2 capturas + guards + regresiones). RED exacto: 4 run, EXACTAMENTE 2
+  fallos; GREEN 4/4.
+- **OK**: suite 5843 (= 5839 + 4) 0 failures vía run_domain_tests.sh;
+  smoke 25/25; AutomationEngine smoke 9/9. Sonda POST: 5/5 HIT TASK
+  0.45, guards NULL, envolvente 0.54. Cero mojibake (python utf-8).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **HEAD final**: pendiente commit.
+- **Próxima prioridad**: laterales restantes («reescanear el DNI»
+  prefijo re-, «hacerme la prueba de sonido» dominio a decidir); tras
+  agotar, auditoría de clase NOVENA. Re-fetch OBLIGATORIO.
