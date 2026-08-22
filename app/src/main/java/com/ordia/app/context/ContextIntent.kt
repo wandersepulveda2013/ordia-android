@@ -135,7 +135,16 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // palabra gatillo ni llega al análisis en producción). El sustantivo
         // "gestión" no la contiene («gestión» ≠ «gestionar»); 0.12 sola queda
         // bajo el umbral (0.45): "la gestión quedó bien" sigue descartado.
-        "gestionar")),
+        "gestionar",
+        // c.864: keyword-VERBO "escanear" (lockstep con el piso acotado
+        // "escanear el DNI", ver ContextIntentEngine.hasStrongTaskImperative;
+        // lección c.751: sin ella una notificación "escanear el DNI mañana"
+        // sin palabra gatillo ni llega al análisis en producción). Verbo
+        // monosemántico (precedente c.752 "votar"); subcadena inerte:
+        // "reescanear" la contiene pero 0.12 sola queda bajo el umbral y
+        // el piso anclado la excluye (precedente "descargar"/"cargar"
+        // c.853). "el DNI está caducado" sigue descartado.
+        "escanear")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

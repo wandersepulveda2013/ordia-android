@@ -1776,6 +1776,32 @@ object ContextIntentEngine {
             // y «hacer la renta este mes» (elipsis del objeto) quedan
             // FUERA como candidatas propias.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b""").containsMatchIn(lower)
+            // c.864: piso acotado «escanear el DNI» — sexto gap medido
+            // NULL en c.857 por tools/probe/EighthClassAdminProbe.kt
+            // (octava clase: gestiones de la vida adulta — gestión
+            // documental). Sin piso se DESCARTABA: «escanear» no era
+            // keyword ni verbo de piso (0.0). Consecuencia real: no
+            // digitalizar el DNI a tiempo para el trámite que lo exige
+            // (banco, notaría, ayuntamiento). Ancla/guard idénticos a
+            // c.698/c.860/c.863; objeto acotado a «dni» con determinante
+            // opcional: «escanear el contrato…»/«las notas…»/«el código
+            // QR…» medidos NULL (laterales, candidatas propias — doctrina
+            // anti-overreach: una forma por ciclo); las compuestas
+            // «escanear el DNI y enviarlo al banco…»/«por las dos
+            // caras…» capturan (misma gestión, no bivalencia). Negación
+            // sin cláusula en [imperativeIsNegated]: keyword «escanear»
+            // 0.12 + bono temporal 0.1 = 0.22 < umbral (aritmética
+            // c.859/c.860/c.862/c.863) y el piso lleva (?<!no ). El
+            // prefijo re- («reescanear») queda excluido por el ancla
+            // (lookahead directo tras «escanear»; lateral candidata).
+            // Lockstep keyword-VERBO «escanear» en [ContextIntentKind.TASK]
+            // (lección c.751; verbo monosemántico, precedente c.752
+            // «votar») + plantilla de título. Kind TASK (no ERRAND):
+            // acción única completable sin desplazamiento; precedente
+            // c.698 «renovar el DNI» (gestión documental TASK) y
+            // convergencia con la envolvente «recuérdame escanear el
+            // DNI…» (c.613, TASK).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -3004,6 +3030,18 @@ object ContextIntentEngine {
                 // sin tilde queda tal cual.
                 val matchDeclaracionRenta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDeclaracionRenta != null) return "Hacer ${matchDeclaracionRenta.groupValues[2]}"
+                // c.864: plantilla «escanear el DNI» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en
+                // el verbo, así acuse/prefijo temporal se despojan; el
+                // residuo temporal de cola lo depura [sanitizeTitle]; el
+                // resto de la frase —«y enviarlo al banco», «por las dos
+                // caras»— se conserva: es la misma gestión, no un objeto
+                // bivalente; los bivalentes «escanear el contrato…»/
+                // «las notas…» nunca llegan aquí porque el piso no los
+                // captura). La grafía del usuario se preserva (doctrina
+                // c.653).
+                val matchEscanearDni = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEscanearDni != null) return "Escanear ${matchEscanearDni.groupValues[2]}"
 
                 null
             }

@@ -70,6 +70,18 @@ import com.ordia.app.context.ContextIntentEngine
  *        «hacer la renta…» (elipsis) y «hacer la declaración este mes»
  *        (desnuda).
  *     6) «escanear el DNI esta tarde» — gestión documental.
+ *        RESUELTA en c.864 (piso NUEVO acotado al objeto «dni» con el
+ *        verbo monosemántico «escanear» en [hasStrongTaskImperative] +
+ *        plantilla de título + lockstep keyword-VERBO «escanear» en
+ *        ContextIntent.kt — lección c.751, precedente «votar» c.752 —;
+ *        las compuestas «…y enviarlo al banco»/«…por las dos caras»
+ *        capturan; guards NULL: negación/duda/pasado/suelto/
+ *        «reescanear» (prefijo re-, fuera del ancla); test
+ *        ContextIntentEngineEscanearDniFloorTest), movida a
+ *        REGRESIONES. Laterales medidas NULL (candidatas propias):
+ *        «escanear el contrato…», «escanear las notas…», «escanear el
+ *        código QR…» (otros objetos), «fotocopiar el DNI…» (verbo
+ *        distinto) y «reescanear el DNI…» (prefijo re-).
  *     7) «reclamar la factura del banco mañana» — finanzas hogar.
  *   REGRESIONES — 24 HITs confirmados: 17 formas de la clase que YA
  *   capturan (ITV/aceite/ruedas/lavar coche, pasaporte, firmar
@@ -90,8 +102,11 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // --- CAPTURAS (gaps medidos NULL en c.857) ---
-        "escanear el DNI esta tarde",
         "reclamar la factura del banco mañana",
+        // --- REGRESIÓN c.864: candidata 6 resuelta (piso nuevo acotado
+        // «escanear el DNI» + plantilla de título + lockstep
+        // keyword-VERBO «escanear»); era NULL en c.857 ---
+        "escanear el DNI esta tarde", // TASK
         // --- REGRESIÓN c.863: candidata 5 resuelta (piso nuevo acotado
         // «declaraci[oó]n de la renta» + plantilla de título); era NULL
         // en c.857 ---
