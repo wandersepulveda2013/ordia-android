@@ -17775,3 +17775,28 @@ a un permiso persistente frágil y silencioso ante fallos.
   residual P2. Re-fetch OBLIGATORIO.
 
 ---
+
+## c.880 (2026-08-22) — feat(context): objeto «carta» en el piso «contestar» (lateral c.873)
+
+- **HEAD inicial**: `44f136a` (c.879 «contestarle»). Baseline: OK (5773).
+- **Área**: context (ContextIntentEngine piso+plantilla; ContextIntent.kt keyword).
+- **Latente**: piso c.873 acotado a correo/email/mensaje; la carta física es
+  correo real en español y «contestar la carta» quedaba NULL. Consecuencia
+  real: correo físico sin responder olvidado.
+- **Sonda PRE** efímera `/tmp/probe878/PreContestarCartaProbe.kt` sobre HEAD
+  44f136a: 3/3 candidatas NULL; 2/2 guards NULL (negada + bivalente restaurante);
+  2/2 regresiones HIT (c.873/c.860).
+- **Fix mínimo** (lockstep TRES puntos, lección c.616/c.751): (1) objeto
+  `cartas?` en la alternativa acotada; (2) plantilla lockstep (grafía
+  preservada, doctrina c.653); (3) keyword-OBJETO «carta» (inerte sola:
+  0.12 < umbral; guard bivalente restaurante medido PRE/POST).
+- **TDD**: `ContextIntentEngineContestarCartaFloorTest.kt` (8 = 3 capturas +
+  2 guards + 3 regresiones). RED confirmado en PRE.
+- **OK**: 5781 tests (5773 + 8), 0 failures; smoke 25/25. Cero mojibake (utf-8).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- **Próxima prioridad**: c.881 laterales restantes («hacerme/hacerse tatuaje»,
+  «prueba de embarazo», «reclamar una factura», «escanear contrato/notas/QR»,
+  «fotocopiar/reescanear el DNI», «me mido la presión/tensión», «declarar la
+  renta» periodo); auditoría clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
+---

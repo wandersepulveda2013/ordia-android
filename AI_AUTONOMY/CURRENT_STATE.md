@@ -1,5 +1,16 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
+## Ciclo c.880 (2026-08-22) — feat(context): objeto «carta» en el piso «contestar» (lateral c.873)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).
+- Latente: el piso «contestar <objeto>» (c.873) acotaba correo/email/mensaje, pero la carta física sigue siendo correo real en español; «contestar la carta» quedaba NULL. Consecuencia real: correo físico sin responder olvidado.
+- Sonda PRE efímera `/tmp/probe878/PreContestarCartaProbe.kt` sobre HEAD 44f136a: 3/3 candidatas NULL; 2/2 guards NULL (negada + bivalente «la carta del restaurante»); 2/2 regresiones HIT.
+- Lockstep TRES puntos (lección c.616/c.751): (1) objeto `cartas?` en la alternativa acotada del piso; (2) plantilla lockstep (grafía preservada, doctrina c.653); (3) keyword-OBJETO «carta» (subcadena inerte en bloqueos, 0.12 < umbral sola; guard bivalente medido PRE/POST).
+- Test `ContextIntentEngineContestarCartaFloorTest.kt` (8 = 3 capturas + 2 guards + 3 regresiones).
+- Suite: OK (5781 = 5773 + 8), 0 failures; smoke 25/25. Cero mojibake (utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- Próxima prioridad: c.881 laterales restantes («hacerme/hacerse tatuaje», «prueba de embarazo», «reclamar una factura», «escanear el contrato/las notas/código QR», «fotocopiar/reescanear el DNI», «me mido la presión/tensión» perífrasis, «declarar la renta» periodo); nueva auditoría de clase NOVENA al agotar. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.879 (2026-08-22) — feat(context): piso extendido «contestarle» (dativo enclítico, lateral c.861)
 
 - Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; ContextIntent.kt keyword).

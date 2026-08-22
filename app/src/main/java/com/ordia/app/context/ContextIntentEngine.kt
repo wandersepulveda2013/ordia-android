@@ -1786,7 +1786,10 @@ object ContextIntentEngine {
             // d153b82). Guards: «el examen» sigue STUDY; «el teléfono» FUERA.
             // Lockstep con la plantilla de [extractTitle]; keywords-OBJETO
             // «correo»/«email»/«mensaje» ya existen (ContextIntent.kt).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar(?:les?)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?)\b|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w)""").containsMatchIn(lower) 
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar(?:les?)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?)\b|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w)""").containsMatchIn(lower) 
+            // c.880: objeto «carta» (lateral c.873; «la carta» física sigue siendo
+            // correo real en español). Hermano de c.879 (dativo inerte por
+            // subcadena de grupo). c.879+c.880 en las dos ramas.
             // c.879: dativo enclítico `les?` opcional («contestarle a Juan» /
             // «contestarles a los vecinos»). Hermano de c.861/c.872/c.873;
             // guardas bivalentes idénticas (al examen/a la pregunta/a tiempo)
@@ -3138,7 +3141,7 @@ object ContextIntentEngine {
                 // bivalentes «contestar a la pregunta…»/«a tiempo…» nunca
                 // llegan aquí porque el piso no los captura). La grafía
                 // del usuario se preserva (doctrina c.653).
-                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar(?:les?)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?)\b.*|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*))""", RegexOption.IGNORE_CASE).find(original)
+                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar(?:les?)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?)\b.*|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*))""", RegexOption.IGNORE_CASE).find(original)
                 if (matchContestarA != null) return matchContestarA.groupValues[1].replaceFirstChar { it.uppercase() } + " " + matchContestarA.groupValues[2]
                 // c.875: plantilla «presentar la declaración de la
                 // renta» (ancla/guard idénticos al piso; lección c.616:

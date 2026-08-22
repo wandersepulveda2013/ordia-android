@@ -88,6 +88,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // subcadena). Sin ella «contestarle a Juan» ni llega al análisis
         // (el enclítico intercalado rompe la subcadena de «contestar a»).
         "contestarle",
+        // c.880: keyword-OBJETO "carta" (lockstep con la extensión del
+        // piso hermano c.873; la carta física sigue siendo correo real en
+        // español). Bivalente medido en sonda PRE: «la carta del
+        // restaurante/menú» 0.12 < umbral sola, inerte.
+        "carta",
         // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la
