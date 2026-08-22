@@ -17642,3 +17642,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarAlPisoTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Commit: d7861fc (+ docs 7020306). HEAD final: 7020306.
 - Próxima prioridad: laterales context restantes (contestar el correo/mensaje; contestarle dativo; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
+
+## c.873 — 2026-08-22 (openhands)
+- HEAD inicial: d153b82 (mi propio push docs c.872; fetch PRE-trabajo intacto). SIN colisión.
+- Seleccionado: laterales c.861 «contestar el correo de Ana»/«contestar el mensaje de Juan hoy». Sonda PRE efímera /tmp/probe867/PreProbe873.kt: 6/6 candidatas NULL, 5/5 controles (examen STUDY 0.47; teléfono/carta/negada/duda/pasado NULL), 3/3 regresiones HIT.
+- Cambios (lockstep DOS puntos): objeto del piso hasStrongTaskImperative + plantilla extractTitle extendidos con `(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?)`. Keywords-OBJETO ya existían (l.168). Kind TASK.
+- Tests: ContextIntentEngineContestarObjetoFloorTest.kt (NUEVO, 15 = 6 capturas + 6 guards + 3 regresiones). RED exacto: EXACTAMENTE 6 fallos. Sonda POST: 15/15 correctas, títulos fieles.
+- Suite: OK (5709 = 5694+15); smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Archivos: ContextIntentEngine.kt, ContextIntentEngineContestarObjetoFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Próxima prioridad: laterales context restantes (contestarle dativo; contestar la carta; hacerse tatuaje; reclamar una factura; responder a Juan); perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
