@@ -165,7 +165,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // correo/email», lección c.751/c.859: sin ella la frase ni llega al
         // análisis). 0.12 sola < umbral y el piso exige el verbo+objeto, así
         // no roba rutas.
-        "correo", "email", "paquete", "devolver", "recoger",
+        "correo", "email", "mensaje", "paquete", "devolver", "recoger",
         "dejar", "pagar", "factura", "recibo",
         // c.718: parada de trámite (lockstep keyword↔piso `ERRAND_STOPBY_FLOOR`,
         // lección c.639/c.717). El destino lo acota el piso; el keyword sólo

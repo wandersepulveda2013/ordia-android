@@ -17590,3 +17590,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: `NaturalTaskParser.kt`, `NaturalTaskParserTipoBareTest.kt` (nuevo), `tools/probe/TipoBareTimeProbe.kt` (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
 - Próxima prioridad: laterales context acumuladas c.860…c.865; perífrasis «me mido la presión/tensión»; residual P2 c.818; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
 - **Commits**: 8d4adbd. **HEAD final**: 8d4adbd (commit c.868).
+
+## c.869 — 2026-08-22 (openhands) [originalmente c.868 — renumerado por colisión cycle-ID con el hermano]
+- HEAD inicial: 2115224 (mi propio push c.867). Trabajo implementado y verde sobre 2115224.
+- COLISIÓN cycle-ID: fetch PRE-commit reveló el c.868 parser del hermano (8d4adbd «tipo N» + 3503ac3, zona DISJUNTA). Protocolo: stash-docs → checkout docs → pull --ff-only a 3503ac3 (código propio intacto, zona disjunta) → renumeración c.868→c.869 (engine+test+docs) → re-aplicación de docs → re-verificación completa. Nada del trabajo ajeno tocado.
+- Seleccionado: lateral c.860 «responder el mensaje de Juan mañana» (segunda extensión del objeto del piso hermano). Sonda PRE efímera /tmp/probe867/PreProbe868.kt: 7/7 candidatas NULL, 5/5 controles, 9/9 regresiones HIT (envolvente mensaje ya ruteaba por candado c.613).
+- Cambios (lockstep TRES puntos): piso hasStrongTaskImperative objeto `(?:correos?|emails?|mensajes?)` + plantilla extractTitle + keyword-OBJETO «mensaje». Kind TASK. Sin cláusula imperativeIsNegated.
+- Tests: ContextIntentEngineResponderMensajeFloorTest.kt (NUEVO, 17 = 7 capturas + 5 guards + 5 regresiones). RED exacto: EXACTAMENTE 7 fallos. Sonda POST: 7/7 HIT título fiel, controles/regresiones intactos.
+- Suite post-fusión (base 3503ac3): OK (5656 = 5639+17); smoke 25/25. Cero mojibake (python utf-8).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineResponderMensajeFloorTest.kt (nuevo), BACKLOG.md, CURRENT_STATE.md, RUN_LOG.md.
+- Commit: HASH_PENDIENTE. HEAD final: HASH_PENDIENTE.
+- Próxima prioridad: laterales context c.860 («responder al correo») y c.861…c.865; perífrasis presión/tensión, P2 c.818, BLOCKED-humano. Re-fetch OBLIGATORIO.
