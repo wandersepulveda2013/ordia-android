@@ -6,6 +6,7 @@
 - **Suite**: OK (5863) sin delta — docs-only. NO VERIFICADO: Android/gradle/lint/UI/Room.
 - **Docs**: BACKLOG.md (fila c.890 al frente), CURRENT_STATE.md (entrada c.890 al frente).
 - **Próxima prioridad**: «sacar dinero/efectivo (del cajero)» — decidir dominio y lockstep piso+plantilla(+keyword si hace falta) en su ciclo.
+- **Lección c.889 (wipe accidental mi propio)**: mi resolución de rebase en `cd55432→d112367` usó `re.sub(r"<<<<<<< HEAD\n.*=======...` con `.*` GREEDY + `re.S` sobre `CURRENT_STATE.md` → el archivo quedó en 21 líneas (historial de 13.5k borrado). El hermano lo restauró ADITIVAMENTE en `94aadb4` (STALE_RUN c.889b, convención explícita: PREPEND, nunca wipe — lección c.653/c.817/c.889b). Causa raíz: no verifiqué la longitud tras resolver. Corrección adoptada en c.890 (conflicto RUN_LOG): split exacto por marcador literal, sin regex greedy; assert de marcadores cero + longitud verificada (15.451 líneas). La evidencia respaldada: 94aadb4 hermano.
 
 ## RUN 2026-08-22 — ciclo c.889b STALE_RUN (duplicado con hermano; descartado no destructivo) + restauración aditiva `CURRENT_STATE`
 
