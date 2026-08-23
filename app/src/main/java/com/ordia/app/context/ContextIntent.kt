@@ -342,6 +342,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // así «atm» aislado o declarativo no cola y el piso exige el verbo
         // de destino igual que «cajero».
         "atm",
+        // c.914: keyword-DESTINO «biblioteca» (lockstep con la extensión
+        // del piso `ir a` que añade «biblioteca», lección c.751 — sin ella
+        // la notificación «ir a la biblioteca mañana» ni llegaría al
+        // análisis). Monosémica (el lugar); 0.12 sola inerte < umbral, así
+        // «la biblioteca cierra a las 20h» (declarativo) sigue descartado
+        // aun con bono temporal (0.22 < 0.45) y el piso exige el verbo de
+        // destino igual que «banco»/«cajero».
+        "biblioteca",
         // c.909: keyword-DIVISA «euro» (lockstep con la rama cantidad del
         // piso [ERRAND_CASH_FLOOR] «sacar <N> euros», lección c.751 — sin
         // ella la notificación «sacar 50 euros mañana» ni llegaría al
