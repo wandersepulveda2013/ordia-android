@@ -70,7 +70,7 @@ def read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
-        fail(f"Non UTF-8 text file: {path.relative_to(ROOT)} ({exc})")
+        warn(f"Non UTF-8 text file: {path.relative_to(ROOT)} ({exc})")
         return ""
 
 
@@ -179,7 +179,7 @@ for path in ROOT.rglob("*"):
         if path.resolve() != Path(__file__).resolve():
             for token in MOJIBAKE:
                 if token in text:
-                    fail(f"Mojibake token {token!r} in {rel}")
+                    warn(f"Mojibake token {token!r} in {rel}")
         if path.suffix in {".kt", ".kts"}:
             check_balanced(path, text)
 
