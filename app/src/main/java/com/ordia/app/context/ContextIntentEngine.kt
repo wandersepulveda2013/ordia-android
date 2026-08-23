@@ -2401,7 +2401,17 @@ object ContextIntentEngine {
             // integrada con el «a(?:l)?» del hermano c.902: «dar las
             // gracias a…»/«…al jefe» siguen casando exactamente igual
             // (cero reescritura, lección c.616/c.751).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+las\s+gracias\s+a(?:l)?\s+\w""").containsMatchIn(lower)
+            // c.904: lateral sin artículo «dar gracias a <destino>» (rama 2;
+            // medida NULL en la sonda hermana c.901, UNA forma por ciclo).
+            // Bivalencia MEDIDA (decisión conservadora): la forma pelada es
+            // la habitual de las figuradas/religiosas («dar gracias a Dios/
+            // a la vida/al cielo») — el guard anti-figurado va SOLO en la
+            // rama sin artículo; la rama «las» (c.901/c.902/c.903) casa
+            // exactamente igual (cero reescritura, lección c.616/c.751).
+            // La lateral enclítico-sin-artículo «darle gracias a…» queda
+            // FUERA (anti-overreach, medida NULL en la sonda): el
+            // lookbehind `(?<!darle\s)` la excluye de la rama 2.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|(?<!darle\s)gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3210,8 +3220,12 @@ object ContextIntentEngine {
                 // del «medir(?:me)?» c.843, que capitaliza el verbo DESDE
                 // el match). La forma no enclítica produce el mismo título
                 // que antes (cero reescritura).
-                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(dar(?:le)?)\s+las\s+gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchDarLasGracias != null) return "${capitalizeFirst(matchDarLasGracias.groupValues[1])} las gracias ${matchDarLasGracias.groupValues[2]}"
+                // c.904: el artículo «las» se CAPTURA opcional del match
+                // (lockstep con la rama sin artículo del piso) — se
+                // preserva la forma del usuario: «Dar las gracias a…»
+                // (título idéntico a c.901) y «Dar gracias a…».
+                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(dar(?:le)?)\s+(las\s+)?(?<!darle\s)gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDarLasGracias != null) return "${capitalizeFirst(matchDarLasGracias.groupValues[1])} ${matchDarLasGracias.groupValues[2]}gracias ${matchDarLasGracias.groupValues[3]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se

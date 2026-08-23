@@ -151,12 +151,16 @@ class ContextIntentEngineDarLasGraciasFloorTest {
     // ─── Laterales a medir (NULL deliberado, NO de este ciclo) ──────
 
     @Test
-    fun `lateral sin articulo queda a medir (anti-overreach)`() {
+    fun `lateral sin articulo resuelta en c904 (captura intencional)`() {
         // c.903: la lateral enclítica «darle las gracias a Ana…» se resolvió
-        // (ver ContextIntentEngineDarleLasGraciasFloorTest); esta guarda pasa
-        // a cubrir solo la forma sin artículo, que sigue fuera de alcance.
-        assertNull("«dar gracias a Ana…» (sin artículo; lateral registrada)",
-            analyze("dar gracias a Ana por el regalo"))
+        // (ver ContextIntentEngineDarleLasGraciasFloorTest). c.904: la forma
+        // sin artículo pasa a captura intencional (rama propia del piso con
+        // guard anti-figurado; precedente c.882/c.893/c.903) — esta guarda
+        // deja de ser NULL y pasa a verificar la captura hermana.
+        val r = analyze("dar gracias a Ana por el regalo")
+        assertNotNull("«dar gracias a Ana…» (sin artículo; c.904)", r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Dar gracias a Ana por el regalo", r.title)
     }
 
     // ─── Regresiones (verdes desde RED) ─────────────────────────────

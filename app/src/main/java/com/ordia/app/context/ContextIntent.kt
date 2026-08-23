@@ -212,8 +212,9 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // llegaba al análisis (lección c.751) y el agradecimiento
         // pendiente se olvidaba. 0.12 sola inerte < umbral y el piso
         // exige ancla dativa «a <destino>» — «dar las gracias» suelto
-        // y la lateral «dar gracias a…» siguen descartados (NULL
-        // deliberado, sonda `tools/probe/DarLasGraciasProbe.kt`).
+        // sigue descartado (NULL deliberado, sonda
+        // `tools/probe/DarLasGraciasProbe.kt`); la lateral «dar gracias
+        // a…» se resuelve en c.904 (rama propia con guard anti-figurado).
         "dar las gracias",
         // c.903: keyword-frase «darle las gracias» (lockstep con la
         // extensión enclítica del piso c.901; ver
@@ -224,7 +225,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // agradecimiento pendiente en su forma MÁS cotidiana se olvidaba.
         // 0.12 sola inerte < umbral y el piso exige ancla dativa
         // «a <destino>» (sonda `tools/probe/DarleLasGraciasProbe.kt`).
-        "darle las gracias")),
+        "darle las gracias",
+        // c.904: keyword-frase «dar gracias» (lockstep con la rama sin
+        // artículo del piso c.901; ver
+        // ContextIntentEngine.hasStrongTaskImperative). «dar gracias a
+        // Ana» NO contiene «dar las gracias» (sin el artículo no casa la
+        // frase, lección c.751): sin ella la notificación ni llegaba al
+        // análisis (medido NULL en la sonda c.901) y el agradecimiento
+        // pendiente en su forma pelada se olvidaba. 0.12 sola inerte <
+        // umbral y el piso exige ancla dativa «a <destino>» + guard
+        // anti-figurado (sonda
+        // `tools/probe/DarGraciasSinArticuloProbe.kt`).
+        "dar gracias")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
