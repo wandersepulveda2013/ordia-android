@@ -1,3 +1,16 @@
+## Ciclo c.934 (2026-08-23)
+**Título**: docs(ai_autonomy): resolución de colisión DUPLICADA c.933 (conector «a las» plural, convergencia total) + verificación del HEAD heredado — SIN cambio de motor (doctrina duplicados c.916).
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `46d6018` (c.932 docs, rama up-to-date con origin). **HEAD final**: (commit docs de este ciclo).
+**Entorno**: toolchain REINSTALADA (entorno fresco: JDK Temurin 21.0.12.1 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`). HEAD heredado verificado antes de tocar nada: suite **OK (6258)** (claim c.932 confirmado, no asumido).
+**Unidad seleccionada**: «avisar a las primeras/últimas horas» (artículo plural «a las» + ordinal de hora — lateral medida FUERA en c.931/c.932).
+**Sonda (efímera `/tmp/probe933/PreProbe.kt`, 19 casos; motor real vía `tools/run_probe.sh`, now=domingo 2026-08-23 12:00 America/Santo_Domingo)**: PRE — 8/8 candidatas residuo «a las» con fecha correcta (09:00/18:00/15:00); guards narrativos 3/3 protegidos; pins/regresiones byte-idénticos.
+**TDD ejecutado sobre mi base**: test NUEVO `NaturalTaskParserALasOrdinalHoraTest.kt` (17 tests) — RED exacto (6275 run, EXACTAMENTE 8 fallos = las 8 capturas) → fix (conector `a\s+las?` en ambos patrones + guard `a\s+las?`) → GREEN local (6275) + 2 re-pins legítimos preparados; smokes 25/25 + 9/9.
+**Colisión duplicada (re-fetch pre-push)**: el hermano publicó `51cf599` (SU c.933) con la MISMA unidad y fix CONVERGENTE palabra por palabra (mismo regex, mismo guard, mismos re-pins) + clase de 18 tests con cobertura superior (bivalentes «avisar a las primeras personas» NULL, narrativa con prefijo, pin c.102). Doctrina de duplicados (c.916): stash → `pull --ff-only` → delta real medido caso a caso = CERO aditivo (mis casos únicos = variantes simétricas cubiertas o pins existentes) → `git stash drop` sin pisar el remoto. Renumerado c.933→c.934.
+**Tests**: HEAD heredado `51cf599` verificado tras integración: `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → **OK (6276 = 6258 c.932 + 18)** (claim del hermano confirmado, no asumido); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+**Cambios**: M `AI_AUTONOMY/CURRENT_STATE.md` + `AI_AUTONOMY/RUN_LOG.md` (docs-only). Sonda efímera `/tmp/probe933/` (medida documentada aquí). Stash local duplicado descartado (`git stash drop`).
+**Estado**: **VERIFIED (JVM, HEAD heredado)**. Sin cambio de motor ni de tests (ciclo docs-only, alternativa = actividad falsa).
+**Próxima prioridad**: laterales medidas en c.933 («avisar la última hora» — pin conservador deliberado, NO re-abrir sin doctrina nueva; compuesto weekday; determinante no al inicio) o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.933 (2026-08-23)
 **Título**: fix(parser): conector «a las» (artículo plural) + ordinal de hora plural («avisar a las primeras/últimas horas») — lateral medida FUERA en c.931/c.932; el patrón consume «a las» + guard extendido a «a las?» (las narrativas plurales «a las primeras horas de clase…» siguen protegidas).
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `46d6018` (c.932 docs, rama up-to-date con origin; sin colisión cycle-ID). **HEAD final**: (commit de este ciclo).
