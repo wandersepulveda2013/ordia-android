@@ -46,8 +46,9 @@ import org.junit.Test
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
  * c.615): la lateral enclítico-sin-artículo «darle gracias a…»
- * medida NULL en la sonda (LAT-1) — queda registrada para ciclos
- * futuros (sin keyword, nunca llega al piso).
+ * medida NULL en la sonda (LAT-1) — RESUELTA en c.905 (su guarda NULL
+ * de esta clase pasa a captura intencional, precedente c.882/c.893/
+ * c.903); con ella la matriz enclítico × artículo queda AGOTADA.
  */
 class ContextIntentEngineDarGraciasSinArticuloFloorTest {
 
@@ -114,12 +115,17 @@ class ContextIntentEngineDarGraciasSinArticuloFloorTest {
             analyze("dar gracias al cielo"))
     }
 
-    // ─── Lateral a medir (NULL deliberado, NO de este ciclo) ────────
+    // ─── Lateral resuelta en c.905 (captura intencional; antes guarda
+    // NULL de ESTA clase, actualizada deliberadamente — precedente
+    // c.882/c.893/c.903) ─────────────────────────────────────────────
 
     @Test
-    fun `lateral enclitico sin articulo queda a medir (anti-overreach)`() {
-        assertNull("«darle gracias a Ana…» (enclítico sin artículo; lateral registrada)",
-            analyze("darle gracias a Ana por el regalo"))
+    fun `lateral enclitico sin articulo captura desde c905`() {
+        val r = analyze("darle gracias a Ana por el regalo")
+        assertNotNull("«darle gracias a Ana…» (enclítico sin artículo; resuelta c.905)",
+            r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Darle gracias a Ana por el regalo", r.title)
     }
 
     // ─── Regresiones (verdes desde RED) ─────────────────────────────

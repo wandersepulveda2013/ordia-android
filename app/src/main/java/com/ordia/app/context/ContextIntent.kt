@@ -236,7 +236,19 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // umbral y el piso exige ancla dativa «a <destino>» + guard
         // anti-figurado (sonda
         // `tools/probe/DarGraciasSinArticuloProbe.kt`).
-        "dar gracias")),
+        "dar gracias",
+        // c.905: keyword-frase «darle gracias» (lockstep con la lateral
+        // FINAL del piso c.901 — enclítico sin artículo; ver
+        // ContextIntentEngine.hasStrongTaskImperative). «darle gracias a
+        // Ana» NO contiene «dar gracias» ni «dar las gracias» (el
+        // enclítico rompe ambas cadenas, lección c.751): sin ella la
+        // notificación ni llegaba al análisis (medido NULL en las sondas
+        // c.903/c.904 y re-medido PRE en
+        // `tools/probe/DarleGraciasSinArticuloProbe.kt`). 0.12 sola
+        // inerte < umbral y el piso exige ancla dativa «a <destino>» +
+        // guard anti-figurado — «darle gracias» suelto y «darle gracias
+        // a Dios/a la vida/al cielo» siguen descartados (NULL deliberado).
+        "darle gracias")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

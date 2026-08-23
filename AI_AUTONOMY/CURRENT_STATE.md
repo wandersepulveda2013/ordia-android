@@ -1,3 +1,14 @@
+## Ciclo c.905 (2026-08-23) — feat(context): lateral FINAL enclítico-sin-artículo «darle gracias a <persona> (por <objeto>)» (matriz enclítico × artículo de la familia «dar (las) gracias» AGOTADA, lockstep TRES puntos)
+
+- Integración: base `d1eca89` (c.904) limpia (checkout/pull --ff-only, HEAD==origin, sin colisión); toolchain reinstalado por entorno nuevo (OpenJDK 21 vía apt tras arreglar lock dpkg, kotlinc 2.1.20, jars `/tmp/libs`; AGENTS.md §6); baseline `JAVA_OPTS=-Xmx6g` → **OK (5984)** medida en ESTE run.
+- Área: **context** `ContextIntentEngine.kt` + `ContextIntent.kt`. Problema P1 (lateral registrada c.901, medida NULL en las sondas hermanas c.903/c.904 y re-medida PRE): la forma enclítica sin artículo «darle gracias a Ana por el regalo» (dativo pegado + forma pelada) caía a NULL — última combinación de la matriz enclítico × artículo (c.901 articulada, c.902 «al», c.903 enclítica articulada, c.904 sin artículo): matriz AGOTADA.
+- NULL PRE medido por sonda NUEVA persistida `tools/probe/DarleGraciasSinArticuloProbe.kt` (18 casos, motor real vía `tools/run_probe.sh`): 5/5 candidatas NULL, 7/7 guards NULL (negación/subjuntivo/pasado/sin-destino + figuradas «a Dios»/«a la vida»/«al cielo»), 6/6 regresiones HIT.
+- Lockstep TRES puntos (lección c.616/c.751): (1) piso — lookbehind `(?<!darle\s)` de la rama 2 retirado (el enclítico solo anticipa el destinatario que la dativa confirma, hermano de c.903; guard anti-figurado de la rama 2 intacto y verificado: figuradas siguen NULL); (2) keyword-frase «darle gracias» en `ContextIntentKind.TASK` (0.12 sola inerte < umbral: «darle gracias» suelto sigue NULL); (3) plantilla: mismo lookbehind retirado, enclítico del grupo 1 preservado «Darle gracias a Ana…» (idéntico al título de la envolvente c.613).
+- TDD estricto: test nuevo `ContextIntentEngineDarleGraciasSinArticuloFloorTest` (8 tests). RED exacto (8 run, EXACTAMENTE 4 fallos: 3 capturas + lockstep keyword) → GREEN 8/8. Guard hermana c.904 actualizada a captura intencional (precedente c.882/c.893/c.903).
+- Suite completa `bash tools/run_domain_tests.sh` → **OK (5992 = 5984 c.904 + 8)**. POST sonda: 5/5 HIT TASK 0.45 títulos limpios + dueAt, 7/7 guards NULL, 6/6 regresiones HIT.
+- Determinista (regex), cero random, cero IA fingida, cero UI. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Próxima prioridad: clase NOVENA dinero/banca (familias restantes del barrido c.892, sonda `tools/probe/NinthClassMoneyProbe.kt`). Re-fetch OBLIGATORIO antes de cada paso.
+
 ## Ciclo c.904 (2026-08-23) — feat(context): lateral sin artículo «dar gracias a <persona> (por <objeto>)» (rama 2 del piso c.901 con guard anti-figurado, lockstep TRES puntos)
 
 - Integración: base `c25e128` (mi c.903) limpia (checkout/pull --ff-only, HEAD==origin); toolchain reinstalado por entorno nuevo (OpenJDK 21 + kotlinc 2.1.20 + jars `/tmp/libs`; AGENTS.md §6); baseline `JAVA_OPTS=-Xmx6g`.

@@ -2408,10 +2408,21 @@ object ContextIntentEngine {
             // a la vida/al cielo») — el guard anti-figurado va SOLO en la
             // rama sin artículo; la rama «las» (c.901/c.902/c.903) casa
             // exactamente igual (cero reescritura, lección c.616/c.751).
-            // La lateral enclítico-sin-artículo «darle gracias a…» queda
-            // FUERA (anti-overreach, medida NULL en la sonda): el
-            // lookbehind `(?<!darle\s)` la excluye de la rama 2.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|(?<!darle\s)gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower)
+            // La lateral enclítico-sin-artículo «darle gracias a…» quedó
+            // FUERA en c.904 (anti-overreach, UNA forma por ciclo).
+            // c.905: lateral FINAL de la familia «dar (las) gracias»
+            // (matriz enclítico × artículo AGOTADA; medida NULL en las
+            // sondas hermanas c.903/c.904 y re-medida PRE en
+            // `tools/probe/DarleGraciasSinArticuloProbe.kt`: 5/5 candidatas
+            // NULL, 7/7 guards NULL, 6/6 regresiones HIT). Se retira el
+            // lookbehind `(?<!darle\s)` de la rama 2: el enclítico solo
+            // anticipa el destinatario que la dativa «a <destino>»
+            // confirma (hermano del «darle las gracias» c.903); el guard
+            // anti-figurado de la rama 2 sigue protegiendo «darle gracias
+            // a Dios/a la vida/al cielo» (bivalencia medida c.904).
+            // Lockstep: keyword-frase «darle gracias» (lección c.751) y
+            // plantilla en [extractTitle] (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3224,7 +3235,11 @@ object ContextIntentEngine {
                 // (lockstep con la rama sin artículo del piso) — se
                 // preserva la forma del usuario: «Dar las gracias a…»
                 // (título idéntico a c.901) y «Dar gracias a…».
-                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(dar(?:le)?)\s+(las\s+)?(?<!darle\s)gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                // c.905: se retira el lookbehind `(?<!darle\s)` (lockstep
+                // con la lateral FINAL del piso) — el enclítico capturado
+                // en el grupo 1 se preserva: «Darle gracias a Ana…»
+                // (mismo título que ya producía la envolvente c.613).
+                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(dar(?:le)?)\s+(las\s+)?gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDarLasGracias != null) return "${capitalizeFirst(matchDarLasGracias.groupValues[1])} ${matchDarLasGracias.groupValues[2]}gracias ${matchDarLasGracias.groupValues[3]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
