@@ -747,9 +747,13 @@ object ContextIntentEngine {
     // TASK vía piso deliberado c.716 — no se toca). c.911: la divisa
     // admite «pesos» (lateral LatAm medida NULL en sonda PRE
     // `/tmp/probe911/`; la forma «<N> mil pesos» tiene ancla distinta y
-    // queda FUERA; «libras» bivalente — a medir).
+    // queda FUERA). c.912: la divisa admite «libras» (lateral esterlina
+    // medida NULL en sonda PRE `/tmp/probe912/`; la bivalencia
+    // «libras» = unidad de peso no colide — «sacar»+cantidad+«libras»
+    // solo se lee como divisa; «perder/pesar/levantar <N> libras»
+    // medidos NULL porque la keyword sola suma 0.12 inerte < umbral).
     private val ERRAND_CASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b)""")
+        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b)""")
     // c.894: SEGUNDA familia de la clase NOVENA (dinero/banca cotidiana,
     // sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE verificado
     // por la sonda persistida `IngresarDineroProbe.kt`: 6/6 NULL). El verbo
@@ -2797,7 +2801,7 @@ object ContextIntentEngine {
         // también aquí (cinturón y tirantes, precedente c.717 «sacar la
         // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b)""").containsMatchIn(lower)
+            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b)""").containsMatchIn(lower)
         ) return true
         // "ingresar dinero/reembolso" (ERRAND, piso acotado c.894): hermano
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
@@ -4200,8 +4204,9 @@ object ContextIntentEngine {
                 // cajero» (alineación piso↔título, lección c.616).
                 // c.910: la divisa admite «dólares»/«dolares» (grafía
                 // preservada, doctrina c.653). c.911: admite «pesos».
+                // c.912: admite «libras».
                 val matchCash = Regex(
-                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b).*)""",
+                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCash != null) {
