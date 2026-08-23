@@ -34,6 +34,12 @@ fun main() {
     show("CAND-C", "mañana dar las gracias a Irene")
     show("CAND-D", "vale, dar las gracias a papá por el favor hoy")
     show("CAND-E", "dar las gracias a los vecinos el viernes")
+    // c.902 (delta STALE_RUN): contracción «al» («a + el») — el piso c.901
+    // exigía «a» literal + \s + \w, así «dar las gracias al jefe» quedaba
+    // NULL (medido PRE sobre b956cc5: la keyword 0.12 sola inerte < umbral).
+    // Esperado PRE: NULL; POST: HIT TASK 0.45.
+    show("CAND-F", "dar las gracias al jefe por el ascenso hoy")
+    show("CAND-G", "mañana dar las gracias al médico")
     // Guards (esperado: NULL correctos)
     show("GUARD-1", "no dar las gracias a Ana")
     show("GUARD-2", "quizá dé las gracias a Ana")

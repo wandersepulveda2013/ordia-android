@@ -104,6 +104,24 @@ class ContextIntentEngineDarLasGraciasFloorTest {
         assertNotNull("«hoy» debe anclar dueAt", r2.dueAt)
     }
 
+    // ─── c.902: contracción «al» (delta STALE_RUN; RED medido en la ──
+    // sonda CAND-F/G sobre b956cc5: NULL — el piso c.901 exigía «a» literal)
+
+    @Test
+    fun `contraccion al tambien ancla el destinatario`() {
+        val r1 = analyze("dar las gracias al jefe por el ascenso hoy")
+        assertNotNull("«dar las gracias al jefe…» debe capturar (NULL medido hasta c.902)", r1)
+        assertEquals(ContextIntentKind.TASK, r1!!.kind)
+        assertEquals("Dar las gracias al jefe por el ascenso", r1.title)
+        assertNotNull("«hoy» debe anclar dueAt", r1.dueAt)
+
+        val r2 = analyze("mañana dar las gracias al médico")
+        assertNotNull(r2)
+        assertEquals(ContextIntentKind.TASK, r2!!.kind)
+        assertEquals("Dar las gracias al médico", r2.title)
+        assertNotNull("«mañana» debe anclar dueAt", r2.dueAt)
+    }
+
     // ─── Lockstep keyword (RED: la frase no existía) ────────────────
 
     @Test

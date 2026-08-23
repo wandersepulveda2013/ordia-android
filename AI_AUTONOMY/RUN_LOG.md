@@ -15617,3 +15617,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 **TDD estricto**: test nuevo `ContextIntentEngineDarLasGraciasFloorTest` (7 tests) — RED exacto (7 run, EXACTAMENTE 3 fallos: 2 capturas + lockstep keyword; guards/laterales/regresiones verdes desde RED) → GREEN 7/7. Suite **`bash tools/run_domain_tests.sh` → OK (5968 = 5961 + 7)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9.
 **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntent.kt` (keyword-frase), test + sonda nuevos, `AI_AUTONOMY/*`. **Estado**: VERIFIED (JVM). **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). Commits/HEAD final: este. **Próxima prioridad**: clase NOVENA dinero/banca (familias restantes del barrido c.892, sonda `tools/probe/NinthClassMoneyProbe.kt`); laterales NOVENA-b registradas en BACKLOG («darle las gracias…», «dar gracias a…»). Re-fetch OBLIGATORIO pre-push.
 ---
+
+
+## Ciclo c.902 (2026-08-23)
+
+- HEAD inicial: `8a557ef` (mi c.901 local sin commitear sobre él; suite 5962 verde pre-push).
+- Push rechazado: el hermano publicó `b956cc5` (su c.901: MISMA candidata (b) «dar las gracias a <persona>», clase NOVENA-b AGOTADA). **STALE_RUN c.901**: mi base obsoleta; comparación de cobertura → duplicado total EXCEPTO contracción «al» (mi piso la aceptaba; el suyo, y su sonda/test, no la cubrían).
+- Integración NO destructiva (doctrina c.896/c.899): `git reset --mixed 8a557ef` (mi commit NO pusheado) → `git stash -u` → `git pull --ff-only` a `b956cc5` → `git stash drop` del duplicado (cero pérdida: guards «dar un paseo»/«dar guerra»/«muchas gracias» redundantes contra su ancla frase-exacta) → delta «al» re-aplicado ADITIVO sobre su piso (precedente c.895/c.896/c.899).
+- Delta c.902: piso `dar\s+las\s+gracias\s+a\s+\w` → `a(?:l)?\s+\w` (UNA forma; plantilla de título intacta — `(.+)` ya captura «al jefe…»; keyword-frase intacta, 0.12 sola inerte: «gracias al final» sigue NULL).
+- Sonda PRE (persistida, extendida aditivamente con CAND-F/G): «dar las gracias al jefe por el ascenso hoy» NULL + «mañana dar las gracias al médico» NULL sobre `b956cc5`. POST: 2/2 HIT TASK 0.45 títulos limpios + dueAt; 5/5 guards NULL; 2/2 laterales NULL (enclítico «darle…», sin-artículo «dar gracias a…» — a medir); 6/6 regresiones HIT.
+- Tests: +1 test (`contraccion al tambien ancla el destinatario`) en `ContextIntentEngineDarLasGraciasFloorTest` (archivo del hermano, precedente c.896). Suite `bash tools/run_domain_tests.sh` → **OK (5969 = 5968 + 1)**; smoke 25/25.
+- Archivos: M `ContextIntentEngine.kt` (piso extendido), M `ContextIntentEngineDarLasGraciasFloorTest.kt` (+1 test), M `tools/probe/DarLasGraciasProbe.kt` (CAND-F/G), M `CURRENT_STATE.md`, M `BACKLOG.md`, M `RUN_LOG.md`. Cero cambios en `ContextIntent.kt`.
+- Determinista (regex), cero random, cero IA fingida, cero UI. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- HEAD final: (commit de este ciclo). Próxima prioridad: clase NOVENA dinero/banca (`NinthClassMoneyProbe.kt` c.892); laterales NOVENA-b medidas NULL.

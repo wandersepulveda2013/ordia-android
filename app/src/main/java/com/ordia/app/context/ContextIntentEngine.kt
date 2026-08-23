@@ -2387,7 +2387,12 @@ object ContextIntentEngine {
             // La negada la cubre el guard del piso; la keyword 0.12 + bono
             // temporal 0.1 = 0.22 < umbral: no hace falta cláusula dedicada
             // en [imperativeIsNegated] (mismo argumento que c.895b/c.895c).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+a\s+\w""").containsMatchIn(lower)
+            // c.902: extensión ADITIVA del piso hermano — la contracción
+            // «al» («a + el») también ancla el destinatario («dar las
+            // gracias al jefe»); medida NULL en la sonda (CAND-F/G) sobre
+            // b956cc5: la keyword 0.12 sola inerte < umbral. Cero cambios
+            // en la plantilla de título: `(.+)` ya captura «al jefe…».
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+a(?:l)?\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
