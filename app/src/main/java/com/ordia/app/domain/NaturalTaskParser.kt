@@ -3521,6 +3521,27 @@ object NaturalTaskParser {
                 ),
                 "$1",
             )
+            // Marcador de plazo coloquial "como muy tarde" (no later than) pegado
+            // a un ancla temporal: la fecha se resolvía bien pero el marcador
+            // sobrevivía como residuo en el título ("pagar la renta como muy
+            // tarde"). Hermano directo de "a más tardar" y simétrico de "sin
+            // falta": se borra sólo cuando hay ancla adyacente —tras ella
+            // ("mañana como muy tarde") o antes ("como muy tarde mañana")—; sin
+            // ancla ("terminarlo como muy tarde") se conserva para no mutar
+            // contenido que quizá no es marcador ("llegó como muy tarde a la
+            // reunión").
+            .replace(
+                Regex(
+                    """(?i)\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana|hoy|pasado\s+ma[nñ]ana|antepasad[oa]\s+ma[nñ]ana)\s+como\s+muy\s+tarde\b""",
+                ),
+                "$1",
+            )
+            .replace(
+                Regex(
+                    """(?i)\bcomo\s+muy\s+tarde\s+(?=(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana\b|hoy\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b))""",
+                ),
+                " ",
+            )
 
         // Fecha relativa COMPUESTA fraccionaria ("en una hora y media"/"en 2 horas y
         // cuarto"): se procesa ANTES que [relativePattern] para que este no robe solo
