@@ -31,6 +31,8 @@ import org.junit.Test
  * FUERA (laterales registradas, byte-idénticas — pins de alcance abajo):
  *  «avisar la última hora» (objeto sin conector: residuo «la» preexistente)
  *  y «avisar a las primeras horas» (artículo plural «las»: otra forma).
+ *  [c.933: la lateral del artículo plural se RESUELVE en c.933 — ver
+ *  NaturalTaskParserALasOrdinalHoraTest; el pin queda re-pinneado abajo.]
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserALaOrdinalHoraTest {
@@ -114,5 +116,9 @@ class NaturalTaskParserALaOrdinalHoraTest {
         assertDueAt("avisar la última hora", 18, "avisar la")
 
     @Test fun avisarALasPrimerasHoras_pinArticuloPlural() =
-        assertDueAt("avisar a las primeras horas", 9, "avisar a las")
+        // Re-pin legítimo c.933: la lateral (artículo plural «a las») se
+        // RESUELVE en c.933 — el conector admite «las» y el título queda
+        // limpio. La captura completa vive en
+        // NaturalTaskParserALasOrdinalHoraTest.
+        assertDueAt("avisar a las primeras horas", 9, "avisar")
 }

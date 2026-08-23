@@ -2567,8 +2567,12 @@ object NaturalTaskParser {
     // `(?:a\s+la\s+|a\s+)?`; NUNCA «la» desnuda sin «a» («avisar la primera
     // hora» = objeto bivalente, lateral registrada FUERA). La narrativa «a la
     // primera hora de clase» sigue protegida por ordinalHoraOccurrenceIsContent.
+    // c.933: el artículo admite el plural «las» («avisar a las primeras
+    // horas») — `(?:a\s+las?\s+|a\s+)?`; NUNCA «las» desnuda sin «a» (objeto
+    // bivalente, hermano del pin «avisar la última hora»). La narrativa
+    // plural «a las primeras horas de clase» sigue protegida por el guard.
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+la\s+|a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
+        Regex("""(?i)(?:justo\s+)?\b(?:a\s+las?\s+|a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
@@ -2601,8 +2605,10 @@ object NaturalTaskParser {
      */
     // c.931: conector «a la» simétrico de [primeraHoraPattern] («avisar a la
     // última hora» → 18:00 con título limpio «avisar», sin residuo «a la»).
+    // c.933: artículo plural «a las» simétrico («avisar a las últimas
+    // horas» → 18:00 con título limpio «avisar», sin residuo «a las»).
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+la\s+|a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
+        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+las?\s+|a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
@@ -7745,7 +7751,11 @@ object NaturalTaskParser {
             // vía H2 antes de que el patrón consumiera «a la»). Sin artículo
             // («a primera hora») o sin genitivo de contenido («avisar a la
             // última hora») sigue siendo ancla.
-            if (!Regex("""(?i)^(?:justo\s+)?a\s+la\s""").containsMatchIn(match.value)) return false
+            // c.933: el artículo admite el plural («a las primeras horas de
+            // clase me quedé dormido») — ya protegida PRE vía H2 (match sin
+            // conector + artículo precedente); tras consumir «a las» en el
+            // match el chequeo debe admitir «las» o la protección se pierde.
+            if (!Regex("""(?i)^(?:justo\s+)?a\s+las?\s""").containsMatchIn(match.value)) return false
             if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
             val suffixA = text.substring(match.range.last + 1)
             val genitiveA = ordinalHoraContentGenitive.find(suffixA) ?: return false

@@ -166,10 +166,12 @@ class NaturalTaskParserOrdinalHoraGenitivoGobernadoTest {
     }
 
     @Test fun avisarALasPrimerasHorasDeLaManana_articuloPluralSinConsumirPin() {
-        // «a las» (plural) no es conector del patrón: el match no consume «a»
-        // y el prefijo no es determinante al inicio — pin c.931 byte-idéntico.
+        // Re-pin legítimo c.933: «a las» (plural) pasa a ser conector del
+        // patrón (lateral c.931/c.932 RESUELTA en c.933) — el match consume
+        // «a las» y el título queda limpio. La familia completa vive en
+        // NaturalTaskParserALasOrdinalHoraTest.
         val r = parse("avisar a las primeras horas de la mañana")
-        assertEquals("avisar a las", r.title)
+        assertEquals("avisar", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
