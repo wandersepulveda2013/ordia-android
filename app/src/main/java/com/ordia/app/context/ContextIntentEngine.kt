@@ -2282,6 +2282,26 @@ object ContextIntentEngine {
             // keyword 0.12 + bono temporal 0.1 = 0.22 < umbral: no hace
             // falta cláusula dedicada en [imperativeIsNegated].
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:n[oó]minas?|reembolsos?)\b""").containsMatchIn(lower)
+            // c.895c: "dar de baja el gimnasio/la suscripción" ("dar de
+            // baja el gimnasio mañana"), familia 4/8 de la clase NOVENA
+            // dinero/banca (sonda persistida `tools/probe/DarDeBajaProbe.kt`;
+            // NULL PRE sobre HEAD 698c8ba: 4/4 candidatas, 7/7 guards,
+            // 4/4 regresiones HIT intactas). El verbo-frase «dar de baja» es
+            // cuasi-monosemántico (baja administrativa) pero el objeto sigue
+            // blindando la bivalencia («la línea telefónica», «la baja
+            // maternal», «la baja del coche» — medidas NULL deliberadas),
+            // misma doctrina objeto-anclada que c.895b/c.750/c.751. Kind
+            // decidido: TASK (gestión administrativa de membresía SIN
+            // desplazamiento físico; la doctrina ERRAND c.842/c.862 gobierna
+            // solo el desplazamiento). Lockstep keyword-frase «dar de baja»
+            // + keyword-objeto «suscripción»/«suscripcion» (sin ella TASK no
+            // llega ni al piso: «gimnasio» vive en EXERCISE) y plantilla en
+            // [extractTitle] (lección c.616). Anti-overreach: `(?<!no )`
+            // bloquea la negada («no dar de baja el gimnasio»), el pasado
+            // «di de baja…» no casa, «dar de alta» (acción opuesta) no casa
+            // (artículo intermedio lo impide… el ancla exige «baja\s+»), el
+            // sustantivo «la baja…» no casa (falta el verbo «dar de»).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?)\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3057,6 +3077,16 @@ object ContextIntentEngine {
                 // depura [sanitizeTitle]. Mismo ancla/guard que el piso.
                 val matchCobrar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCobrar != null) return "Cobrar ${matchCobrar.groupValues[1]}"
+
+                // "dar de baja X" → "Dar de baja X" (c.895c): lockstep con
+                // el piso acotado «dar de baja el gimnasio/la suscripción» —
+                // el verbo-frase gobierna el contenido y se PRESERVA en el
+                // título (alineación piso↔título, lección c.616, doctrina
+                // c.653: ortografía conservada, solo capitalización inicial);
+                // el residuo temporal de cola lo depura [sanitizeTitle].
+                // Mismo ancla/guard que el piso.
+                val matchDarDeBaja = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDarDeBaja != null) return "Dar de baja ${matchDarDeBaja.groupValues[1]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se

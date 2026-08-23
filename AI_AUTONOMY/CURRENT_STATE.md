@@ -1,4 +1,15 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.895c (2026-08-23) — feat(context): piso TASK «dar de baja el gimnasio/la suscripción» (familia 4/8 clase NOVENA, lockstep TRES puntos)
+
+- Integración: base `698c8ba` (propio c.895b tras push del run anterior; re-fetch PRE-push verificado — sin STALE; el run anterior además resolvió el BLOCKED de autenticación con `$github_token`).
+- Área: context (`ContextIntentEngine.kt`, `ContextIntent.kt`). Decisión de dominio deliberada: **TASK** (gestión administrativa de membresía SIN desplazamiento físico; la doctrina ERRAND de la clase NOVENA c.842/c.862 gobierna solo el desplazamiento; hermana de «cobrar la nómina» TASK c.895b).
+- NULL PRE medido por la sonda NUEVA persistida `tools/probe/DarDeBajaProbe.kt` (15 casos: 4 candidatas + 5 guards + 2 laterales + 4 regresiones; motor real vía `tools/run_probe.sh`): 4/4 NULL candidatas, 7/7 NULL guards/laterales, 4/4 HIT regresiones (EXERCISE/TASK/PAYMENT).
+- Lockstep TRES puntos (lección c.616/c.751): (1) piso acotado en `hasStrongTaskImperative` — verbo-frase «dar de baja» anclado al objeto `gimnasio|suscripci[oó]n(es?)` con guard `(?<!no )` (los laterales «la línea telefónica»/«la baja maternal»/«la baja del coche» quedan NULL deliberados); (2) keyword-frase «dar de baja» + keywords-OBJETO «suscripción»/«suscripcion» en `ContextIntentKind.TASK` — sin ellas TASK no gana la carrera frente a EXERCISE («gimnasio» vive en EXERCISE) y el piso nunca se evalúa (lección c.751; «dar de alta» no contiene la frase exacta); (3) plantilla de título en `extractTitle` rama TASK `(?<!no )dar\s+de\s+baja\s+(.+)` → «Dar de baja …» (grafía preservada doctrina c.653; residuo temporal depurado por `sanitizeTitle`).
+- TDD RED→GREEN: test nuevo `ContextIntentEngineDarDeBajaTest` (15 tests: 5 capturas, 3 negaciones/duda/pasado, 4 laterales NULL deliberados, 3 regresiones) — RED exacto 4 fallos (las envolventes ya capturaban TASK por el candado c.613 aunque con contenido) → verde. Suite **OK (5926 = 5911 + 15)**; smoke 25/25; POST sonda 4/4 HIT TASK 0.45 (títulos «Dar de baja el gimnasio»/«Dar de baja la suscripción», dueAt=true), 7/7 guards NULL, 4/4 regresiones HIT («ir al gimnasio» EXERCISE, «cobrar la nómina» TASK, «pagar la tarjeta» PAYMENT intactos).
+- Laterales documentados (NULL deliberados): «dar de baja la línea telefónica», «la baja maternal», «la baja del coche», «dar de alta el gimnasio» (acción opuesta).
+- NO VERIFICADO: Android/gradle/lint/UI/Room.
+- Próxima prioridad: familia (5) comida/deberes («hacer la cena esta noche»/«preparar el almuerzo mañana»/«descongelar la carne»/«hacer los deberes»). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.895b (2026-08-23) — feat(context): piso TASK «cobrar la nómina/reembolso» (familia 3/8 clase NOVENA, lockstep TRES puntos)
 
 - Integración no destructiva: base `ad463b6` (c.894 remontada; hermano del barrido no tocaba este área). Re-fetch PRE-push verificado.

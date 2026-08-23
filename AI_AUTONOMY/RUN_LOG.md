@@ -15549,3 +15549,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - TDD: `ContextIntentEngineCobrarNominaTest` (9 tests) RED exacto 5 fallos → GREEN. Suite OK (5911 = base 5895 + nuevos; incluye fija de negación-envolvente c.613). Smoke 25/25. POST sonda: 4/4 HIT TASK 0.45, 7/7 guards NULL, 4/4 regresiones HIT.
 - Archivos: `ContextIntentEngine.kt` (+34), `ContextIntent.kt` (+8 effective), `ContextIntentEngineCobrarNominaTest.kt` (NUEVO), `tools/probe/CobrarNominaProbe.kt` (NUEVO), AI_AUTONOMY. NO VERIFICADO: Android/gradle/lint/UI/Room.
 - HEAD final: pendiente de commit; próxima prioridad familia (4) membresías («dar de baja el gimnasio»).
+
+---
+
+## Ciclo c.895c (2026-08-23) — feat(context): «dar de baja el gimnasio/la suscripción» TASK (familia 4/8 clase NOVENA)
+
+- HEAD inicial: `698c8ba` (propio c.895b; re-fetch PRE-push verificado, sin STALE). El run anterior resolvió el BLOCKED de auth usando `$github_token` a través de GITHUB_TOKEN vacía (remote con x-access-token).
+- Sonda PRE (`tools/probe/DarDeBajaProbe.kt` persistida, 15 casos, motor real `tools/run_probe.sh`): 4/4 NULL candidatas, 7/7 guards/laterales NULL, 4/4 regresiones HIT.
+- Decisión: TASK (membresía sin desplazamiento; doctrina clase NOVENA c.842/c.862).
+- Lockstep TRES puntos: piso acotado `(?<!no )dar\s+de\s+baja\s+(art-opc)?(gimnasio|suscripci[oó]n(es?))\b` + keywords-frase «dar de baja» + «suscripción»/«suscripcion» + plantilla `extractTitle` → «Dar de baja …» (doctrina c.653).
+- TDD RED exacto 4 fallos → GREEN: `ContextIntentEngineDarDeBajaTest` (15 tests: 5 capturas, 3 negación/duda/pasado, 4 laterales NULL deliberados, 3 regresiones).
+- Verificación: suite **OK (5926 = 5911 + 15)**; smoke 25/25; POST sonda 4/4 HIT TASK 0.45, 7/7 guards NULL, 4/4 regresiones HIT (EXERCISE/TASK/PAYMENT intactas).
+- Archivos: `ContextIntentEngine.kt` (piso + plantilla + comentario c.895c), `ContextIntent.kt` (3 keywords), `ContextIntentEngineDarDeBajaTest.kt` (NUEVO 15 tests), `tools/probe/DarDeBajaProbe.kt` (NUEVO persistido), AI_AUTONOMY (BACKLOG/CURRENT_STATE/RUN_LOG). NO VERIFICADO: Android/gradle/lint/UI/Room.
+- HEAD final: ver commit final; próxima prioridad familia (5) comida/deberes.

@@ -188,7 +188,19 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // «la nómina llegó ayer» sigue descartado. Además alimenta
         // [TRIGGER_WORDS]: sin ella una notificación cuyo gatillo fuera
         // solo «nómina» ni llegaría al análisis (lección c.751).
-        "nómina", "nomina")),
+        "nómina", "nomina",
+        // c.895c: keyword-frase «dar de baja» + keywords-OBJETO
+        // «suscripción»/grafía sin tilde (lockstep con el piso acotado
+        // «dar de baja el gimnasio/la suscripción», familia 4/8 de la
+        // clase NOVENA; ver ContextIntentEngine.hasStrongTaskImperative).
+        // «dar de baja» es cuasi-monosemántico (baja administrativa) y
+        // frase exacta: «dar de alta» no la contiene. Sin ellas TASK no
+        // gana la carrera de puntuación frente a EXERCISE («gimnasio» vive
+        // en EXERCISE) y el piso nunca se evalúa (lección c.751). 0.12
+        // sola inerte < umbral y el piso exige ancla-objeto — «dar de baja
+        // la línea telefónica» sigue descartado (NULL deliberado, sonda
+        // `tools/probe/DarDeBajaProbe.kt`).
+        "dar de baja", "suscripción", "suscripcion")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
