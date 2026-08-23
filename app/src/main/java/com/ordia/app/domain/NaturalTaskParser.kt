@@ -3509,6 +3509,18 @@ object NaturalTaskParser {
                 ),
                 " ",
             )
+            // Enfático "mismo" pegado a "hoy"/"mañana" ("hoy mismo", "mañana
+            // mismo"): la fecha se resolvía bien pero el enfático sobrevivía
+            // como residuo en el título ("terminar el informe mismo"). Simétrico
+            // de "sin falta": se borra sólo tras el ancla; "ahora mismo"/"ya
+            // mismo" ya los cubre su patrón y "mismo" no adyacente ("el mismo
+            // lugar", "el mismo día") es contenido y se conserva íntegro.
+            .replace(
+                Regex(
+                    """(?i)\b(hoy|ma[nñ]ana)\s+mismo\b""",
+                ),
+                "$1",
+            )
 
         // Fecha relativa COMPUESTA fraccionaria ("en una hora y media"/"en 2 horas y
         // cuarto"): se procesa ANTES que [relativePattern] para que este no robe solo
