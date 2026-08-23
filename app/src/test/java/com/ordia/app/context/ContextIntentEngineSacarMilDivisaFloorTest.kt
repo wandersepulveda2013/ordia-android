@@ -113,6 +113,12 @@ class ContextIntentEngineSacarMilDivisaFloorTest {
         // Forma «mil euros» sin dígito: ancla distinta, FUERA de
         // alcance deliberado (OBS-P6 de la sonda).
         assertNull("«mil euros» sin dígito fuera de alcance", analyze("sacar mil euros mañana"))
+        // Refuerzo c.916 (delta de colisión, medido NULL con sonda
+        // efímera /tmp/probe915d sobre HEAD 321569a): número en letra
+        // («dos mil pesos» — la rama cantidad exige \d+) y bivalencia
+        // «mil» = agradecimiento («mil gracias») permanecen NULL.
+        assertNull("número en letra sin dígito", analyze("sacar dos mil pesos mañana"))
+        assertNull("«mil gracias» agradecimiento bivalente", analyze("mil gracias por todo"))
     }
 
     // ─── Regresiones (HIT/NULL esperado) — verdes desde RED ─────────
@@ -137,6 +143,17 @@ class ContextIntentEngineSacarMilDivisaFloorTest {
         val dinero = analyze("sacar dinero mañana") // piso c.893
         assertNotNull(dinero)
         assertEquals(ContextIntentKind.ERRAND, dinero!!.kind)
+
+        // Refuerzo c.916 (delta de colisión, medido HIT con sonda
+        // efímera /tmp/probe915d sobre HEAD 321569a): la divisa
+        // «libras» (c.912) combina con el cuantificador «mil»
+        // (c.915) — el test c.912 pina «libras» SIN «mil» y este
+        // test pina «mil» con pesos/euros/dólares; la combinación
+        // queda fijada aquí.
+        val librasMil = analyze("sacar 10 mil libras del atm")
+        assertNotNull("divisa c.912 + cuantificador c.915", librasMil)
+        assertEquals(ContextIntentKind.ERRAND, librasMil!!.kind)
+        assertEquals("Sacar 10 mil libras del atm", librasMil.title)
 
         // «pagar N mil pesos» sigue siendo PAYMENT (verbo distinto,
         // keyword «pagar»). Medido HIT PAYMENT en la sonda PRE.
