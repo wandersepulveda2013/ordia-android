@@ -1,58 +1,52 @@
-import com.ordia.app.context.ContextCaptureSource
-import com.ordia.app.context.ContextEvent
 import com.ordia.app.context.ContextIntentEngine
+import com.ordia.app.context.ContextEvent
+import com.ordia.app.context.ContextCaptureSource
 
-/* Sonda efímera-persistida c.889 — decisión de dominio «hacerme la prueba
- * de sonido…» (soundcheck previo al evento, gestión propia con
- * desplazamiento; ÚLTIMA lateral viva de la familia «hacerme/se la
- * prueba…» c.862/c.876/c.882, registrada como guard-sentinel NULL en el
- * test del hermano c.876 `bivalente sonido descartada`).
+/**
+ * Sonda c.889 (persistida): última lateral de la familia «hacerse»
+ * (medida NULL y registrada como guard en `ContextIntentEnginePrueba
+ * SangreFloorTest.bivalente sonido descartada`) — «hacerme la prueba
+ * de sonido». El soundcheck del músico/técnico/speakers arrangement
+ * es una diligencia con desplazamiento al local/sala (hermana ERRAND
+ * de la familia, doctrina c.862 «la diligencia gobierna»); el objeto
+ * bivalente «prueba» sin complemento NO se absorbe («prueba del
+ * coche» sigue NULL). Guard de NULL del test c.876 convertida a
+ * regresión de captura (precedente c.843).
  *
- * Decisión de dominio c.889: el complemento «de sonido» es tan inequívoco
- * como «de sangre» (c.876) / «de embarazo» (c.882) — se ancla como
- * complemento hermano en el objeto del piso ERRAND («la diligencia
- * gobierna», c.842); «prueba del coche» (ITV/formalismo vehicular)
- * sigue FUERA (lateral registrada, UNA por ciclo); enclítico reflexivo
- * EXIGIDO (doctrina c.862: la forma desnuda «hacer la prueba de
- * sonido…» es bivalente y sigue FUERA).
- *
- * Sonda PRE c.889 (run_probe.sh): candidatas NULL (8/8); guards NULL
- * (negación, duda, pasado, forma desnuda, complemento coche, afirmación
- * nominal); regresiones HIT (sangre c.876 / embarazo c.882 / tatuaje
- * c.881) y envolvente c.613 TASK. POST c.889: 8/8 HIT ERRAND títulos
- * limpios («Hacerme la prueba de sonido»); guards NULL intactas;
- * regresiones/envolvente HIT. Sentinel c.876 convertida a regresión de
- * captura (precedente c.843, hermana del procedimiento c.882).
+ * Sonda PRE c.889 (run_probe.sh): 7/7 candidatas NULL — asimetría
+ * con la envolvente c.613 («recuérdame hacerme la prueba de sonido…»
+ * ya rutea TASK via candado). POST c.889: 7/7 candidatas HIT ERRAND
+ * 0.45 con títulos limpios («Hacerme la prueba de sonido») y dueAt
+ * correcto; 6/6 guardas NULL intactas (negación, duda, pasado «me
+ * hice…», forma desnuda, nominal, objeto bivalente «del coche»);
+ * regresiones HIT (sangre c.876/embarazo c.882 ERRAND 0.45;
+ * envolvente c.613 TASK 0.54). Guard de NULL del test c.876
+ * convertida a regresión de captura (precedente c.843, hermana de
+ * c.888).
  */
 fun main() {
     fun a(t: String) = ContextIntentEngine.analyze(
         ContextEvent(ContextCaptureSource.NOTIFICATION, t, 1_700_000_000_000L)
     )
-    for ((l, s) in listOf(
-        "C1" to "hacerme la prueba de sonido mañana",
-        "C2" to "hacerme la prueba de sonido el viernes",
-        "C3" to "hacerme una prueba de sonido mañana",
-        "C4" to "hacerte la prueba de sonido mañana",
-        "C5" to "hacerse la prueba de sonido el viernes",
-        "C6" to "mañana hacerme la prueba de sonido",
-        "C7" to "vale, hacerme la prueba de sonido mañana",
-        "C8" to "hacernos la prueba de sonido mañana",
-        "G1" to "no hacerme la prueba de sonido mañana",
-        "G2" to "quizá hacerme la prueba de sonido mañana",
-        "G3" to "me hice la prueba de sonido ayer",
-        "G4" to "hacer la prueba de sonido mañana",
-        "G5" to "hacerme la prueba del coche mañana",
-        "G6" to "la prueba de sonido quedó hecha",
-        "R1" to "hacerme la prueba de sangre mañana",
-        "R2" to "hacerte la prueba de embarazo mañana",
-        "R3" to "hacernos un tatuaje mañana",
-        "R4" to "recuérdame hacerme la prueba de sonido mañana",
-    )) {
-        val r = a(s); println(
-            "%s [%s] %s %.2f | %s | dueAt=%s ← %s".format(
-                l, if (r == null) "NULL" else "HIT",
-                r?.kind, r?.confidence ?: 0f, r?.title, (r?.dueAt != null), s
-            )
-        )
+    fun show(label: String, t: String) {
+        val i = a(t)
+        val s = if (i == null) "[NULL] $t" else "[HIT] ${i.kind} ${i.confidence} | ${i.title} | dueAt=${i.dueAt != null} ← $t"
+        println("$label $s")
     }
+    show("C1", "hacerme la prueba de sonido mañana")
+    show("C2", "hacerme la prueba de sonido el viernes")
+    show("C3", "hacerse la prueba de sonido mañana")
+    show("C4", "hacerme una prueba de sonido")
+    show("C5", "hacerme las pruebas de sonido mañana")
+    show("C6", "mañana hacerme la prueba de sonido")
+    show("C7", "vale, hacerme la prueba de sonido")
+    show("G1", "no hacerme la prueba de sonido mañana")
+    show("G2", "quizá hacerme la prueba de sonido mañana")
+    show("G3", "me hice la prueba de sonido ayer")
+    show("G4", "hacer la prueba de sonido mañana")
+    show("G5", "la prueba de sonido quedó bien")
+    show("G6", "hacerme la prueba del coche")
+    show("R1", "hacerme la prueba de sangre mañana")
+    show("R2", "hacerme la prueba de embarazo mañana")
+    show("R3", "recuérdame hacerme la prueba de sonido mañana")
 }

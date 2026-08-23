@@ -1,3 +1,24 @@
+
+## RUN 2026-08-22 — ciclo c.889b STALE_RUN (duplicado con hermano; descartado no destructivo) + restauración aditiva `CURRENT_STATE`
+
+- HEAD inicial: `1c556d7` (openhands/autonomous-ordia).
+- Base se quedó obsoleta tras mi respuesta local: otro run del hermano empujó `d112367` (mismo ciclo c.889, misma lateral «hacerme la prueba de sonido» — decisión ERRAND, lockstep DOS puntos, guardas convertidas, probe persistido — suite OK (5863)) y `151d8f7` (STALE_RUN c.888b su propio duplicado). STALE_RUN: mi commit local `b2e5e9c` (dup equivalente: 10+/3- motor, suite OK (5861)) descargado NO destructivamente vía merge -X theirs; cero force push, cero rebase destructivo, cero pérdida de trabajo del remoto.
+- Hallazgo P1 (memoria): el hermano d112367 **reescribió por completo `AI_AUTONOMY/CURRENT_STATE.md`** (13,581 → 21 líneas) interpretando «se reescribe al frente cada run» como wipe-and-rewrite — el archivo conserva históricamente el historial de ciclos (append-front); se perdían ~13.560 líneas de contexto de ciclos. Restauración ADITIVA aplicada: sección c.889 del remoto se mantiene primera y el cuerpo histórico íntegro precedente (pre-d112367) se re-anexa completo; cero reversión del contenido del hermano. Convención explícita: CURRENT_STATE se reescribe PREPENDIENDO el ciclo (historial se conserva), NO wipe. Si el wipe fue deliberado, registrar decisión en DECISIONS.
+- Tests: suite OK (5863), smoke 25/25, automation smoke 9/9 — verificados en el propio d112367 hermano; NO VERIFICADO re-ejecución local tras merge (docs-only merge, cero colisiones de código, código coincide con el remoto merged).
+- Commit: merge (head merge) + restauración docs; próxima prioridad: auditoría de clase NOVENA (quarto clase OCTAVA tomate del conflicto) o feature grande.
+
+## Ciclo c.889 (2026-08-22) — feat(context): objeto «prueba de sonido» en el piso «hacerse» (familia AGOTADA)
+- **HEAD inicial**: `1c556d7` (propio c.888 ciclado; fetch PRE-trabajo limpio, colisión cero). **HEAD final**: ver commits finales.
+- **Problema (P1 olvido silencioso)**: «hacerme la prueba de sonido» (soundcheck del músico/técnico/evento) era NULL deliberado registrado como guard (`bivalente sonido descartada` en el test c.876) — última lateral abierta de la familia «hacerse»; la envolvente «recuérdame hacerme la prueba de sonido…» ya ruteaba TASK 0.54 vía candado c.613 (asimetría hermana de c.765…c.888). Consecuencia real: olvido de obligación pre-evento.
+- **Sonda PRE** (persistida `tools/probe/PruebaSonidoProbe.kt`, run_probe.sh, motor real, 16 casos): 7/7 candidatas NULL; guards 6/6 NULL correctos (negación, duda, pasado «me hice…», forma desnuda, nominal, bivalente «del coche»); regresiones HIT (sangre c.876/embarazo c.882 ERRAND 0.45; envolvente c.613 TASK 0.54).
+- **Decisión de dominio**: ERRAND (doctrina «la diligencia gobierna» c.842/c.862 — el soundcheck exige desplazamiento al local/sala, hermana de la familia; el ancla `de sonido` excluye el bivalente «prueba del coche»).
+- **Solución (lockstep DOS puntos, lección c.616)**: (1) piso `ERRAND_BLOOD_TEST_FLOOR` extendido con objeto acotado `pruebas?\s+de\s+sonido`; (2) plantilla de título `matchBloodTest` en `extractTitle` (grafía preservada, doctrina c.653). CERO cambios en `ContextIntent.kt` («hacer» substring de «hacerme/hacerse», hermana de c.860/c.862). Sin cláusula dedicada en `imperativeIsNegated` (aritmética).
+- **Test**: `ContextIntentEnginePruebaSonidoFloorTest.kt` (NUEVO, 15 = 5 capturas + 6 guards + 4 regresiones) + guard c.876 convertida a captura (`lateral sonido resuelta c889`, precedente c.843). RED exacto: 5863 run, EXACTAMENTE 6 fallos (5 capturas + 1 guard convertida); guards/regresiones verdes desde RED → GREEN 16/16.
+- **Suite**: OK (5863 = 5848 + 15), 0 failures vía tools/run_domain_tests.sh (JAVA_OPTS=-Xmx6g anti-OOM); smoke 25/25 (run_domain_checks.sh); automation smoke 9/9 (run_automation_engine_checks.sh). Cero mojibake (python utf-8).
+- **Sonda POST re-ejecutada**: 7/7 HIT ERRAND 0.45 títulos limpios («Hacerme la prueba de sonido») dueAt; guards intactas; regresiones HIT.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Docs**: `BACKLOG.md` (fila c.889 al frente), `CURRENT_STATE.md` (entrada c.889 al frente), `DECISIONS.md` (fila c.889 dominio ERRAND).
+- **Próxima prioridad**: familia «hacerse» AGOTADA → auditoría de clase NOVENA (laterales restantes registradas: forma desnuda «hacer la prueba…» bivalente por doctrina c.862, sinónimo «soundcheck», «prueba del coche» test-drive). Re-fetch OBLIGATORIO antes del push.
 ## Ciclo c.883 (2026-08-22) — feat(context): perífrasis conjugada «me mido la presión/tensión» (guard-de-contrato c.841/c.843 resuelto)
 - **HEAD inicial**: `4dbd73e` (propio c.882 embarazo); fetch PRE-trabajo limpio; colisión cero. **HEAD final**: ver commits finales.
 - **Problema (P1 olvido silencioso)**: el hábito diario de salud «me mido la presión/tensión» — la forma conjugada de 1ª persona MÁS cotidiana («I measure my blood pressure») — era NULL deliberado documentado desde c.841/c.843 como guard de contrato simétrico; las 4 hermanas capturaban. Consecuencia real: olvido del autocuidado de la tensión arterial.
@@ -15406,43 +15427,17 @@ a un permiso persistente frágil y silencioso ante fallos.
   decidir: ¿soundcheck = EVENT?) — última lateral viva de la familia
   «hacerse la prueba»; tras agotar, auditoría de clase NOVENA.
   Re-fetch OBLIGATORIO (remoto puede avanzar entre runs).
+## STALE_RUN c.888b (2026-08-22) — duplicado con hermano (1c556d7 «reescanear <documento>»); descartado no destructivo
 
-2026-08-22 — Run 1 (ciclo c.889) — Autor: local humano → agente OpenHands
-- HEAD inicial: 1c556d7 (c.888 propio, verificado; pull --ff-only limpio,
-  colisión nula, árbol limpio).
-- PROBLEMA seleccionado: P1 «hacerme la prueba de sonido» (soundcheck —
-  el micro del técnico antes del concierto/sión) — ÚLTIMA lateral viva
-  de la familia «hacerse la prueba» (c.862/c.876/c.882), registrada
-  pendiente-de-decisión desde el guard c.876 y el docstring c.882.
-- DECISIÓN de dominio (medida con sonda PRE persistida
-  `tools/probe/PruebaSonidoProbe.kt`, 18 casos): complemento-ancla
-  «de sonido» → CAPTURA como ERRAND (hermana de las singularidades
-  c.876/c.882). Forma desnuda «hacer la prueba de sonido» FUERA
-  (bivalente, doctrina c.862 heredada), «prueba del coche» FUERA
-  (bivalente), nulos/duda/pasado FUERA. Envolvente «recuérdame…»
-  preservada TASK por el candado c.613.
-- TDD estricto (sesión persistente): PRE → RED exacto (5 fallos de
-  5856 + sentinel anterior en NULL) → implementación → GREEN 5861
-  (= 5848 + 13) → regresiones/guards verdes.
-- Fix mínimo (lockstep DOS puntos, lección c.616, hermana de
-  c.860…c.888): piso acotado `hacerme|te|se|nos` + objeto
-  `(?:sangre|embarazo|sonido)` + plantilla de título (grafía
-  preservada, c.653). CERO cambios en `ContextIntent.kt` — la keyword
-  TASK «hacer» es subcadena de «hacerme» (hermana de c.860/c.862).
-- Sentinel c.876 «prueba de sonido NULL» convertida a regresión de
-  captura (precedente c.843; procedimiento hermano de c.882/c.887/
-  c.888): `bivalente sonido descartada` → `lateral sonido resuelta
-  c889` (assertNotNull+kind, espeja el mensaje del hermano c.876
-  pre-fix). Comentario bivalente «coche» intacto.
-- OK: suite 5861 (0 failures) JAVA_OPTS=-Xmx6g; smoke 25/25; sonda
-  POST (run_probe.sh + probe persistida): 8/8 capturas HIT ERRAND
-  0.45 títulos naturales, 6/6 guards NULL, 4/4 regresiones HIT
-  (incluye envolvente 0.54).
-- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales
-  (sin SDK).
-- HEAD final: (hash en git log; push a openhands/autonomous-ordia).
-- Próxima prioridad: familia «hacerse la prueba» agotada (sangre
-  c.876 / embarazo c.882 / sonido c.889; forma desnuda decidida
-  bivalente c.862; «prueba del coche» decidida FUERA c.876/c.889).
-  Auditoría de clase NOVENA o feature grande de producto. Re-fetch
-  OBLIGATORIO (remoto puede avanzar entre runs).
+- **HEAD inicial**: `6ecaba6`. El hermano asignó el ciclo c.888 en
+  remoto («reescanear <documento>») mientras mi run local trabajaba en
+  la MISMA lateral — colisión cycle-ID detectada al intentar empujar.
+- **Resolución NO destructiva** (convención c.887): reset --soft HEAD~1 →
+  stash -u → pull --ff-only a `1c556d7` → verificación sobre el HEAD del
+  hermano (suite OK (5848), smoke 25/25, automation 9/9) → stash drop.
+- **Estado**: STALE_RUN. Cero cambios de producto míos; único aporte es
+  la evidencia local PRE/POST idéntica (descartada). docs-only.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales.
+- **Próxima prioridad**: «hacerme la prueba de sonido» (dominio
+  pendiente); al agotar, auditoría clase NOVENA. Re-fetch OBLIGATORIO.
+---

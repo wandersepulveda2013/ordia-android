@@ -590,12 +590,12 @@ object ContextIntentEngine {
             // medida NULL con sonda efímera /tmp/probe881/PreEmbarazoProbe.kt
             // sobre HEAD 3aed02d: 4/4 candidatas NULL → P1 evitar olvidos;
             // gestión de salud deferida de alta relevancia personal).
-            // c.889: complemento «prueba(s) de sonido» (soundcheck previo al
-            // evento) → ÚLTIMA lateral viva de la familia (sentinel c.876
-            // convertida a captura, precedente c.843/c.882); «prueba del
-            // coche» sigue FUERA (lateral, UNA por ciclo); enclítico
-            // EXIGIDO (doctrina c.862). Sonda PRE persistida
-            // tools/probe/PruebaSonidoProbe.kt: 8/8 NULL, 6/6 guards NULL.
+            // c.889: objeto «prueba(s) de sonido» — última lateral de la
+            // familia, medida NULL con sonda persistida
+            // tools/probe/PruebaSonidoProbe.kt (7/7 candidatas NULL, guard
+            // registrada en el test c.876 convertida a captura, precedente
+            // c.843). Soundcheck del músico/técnico/evento con desplazamiento;
+            // el ancla `de sonido` excluye el bivalente «prueba del coche».
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
