@@ -744,10 +744,12 @@ object ContextIntentEngine {
     // [imperativeIsNegated] (cinturón y tirantes, precedente c.893).
     // c.910: la rama cantidad admite «dólares»/«dolares» (lateral LatAm
     // medida NULL en sonda PRE `/tmp/probe910/`; «coger dinero» ya captura
-    // TASK vía piso deliberado c.716 — no se toca). Otras divisas
-    // («libras», «pesos» — ancla distinta) quedan a medir.
+    // TASK vía piso deliberado c.716 — no se toca). c.911: la divisa
+    // admite «pesos» (lateral LatAm medida NULL en sonda PRE
+    // `/tmp/probe911/`; la forma «<N> mil pesos» tiene ancla distinta y
+    // queda FUERA; «libras» bivalente — a medir).
     private val ERRAND_CASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?)\b)""")
+        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b)""")
     // c.894: SEGUNDA familia de la clase NOVENA (dinero/banca cotidiana,
     // sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE verificado
     // por la sonda persistida `IngresarDineroProbe.kt`: 6/6 NULL). El verbo
@@ -2795,7 +2797,7 @@ object ContextIntentEngine {
         // también aquí (cinturón y tirantes, precedente c.717 «sacar la
         // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?)\b)""").containsMatchIn(lower)
+            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b)""").containsMatchIn(lower)
         ) return true
         // "ingresar dinero/reembolso" (ERRAND, piso acotado c.894): hermano
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
@@ -4197,9 +4199,9 @@ object ContextIntentEngine {
                 // «sacar 50 euros del cajero» → «Sacar 50 euros del
                 // cajero» (alineación piso↔título, lección c.616).
                 // c.910: la divisa admite «dólares»/«dolares» (grafía
-                // preservada, doctrina c.653).
+                // preservada, doctrina c.653). c.911: admite «pesos».
                 val matchCash = Regex(
-                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?)\b).*)""",
+                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+(?:euros?|d[oó]lares?|pesos?)\b).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCash != null) {

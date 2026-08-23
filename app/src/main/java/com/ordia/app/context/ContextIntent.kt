@@ -363,6 +363,19 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // deliberado c.716) porque la keyword solo suma 0.12 inerte a
         // ERRAND.
         "dólar", "dolar",
+        // c.911: keyword-DIVISA «peso» (lockstep con la extensión de la
+        // rama cantidad del piso [ERRAND_CASH_FLOOR] «sacar <N> pesos»,
+        // lección c.751 — sin ella «sacar 2000 pesos mañana» ni llegaría
+        // al análisis). Subcadena: cubre «peso»/«pesos». 0.12 sola
+        // inerte < umbral: «la entrada cuesta 500 pesos» (declarativo,
+        // medido NULL en sonda PRE) sigue descartado aun con bono
+        // temporal (0.22 < 0.45); «pagar 500 pesos» sigue PAYMENT y
+        // «cambiar pesos por dólares» sigue TASK (piso c.710) porque la
+        // keyword solo suma 0.12 inerte a ERRAND. La bivalencia
+        // «peso» = pesas/balanza no colide: el piso exige «sacar» +
+        // cantidad + «pesos» en posición de divisa («medirme el peso»,
+        // «pesar las maletas» medidos NULL).
+        "peso",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
