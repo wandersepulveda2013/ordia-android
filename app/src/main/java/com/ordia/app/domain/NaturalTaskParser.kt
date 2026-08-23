@@ -613,9 +613,11 @@ object NaturalTaskParser {
      * «del mes anterior» (test genitivoDelMesAnterior_noDejaResiduoDel) que una
      * fecha-límite. Robarla dejaría la tarea sin título.
      * Grupo 1 = palabra-límite, grupo 2 = período (con artículo).
+     * c.908: «últimos?» ("revisar a últimos del mes pasado") = "finales" → límite
+     * "end" del período anterior (clasificado en la resolución de bWord).
      */
     private val lastPeriodBoundaryPattern = Regex(
-        """(?i)\b(?:a\s+|al\s+)?(finales?|fin(?:al|es)?|mediados?|mitad|principios?|comienzos?|inicios?|primeros?)\s+(?:de\s+|del\s+)(la\s+semana|(?:el\s+)?mes|(?:el\s+)?a[nñ]o)\s+(?:pasad[oa]|anterior)\b"""
+        """(?i)\b(?:a\s+|al\s+)?(finales?|fin(?:al|es)?|mediados?|mitad|principios?|comienzos?|inicios?|primeros?|[uú]ltimos?)\s+(?:de\s+|del\s+)(la\s+semana|(?:el\s+)?mes|(?:el\s+)?a[nñ]o)\s+(?:pasad[oa]|anterior)\b"""
     )
 
     /**
@@ -815,7 +817,9 @@ object NaturalTaskParser {
     // desplazar los índices de mes (g1)/año (g2) que usa `boundaryDueAt`. La promoción a
     // recurrencia la detecta `cadaBoundaryRecurrence` vía `cadaInBoundaryMatch` (c.311).
     // "todos los" exige "meses" (plural); "cada" va con "mes" (singular, forma canónica).
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    // c.908: «últimos?» (sin "día") es la forma dialectal de fin de mes ("a últimos del
+    // mes", "a últimos del mes que viene"); misma resolución que "fin de mes".
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a|[uú]ltimos?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     // c.575: "el último día hábil/laborable/laboral del mes" — vencimientos que no
     // pueden caer en fin de semana (renta, nómina, pago de servicios cuando el banco
     // no opera sábado/domingo). El adjetivo "hábil"/"laborable"/"laboral" rompe la
@@ -857,8 +861,10 @@ object NaturalTaskParser {
      * el año es implícito con roll al siguiente si la fecha ya pasó (como
      * parseMonthNameDate). Se consume ANTES que monthNamePattern para no dejar
      * residuo ni doble-match.
+     * c.908: «últimos?» ("pagar la renta a últimos de agosto") = "finales" → último
+     * día del mes nombrado; la rama `else` de [parseMonthBoundaryName] ya lo resuelve.
      */
-    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|final(?:es)?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|final(?:es)?|fin|cierre|corte|[uú]ltimos?)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * "en <mes>" / "en <mes> de [<año>]": el nombre de mes SUELTO tras la preposición
      * "en", sin día explícito ("apuntarme al gimnasio en septiembre", "viaje en
@@ -902,8 +908,10 @@ object NaturalTaskParser {
      * subcadena "año" no active "año que viene" como +365d genérico (que adelantaría
      * "fin de año" a un año desde hoy en vez de al 31/12 real). El calificador de
      * año que viene/entrante desplaza al año siguiente.
+     * c.908: «últimos de/del año» ("cierre fiscal a últimos de año") = fin de año;
+     * [yearBaseForBoundary] lo clasifica como "end" (31/12 del año en curso).
      */
-    private val endOfYearPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val endOfYearPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltimos?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val midOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val startOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
@@ -3695,7 +3703,7 @@ object NaturalTaskParser {
             val period = m.groupValues[2].lowercase()
             val today = base.toLocalDate()
             val bKind = when {
-                bWord.startsWith("fin") -> "end"
+                bWord.startsWith("fin") || bWord.startsWith("últim") || bWord.startsWith("ultim") -> "end"
                 bWord.startsWith("med") || bWord == "mitad" -> "mid"
                 else -> "start"
             }
@@ -7037,7 +7045,8 @@ object NaturalTaskParser {
         val isNext = t.contains("que viene") || t.contains("que entra") || t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
         if (isNext) return today.plusYears(1)
         val kind = when {
-            t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") -> "end"
+            t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") ||
+                t.contains("últim") || t.contains("ultim") -> "end"
             t.contains("mediados") || t.contains("mediado") || t.contains("mitad") -> "mid"
             else -> "start"
         }
