@@ -1,4 +1,16 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.894 (2026-08-23) — feat(context): piso ERRAND «ingresar dinero/reembolso» (familia 2/8 clase NOVENA; colisión c.893 resuelta no destructiva)
+
+- COLISIÓN c.893 (STALE_RUN resuelto NO destructivo): mi run midió PRE + TDD completo de la familia (1) sobre `ad463b6`; el hermano publicó `1f11582` (misma función, guardas más ricos) antes de mi push → `git stash -u` → `git pull --ff-only` → `git stash drop` (duplicado mío descartado, cero trabajo ajeno sobrescrito). Continue con la familia (2) tras renovar número libre en el remoto.
+- Área: context (`ContextIntentEngine.kt` + `ContextIntent.kt`). Decisión de dominio: ERRAND hermano convergente de c.893 (depósito físico en la sucursal; doctrina c.842/c.862 «la diligencia gobierna»).
+- NULL PRE medido por la sonda NUEVA persistida `IngresarDineroProbe.kt` (publicada en este commit; 18 casos: 6 candidatas + 4 regresiones + 8 controles) sobre HEAD `1f11582`: 6/6 NULL candidatas, 8/8 NULL controls, 4/4 HIT regresiones.
+- Lockstep TRES puntos (lección c.616/c.751/c.893): (1) piso acotado `[ERRAND_DEPOSIT_FLOOR]` (verbo «ingresar» bivalente «en el club»/«deberes» quedan fuera; ancla-objeto `dinero|reembolso`; determinante opcional); (2) keyword-OBJETO «reembolso» nueva («dinero» ya existía c.893); (3) plantilla de título en `extractTitle` rama ERRAND (grafía preservada doctrina c.653; acuse «vale, …»/prefijo temporal se despojan por match-en-verbo, lección c.616) + cláusula de negación dedicada (cinturón y tirantes, precedente c.717/c.829/c.842/c.893).
+- TDD: test nuevo `ContextIntentEngineIngresarDineroFloorTest` (5 tests: capturas 6-formas parametrizado, envolventes TASK, lockstep keyword, 8 guards NULL, 4 regresiones HIT). RED exacto: 2 fallos (capturas + lockstep).
+- POST: sonda 6/6 HIT (ERRAND 0.45, títulos limpios), 8/8 controles NULL, 4/4 regresiones HIT. Verificación: suite **OK (5878 = 5873 + 5)**; smoke 25/25.
+- Laterales a medir (BACKLOG): «hacer el ingreso» (débil), «depositar el cheque» (verbo hermano).
+- NO VERIFICADO: Android/gradle/lint/UI/Room (JVM puro).
+- Próxima prioridad: familia (3) cobros («cobrar la nómina/el reembolso») u (4) membresías («dar de baja el gimnasio»). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.893 (2026-08-23) — feat(context): piso ERRAND «sacar dinero/efectivo (del cajero)» + «ir al cajero» (familia 1/8 clase NOVENA, lockstep TRES puntos)
 
 - Área: context (`ContextIntentEngine.kt` + `ContextIntent.kt`). Decisión de dominio deliberada: ERRAND (desplazamiento al cajero, doctrina c.842/c.862 «la diligencia gobierna»; hermano de «echar gasolina» c.829 e «ir al banco» c.639). NULL PRE medido por la sonda persistida `tools/probe/SacarDineroProbe.kt` (6/6 NULL; 8/8 guards NULL; 7/7 regresiones HIT; motor real vía `tools/run_probe.sh`).

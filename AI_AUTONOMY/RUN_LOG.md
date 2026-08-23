@@ -1,3 +1,17 @@
+## RUN 2026-08-23 — ciclo c.893 STALE_RUN (duplicado con hermano, descartado no destructivo) → ciclo c.894 — piso ERRAND «ingresar dinero/reembolso» (familia 2/8 clase NOVENA)
+
+- HEAD inicial: `ad463b6` (c.892); HEAD final: (este commit).
+- COLISIÓN/STALE_RUN c.893 (resolución NO destructiva): medí PRE y escribí TDD completo para la familia (1) «sacar dinero/ir al cajero» sobre `ad463b6`. Antes de mi push, un hermano publicó `1f11582` con la MISMA función (piso `[ERRAND_CASH_FLOOR]` + extensión `ir a` + keywords + plantilla + negación + sonda persistida `SacarDineroProbe.kt` + guard c.717 actualizado; redacción equivalente a la mía, guards aún más ricos). Resolución: `git stash -u` → `git pull --ff-only` a `1f11582` → `git stash drop` (descarte del duplicado, cero trabajo del hermano sobrescrito, cero force push/reset/clean). Patrón hermano c.888b/c.889b.
+- Continué con la siguiente unidad: familia (2) INGRESOS/DEPÓSITO («ingresar el dinero»/«ingresar el reembolso»), número de ciclo c.894 libre (verificado sobre RUN_LOG remoto al hacer fetch de nuevo).
+- PRE medido con sonda NUEVA persistida `tools/probe/IngresarDineroProbe.kt` (18 casos: 6 candidatas + 4 regresiones + 8 controles) vía `tools/run_probe.sh` sobre HEAD `1f11582`: 6/6 candidatas NULL, 8/8 controles NULL (correctos), 4/4 regresiones HIT.
+- TDD: test nuevo `ContextIntentEngineIngresarDineroFloorTest` (5 tests: capturas ×1 parametrizado [6 aserciones de formas], envolventes, keywords lockstep, 8 guards NULL, 4 regresiones HIT). RED exacto: 2 fallos (capturas + lockstep), resto verde desde RED.
+- Fix (lockstep TRES puntos, hermano c.893): (1) piso acotado `[ERRAND_DEPOSIT_FLOOR]` = `\b(?<!no )ingresar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso)\b` (verbo «ingresar» bivalente: «en el club»/«deberes» quedan fuera; ancla-objeto `dinero|reembolso`; determinante opcional); (2) keyword-OBJETO «reembolso» nueva en `ContextIntent.kt` («dinero» ya existía c.893; lección c.751: sin keyword el evento ni llega al análisis); (3) plantilla de título en `extractTitle` rama ERRAND «Ingresar <objeto>» (grafía preservada, doctrina c.653; acuse «vale, …» y prefijo temporal se despojan vía match-en-verbo, lección c.616) + cláusula de negación dedicada en `imperativeIsNegated` (cinturón y tirantes, precedente c.717/c.829/c.842/c.893).
+- Kind deliberado: ERRAND (depósito físico en la sucursal, hermano convergente de «sacar dinero» c.893; doctrina c.842/c.862 «la diligencia gobierna»).
+- POST: sonda 6/6 HIT (ERRAND 0.45, títulos limpios), 8/8 controles NULL, 4/4 regresiones HIT; suite **OK (5878 = 5873 + 5)**; smoke 25/25.
+- Acotado (una forma por ciclo, convención c.857): laterales «hacer el ingreso» (débil) y «depositar el cheque» (verbo hermano) registrados a medir en BACKLOG; resto del BACKLOG intocado.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (JVM puro).
+- Próxima prioridad: familia (3) cobros («cobrar la nómina/el reembolso») u (4) membresías («dar de baja el gimnasio»); re-fetch OBLIGATORIO antes de cada push.
+
 ## Ciclo c.891 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA (familia «sacar dinero/efectivo» NULL registrada)
 - **HEAD inicial**: `d112367` (mi c.889 ya publicado post-rebase). **HEAD final**: ver commits finales.
 - **Problema**: familia «hacerse» AGOTADA en c.889 → doctrina exige auditoría de descubrimiento de clase NOVENA (anti-overreach, cero cambios de producto en el ciclo de descubrimiento, convención c.822/c.834/c.845).

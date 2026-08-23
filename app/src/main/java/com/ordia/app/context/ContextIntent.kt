@@ -262,7 +262,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // (cajero bancario/empleado de pago), así 0.12 sola inerte <
         // umbral y el piso exige el verbo de destino — «el cajero cobra
         // bien» sigue descartado.
-        "cajero")),
+        "cajero",
+        // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
+        // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
+        // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
+        // de la gente, deberes). 0.12 sola inerte < umbral —
+        // declarativos como «el reembolso tardó dos semanas» siguen
+        // descartados aun con bono temporal (0.22 < 0.45).
+        "reembolso")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",
