@@ -1,3 +1,11 @@
+## Ciclo c.890 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA (familia «sacar dinero/efectivo» NULL registrada)
+- **HEAD inicial**: `d112367` (mi c.889 ya publicado post-rebase). **HEAD final**: ver commits finales.
+- **Problema**: familia «hacerse» AGOTADA en c.889 → doctrina exige auditoría de descubrimiento de clase NOVENA (anti-overreach, cero cambios de producto en el ciclo de descubrimiento, convención c.822/c.834/c.845).
+- **Sonda ephémera** `/tmp/FamilySweep.kt` (8 frases realistas de gestiones externas, motor real `tools/run_probe.sh`): **familia NULL-captura descubierta**: «sacar dinero mañana»/«sacar efectivo del cajero el viernes» → NULL. 6/8 ya cubiertas (reservar mesa, paquete Correos, entradas, libro biblioteca, medicinas).
+- **Decisión**: CANDIDATA P1 registrada en BACKLOG (primera fila); decisión de dominio deliberadamente PENDIENTE para su ciclo (anti-overreach, UNA familia por ciclo).
+- **Suite**: OK (5863) sin delta — docs-only. NO VERIFICADO: Android/gradle/lint/UI/Room.
+- **Docs**: BACKLOG.md (fila c.890 al frente), CURRENT_STATE.md (entrada c.890 al frente).
+- **Próxima prioridad**: «sacar dinero/efectivo (del cajero)» — decidir dominio y lockstep piso+plantilla(+keyword si hace falta) en su ciclo.
 
 ## RUN 2026-08-22 — ciclo c.889b STALE_RUN (duplicado con hermano; descartado no destructivo) + restauración aditiva `CURRENT_STATE`
 

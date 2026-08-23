@@ -1,4 +1,14 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.890 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA → familia «sacar dinero/efectivo (del cajero)» medida NULL, registrada CANDIDATA
+
+- Área: context (sin cambios de motor — convención c.822/c.834/c.845 «cero cambios de producto en ciclo de descubrimiento»).
+- Trigger: familia «hacerse» AGOTADA en c.889 → la doctrina exige escanear la siguiente clase antes de inventar; barrido de gestiones cotidianas externas (cajero ATM, reservas, paquetería, entradas, biblioteca, farmacia).
+- Sonda ephémera `/tmp/FamilySweep.kt` (8 casos, motor real vía `tools/run_probe.sh`, HEAD `d112367`): 2/8 NULL-captura — «sacar dinero mañana», «sacar efectivo del cajero el viernes» → NULL (ninguna keyword/OBJETO activa piso; «sacar» polivalente y el cajero NO está en `ERRAND_FLOORS` que exige «ir a…»). 6/8 HIT regresión confirmada: reservar mesa TASK 0.45; recoger paquete en Correos ERRAND 0.46; comprar entradas SHOPPING 0.45; devolver libro biblioteca ERRAND 0.45; recoger medicinas farmacia ERRAND 0.45.
+- Resultado: CANDIDATA P1 registrada en BACKLOG (primera fila, ciclo c.890). Decisión de dominio PENDIENTE para su ciclo (TASK gestión financiera vs ERRAND «ir al cajero»; preferible ERRAND doctrina c.842/c.862, deliberado en su ciclo). Laterales de la misma familia a medir: «sacar la tarjeta» (bivalente), anglicismo «coger dinero», plural «sacar 50 euros».
+- Colisión ya experimentada este run (STALE_RUN c.888b del hermano c.888): resuelta con rebase limpio `cd55432→d112367` sobre `151d8f7`; suite re-verificada post-rebase **OK (5863)**, smoke 25/25 (re-run en la unidad anterior).
+- Suite: **OK (5863 = 5848 + 15 c.889)** sin delta en este ciclo (solo docs); NO VERIFICADO Android/gradle/lint/UI/Room.
+- Próxima prioridad: familia «sacar dinero/efectivo (del cajero)» (decidir dominio y lockstep) UNA por ciclo. Re-fetch OBLIGATORIO antes de cada push.
+
 
 ## Ciclo c.889 (2026-08-22) — feat(context): objeto «prueba de sonido» en el piso «hacerse» (familia AGOTADA)
 
