@@ -8,7 +8,7 @@
 - Suite FINAL `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → **OK (6168 = 6155 c.926 + 13)**; `run_domain_checks.sh` 25/25.
 - Cambios: M `NaturalTaskParser.kt` (predicado + paso de borrado + KDoc), A `NaturalTaskParserMananaGenitivoGuardTest.kt` (13 tests), M `NaturalTaskParserMananaMismaMarkerTest.kt` (2 re-pins legítimos), M `AI_AUTONOMY/*`. Sonda efímera `/tmp/probe927/` (medida documentada aquí y en el test).
 - Laterales medidas FUERA (registradas, UNA por ciclo): «lo necesito para la mañana» (due=null PREEXISTENTE + residuo «para la» — familia parte-del-día tras «para», no genitivo); «la misma mañana del sábado me avisaron» (mañana ya protegida; el weekday «del sábado» sigue resolviendo fecha y borrándose del título — doctrina weekday ajena); «la mañana de sábado» (genitivo sin artículo), «toda la mañana» (cuantificador).
-- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: ver commit del ciclo. Próxima prioridad: laterales medidas arriba o «a primera/última hora del <día>» (familia (F) del barrido c.918) — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: `5f14430`. Próxima prioridad: laterales medidas arriba o «a primera/última hora del <día>» (familia (F) del barrido c.918) — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
 ## Ciclo c.926 (2026-08-23) — feat(parser): marcador de intención «de cara a(l)» limpio en título (familia (E) residuo, barrido c.918; 1 rama aditiva pre-normalización con lookahead restringido a anclas de día)
 
