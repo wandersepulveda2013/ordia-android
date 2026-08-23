@@ -2281,7 +2281,14 @@ object ContextIntentEngine {
             // deuda» no casan. La negada la cubre el guard del piso; la
             // keyword 0.12 + bono temporal 0.1 = 0.22 < umbral: no hace
             // falta cláusula dedicada en [imperativeIsNegated].
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:n[oó]minas?|reembolsos?)\b""").containsMatchIn(lower)
+            // c.897: objetos salariales hermanos añadidos en aditivo
+            // — «pensión/el sueldo/el salario» (PRE NULL medido, sonda
+            // persistida `tools/probe/CobrarPensionProbe.kt`, 3/3
+            // candidatas + 6/6 guards bivalentes NULL + 5/5 regresiones
+            // HIT en POST: el piso del hermano c.895b cubría nómina/
+            // reembolso; la ampliación conserva kind TASK y la guardia
+            // de bivalentes «la compra/el alquiler/la deuda»).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:n[oó]minas?|reembolsos?|pensi[oó]n(?:es)?|sueldos?|salarios?)\b""").containsMatchIn(lower)
             // c.895c: "dar de baja el gimnasio/la suscripción" ("dar de
             // baja el gimnasio mañana"), familia 4/8 de la clase NOVENA
             // dinero/banca (sonda persistida `tools/probe/DarDeBajaProbe.kt`;

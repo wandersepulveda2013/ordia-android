@@ -189,6 +189,9 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // [TRIGGER_WORDS]: sin ella una notificación cuyo gatillo fuera
         // solo «nómina» ni llegaría al análisis (lección c.751).
         "nómina", "nomina",
+        // c.896 (laterales hermanos c.895b): «pensión/pension/sueldo/salario»
+        // — objetos salariales lockstep del mismo piso ampliado en aditivo.
+        "pensión", "pension", "sueldo", "salario",
         // c.895c: keyword-frase «dar de baja» + keywords-OBJETO
         // «suscripción»/grafía sin tilde (lockstep con el piso acotado
         // «dar de baja el gimnasio/la suscripción», familia 4/8 de la

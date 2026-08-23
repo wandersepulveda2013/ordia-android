@@ -9,6 +9,17 @@
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Próxima prioridad: familia (5) comida/deberes ( (3) cobros y (4) membresías ya resueltas por el hermano c.895b/c.895c durante mis integraciones). Re-fetch OBLIGATORIO antes de cada paso.
 
+## Ciclo c.897 (2026-08-23) — STALE_RUN duplicado (descartado no destructivo) + extensión aditiva hermano c.895b: «cobrar la pensión/el sueldo/el salario» (laterales salariales cobros, familia 3/8 clase NOVENA)
+
+- COLISIÓN c.896 (renumerada mi parte a c.897 por convención c.857) (resolución NO destructiva, patrón hermano c.893): medí PRE y completé TDD ERRAND para la familia cobros sobre `3b3766c`. Antes del push, el remoto avanzó con el hermano `698c8ba` (misma familia, kind TASK: piso `hasStrongTaskImperative` + keywords «nómina/nomina» + plantilla + sonda `CobrarNominaProbe.kt`, suite 5911) y `88a6d73` (familia 4/8 dar-de-baja). Resolución: `git stash -u` → `git pull --ff-only` a `88a6d73` → `git stash drop` (mi duplicado descartado; cero trabajo al hermano sobrescrito). Criticidad: la decisión kind TASK-vs-ERRAND era discutible en ambos sentidos, y el hermano quedó primero con TASK; la consistencia manda.
+- Continué con la lateral salarial que el hermano dejó NULL (convención c.857, UNA por ciclo): «cobrar la pensión/el sueldo/el salario», sobre base remota `88a6d73` (suite base 5926 OK).
+- PRE medido con sonda NUEVA persistida `tools/probe/CobrarPensionProbe.kt` (14 casos: 3 candidatas + 6 guards + 5 regresiones) vía `tools/run_probe.sh`: 3/3 candidatas NULL, 6/6 guards NULL (correctos), 5/5 regresiones HIT.
+- Extensión ADITIVA del lockstep hermano (cero reescritura): (1) objetos del piso c.895b ampliados a `pensi[oó]n(?:es)?|sueldos?|salarios?`; (2) keywords-OBJETO «pensión/pension/sueldo/salario» en TASK (alimentan TRIGGER_WORDS, lección c.751); (3) la plantilla `(?<!no )cobrar\s+(.+)` del hermano captura ya el objeto — `extractTitle` sin tocar. Kind TASK conservado.
+- TDD: test nuevo `ContextIntentEngineCobrarPensionTest` (10 tests: 3 capturas + dueAt, lockstep keywords, 3 guards negación/bivalentes/quizá, 2 regresiones). RED exacto stash-push 2 archivos main: **5 fallos**, guards/regresiones verdes desde RED; stash-pop → verde.
+- POST: sonda 3/3 HIT (TASK 0.45, títulos «Cobrar la pensión/el sueldo/el salario», dueAt=true), 6/6 guards NULL, 5/5 regresiones HIT; suite **OK (5937 = 5927 base hermano + 10)**; smoke 25/25.
+- NO VERIFICADO: Android/gradle/lint/UI/Room.
+- Próxima prioridad: familias (5/8) comida/deberes («hacer la cena esta noche» / «descongelar la carne» / «hacer los deberes»). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.895c (2026-08-23) — feat(context): piso TASK «dar de baja el gimnasio/la suscripción» (familia 4/8 clase NOVENA, lockstep TRES puntos)
 
 - Integración: base `698c8ba` (propio c.895b tras push del run anterior; re-fetch PRE-push verificado — sin STALE; el run anterior además resolvió el BLOCKED de autenticación con `$github_token`).
