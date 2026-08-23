@@ -688,8 +688,23 @@ object ContextIntentEngine {
     // fluye por [ERRAND_FLOORS] (fuente única, lección c.648/c.652).
     // Acotado deliberado (una forma por ciclo): laterales «traerle
     // <objeto>» enclítico y «traer <objeto>» sin dativo quedan a medir.
+    // c.907: lateral enclítica «traerle <objeto> a <persona/lugar>»
+    // (medida NULL en la sonda persistida `TraerleObjetoProbe.kt`: 5/5
+    // candidatas NULL — declarativa, prefijo temporal, acuse, plural
+    // «traerles» —; 7/7 guards NULL; 6/6 regresiones HIT). Extensión
+    // ADITIVA «traer(?:les?)?»: el enclítico solo anticipa el
+    // destinatario que la ancla dativa «a <destino>» confirma (hermano
+    // del «llevarle su cuaderno» c.854 y del «darle las gracias» c.903);
+    // la forma no enclítica casa exactamente igual (cero reescritura,
+    // lección c.616/c.751). Lockstep: keyword «traer» (TASK) cubre
+    // «traerle/traerles» por subcadena — CERO cambios en ContextIntent.kt
+    // (hermana c.860/c.862/c.888) — + plantilla en [extractTitle] con el
+    // verbo CAPTURADO del match (enclítico conservado) + cláusula de
+    // negación extendida a «no traerle…» en [imperativeIsNegated]
+    // (precedente c.854). La lateral «traerle <objeto>» sin dativo
+    // explícito sigue FUERA (UNA forma por ciclo, GUARD-7 de la sonda).
     private val ERRAND_BRING_FLOOR =
-        Regex("""\b(?<!no )traer\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""")
+        Regex("""\b(?<!no )traer(?:les?)?\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""")
     // c.893: piso acotado «sacar dinero/efectivo (del cajero)» — PRIMERA
     // familia NULL de la clase NOVENA (gestiones de dinero y banca
     // cotidiana, sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE
@@ -2821,8 +2836,11 @@ object ContextIntentEngine {
         // bloquea), así la negación se bloquea también aquí (cinturón y
         // tirantes, precedente c.854). Ancla-objeto/datativa y guards
         // anti-figurado IDÉNTICOS al piso [ERRAND_BRING_FLOOR].
+        // c.907: «no traerle…» — el dativo pegado no casa la forma desnuda
+        // («traer\s»), hermano del «no llevarle…» c.854; lockstep con el
+        // verbo «traer(?:les?)?» del piso.
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+traer\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""").containsMatchIn(lower)
+            Regex("""\bno\s+traer(?:les?)?\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""").containsMatchIn(lower)
         ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -4136,12 +4154,17 @@ object ContextIntentEngine {
                 // temporal de cola ("…mañana"/"…el viernes"). El mismo
                 // lookahead anti-figurado del piso evita que un ERRAND
                 // ganado por otra vía tome un título figurado.
+                // c.907: verbo CAPTURADO del match para conservar el
+                // enclítico («traerle el cargador a Ana» → «Traerle el
+                // cargador a Ana»; hermano del «medir(?:me)?» c.843 y del
+                // «dar(?:le)?» c.903); la forma no enclítica produce el
+                // MISMO título de c.900 (cero reescritura, lección c.616).
                 val matchBring = Regex(
-                    """\b(?<!no )traer\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b).+)""",
+                    """\b(?<!no )(traer(?:les?)?)\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b).+)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBring != null) {
-                    return "Traer ${matchBring.groupValues[1]}"
+                    return "${capitalizeFirst(matchBring.groupValues[1])} ${matchBring.groupValues[2]}"
                 }
                 // "sacar dinero/efectivo del cajero mañana" → "Sacar dinero
                 // del cajero" (c.893, lockstep con [ERRAND_CASH_FLOOR]): el
