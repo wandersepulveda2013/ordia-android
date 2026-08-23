@@ -2496,7 +2496,16 @@ object NaturalTaskParser {
     // sale tarde"), así que no se introduce ninguna clase de riesgo nueva. El artículo
     // "la" es OBLIGATORIO: "para mañana" (sin artículo) es la forma-fecha (+1d) y no
     // se toca.
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
+    // c.929: sufijo "siguiente(s)" ("lo necesito para la mañana siguiente", "llamar en
+    // la tarde siguiente") — la parte del día del día SIGUIENTE (+1d), forma cotidiana
+    // del vencimiento al día siguiente. Antes el rewrite del pleonasmo "mañana
+    // siguiente"→"mañana" (c.148) robaba "siguiente" pese al artículo "la" y la ancla
+    // resolvía la parte del día de HOY (09:00 ya pasada al mediodía → tarea vencida al
+    // nacer, P1); con "tarde"/"noche", además "siguiente" quedaba de residuo en el
+    // título. Doctrina SIMÉTRICA para todos los conectores: el sufijo se consume con
+    // la ancla (título limpio) y desplaza la fecha +1d (ver standalonePartOfDayNext y
+    // el guard anti-artículo del pleonasmo en la pre-normalización).
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier)|\s+siguientes?)?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -2959,7 +2968,14 @@ object NaturalTaskParser {
         // normaliza a "mañana" para reutilizar TODO el flujo existente. \b evita colisionar
         // con "mañanas siguientes"; no se toca "siguiente" sin "mañana" (ambiguo como
         // contenido: "capítulo siguiente").
-        working = working.replace(Regex("""(?i)\bma[nñ]ana\s+siguientes?\b"""), "mañana")
+        // c.929: NO reescribir cuando «mañana» lleva el artículo «la» — «la mañana
+        // siguiente» = the (next) morning (sustantivo): la fecha la gobierna la ancla
+        // parte-del-día con el sufijo «siguiente» (+1d, ver standalonePartOfDayPattern)
+        // o es contenido narrativo (ver mananaOccurrenceIsContent G3). El pleonasmo
+        // sólo aplica SIN artículo ("envío mañana siguiente"); antes el rewrite ciego
+        // robaba «siguiente» y la ancla resolvía la mañana de HOY — 09:00 ya pasada al
+        // mediodía → tarea vencida al nacer (P1 evitar-olvidos).
+        working = working.replace(Regex("""(?i)(?<!la\s)\bma[nñ]ana\s+siguientes?\b"""), "mañana")
 
         // Ordinales numéricos: "1ro"/"2do"/"3er"/"1º"… seguidos de " de " se normalizan a
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
@@ -4728,6 +4744,11 @@ object NaturalTaskParser {
             (it.groupValues[1].ifBlank { it.groupValues[2] }.ifBlank { it.groupValues[3] }).lowercase().ifEmpty { null }
         }
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
+        // c.929: la ancla lleva el sufijo «siguiente(s)» («la mañana siguiente») → la
+        // parte del día es la del día SIGUIENTE (+1d). Se aplica sobre la fecha base en
+        // `effectiveDate` (sólo cuando no hay fecha explícita, que siempre gana).
+        val standalonePartOfDayNext =
+            standalonePartOfDayMatch?.value?.lowercase()?.contains("siguiente") == true
         val compactDayPartOfDayMatch = compactDayPartOfDayPattern.find(working)
         val compactDayPartOfDayKey = compactDayPartOfDayMatch?.groupValues?.get(1)?.lowercase()
         val compactDayPartOfDayTime = compactDayPartOfDayKey?.let { compactDayPartOfDayTimes[it] }
@@ -5291,7 +5312,11 @@ object NaturalTaskParser {
             ?: atardecerMatch?.let { atardecerTime }
             ?: mediaPartOfDayTime
             ?: mealSleepAnchorTime
-        val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
+        // c.929: sin fecha explícita, la ancla parte-del-día con sufijo «siguiente»
+        // («para la mañana siguiente») ancla al día SIGUIENTE (+1d), no a hoy.
+        val effectiveDate = date
+            ?: if (parsedTime != null) base.toLocalDate().plusDays(if (standalonePartOfDayNext) 1 else 0)
+            else null
         // c.397 — anclas sub-hora imprecisos ("ya"/"ahora"/"ya mismo" = now,
         // "en un rato" = now+1h, "más tarde"/"después" = now+3h) capturaban el dueAt
         // ANTES que una hora/fecha explícita y la descartaban: "reunión ya a las 5 de la
@@ -7554,6 +7579,13 @@ object NaturalTaskParser {
      *  (G2) genitivo con artículo a continuación — «mañana del accidente»,
      *       «mañana misma del partido», «mañana de la victoria»: un "tomorrow"
      *       nunca gobierna genitivo.
+     *  (G3) artículo + adjetivo «siguiente» (c.929) — «la mañana siguiente (me
+     *       desperté tarde)» = the following morning, contenido narrativo: un
+     *       "tomorrow" nunca lleva artículo ni adjetivo pospuesto. Con conector
+     *       («para la mañana siguiente») la frase ya la gobierna la ancla
+     *       parte-del-día (+1d) y ésta la consume antes del borrado por rangos,
+     *       así que G3 no interfiere; sólo protege la aparición desnuda, que
+     *       antes sufría robo de fecha (+1d) y título mutilado.
      * Sin evidencia («el informe de mañana», genitivo de posesión temporal sobre
      * la FECHA) sigue contando como fecha — doctrina vigente del borrado con
      * conector. Usada por [mananaAsDate] (fecha) y [eraseMananaDateToken] (título)
@@ -7565,6 +7597,9 @@ object NaturalTaskParser {
         if (Regex("""(?i)\bla\s+misma\s+$""").containsMatchIn(prefix)) return true
         val suffix = text.substring(range.last + 1)
         if (Regex("""(?i)^\s+(?:misma\s+)?(?:del|de\s+(?:la|las|los))\s+\p{L}""").containsMatchIn(suffix)) return true
+        if (Regex("""(?i)\bla\s+$""").containsMatchIn(prefix) &&
+            Regex("""(?i)^\s+siguientes?\b""").containsMatchIn(suffix)
+        ) return true
         return false
     }
 
