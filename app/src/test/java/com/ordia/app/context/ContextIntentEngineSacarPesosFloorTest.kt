@@ -15,8 +15,9 @@ import org.junit.Test
  * (declarativa, del cajero, acuse «vale,», prefijo temporal),
  * 4/4 guards NULL, regresiones HIT (euros/dólares/dinero ERRAND,
  * «pagar 500 pesos» PAYMENT, «cambiar pesos por dólares» TASK) y
- * observaciones NULL («sacar 50 mil pesos» — ancla distinta, FUERA
- * de alcance deliberado; «pesar las maletas», «medirme el peso»).
+ * observaciones NULL («sacar 50 mil pesos» — resuelta en c.915 como
+ * captura intencional, ver regresión dedicada abajo; «pesar las
+ * maletas», «medirme el peso»).
  * Causa raíz (idéntica a c.909/c.910, lección c.751): la rama
  * cantidad de [ERRAND_CASH_FLOOR] exige la divisa y «pesos» no era
  * keyword de ningún kind — «sacar 2000 pesos mañana» ni llegaba al
@@ -55,11 +56,12 @@ import org.junit.Test
  * lookbehind sí la bloquea — precedente c.893/c.909/c.910).
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
- * c.615): la forma «sacar <N> mil pesos» tiene ancla distinta
- * (cuantificador «mil» entre la cantidad y la divisa) y queda FUERA
- * (medida NULL en la sonda, OBS-P1); «libras» queda como lateral a
- * medir (bivalencia «libras» = peso en el Reino Unido requiere
- * medición propia).
+ * c.615): la forma «sacar <N> mil pesos» quedó FUERA en este ciclo por
+ * ancla distinta (cuantificador «mil» entre la cantidad y la divisa,
+ * medida NULL en la sonda, OBS-P1) y se resolvió en c.915 con test
+ * dedicado propio (`ContextIntentEngineSacarMilDivisaFloorTest`);
+ * la lateral «libras» la resolvió el hermano en su c.912
+ * (`ContextIntentEngineSacarLibrasFloorTest`).
  */
 class ContextIntentEngineSacarPesosFloorTest {
 
@@ -123,8 +125,9 @@ class ContextIntentEngineSacarPesosFloorTest {
         assertNull("duda (hedge c.649)", analyze("quizá saque 500 pesos mañana"))
         assertNull("narrativa pasado", analyze("saqué 1000 pesos ayer"))
         assertNull("declarativo sin imperativo", analyze("la entrada cuesta 500 pesos"))
-        // Forma «mil pesos»: ancla distinta, FUERA de alcance deliberado.
-        assertNull("«50 mil pesos» fuera de alcance (ancla distinta)", analyze("sacar 50 mil pesos mañana"))
+        // c.915: la forma «<N> mil pesos» pasó de guard NULL a captura
+        // intencional (precedente c.882/c.893/c.903): ver regresión
+        // dedicada en `regresiones hermanas intactas pesos`.
         // Bivalencia «peso» = pesas/balanza: sin ancla de divisa.
         assertNull("«medirme el peso» bivalente", analyze("medirme el peso mañana"))
         assertNull("«pesar las maletas» verbo distinto", analyze("pesar las maletas mañana"))
@@ -178,5 +181,13 @@ class ContextIntentEngineSacarPesosFloorTest {
         assertNotNull(coger)
         assertEquals(ContextIntentKind.TASK, coger!!.kind)
         assertEquals("Coger 50 pesos del cajero", coger.title)
+
+        // c.915: captura intencional del cuantificador «mil» (antes
+        // guard NULL fuera de alcance de ESTE test; precedente
+        // c.882/c.893/c.903 de guard hermana → captura).
+        val mil = analyze("sacar 50 mil pesos mañana")
+        assertNotNull(mil)
+        assertEquals(ContextIntentKind.ERRAND, mil!!.kind)
+        assertEquals("Sacar 50 mil pesos", mil.title)
     }
 }
