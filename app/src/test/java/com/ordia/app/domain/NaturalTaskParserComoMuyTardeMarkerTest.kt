@@ -95,6 +95,23 @@ class NaturalTaskParserComoMuyTardeMarkerTest {
         assertNull(r.dueAt)
     }
 
+    @Test fun guardTardePlano_noSeToca() {
+        // "tarde" plano (sin el marcador completo) es contenido: intacto.
+        val r = parse("llegar tarde al trabajo")
+        assertEquals("llegar tarde al trabajo", r.title)
+        assertNull(r.dueAt)
+    }
+
+    @Test fun guardAnclaHoraria_fueraDeAlcance() {
+        // Pin de alcance: la ancla horaria ("a las 8") NO está en el lookahead
+        // (alcance acotado a anclas de día); el marcador se conserva y la hora
+        // resuelve. Si un ciclo futuro extiende el alcance, este test rompe y
+        // fuerza una decisión consciente.
+        val r = parse("como muy tarde a las 8 llamar")
+        assertEquals("como muy tarde llamar", r.title)
+        assertEquals(LocalDate.of(2026, 8, 23), date("como muy tarde a las 8 llamar"))
+    }
+
     // ---- Regresiones: hermanas de la familia de marcadores intactas ----
 
     @Test fun regresionAMasTardar_intacta() {
