@@ -728,8 +728,24 @@ object ContextIntentEngine {
     // destino hermana). Acotado deliberado (una familia por ciclo):
     // laterales «coger dinero»/«sacar 50 euros»/«sacar la tarjeta» a
     // medir; 7 familias restantes del BACKLOG intocadas.
+    // c.909: lateral «sacar <cantidad> euros» (medida NULL con sonda
+    // efímera PRE `/tmp/probe909/PreProbe.kt`: 4/4 candidatas NULL —
+    // declarativa, del cajero, acuse, prefijo temporal —; la causa raíz
+    // era doble: la ancla exigía la palabra `dinero|efectivo` y «euros»
+    // no era keyword). Extensión ADITIVA con la rama cantidad
+    // `\d+(?:[.,]\d+)?\s+euros?` (admite miles «1.000 euros» y decimales
+    // «50,50 euros»; la rama `dinero|efectivo` casa exactamente igual,
+    // cero reescritura, lección c.616). La ancla cantidad+divisa es
+    // inequívoca en posición de compromiso: no colide con «pagar N
+    // euros» (PAYMENT, verbo distinto) ni con «sacar 50 fotos» (sin
+    // divisa). Lockstep: keyword-DIVISA «euro» en
+    // [ContextIntentKind.ERRAND] (lección c.751) + plantilla de título
+    // extendida en [extractTitle] + cláusula de negación extendida en
+    // [imperativeIsNegated] (cinturón y tirantes, precedente c.893).
+    // Acotado deliberado (una forma por ciclo): otras divisas
+    // («dólares») y el anglicismo «coger dinero» quedan a medir.
     private val ERRAND_CASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b""")
+        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+euros?\b)""")
     // c.894: SEGUNDA familia de la clase NOVENA (dinero/banca cotidiana,
     // sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE verificado
     // por la sonda persistida `IngresarDineroProbe.kt`: 6/6 NULL). El verbo
@@ -2777,7 +2793,7 @@ object ContextIntentEngine {
         // también aquí (cinturón y tirantes, precedente c.717 «sacar la
         // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+sacar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+euros?\b)""").containsMatchIn(lower)
         ) return true
         // "ingresar dinero/reembolso" (ERRAND, piso acotado c.894): hermano
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
@@ -4174,9 +4190,12 @@ object ContextIntentEngine {
                 // ensucian el título; [sanitizeTitle] depura el residuo
                 // temporal de cola. Ancla-objeto idéntica al piso
                 // (`dinero|efectivo` con determinante opcional, grafía
-                // preservada, doctrina c.653).
+                // preservada, doctrina c.653). c.909: la rama cantidad
+                // (`<número> euros`) entra en lockstep con el piso —
+                // «sacar 50 euros del cajero» → «Sacar 50 euros del
+                // cajero» (alineación piso↔título, lección c.616).
                 val matchCash = Regex(
-                    """\b(?<!no )(sacar)\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b.*)""",
+                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?\s+euros?\b).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCash != null) {

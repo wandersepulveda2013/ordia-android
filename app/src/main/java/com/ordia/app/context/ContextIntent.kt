@@ -342,6 +342,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // así «atm» aislado o declarativo no cola y el piso exige el verbo
         // de destino igual que «cajero».
         "atm",
+        // c.909: keyword-DIVISA «euro» (lockstep con la rama cantidad del
+        // piso [ERRAND_CASH_FLOOR] «sacar <N> euros», lección c.751 — sin
+        // ella la notificación «sacar 50 euros mañana» ni llegaría al
+        // análisis). Subcadena: cubre «euro»/«euros». 0.12 sola inerte <
+        // umbral: «la tarifa son 50 euros» (declarativo) sigue descartado
+        // aun con bono temporal (0.22 < 0.45); el piso exige «sacar» +
+        // cantidad, y «pagar 50 euros» sigue PAYMENT por su propio piso
+        // (la keyword solo suma 0.12 inerte a ERRAND).
+        "euro",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
