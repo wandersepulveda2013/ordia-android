@@ -7759,7 +7759,15 @@ object NaturalTaskParser {
             var idx = 0
             while (true) {
                 val m = pattern.find(text, idx) ?: break
-                if (ordinalHoraOccurrenceIsContent(text, m)) ranges += m.range
+                if (ordinalHoraOccurrenceIsContent(text, m)) {
+                    // c.941: el rango narrativo se extiende hasta el weekday
+                    // genitivo cuando hay genitivo INTERIOR de parte del día
+                    // («de la noche del sábado»): así la cascada de borrado
+                    // (parte del día / mañana) no roba la cadena del sujeto
+                    // narrativo; fecha y título siguen el mismo predicado.
+                    val interior = ordinalHoraInteriorPartOfDayWeekdayRange(text, m)
+                    ranges += if (interior != null) m.range.first..interior.last else m.range
+                }
                 idx = m.range.last + 1
             }
         }
@@ -7810,6 +7818,58 @@ object NaturalTaskParser {
         "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
         "sábado", "sabado", "domingo"
     )
+
+    /** c.941: palabras de parte del día admitidas como genitivo INTERIOR narrativo. */
+    private val ordinalHoraInteriorPartOfDayWords = setOf(
+        "mañana", "manana", "tarde", "noche", "madrugada"
+    )
+
+    /**
+     * c.941: genitivo genérico de parte del día tras el ordinal («de la
+     * noche/tarde/mañana/madrugada», con o sin artículo) en una cadena
+     * narrativa — hermana de [ordinalHoraNarrativeWeekdayGenitive] (weekday).
+     * Sólo se usa ya verificado el prefijo narrativo
+     * ([ordinalHoraNarrativeDemonstrativePrefix]/[ordinalHoraNarrativeArticlePrefix]).
+     */
+    private val ordinalHoraNarrativePartOfDayGenitive = Regex(
+        """(?i)^\s+(?:del\s+d[ií]a|de\s+(?:la\s+)?(?:ma[nñ]ana|madrugada|tarde|noche)|de\s+d[ií]a)\b"""
+    )
+
+    /**
+     * c.941: rango ABSOLUTO del genitivo INTERIOR de parte del día seguido de
+     * un weekday genitivo cuando la cadena es narrativa (prefijo
+     * demostrativo/artículo al inicio + predicado a continuación y sin
+     * modificador del weekday): «las primeras horas de la noche del sábado
+     * fueron mágicas». Sin este guard el weekday robaba una fecha FALSA y el
+     * ordinal + ambos genitivos se borraban del título (doble daño P1 — el
+     * sufijo canónico de [primeraHoraPattern] sólo admite mañana/madrugada,
+     * así «de la noche/tarde» quedaba fuera de la doctrina H3/c.936 y de la
+     * directa/c.939). El predicado exigido es el mismo de la doctrina
+     * H1-artículo c.939 (sufijo no-blanco tras el genitivo); el modificador
+     * («del sábado que viene») sigue siendo ancla, simétrico a c.936/c.939.
+     * Usado en la resolución ([ordinalHoraOccurrenceIsContent]), en los rangos
+     * narrativos ([ordinalHoraNarrativeRanges]) y en los rangos de weekday
+     * ([ordinalHoraNarrativeWeekdayRanges]) para que nunca diverjan.
+     */
+    private fun ordinalHoraInteriorPartOfDayWeekdayRange(
+        text: String,
+        match: MatchResult
+    ): IntRange? {
+        val prefix = text.substring(0, match.range.first)
+        if (!ordinalHoraNarrativeDemonstrativePrefix.containsMatchIn(prefix) &&
+            !ordinalHoraNarrativeArticlePrefix.containsMatchIn(prefix)
+        ) return null
+        val suffix = text.substring(match.range.last + 1)
+        val pod = ordinalHoraNarrativePartOfDayGenitive.find(suffix) ?: return null
+        val tail = suffix.substring(pod.range.last + 1)
+        val wg = ordinalHoraNarrativeWeekdayGenitive.find(tail) ?: return null
+        if (tail.substring(wg.range.last + 1).isBlank()) return null
+        val wm = weekdayPattern.find(tail)
+        if (wm != null && wm.range.last > wg.range.last) return null
+        val start = match.range.last + 1 + pod.range.first
+        val end = match.range.last + 1 + pod.range.last + 1 + wg.range.last
+        return start..end
+    }
 
     /**
      * c.936: rangos de las apariciones de weekday que son CONTENIDO narrativo
@@ -7874,11 +7934,11 @@ object NaturalTaskParser {
                         // weekday genitivo lo sigue directamente.
                         m.range.last + 1
                     } else {
-                        // c.937 (H2): el weekday genitivo sigue al genitivo de
-                        // contenido («de clase», «del partido») que hizo
-                        // narrativo al ordinal.
                         val gen = ordinalHoraContentGenitive.find(text.substring(m.range.last + 1))
                         if (gen != null && gen.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives) {
+                            // c.937 (H2): el weekday genitivo sigue al genitivo de
+                            // contenido («de clase», «del partido») que hizo
+                            // narrativo al ordinal.
                             m.range.last + 1 + gen.range.last + 1
                         } else if (ordinalHoraNarrativeDemonstrativePrefix
                                 .containsMatchIn(text.substring(0, m.range.first)) ||
@@ -7887,8 +7947,16 @@ object NaturalTaskParser {
                         ) {
                             // c.938 (H1 puro) / c.939 (H1-artículo): determinante
                             // al inicio; el weekday genitivo sigue DIRECTAMENTE
-                            // al match.
-                            m.range.last + 1
+                            // al match. c.941: o tras el genitivo INTERIOR de
+                            // parte del día («de la noche/tarde»), ya validado
+                            // por [ordinalHoraInteriorPartOfDayWeekdayRange].
+                            val pod = ordinalHoraNarrativePartOfDayGenitive
+                                .find(text.substring(m.range.last + 1))
+                            if (pod != null && ordinalHoraInteriorPartOfDayWeekdayRange(text, m) != null) {
+                                m.range.last + 1 + pod.range.last + 1
+                            } else {
+                                m.range.last + 1
+                            }
                         } else -1
                     }
                     if (wgSearchStart >= 0) {
@@ -7975,6 +8043,12 @@ object NaturalTaskParser {
                 if (wm == null || wm.range.last <= genitive.range.last) return true
             }
         }
+        // c.941 (H1-artículo/demostrativo + genitivo INTERIOR de parte del día
+        // + weekday genitivo + predicado): «las primeras horas de la noche del
+        // sábado fueron mágicas». El sufijo canónico de [primeraHoraPattern]
+        // no admite noche/tarde, así el genitivo caía en ANCLA (fecha y título
+        // falsos). Ver [ordinalHoraInteriorPartOfDayWeekdayRange].
+        if (ordinalHoraInteriorPartOfDayWeekdayRange(text, match) != null) return true
         return false
     }
 
