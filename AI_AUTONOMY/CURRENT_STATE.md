@@ -1,3 +1,12 @@
+## Ciclo c.920 (2026-08-23) — [VERIFIED JVM] feat(context): lateral «sacar un millón de <divisa>» (registrada FUERA en c.919)
+- Unidad: «sacar un millón de pesos/euros/dólares/yenes/libras» (con y sin tilde «millon») — forma cotidiana del retiro de efectivo de importe alto en LatAm («sacar un millón de pesos del cajero») que caía a NULL pese a la keyword-DIVISA.
+- Fix: alternativa ADITIVA `un\s+mill[oó]n\s+de\s+(divisa)` en los TRES puntos (piso `[ERRAND_CASH_FLOOR]`, cláusula de negación, plantilla de título); CERO cambios en `ContextIntent.kt` (keywords-DIVISA ya existen; «millón» NO es keyword — bivalente «un millón de gracias»).
+- Evidencia: sonda PRE efímera `/tmp/probe920/PreProbe.kt` (21 casos, motor real) 6/6 candidatas NULL, 7/7 guards NULL, 8/8 regresiones HIT → POST 6/6 HIT ERRAND títulos limpios («Sacar un millón de pesos del cajero», acuse/prefijo temporal despojados, grafía preservada); TDD RED exacto (4 run, EXACTAMENTE 2 fallos = capturas; guards/regresiones verdes desde RED) → GREEN 8/8 (con la clase c.919 hermana); suite FINAL **OK (6094 = 6090 c.919 + 4)**; checks 25/25 pendiente de confirmar al final del run.
+- Guard convertido (precedente c.843): pineado NULL «sacar un millón de pesos mañana» de c.919 → regresión de captura documentada.
+- Sigue NULL (deliberado, medido): «sacar medio millón de pesos» (cuantificador distinto — lateral a medir), «sacar dos millones de pesos» (plural en letra), «sacar un millón mañana» (sin divisa), «un millón de gracias», «sacar dos mil pesos» (letra, c.916).
+- Próxima prioridad: «medio millón» (medida NULL) o «traer <objeto>» sin dativo (NULL 4/4 c.909, decisión pendiente) o divisa fría «francos» (medir) o familias (5)-(8) clase NOVENA.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). Re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.919 (2026-08-23) — [VERIFIED JVM] feat(context): lateral «sacar mil <divisa>» SIN dígito (OBS-P6 c.915)
 - Unidad: «sacar mil euros/pesos/dólares/yenes/libras» sin número — forma cotidiana hablada del retiro de efectivo (LatAm/España) que caía a NULL pese a la keyword-DIVISA.
 - Fix: alternativa ADITIVA `mil\s+(divisa)` en los TRES puntos (piso `[ERRAND_CASH_FLOOR]`, cláusula de negación, plantilla de título); CERO cambios en `ContextIntent.kt` (keywords-DIVISA ya existen; «mil» NO es keyword — bivalente «mil gracias»).

@@ -765,10 +765,16 @@ object ContextIntentEngine {
     // lateral OBS-P6 registrada FUERA en c.915; medida NULL 5/5 en
     // sonda PRE efímera `/tmp/probe918/`). La ancla exige «mil»
     // inmediatamente tras «sacar»: «sacar dos mil pesos» (letra,
-    // pineado NULL c.916) y «sacar un millón de pesos» («millón» ≠
-    // «mil\s», lateral a medir) siguen NULL.
+    // pineado NULL c.916) sigue NULL.
+    // c.920: la cantidad admite «un millón de <divisa>» («sacar un
+    // millón de pesos», lateral registrada FUERA en c.919; medida
+    // NULL 6/6 en sonda PRE efímera `/tmp/probe920/`). Con y sin
+    // tilde (precedente «dólar»/«dolar» c.910). La ancla exige la
+    // divisa: «un millón de gracias» (bivalente) y «sacar un millón»
+    // (sin divisa) siguen NULL; «medio millón» (cuantificador
+    // distinto) queda FUERA — lateral a medir.
     private val ERRAND_CASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""")
+        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|un\s+mill[oó]n\s+de\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""")
     // c.894: SEGUNDA familia de la clase NOVENA (dinero/banca cotidiana,
     // sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE verificado
     // por la sonda persistida `IngresarDineroProbe.kt`: 6/6 NULL). El verbo
@@ -2826,7 +2832,7 @@ object ContextIntentEngine {
         // también aquí (cinturón y tirantes, precedente c.717 «sacar la
         // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""").containsMatchIn(lower)
+            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|un\s+mill[oó]n\s+de\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""").containsMatchIn(lower)
         ) return true
         // "ingresar dinero/reembolso" (ERRAND, piso acotado c.894): hermano
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
@@ -4233,9 +4239,11 @@ object ContextIntentEngine {
                 // admite el cuantificador «mil» («Sacar 50 mil pesos del
                 // cajero», grafía preservada). c.919: «mil» sin dígito
                 // («Sacar mil euros», OBS-P6 c.915, lockstep con el
-                // piso — lección c.616).
+                // piso — lección c.616). c.920: «un millón de <divisa>»
+                // («Sacar un millón de pesos del cajero», grafía
+                // preservada, lockstep con el piso — lección c.616).
                 val matchCash = Regex(
-                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b).*)""",
+                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|mil\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b|un\s+mill[oó]n\s+de\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCash != null) {

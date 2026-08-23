@@ -18,7 +18,8 @@ import org.junit.Test
  * real vía `tools/run_probe.sh`, 21 casos): 5/5 candidatas NULL
  * (euros/pesos/dólares/yenes/libras, con acuse y prefijo temporal),
  * 8/8 guards NULL (negación, hedge, pasado, declarativo, sin divisa,
- * «mil gracias», número en letra «dos mil pesos», «un millón» FUERA),
+ * «mil gracias», número en letra «dos mil pesos», «un millón» FUERA —
+ * capturado en c.920, guard convertido precedente c.843),
  * 8/8 regresiones HIT (50 mil pesos/50 euros/2000 pesos/dinero ERRAND,
  * «pagar 50 mil pesos» PAYMENT, «cambiar 50 mil pesos» TASK,
  * basura/perro HOUSEHOLD).
@@ -34,7 +35,8 @@ import org.junit.Test
  * colide con «mil gracias» (sin divisa), ni con «sacar dos mil pesos»
  * (número en letra — la rama exige «mil» inmediatamente tras «sacar»;
  * pineado NULL c.916, sigue NULL), ni con «sacar un millón de pesos»
- * («millón» ≠ «mil\s», medido NULL — lateral a medir en su ciclo).
+ * («millón» ≠ «mil\s», medido NULL — capturado en c.920 con su
+ * propia rama «un millón de <divisa>»).
  *
  * Lockstep TRES puntos (lección c.616/c.751; CERO cambios en
  * [ContextIntent.kt] — las keywords-DIVISA «euro»/«dólar»/«dolar»/
@@ -57,8 +59,9 @@ import org.junit.Test
  *     c.909…c.915).
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
- * c.615): «sacar un millón de pesos»/«medio millón» quedan FUERA
- * (medidos NULL en la sonda — ancla distinta, a medir en su ciclo);
+ * c.615): «sacar un millón de pesos» quedaba FUERA (medido NULL en
+ * la sonda — capturado en c.920 con su propia rama); «medio millón»
+ * queda FUERA (ancla distinta, a medir en su ciclo);
  * el número en letra «dos mil pesos» sigue NULL pineado (c.916).
  */
 class ContextIntentEngineSacarMilSinDigitoFloorTest {
@@ -123,9 +126,13 @@ class ContextIntentEngineSacarMilSinDigitoFloorTest {
         // Número en letra: la rama exige «mil» inmediatamente tras
         // «sacar»; «dos mil pesos» sigue NULL (pineado c.916).
         assertNull("número en letra sin dígito", analyze("sacar dos mil pesos mañana"))
-        // «un millón de pesos»: lateral FUERA de alcance (ancla
-        // distinta, medida NULL en la sonda — a medir en su ciclo).
-        assertNull("«un millón» fuera de alcance", analyze("sacar un millón de pesos mañana"))
+        // «un millón de pesos»: el pineado NULL de c.919 se convirtió
+        // en captura en c.920 (rama «un millón de <divisa>» en
+        // [ERRAND_CASH_FLOOR]) — precedente c.843: ampliación de
+        // alcance documentada, NO degradación del test.
+        val millon = analyze("sacar un millón de pesos mañana")
+        assertNotNull("«un millón de pesos» captura desde c.920", millon)
+        assertEquals(ContextIntentKind.ERRAND, millon!!.kind)
     }
 
     // ─── Regresiones (HIT esperado) — verdes desde RED ──────────────
