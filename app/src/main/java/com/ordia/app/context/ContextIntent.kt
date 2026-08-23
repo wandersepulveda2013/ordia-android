@@ -284,6 +284,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // umbral y el piso exige el verbo de destino — «el cajero cobra
         // bien» sigue descartado.
         "cajero",
+        // c.896: keyword-DESTINO «atm» (delta lockstep sobre el piso c.893
+        // del hermano: el destino «atm» quedó en el regex del piso pero SIN
+        // keyword; lección c.751 — alimenta el score y [TRIGGER_WORDS]).
+        // Sigla inequívoca del cajero automático; 0.12 sola inerte < umbral,
+        // así «atm» aislado o declarativo no cola y el piso exige el verbo
+        // de destino igual que «cajero».
+        "atm",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,

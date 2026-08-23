@@ -99,6 +99,20 @@ class ContextIntentEngineSacarDineroFloorTest {
         assertNotNull("«mañana» debe anclar dueAt", r.dueAt)
     }
 
+    @Test
+    fun `ir al atm captura ERRAND via destino extendido c896`() {
+        // c.896: delta lockstep sobre el piso c.893 del hermano — el destino
+        // «atm» estaba en el regex del piso y ya capturaba (verde desde RED),
+        // pero SIN keyword (asimetría lockstep, lección c.751: en el KIND la
+        // keyword alimenta el score y [TRIGGER_WORDS]; el hermano añadió
+        // «cajero»/«dinero»/«efectivo» pero no «atm»).
+        val r = analyze("ir al atm mañana")
+        assertNotNull("«ir al atm mañana» debe capturar (piso c.893; lockstep c.896)", r)
+        assertEquals(ContextIntentKind.ERRAND, r!!.kind)
+        assertEquals("Ir al atm", r.title)
+        assertNotNull("«mañana» debe anclar dueAt", r.dueAt)
+    }
+
     // ─── Lockstep keywords (RED hasta añadirlas) ────────────────────
 
     @Test
@@ -114,6 +128,10 @@ class ContextIntentEngineSacarDineroFloorTest {
         assertTrue(
             "keyword-DESTINO «cajero» (lockstep c.893; hermana de «banco»)",
             ContextIntentKind.TRIGGER_WORDS.contains("cajero")
+        )
+        assertTrue(
+            "keyword-DESTINO «atm» (lockstep c.896; delta del piso c.893)",
+            ContextIntentKind.TRIGGER_WORDS.contains("atm")
         )
     }
 

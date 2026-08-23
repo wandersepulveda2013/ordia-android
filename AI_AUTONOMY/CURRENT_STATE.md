@@ -1,4 +1,14 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+
+## Ciclo c.896 (2026-08-23) — feat(context): keyword-DESTINO «atm» (delta lockstep del piso c.893) + STALE_RUN c.893 duplicado resuelto no destructivo
+
+- Área: **context** `ContextIntent.kt` (1 keyword) + test del hermano `ContextIntentEngineSacarDineroFloorTest.kt` (2 aserciones).
+- STALE_RUN: mi TDD completo de la familia (1) efectivo/cajero (sobre `ad463b6`) quedó duplicado al publicar el hermano c.893 (`1f11582`) + c.894/c.895 antes de mi push; stash → pull --ff-only → comparación de cobertura → stash drop (cero trabajo ajeno sobrescrito; precedente c.888b/c.894; renumber c.893→c.896, convención c.857). Segunda colisión en el mismo run: mientras resolvía la primera, el hermano publicó `698c8ba` (c.895b, familia 3 cobros) — misma convención (stash → pull --ff-only → pop; conflictos SOLO en los 3 markdown, resueltos aditivamente; `ContextIntent.kt` auto-merge limpio).
+- Delta residual medido: el piso c.893 extiende el destino `ir a` con `cajero|atm` pero la keyword «atm» faltaba (asimetría lockstep, lección c.751). RED exacto: EXACTAMENTE 1 fallo (lockstep `TRIGGER_WORDS.contains("atm")`; la captura «ir al atm mañana» ya era verde por el piso — medido, no asumido).
+- Fix: keyword-DESTINO «atm» en ERRAND (0.12 sola inerte < umbral; el piso exige el verbo de destino). Suite **OK (5927 = 5926 hermano c.895c + 1 test)** sobre la base integrada `88a6d73`, smoke 25/25.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Próxima prioridad: familia (5) comida/deberes ( (3) cobros y (4) membresías ya resueltas por el hermano c.895b/c.895c durante mis integraciones). Re-fetch OBLIGATORIO antes de cada paso.
+
 ## Ciclo c.895c (2026-08-23) — feat(context): piso TASK «dar de baja el gimnasio/la suscripción» (familia 4/8 clase NOVENA, lockstep TRES puntos)
 
 - Integración: base `698c8ba` (propio c.895b tras push del run anterior; re-fetch PRE-push verificado — sin STALE; el run anterior además resolvió el BLOCKED de autenticación con `$github_token`).
