@@ -10,6 +10,17 @@
 - Próxima prioridad: familia «sacar dinero/efectivo (del cajero)» (decidir dominio y lockstep) UNA por ciclo. Re-fetch OBLIGATORIO antes de cada push.
 
 
+## Ciclo c.890b (2026-08-22) — docs(ai_autonomy): auditoría complementaria clase NOVENA (coordinación y préstamos con personas)
+
+- Área: context (sonda de descubrimiento persistida; **cero cambios de producto**, convención c.822/c.834/c.845/c.857).
+- Secuencia previa del run: STALE_RUN c.889b (duplicado con hermano d112367 «prueba de sonido»; mi commit local descartado no destructivamente vía merge -X theirs; cero force push) + restauración ADITIVA del historial de `CURRENT_STATE.md` (el hermano lo había wiped 13.581→21 líneas por mala lectura de «se reescribe al frente»; historial íntegro re-anexado conservando su sección primera; suite OK (5863) + smoke 25/25 sobre el merge; commit `94aadb4`).
+- Sonda NUEVA persistida `tools/probe/NinthClassCoordinationProbe.kt` (28 casos, run_probe.sh, motor real sobre HEAD 94aadb4): **la clase NOVENA está CASI CUBIERTA** — 12/14 declarativas cotidianas YA capturan (avisar a… TASK 0.45 ×4; devolver el libro/cargador/dinero a <persona> ERRAND ×4; pedir prestado TASK ×2; llevarle su cuaderno ERRAND; recoger el paquete ERRAND). Solo 2 NULLs reales:
+- Gap A: «traer el cargador a Ana mañana» NULL (verbo «traer» sin piso ni keyword; hermanos «llevarle»/«recoger» ya ERRAND).
+- Gap B: «dar las gracias a Ana por el regalo» NULL (hermana de «avisar a…»; ni «dar» ni «gracias» activan piso).
+- Regresiones 8/8 HIT; controles: 5 NULLs correctos (negación/duda/pasado/sustantivo «préstamo»/figurado «preparar el terreno») + 3 relajaciones del invariante «verbo suelto NULL» («devolver el libro»/«avisar a»/«pedir prestado» HIT sin objeto — observación lateral a verificar).
+- Candidatas registradas en BACKLOG (UNA por ciclo, anti-overreach): (a) «traer el cargador…»; (b) «dar las gracias a <persona>». TESTS: suite pre-run OK (5863), smoke 25/25 — no afectadas (audit-only). NO VERIFICADO: Android/gradle/UI/Room (sin SDK).
+- Próxima prioridad: gap A «traer el cargador a Ana» (ir recibir?) — o alternativa de producto (relajaciones del invariante verbo-suelto detectadas como hallazgo lateral). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.889 (2026-08-22) — feat(context): objeto «prueba de sonido» en el piso «hacerse» (familia AGOTADA)
 
 - Área: context (ContextIntentEngine `ERRAND_BLOOD_TEST_FLOOR` + plantilla `matchBloodTest`; CERO cambios en `ContextIntent.kt`).
