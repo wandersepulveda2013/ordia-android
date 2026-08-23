@@ -8,7 +8,7 @@
 - Suite FINAL `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → **OK (6182 = 6168 c.927 + 14)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9.
 - Cambios: M `NaturalTaskParser.kt` (1 alternativa aditiva + comentario), A `NaturalTaskParserParaLaParteDelDiaTest.kt` (14 tests), M `AI_AUTONOMY/*`. Sondas efímeras `/tmp/probe928/` (medidas documentadas aquí y en el test).
 - Laterales medidas FUERA (registradas, UNA por ciclo): «para la mañana siguiente» (semántica «siguiente» tras ancla parte-del-día rota para TODOS los conectores — preexistente; requiere decisión de doctrina propia); «a primera/última hora del <día>» (familia (F) barrido c.918).
-- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: ver commit final del ciclo. Próxima prioridad: laterales medidas arriba — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: `be62ef2` (pusheado `775ac7d..be62ef2`; re-fetch pre-push limpio, sin colisión). Próxima prioridad: laterales medidas arriba — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
 ## Ciclo c.927 (2026-08-23) — fix(parser): guard anti-robo de «mañana» desnuda en genitivo/demostrativo (observación registrada c.925; guard compartido fecha+título)
 
