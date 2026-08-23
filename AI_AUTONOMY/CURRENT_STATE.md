@@ -1,4 +1,15 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.895b (2026-08-23) — feat(context): piso TASK «cobrar la nómina/reembolso» (familia 3/8 clase NOVENA, lockstep TRES puntos)
+
+- Integración no destructiva: base `ad463b6` (c.894 remontada; hermano del barrido no tocaba este área). Re-fetch PRE-push verificado.
+- Área: context (`ContextIntentEngine.kt`, `ContextIntent.kt`). Decisión de dominio deliberada: **TASK** (no ERRAND) — la doctrina de la clase NOVENA gobierna el desplazamiento físico (c.842/c.862); «cobrar la nómina/el reembolso» es gestión financiera SIN desplazamiento (el dinero entra por cuenta/transferencia), hermana de «revisar el extracto del banco» TASK (c.691).
+- NULL PRE medido por la sonda NUEVA persistida `tools/probe/CobrarNominaProbe.kt` (16 casos: 4 candidatas + 9 guards/laterales + 4 regresiones; motor real vía `tools/run_probe.sh`): 4/4 NULL candidatas, 7/7 NULL guards/laterales («la compra/el alquiler/la deuda» bivalentes deliberados), 4/4 HIT regresiones.
+- Lockstep TRES puntos (lección c.616/c.713/c.751): (1) piso acotado en `hasStrongTaskImperative` `(?<!no )cobrar\s+(art/pos opcional)?(n[oó]minas?|reembolsos?)\b` — verbo «cobrar» bivalente excluido por ancla-objeto (misma doctrina que c.750 «donar sangre»/c.751 «cargar el celular»); (2) keywords-OBJETO «nómina»/«nomina» en `ContextIntentKind.TASK` (NO el verbo «cobrar», bivalente — la compra/el alquiler/los favores; 0.12 sola inerte < umbral: «la nómina llegó ayer» sigue descartado); (3) plantilla de título en `extractTitle` rama TASK `(?<!no )cobrar\s+(.+)` → «Cobrar …» (grafía preservada doctrina c.653; residuo temporal depurado por `sanitizeTitle`; guard `(?<!no )` anterior a plantilla).
+- TDD RED→GREEN: test nuevo `ContextIntentEngineCobrarNominaTest` (9 tests: 4 capturas, 1 lockstep lockstep-keyword/envolvente, 3 negaciones, 3 laterales bivalentes NULL deliberados + 3 guards) — RED exacto 5 fallos → verde. Suite **OK (5911 = 5895 + 9… con el hermano 5878+17 c.895 remontada)**; smoke 25/25; POST sonda 4/4 HIT (TASK 0.45, títulos «Cobrar la nómina»/«Cobrar el reembolso», dueAt=true), 7/7 guards NULL, 4/4 regresiones HIT («ingresar el reembolso» ERRAND, «pagar la tarjeta» PAYMENT, «revisar el extracto» TASK intactos).
+- Laterales documentados (NULL deliberados): «cobrar la compra/el alquiler/la deuda».
+- NO VERIFICADO: Android/gradle/lint/UI/Room.
+- Próxima prioridad: familia (4) membresías («dar de baja el gimnasio»). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.895 (2026-08-23) — feat(context): laterales del piso ERRAND c.894 — «depositar el cheque», «hacer el ingreso» (familia 2/8 clase NOVENA, extensión aditiva lockstep TRES puntos)
 
 - **Integración no destructiva tras colisión**: base inicial `1f11582` (propio c.893); re-fetch PRE-push reveló hermano `cec1e29` (c.894, máster «ingresar dinero/reembolso», 17 tests, suite 5878). stash → pull --ff-only → supresión de stash (regeneración de la delta complementaria); código disjunto del máster hermano (laterales explícitamente dejadas «a medir» por el hermano: cero solapamiento). Fibra hermana de c.892/c.889b.

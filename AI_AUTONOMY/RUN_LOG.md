@@ -15539,3 +15539,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room.
 - **Próxima prioridad**: familia (3) cobros («cobrar la nómina/el reembolso»). Re-fetch OBLIGATORIO antes del push.
 ---
+
+## Ciclo c.895b (2026-08-23) — feat(context): «cobrar la nómina/reembolso» TASK (familia 3/8 clase NOVENA)
+
+- HEAD inicial: `ad463b6` (remoto == local tras pull --ff-only). Re-fetch obligado respetado (sin STALE).
+- NULL PRE (sonda `tools/probe/CobrarNominaProbe.kt`, 16 casos, motor real `tools/run_probe.sh`): 4/4 cand. NULL, 7/7 guards NULL, 4/4 regres. HIT.
+- Decisión de dominio: TASK (gestión financiera sin desplazamiento; doctrina clase NOVENA c.842/c.862), hermana de «revisar el extracto» c.691.
+- Lockstep TRES puntos: piso acotado `hasStrongTaskImperative` + keywords «nómina»/«nomina» + plantilla `extractTitle` → «Cobrar …» (doctrina c.653).
+- TDD: `ContextIntentEngineCobrarNominaTest` (9 tests) RED exacto 5 fallos → GREEN. Suite OK (5911 = base 5895 + nuevos; incluye fija de negación-envolvente c.613). Smoke 25/25. POST sonda: 4/4 HIT TASK 0.45, 7/7 guards NULL, 4/4 regresiones HIT.
+- Archivos: `ContextIntentEngine.kt` (+34), `ContextIntent.kt` (+8 effective), `ContextIntentEngineCobrarNominaTest.kt` (NUEVO), `tools/probe/CobrarNominaProbe.kt` (NUEVO), AI_AUTONOMY. NO VERIFICADO: Android/gradle/lint/UI/Room.
+- HEAD final: pendiente de commit; próxima prioridad familia (4) membresías («dar de baja el gimnasio»).

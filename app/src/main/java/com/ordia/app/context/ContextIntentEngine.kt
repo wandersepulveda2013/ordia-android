@@ -2257,6 +2257,31 @@ object ContextIntentEngine {
             // enclítica («no hacerme la maleta»), el pasado («me hice la
             // maleta ayer») no casa. Título en lockstep (lección c.616).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|preparar|meter)(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b""").containsMatchIn(lower)
+            // c.895b: "cobrar la nómina/el reembolso" ("cobrar la nómina
+            // mañana"), familia 3/8 de la clase NOVENA dinero/banca
+            // (sonda persistida `tools/probe/CobrarNominaProbe.kt`,
+            // heredera de c.892 `tools/probe/NinthClassMoneyProbe.kt`;
+            // NULL PRE sobre HEAD 3b3766c: 4/4 candidatas, 7/7 guards,
+            // 4/4 regresiones HIT intactas). El verbo "cobrar" es
+            // bivalente (la compra —SHOPPING—, los favores, el alquiler/
+            // la deuda —PAYMENT del deudor—), así el piso se ACOTA al
+            // objeto `n[oó]minas?|reembolsos?` (misma doctrina objeto-
+            // anclada que c.750 «donar sangre»/c.751 «cargar el celular»;
+            // una familia por ciclo). Lockstep keyword-OBJETO «nómina»/
+            // «nomina» y plantilla en [extractTitle] (lección c.616/
+            // lección c.713). Kind decidido: TASK, en deliberación contra
+            // ERRAND — la doctrina de la clase NOVENA (c.842/c.862) solo
+            // gobierna el desplazamiento físico (sacar/depositar/ingresar);
+            // «cobrar la nómina/reembolso» es gestión financiera SIN
+            // desplazamiento (el dinero entra por cuenta/transferencia),
+            // hermana de «revisar el extracto» TASK (c.691). Anti-overreach:
+            // artículo/posesivo opcional, `\b` final, `(?<!no )` bloquea la
+            // negada («no cobrar la nómina»), pasado «cobré…» y sustantivo
+            // «el cobro…» no casan, bivalentes «la compra/el alquiler/la
+            // deuda» no casan. La negada la cubre el guard del piso; la
+            // keyword 0.12 + bono temporal 0.1 = 0.22 < umbral: no hace
+            // falta cláusula dedicada en [imperativeIsNegated].
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:n[oó]minas?|reembolsos?)\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3023,6 +3048,15 @@ object ContextIntentEngine {
                 // el verbo, no en el acuse). Mismo ancla/guard que el piso.
                 val matchRevisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )revisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRevisar != null) return "Revisar ${matchRevisar.groupValues[1]}"
+
+                // "cobrar X" → "Cobrar X" (c.895b): lockstep con el piso
+                // acotado «cobrar la nómina/reembolso» — el verbo gobierna
+                // el contenido y se PRESERVA en el título (alineación piso↔
+                // título, lección c.616, doctrina c.653: ortografía conservada,
+                // solo capitalización inicial); el residuo temporal de cola lo
+                // depura [sanitizeTitle]. Mismo ancla/guard que el piso.
+                val matchCobrar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cobrar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCobrar != null) return "Cobrar ${matchCobrar.groupValues[1]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se

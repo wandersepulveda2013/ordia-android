@@ -179,7 +179,16 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // .hasStrongTaskImperative; lección c.751). Bivalente: el piso
         // la acota al objeto "renta" ("declarar el amor"/"en el juicio"
         // medidas NULL; 0.12 sola < umbral).
-        "declarar")),
+        "declarar",
+        // c.895b: keywords-OBJETO «nómina»+grafía sin tilde (lockstep con
+        // el piso acotado «cobrar la nómina/reembolso», familia 3/8 de la
+        // clase NOVENA sonda c.892; lección c.751/c.765). NO el verbo
+        // «cobrar»: bivalente (la compra/los favores/el alquiler). 0.12
+        // sola inerte < umbral y el piso la exige anclada al verbo —
+        // «la nómina llegó ayer» sigue descartado. Además alimenta
+        // [TRIGGER_WORDS]: sin ella una notificación cuyo gatillo fuera
+        // solo «nómina» ni llegaría al análisis (lección c.751).
+        "nómina", "nomina")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
