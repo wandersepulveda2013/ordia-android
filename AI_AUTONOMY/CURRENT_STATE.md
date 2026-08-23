@@ -1,3 +1,12 @@
+## Ciclo c.899 (2026-08-23) — STALE_RUN c.898 duplicado no destructivo + fix overreach del hermano c.898: «descongelar <obj-comida>» acotado
+
+- COLISIÓN PRE-push: el hermano publicó `1e5eaa6` (MISMA familia 5/8 comida/deberes) entre mi PRE-sonda y mi push. Resolución patrón c.896: stash → pull --ff-only → comparación cobertura → stash drop (duplicados MEAL/DEFROST/HOMEWORK descartados, cero trabajo ajeno sobrescrito). La familia 5/8 fue ganada por el hermano; mi delta residual es el fix overreach abajo.
+- Fix overreach del hermano c.898: su piso libre `descongelar\s+\w` capturaba objetos bivalentes («el banco/la cuenta/el congelador») como HOUSEHOLD. Fix: acotado a objetos-comida `carnes?|pollos?|pescados?` en piso y plantilla (alineación piso↔título lección c.616). Guard `(?<!no )` heredado.
+- TDD RED→GREEN: +7 tests (`ContextIntentEngineDefrostOverreachFixTest` — 3 guards bivaleantes, 3 capturas-comida, 1 negación). Suite **OK (5954 = 5947 + 7)**; smoke 25/25; sonda NUEVA `tools/probe/DefrostOverreachProbe.kt` 3/3 guards NULL + 3/3 comida HIT.
+- Determinista (regex), cero random, cero IA fingida, cero UI.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room.
+- Próxima prioridad: familias restantes NOVENA (6/8 photocopias); re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.898 (2026-08-23) — feat(context): familia (5/8) NOVENA comida/deberes — «hacer la cena»/«preparar el almuerzo»/«descongelar la carne»/«hacer los deberes»
 
 - Área: **context** `ContextIntentEngine.kt` (pisos acotados + plantillas de título) + `ContextIntent.kt` (keywords-OBJETO comida/deberes) + test nuevo `ContextIntentEngineHacerCenaTest.kt` + sonda persistida `tools/probe/HacerCenaProbe.kt` (PRE 4/4 NULL medido).

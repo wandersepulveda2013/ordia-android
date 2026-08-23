@@ -359,7 +359,14 @@ object ContextIntentEngine {
     private val HOUSEHOLD_MEAL_FLOOR =
         Regex("""\b(?<!no )(?:hacer|preparar)\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:cena|comida|almuerzo|desayuno|merienda)\b""")
     private val HOUSEHOLD_DEFROST_FLOOR =
-        Regex("""\b(?<!no )descongelar\s+\w""")
+        // c.899: el piso libre `descongelar\s+\w` (c.898) era overreach
+        // bivalente — robaba «el banco»/«la cuenta»/«el congelador» como
+        // HOUSEHOLD (sonda persistida `DefrostOverreachProbe.kt` PRE
+        // medido 3/3 HIT indebido). Se acota al objeto-comida
+        // (`carnes?|pollos?|pescados?`), hermana de [HOUSEHOLD_MEAL_FLOOR]
+        // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
+        // negación heredado (?<!no ).
+        Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
     private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
@@ -3634,8 +3641,11 @@ object ContextIntentEngine {
                 if (matchComida != null) {
                     return "${capitalizeFirst(matchComida.groupValues[1])} ${matchComida.groupValues[2]}"
                 }
+                // c.899: mismo acotado al objeto-comida (alineación
+                // piso↔título, lección c.616) — el piso libre robaba
+                // «el banco/la cuenta/el congelador».
                 val matchDescongelar = Regex(
-                    """\b(?<!no )(descongelar)\s+(.+)""",
+                    """\b(?<!no )(descongelar)\s+((?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchDescongelar != null) {
