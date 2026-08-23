@@ -18,7 +18,8 @@ import org.junit.Test
  * NULL PRE medido: 6/6 candidatas NULL (pesos/euros/dólares/yenes/
  * libras, con acuse, prefijo temporal y grafía sin tilde «millon»),
  * 7/7 guards NULL (negación, hedge, pasado, declarativo, sin divisa,
- * «un millón de gracias» bivalente, «medio millón» FUERA pineado),
+ * «un millón de gracias» bivalente, «medio millón» FUERA pineado —
+ * capturado en c.921, guard convertido precedente c.843),
  * 8/8 regresiones HIT (50 mil pesos/mil euros/50 euros/dinero ERRAND,
  * «pagar un millón de pesos» PAYMENT, «cambiar un millón de pesos»
  * TASK, basura/perro HOUSEHOLD).
@@ -34,8 +35,8 @@ import org.junit.Test
  * c.842/c.862). La ancla «sacar» + «un millón de» + divisa es
  * inequívoca: no colide con «un millón de gracias» (sin divisa), ni
  * con «sacar un millón mañana» (sin divisa — NULL), ni con «medio
- * millón» (cuantificador distinto — pineado NULL aquí, lateral a
- * medir en su ciclo).
+ * millón» (cuantificador distinto — pineado NULL aquí, capturado en
+ * c.921 con su propia rama «medio millón de <divisa>»).
  *
  * Lockstep TRES puntos (lección c.616/c.751; CERO cambios en
  * [ContextIntent.kt] — las keywords-DIVISA ya existen desde
@@ -62,8 +63,9 @@ import org.junit.Test
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
  * c.615): «sacar medio millón de pesos» (cuantificador distinto,
- * medido NULL en la sonda) queda FUERA — pineado aquí, a medir en su
- * ciclo; «dos millones de pesos» (plural en letra) sigue NULL.
+ * medido NULL en la sonda) quedaba FUERA — pineado aquí, capturado
+ * en c.921 con su propia rama; «dos millones de pesos» (plural en
+ * letra) sigue NULL.
  */
 class ContextIntentEngineSacarUnMillonFloorTest {
 
@@ -124,9 +126,13 @@ class ContextIntentEngineSacarUnMillonFloorTest {
         assertNull("declarativo sin imperativo", analyze("el premio es un millón de euros"))
         assertNull("sin divisa no hay ancla", analyze("sacar un millón mañana"))
         assertNull("«un millón de gracias» agradecimiento bivalente", analyze("un millón de gracias por todo"))
-        // «medio millón»: lateral FUERA de alcance (cuantificador
-        // distinto, medido NULL en la sonda — a medir en su ciclo).
-        assertNull("«medio millón» fuera de alcance", analyze("sacar medio millón de pesos mañana"))
+        // «medio millón»: el pineado NULL de c.920 se convirtió en
+        // captura en c.921 (rama «medio millón de <divisa>» en
+        // [ERRAND_CASH_FLOOR]) — precedente c.843: ampliación de
+        // alcance documentada, NO degradación del test.
+        val medio = analyze("sacar medio millón de pesos mañana")
+        assertNotNull("«medio millón de pesos» captura desde c.921", medio)
+        assertEquals(ContextIntentKind.ERRAND, medio!!.kind)
         // Plural en letra sin ancla: sigue NULL (no hay rama «millones»).
         assertNull("plural en letra sin ancla", analyze("sacar dos millones de pesos mañana"))
     }
