@@ -20,7 +20,8 @@ import org.junit.Test
  * libras, con acuse, prefijo temporal y grafía sin tilde «millon»),
  * 7/7 guards NULL (negación, hedge, pasado, declarativo, sin divisa,
  * «medio millón de personas» declarativo, «dos millones» plural en
- * letra FUERA pineado), 8/8 regresiones HIT (50 mil pesos/mil euros/
+ * letra FUERA pineado — capturado en c.922, guard convertido
+ * precedente c.843), 8/8 regresiones HIT (50 mil pesos/mil euros/
  * un millón de pesos/dinero ERRAND, «pagar medio millón de pesos»
  * PAYMENT, «cambiar medio millón de pesos» TASK, basura/perro
  * HOUSEHOLD).
@@ -65,7 +66,8 @@ import org.junit.Test
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
  * c.615): «sacar dos millones de pesos» (plural en letra, medido NULL
- * en la sonda) queda FUERA — pineado aquí, a medir en su ciclo.
+ * en la sonda) quedaba FUERA — pineado aquí, capturado en c.922 con
+ * su propia rama; «tres millones» sigue NULL.
  */
 class ContextIntentEngineSacarMedioMillonFloorTest {
 
@@ -126,9 +128,13 @@ class ContextIntentEngineSacarMedioMillonFloorTest {
         assertNull("declarativo sin imperativo", analyze("el premio es medio millón de euros"))
         assertNull("sin divisa no hay ancla", analyze("sacar medio millón mañana"))
         assertNull("declarativo personas sin divisa", analyze("medio millón de personas asistió"))
-        // «dos millones»: plural en letra FUERA de alcance (medido NULL
-        // en la sonda — a medir en su ciclo).
-        assertNull("plural en letra fuera de alcance", analyze("sacar dos millones de pesos mañana"))
+        // «dos millones»: el pineado NULL de c.921 se convirtió en
+        // captura en c.922 (rama «dos millones de <divisa>» en
+        // [ERRAND_CASH_FLOOR]) — precedente c.843: ampliación de
+        // alcance documentada, NO degradación del test.
+        val dos = analyze("sacar dos millones de pesos mañana")
+        assertNotNull("«dos millones de pesos» captura desde c.922", dos)
+        assertEquals(ContextIntentKind.ERRAND, dos!!.kind)
     }
 
     // ─── Regresiones (HIT esperado) — verdes desde RED ──────────────

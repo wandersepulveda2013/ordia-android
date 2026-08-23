@@ -65,7 +65,8 @@ import org.junit.Test
  * c.615): «sacar medio millón de pesos» (cuantificador distinto,
  * medido NULL en la sonda) quedaba FUERA — pineado aquí, capturado
  * en c.921 con su propia rama; «dos millones de pesos» (plural en
- * letra) sigue NULL.
+ * letra) idem — pineado aquí, capturado en c.922; «tres millones»
+ * sigue NULL.
  */
 class ContextIntentEngineSacarUnMillonFloorTest {
 
@@ -133,8 +134,13 @@ class ContextIntentEngineSacarUnMillonFloorTest {
         val medio = analyze("sacar medio millón de pesos mañana")
         assertNotNull("«medio millón de pesos» captura desde c.921", medio)
         assertEquals(ContextIntentKind.ERRAND, medio!!.kind)
-        // Plural en letra sin ancla: sigue NULL (no hay rama «millones»).
-        assertNull("plural en letra sin ancla", analyze("sacar dos millones de pesos mañana"))
+        // Plural en letra: el pineado NULL de c.920 se convirtió en
+        // captura en c.922 (rama «dos millones de <divisa>» en
+        // [ERRAND_CASH_FLOOR]) — precedente c.843: ampliación de
+        // alcance documentada, NO degradación del test.
+        val dos = analyze("sacar dos millones de pesos mañana")
+        assertNotNull("«dos millones de pesos» captura desde c.922", dos)
+        assertEquals(ContextIntentKind.ERRAND, dos!!.kind)
     }
 
     // ─── Regresiones (HIT esperado) — verdes desde RED ──────────────

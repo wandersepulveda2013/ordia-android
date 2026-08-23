@@ -1,3 +1,12 @@
+## Ciclo c.922 (2026-08-23) — [VERIFIED JVM] feat(context): lateral «sacar dos millones de <divisa>» (registrada FUERA en c.920/c.921)
+- Unidad: «sacar dos millones de pesos/euros/dólares/yenes/libras» — plural en letra más frecuente del retiro de efectivo de importe alto en LatAm («sacar dos millones de pesos del cajero») que caía a NULL pese a la keyword-DIVISA.
+- Fix: alternativa ADITIVA `dos\s+millones\s+de\s+(divisa)` en los TRES puntos (piso `[ERRAND_CASH_FLOOR]`, cláusula de negación, plantilla de título); CERO cambios en `ContextIntent.kt` (keywords-DIVISA ya existen; «millones» NO es keyword — bivalente «dos millones de personas»). NO se generaliza a `(?:dos|tres|…)` — doctrina anti-overreach c.615 (UNA forma por ciclo).
+- Evidencia: sonda PRE efímera `/tmp/probe922/PreProbe.kt` (22 casos, motor real) 6/6 candidatas NULL, 7/7 guards NULL, 9/9 regresiones HIT → POST 6/6 HIT ERRAND títulos limpios («Sacar dos millones de pesos del cajero», acuse/prefijo temporal despojados, grafía preservada); TDD RED exacto (4 run, EXACTAMENTE 2 fallos = capturas; guards/regresiones verdes desde RED) → GREEN 12/12 (con las clases c.920/c.921 hermanas); suite FINAL **OK (6102 = 6098 c.921 + 4)**; checks 25/25.
+- Guards convertidos (precedente c.843): pineados NULL «sacar dos millones de pesos mañana» de c.920 y c.921 → regresiones de captura documentadas.
+- Sigue NULL (deliberado, medido): «sacar tres millones de pesos» (otro plural en letra — lateral a medir), «sacar dos millones mañana» (sin divisa), «dos millones de personas», «un millón de gracias».
+- Próxima prioridad: «tres millones de pesos» (plural en letra, medida NULL) o «traer <objeto>» sin dativo (NULL 4/4 c.909, decisión pendiente) o divisa fría «francos» (medir) o familias (5)-(8) clase NOVENA.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). Re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.921 (2026-08-23) — [VERIFIED JVM] feat(context): lateral «sacar medio millón de <divisa>» (registrada FUERA en c.920)
 - Unidad: «sacar medio millón de pesos/euros/dólares/yenes/libras» (con y sin tilde «millon») — forma cotidiana del retiro de efectivo de importe medio-alto en LatAm («sacar medio millón de pesos del cajero») que caía a NULL pese a la keyword-DIVISA.
 - Fix: alternativa ADITIVA `medio\s+mill[oó]n\s+de\s+(divisa)` en los TRES puntos (piso `[ERRAND_CASH_FLOOR]`, cláusula de negación, plantilla de título); CERO cambios en `ContextIntent.kt` (keywords-DIVISA ya existen; «millón» NO es keyword — bivalente «un millón de gracias»).
