@@ -4698,7 +4698,12 @@ object NaturalTaskParser {
             working = working.substring(0, fullyStripped.first) + " " + working.substring(range.last + 1)
         }
 
+        // c.936: weekday genitivo dentro de una cadena narrativa H3 protegida
+        // («las primeras horas de la mañana del lunes son tranquilas») NO es
+        // ancla de fecha: pertenece al sujeto narrativo.
+        val ordinalNarrativeWeekdayRanges = ordinalHoraNarrativeWeekdayRanges(working)
         val weekdayMatch = weekdayPattern.find(working)
+            ?.takeUnless { wm -> ordinalNarrativeWeekdayRanges.any { it.containsRange(wm.range) } }
         val weekendMatch = weekendEarlyMatch
         val numericDateMatch = numericDatePattern.find(working)
         // find() devolvía solo el PRIMER match; si su mes era inválido ("9 de la" → "la"),
@@ -5681,7 +5686,11 @@ object NaturalTaskParser {
             // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
             // resolvió (p. ej. forma con mes nombrado, excluida por el lookahead del patrón).
             .let { value -> if (weekdayDayMatch != null && dueAt != null) weekdayDayPattern.replace(value, " ") else value }
-            .let { value -> weekdayPattern.replace(value, " ") }
+            // c.936: borrado por rangos con guard anti-robo narrativo — el
+            // weekday genitivo de una cadena narrativa H3 protegida («las
+            // primeras horas de la mañana del lunes son tranquilas») se
+            // conserva íntegro; ver ordinalHoraNarrativeWeekdayRanges.
+            .let { value -> eraseWeekdayToken(value) }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
             // semana, día de la semana) se consume pero la frase modificadora no.
@@ -7757,6 +7766,51 @@ object NaturalTaskParser {
         return ranges
     }
 
+    /**
+     * c.936: weekday genitivo («del/de lunes…») que sigue DIRECTAMENTE a un
+     * ordinal narrativo H3 protegido («las primeras horas de la mañana del
+     * lunes son tranquilas»). El weekday pertenece a la cadena genitiva del
+     * sujeto narrativo: no es ancla. Ver [ordinalHoraNarrativeWeekdayRanges].
+     */
+    private val ordinalHoraNarrativeWeekdayGenitive = Regex(
+        """(?i)^\s+(?:del|de)\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+    )
+
+    /**
+     * c.936: rangos de las apariciones de weekday que son CONTENIDO narrativo
+     * por gobernarlas un ordinal H3 protegido: el genitivo canónico está
+     * dentro del match del ordinal ([ordinalHoraCanonicalSuffix]), el ordinal
+     * es narrativo ([ordinalHoraOccurrenceIsContent]), el weekday genitivo lo
+     * sigue directamente y hay predicado a continuación (doctrina H3: sin
+     * predicado el fragmento es bivalente y sigue la doctrina vigente). Un
+     * weekday con modificador («del lunes que viene») no queda contenido en
+     * el rango: el match de [weekdayPattern] lo extiende más allá y
+     * [containsRange] lo excluye de forma natural. Se usa en la resolución
+     * (fecha) y en el borrado del título ([eraseWeekdayToken]) para que
+     * nunca diverjan, como [ordinalHoraNarrativeRanges].
+     */
+    private fun ordinalHoraNarrativeWeekdayRanges(text: String): List<IntRange> {
+        val ranges = mutableListOf<IntRange>()
+        for (pattern in listOf(primeraHoraPattern, ultimaHoraPattern)) {
+            var idx = 0
+            while (true) {
+                val m = pattern.find(text, idx) ?: break
+                if (ordinalHoraCanonicalSuffix.containsMatchIn(m.value) &&
+                    ordinalHoraOccurrenceIsContent(text, m)
+                ) {
+                    val wg = ordinalHoraNarrativeWeekdayGenitive.find(text.substring(m.range.last + 1))
+                    if (wg != null) {
+                        val wgFirst = m.range.last + 1 + wg.range.first
+                        val wgLast = m.range.last + 1 + wg.range.last
+                        if (text.substring(wgLast + 1).isNotBlank()) ranges += wgFirst..wgLast
+                    }
+                }
+                idx = m.range.last + 1
+            }
+        }
+        return ranges
+    }
+
     private fun IntRange.containsRange(other: IntRange): Boolean =
         other.first >= first && other.last <= last
 
@@ -7845,6 +7899,28 @@ object NaturalTaskParser {
         while (true) {
             val m = standalonePartOfDayPattern.find(result, idx) ?: return result
             if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) }) {
+                idx = m.range.last + 1
+                continue
+            }
+            result = result.removeRange(m.range.first, m.range.last + 1)
+            idx = m.range.first
+        }
+    }
+
+    /**
+     * c.936: borra del título las apariciones de weekday y conserva íntegro
+     * el weekday genitivo de una cadena narrativa H3 protegida («las primeras
+     * horas de la mañana del lunes son tranquilas»): pertenece al sujeto
+     * narrativo, no es token de fecha. Opera por rangos (no replace global)
+     * para no tocar las apariciones protegidas, como [eraseOrdinalHoraToken]/
+     * [eraseStandalonePartOfDayToken].
+     */
+    private fun eraseWeekdayToken(title: String): String {
+        var result = title
+        var idx = 0
+        while (true) {
+            val m = weekdayPattern.find(result, idx) ?: return result
+            if (ordinalHoraNarrativeWeekdayRanges(result).any { it.containsRange(m.range) }) {
                 idx = m.range.last + 1
                 continue
             }
