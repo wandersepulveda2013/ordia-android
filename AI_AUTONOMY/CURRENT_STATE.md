@@ -1,3 +1,11 @@
+## Ciclo c.913 (2026-08-23) — test(context): delta de colisión c.911 duplicada — refuerzo guards/regresión del piso «pesos» (sin cambio de motor)
+
+- Integración: HEAD inicial `3bc95ba`; re-fetch pre-push detectó colisión (`behind 2`): el hermano publicó SU c.911 «pesos» (`9708574`, unidad idéntica a la mía) y c.912 «libras» (`724539f`). Mi c.911 duplicada se descartó íntegra sin commitear y `pull --ff-only` limpio a `724539f`. Cero sobrescritura del trabajo válido del hermano.
+- HEAD heredado verificado antes de tocar nada: suite `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → OK (6059).
+- Delta único medido (sonda efímera `/tmp/probe911d`, motor real) e integrado como 3 asserts aditivos en `ContextIntentEngineSacarPesosFloorTest`: «bajar de peso este mes» NULL (bivalencia peso corporal con bono temporal: 0.12+0.22=0.34 < umbral), «peso 80 kilos» NULL (declarativo corporal), «coger 50 pesos del cajero el lunes» HIT TASK «Coger 50 pesos del cajero» (asimetría c.716 vs c.893 intacta con divisa nueva).
+- Suite tras el delta: OK (6059 tests, +3 asserts en tests existentes); `run_domain_checks.sh` 25/25. CERO cambio de motor; determinista, cero random, cero IA fingida, cero UI. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Próxima prioridad: lateral «sacar 50 mil pesos» (cuantificador «mil», OBS-P1) o «traer <objeto>» sin dativo (NULL 4/4 c.909, decisión de dominio pendiente) o clase NOVENA gestiones externas (c.890); re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.912 (2026-08-23) — feat(context): lateral cantidad «sacar <N> libras (del cajero/atm)» (familia (1) clase NOVENA hermana de c.909/c.910/c.911, lockstep TRES puntos)
 
 - Integración: base `9708574` (mi c.911, publicado y en sync al inicio). Toolchain presente (JDK 21 + kotlinc 2.1.20 + jars `/tmp/libs`; AGENTS.md §6).
