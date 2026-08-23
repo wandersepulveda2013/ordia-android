@@ -2382,8 +2382,8 @@ object ContextIntentEngine {
             // casa, el subjuntivo «quizá dé las gracias…» no casa, el
             // sustantivo «las gracias de…» no casa (falta el verbo), «dar
             // las gracias» suelto sin destino no casa (ancla «a \w»
-            // exigida — NULL deliberado), laterales «darle las gracias…»/
-            // «dar gracias a…» no casan (a medir, UNA forma por ciclo).
+            // exigida — NULL deliberado), lateral «dar gracias a…» no
+            // casa (a medir, UNA forma por ciclo).
             // La negada la cubre el guard del piso; la keyword 0.12 + bono
             // temporal 0.1 = 0.22 < umbral: no hace falta cláusula dedicada
             // en [imperativeIsNegated] (mismo argumento que c.895b/c.895c).
@@ -2392,7 +2392,16 @@ object ContextIntentEngine {
             // gracias al jefe»); medida NULL en la sonda (CAND-F/G) sobre
             // b956cc5: la keyword 0.12 sola inerte < umbral. Cero cambios
             // en la plantilla de título: `(.+)` ya captura «al jefe…».
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+a(?:l)?\s+\w""").containsMatchIn(lower)
+            // c.903: lateral enclítica «darle las gracias a…» (medida NULL
+            // en la sonda hermana c.901, UNA forma por ciclo). El enclítico
+            // «le» solo anticipa el destinatario que la ancla dativa
+            // «a <destino>» confirma; el verbo-frase es el mismo
+            // cuasi-monosemántico (hermano del «llevarle su cuaderno»
+            // c.854). Extensión ADITIVA «dar(?:le)?» del piso c.901,
+            // integrada con el «a(?:l)?» del hermano c.902: «dar las
+            // gracias a…»/«…al jefe» siguen casando exactamente igual
+            // (cero reescritura, lección c.616/c.751).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+las\s+gracias\s+a(?:l)?\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3195,8 +3204,14 @@ object ContextIntentEngine {
                 // c.653: ortografía del destinatario y del objeto conservada,
                 // solo capitalización inicial); el residuo temporal de cola
                 // lo depura [sanitizeTitle]. Mismo ancla/guard que el piso.
-                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchDarLasGracias != null) return "Dar las gracias ${matchDarLasGracias.groupValues[1]}"
+                // c.903: el verbo se CAPTURA del match para preservar la
+                // forma del usuario — «Darle las gracias a Ana…» (enclítico,
+                // lockstep con la extensión «dar(?:le)?» del piso; hermano
+                // del «medir(?:me)?» c.843, que capitaliza el verbo DESDE
+                // el match). La forma no enclítica produce el mismo título
+                // que antes (cero reescritura).
+                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(dar(?:le)?)\s+las\s+gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDarLasGracias != null) return "${capitalizeFirst(matchDarLasGracias.groupValues[1])} las gracias ${matchDarLasGracias.groupValues[2]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se

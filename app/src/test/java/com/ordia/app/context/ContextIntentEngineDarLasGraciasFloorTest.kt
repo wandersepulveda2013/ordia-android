@@ -151,9 +151,10 @@ class ContextIntentEngineDarLasGraciasFloorTest {
     // ─── Laterales a medir (NULL deliberado, NO de este ciclo) ──────
 
     @Test
-    fun `laterales enclitico y sin articulo quedan a medir (anti-overreach)`() {
-        assertNull("«darle las gracias a Ana…» (enclítico; lateral registrada)",
-            analyze("darle las gracias a Ana por el regalo"))
+    fun `lateral sin articulo queda a medir (anti-overreach)`() {
+        // c.903: la lateral enclítica «darle las gracias a Ana…» se resolvió
+        // (ver ContextIntentEngineDarleLasGraciasFloorTest); esta guarda pasa
+        // a cubrir solo la forma sin artículo, que sigue fuera de alcance.
         assertNull("«dar gracias a Ana…» (sin artículo; lateral registrada)",
             analyze("dar gracias a Ana por el regalo"))
     }
