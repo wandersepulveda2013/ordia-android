@@ -7863,6 +7863,20 @@ object NaturalTaskParser {
         """(?i)^\s*en\s+$"""
     )
 
+    /**
+     * c.947: preposición «en» + artículo INDEFINIDO AL INICIO del texto — el
+     * hueco entre [ordinalHoraNarrativeEnArticlePrefix] (c.942, «en la/el…») y
+     * [ordinalHoraNarrativeIndefinitePrefix] (c.944, «una/un…» sin «en»):
+     * «en una primera hora del día trabajé mejor». Doctrina simétrica a c.944
+     * (sólo se admite en la rama H3): con verbo/nombre/cláusula precedente el
+     * prefijo no empieza en «en» y la forma sigue la doctrina ancla
+     * (byte-idéntica); la bivalente pura con predicado de comando queda del
+     * lado narrativo, mismo compromiso que c.932/c.944.
+     */
+    private val ordinalHoraNarrativeEnIndefinitePrefix = Regex(
+        """(?i)^\s*en\s+(?:una|unas|un|unos)\s+$"""
+    )
+
     /** c.939: palabras weekday admitidas como genitivo directo narrativo. */
     private val ordinalHoraNarrativeWeekdayWords = setOf(
         "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
@@ -8077,10 +8091,15 @@ object NaturalTaskParser {
             // la forma sigue ancla byte-idéntica). La supresión de la
             // parte-del-día gobernada (fecha y título) fluye de
             // [ordinalHoraNarrativeRanges].
+            // c.947: y «en» + ARTÍCULO INDEFINIDO al inicio («en una primera
+            // hora del día trabajé mejor») — el hueco entre c.942 («en la…»)
+            // y c.944 («una…» sin «en»); misma evidencia de sujeto narrativo
+            // (lateral medida FUERA en c.945, doctrina simétrica a c.944).
             val prefixH3 = text.substring(0, match.range.first)
             if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3) &&
                 !ordinalHoraNarrativeOpinionPrefix.containsMatchIn(prefixH3) &&
-                !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefixH3)
+                !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefixH3) &&
+                !ordinalHoraNarrativeEnIndefinitePrefix.containsMatchIn(prefixH3)
             ) return false
             if (text.substring(match.range.last + 1).isBlank()) return false
             return true
