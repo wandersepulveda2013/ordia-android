@@ -1,3 +1,12 @@
+## Ciclo c.919 (2026-08-23) — [VERIFIED JVM] feat(context): lateral «sacar mil <divisa>» SIN dígito (OBS-P6 c.915)
+- Unidad: «sacar mil euros/pesos/dólares/yenes/libras» sin número — forma cotidiana hablada del retiro de efectivo (LatAm/España) que caía a NULL pese a la keyword-DIVISA.
+- Fix: alternativa ADITIVA `mil\s+(divisa)` en los TRES puntos (piso `[ERRAND_CASH_FLOOR]`, cláusula de negación, plantilla de título); CERO cambios en `ContextIntent.kt` (keywords-DIVISA ya existen; «mil» NO es keyword — bivalente «mil gracias»).
+- Evidencia: sonda PRE 5/5 candidatas NULL, 8/8 guards NULL, 8/8 regresiones HIT → POST 5/5 HIT ERRAND 0.45 títulos limpios; TDD RED exacto (2 fallos) → GREEN; suite FINAL sobre base integrada `aa435e7` **OK (6090 = 6086 hermano c.918 + 4)**; checks 25/25. Renumerado c.918→c.919 en el re-fetch pre-push (hermano tomó c.918 con su fix(parser) «sin falta»; rebase de mi commit único, conflicto SOLO en RUN_LOG conservando AMBOS bloques, convención c.857).
+- Guard convertido (precedente c.843): pineado NULL «mil euros» de c.915 → regresión de captura documentada.
+- Sigue NULL (deliberado, medido): «sacar dos mil pesos» (letra, c.916), «sacar un millón de pesos»/«medio millón» (lateral a medir), «mil gracias».
+- Próxima prioridad: «un millón de pesos»/«medio millón» (medida NULL) o «traer <objeto>» sin dativo (NULL 4/4 c.909, decisión pendiente) o divisa fría «francos» (medir).
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). Re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.916 (2026-08-23) — test(context): delta de colisión c.915 duplicada — refuerzo guards/regresión piso «mil divisa» (sin cambio de motor)
 
 - Integración: HEAD inicial del run `2e148ff`; implementé mi c.915 (cuantificador «mil», suite verde local) y commiteé `859a79b` tras un primer re-fetch limpio — pero el re-fetch pre-push reveló que el hermano publicó `453c429` (c.914 «biblioteca») y `321569a` (SU c.915 «mil divisa», unidad IDÉNTICA a la mía: mismo piso, mismo nombre de test, mismo guard convertido). Mi commit duplicado se DESCARTÓ íntegro sin push (`reset --soft` + `git restore` + `rm` del test duplicado) y `pull --ff-only` limpio a `321569a`. Cero sobrescritura del trabajo del hermano; NO force, NO reset --hard, `main` intacta.

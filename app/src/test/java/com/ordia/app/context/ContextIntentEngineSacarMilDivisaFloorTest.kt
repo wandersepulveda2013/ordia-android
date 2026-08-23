@@ -50,11 +50,13 @@ import org.junit.Test
  * lookbehind sí la bloquea — precedente c.909/c.910/c.911).
  *
  * Acotado deliberado (UNA forma por ciclo, doctrina anti-overreach
- * c.615): «sacar mil euros» (cuantificador sin dígito) queda FUERA
- * (medida NULL en la sonda, OBS-P6 — ancla distinta); «medio millón»/
- * «un millón de pesos» quedan como laterales a medir (la lateral
- * «libras» la resolvió el hermano en su c.912; ciclo renumerado
- * c.912→c.914→c.915 por DOBLE colisión, convención c.857).
+ * c.615): «sacar mil euros» (cuantificador sin dígito) quedó FUERA
+ * (medida NULL en la sonda, OBS-P6 — ancla distinta; RESUELTA en
+ * c.919 — el pineado NULL de este archivo se convirtió en regresión
+ * de captura, precedente c.843); «medio millón»/«un millón de pesos»
+ * quedan como laterales a medir (la lateral «libras» la resolvió el
+ * hermano en su c.912; ciclo renumerado c.912→c.914→c.915 por DOBLE
+ * colisión, convención c.857).
  */
 class ContextIntentEngineSacarMilDivisaFloorTest {
 
@@ -110,9 +112,12 @@ class ContextIntentEngineSacarMilDivisaFloorTest {
         assertNull("declarativo sin imperativo", analyze("la entrada cuesta 50 mil pesos"))
         assertNull("sin divisa no hay ancla", analyze("sacar 50 mil mañana"))
         assertNull("«puntos» no es divisa", analyze("sacar 5 mil puntos en el juego"))
-        // Forma «mil euros» sin dígito: ancla distinta, FUERA de
-        // alcance deliberado (OBS-P6 de la sonda).
-        assertNull("«mil euros» sin dígito fuera de alcance", analyze("sacar mil euros mañana"))
+        // Forma «mil euros» sin dígito: FUERA de alcance hasta c.917
+        // (OBS-P6 de la sonda). c.919 la resolvió (ancla «sacar»+«mil»+
+        // divisa): el pineado NULL deja de aplicar y la forma pasa a
+        // regresión de captura en el test de regresiones (precedente
+        // c.843: los guards de acotación deliberada se convierten en
+        // aserciones de captura al ampliarse el alcance).
         // Refuerzo c.916 (delta de colisión, medido NULL con sonda
         // efímera /tmp/probe915d sobre HEAD 321569a): número en letra
         // («dos mil pesos» — la rama cantidad exige \d+) y bivalencia
@@ -143,6 +148,16 @@ class ContextIntentEngineSacarMilDivisaFloorTest {
         val dinero = analyze("sacar dinero mañana") // piso c.893
         assertNotNull(dinero)
         assertEquals(ContextIntentKind.ERRAND, dinero!!.kind)
+
+        // Regresión de captura c.919: la forma «mil euros» sin dígito
+        // (OBS-P6, pineada NULL en este archivo hasta c.917 por
+        // acotación deliberada) captura desde c.919 como ERRAND —
+        // la conversión del guard documenta el cambio de alcance
+        // (precedente c.843), no es degradación del test.
+        val milSinDigito = analyze("sacar mil euros mañana")
+        assertNotNull("forma OBS-P6 resuelta en c.919", milSinDigito)
+        assertEquals(ContextIntentKind.ERRAND, milSinDigito!!.kind)
+        assertEquals("Sacar mil euros", milSinDigito.title)
 
         // Refuerzo c.916 (delta de colisión, medido HIT con sonda
         // efímera /tmp/probe915d sobre HEAD 321569a): la divisa
