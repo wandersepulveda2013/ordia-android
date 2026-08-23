@@ -4752,8 +4752,12 @@ object NaturalTaskParser {
         val compactDayPartOfDayMatch = compactDayPartOfDayPattern.find(working)
         val compactDayPartOfDayKey = compactDayPartOfDayMatch?.groupValues?.get(1)?.lowercase()
         val compactDayPartOfDayTime = compactDayPartOfDayKey?.let { compactDayPartOfDayTimes[it] }
+        // c.930 — guard anti-robo narrativo: el ordinal sustantivo («la primera
+        // hora de clase») no es ancla; ver ordinalHoraOccurrenceIsContent.
         val primeraHoraMatch = primeraHoraPattern.find(working)
+            ?.takeUnless { ordinalHoraOccurrenceIsContent(working, it) }
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
+            ?.takeUnless { ordinalHoraOccurrenceIsContent(working, it) }
         val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
         val alInicioDelDiaMatch = alInicioDelDiaPattern.find(working)
         val amanecerMatch = amanecerPattern.find(working)
@@ -5590,8 +5594,11 @@ object NaturalTaskParser {
             }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
-            .let { value -> primeraHoraPattern.replace(value, " ") }
-            .let { value -> ultimaHoraPattern.replace(value, " ") }
+            // c.930: borrado por rangos con guard anti-robo narrativo — las
+            // apariciones de ordinal que son CONTENIDO («la primera hora de
+            // clase») se conservan íntegras; ver ordinalHoraOccurrenceIsContent.
+            .let { value -> eraseOrdinalHoraToken(value, primeraHoraPattern) }
+            .let { value -> eraseOrdinalHoraToken(value, ultimaHoraPattern) }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
             .let { value -> alInicioDelDiaPattern.replace(value, " ") }
             .let { value -> amanecerPattern.replace(value, " ") }
@@ -7624,6 +7631,75 @@ object NaturalTaskParser {
             val start = connector.find(result.substring(0, m.range.first))?.range?.first ?: m.range.first
             result = result.removeRange(start, m.range.last + 1)
             idx = start
+        }
+    }
+
+    /**
+     * c.930: genitivos que siguen siendo ANCLA tras un ordinal de hora desnudo
+     * (parte del día/día/jornada canónicos del propio patrón y weekdays: la forma
+     * con weekday legítima («a primera hora del lunes») siempre lleva conector «a»,
+     * así que aquí sólo se usa para el caso desnudo ambiguo — conservador).
+     */
+    private val ordinalHoraAnchorGenitives = setOf(
+        "mañana", "manana", "tarde", "noche", "madrugada",
+        "día", "dias", "días", "jornada",
+        "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
+        "sábado", "sabado", "domingo"
+    )
+
+    /**
+     * c.930: ¿es esta aparición de «primera(s) hora(s)»/«última(s) hora(s)»/
+     * «primer/último momento» CONTENIDO narrativo ordinal («la primera hora de
+     * clase» = the first hour of class) y no el ancla canónica («a primera
+     * hora» = 09:00, «a última hora» = 18:00)? Sólo con evidencia gramatical
+     * inequívoca, y NUNCA con el conector «a»/«justo a» consumido por el
+     * patrón (ancla por doctrina c.102/c.546):
+     *  (H1) demostrativo precedente («esa primera hora»): nadie la usa como
+     *       ancla de las 09:00/18:00.
+     *  (H2) artículo precedente («la/las/el/los [misma/o/s/as]») + genitivo de
+     *       contenido a continuación («de clase», «del partido»): el ancla
+     *       tampoco gobierna genitivo de contenido. Los genitivos-ancla
+     *       ([ordinalHoraAnchorGenitives]) quedan como ancla.
+     * El genitivo canónico DENTRO del match («las primeras horas de la mañana»)
+     * queda como ancla (lateral registrada: proteger el ordinal no basta
+     * porque `standalonePartOfDayPattern` robaría la parte del día interior;
+     * requiere doctrina propia). Usada en la resolución (fecha) y en el
+     * borrado del título ([eraseOrdinalHoraToken]) para que nunca diverjan.
+     */
+    private fun ordinalHoraOccurrenceIsContent(text: String, match: MatchResult): Boolean {
+        if (Regex("""(?i)^(?:justo\s+)?a\s""").containsMatchIn(match.value)) return false
+        val canonicalSuffix = Regex(
+            """(?i)(?:de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)$"""
+        )
+        if (canonicalSuffix.containsMatchIn(match.value)) return false
+        val prefix = text.substring(0, match.range.first)
+        if (Regex("""(?i)\b(?:esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$""")
+                .containsMatchIn(prefix)
+        ) return true
+        val articleBefore = Regex("""(?i)\b(?:la|las|el|los)(?:\s+mism[oa]s?)?\s+$""").containsMatchIn(prefix)
+        if (!articleBefore) return false
+        val suffix = text.substring(match.range.last + 1)
+        val genitive = Regex("""(?i)^\s+(?:del|de(?:\s+(?:la|las|los))?)\s+(\p{L}+)""").find(suffix) ?: return false
+        return genitive.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives
+    }
+
+    /**
+     * c.930: borra del título las apariciones de ordinal de hora que son ANCLA
+     * y conserva íntegras las que son CONTENIDO narrativo
+     * ([ordinalHoraOccurrenceIsContent]). Opera por rangos (no replace global)
+     * para no tocar las apariciones protegidas, como [eraseMananaDateToken].
+     */
+    private fun eraseOrdinalHoraToken(title: String, pattern: Regex): String {
+        var result = title
+        var idx = 0
+        while (true) {
+            val m = pattern.find(result, idx) ?: return result
+            if (ordinalHoraOccurrenceIsContent(result, m)) {
+                idx = m.range.last + 1
+                continue
+            }
+            result = result.removeRange(m.range.first, m.range.last + 1)
+            idx = m.range.first
         }
     }
 
