@@ -662,6 +662,34 @@ object ContextIntentEngine {
     // forma medida de «retirar» llega vía la keyword-OBJETO «paquete».
     private val ERRAND_DATIVE_FLOOR =
         Regex("""\b(?<!no )(?:llevar|devolver|recoger|retirar|repostar)les?\s+(?!la\s+contraria\b|la\s+delantera\b|ventaja\b)\w""")
+    // c.900: piso acotado «traer <objeto> a <persona/lugar>» — SEGUNDA
+    // forma NULL de la clase NOVENA-b (coordinación y préstamos con
+    // personas, sonda persistida `NinthClassCoordinationProbe.kt` c.890b,
+    // candidata (a) del BACKLOG; NULL PRE verificado por la sonda
+    // persistida `TraerObjetoProbe.kt`: 5/5 candidatas NULL — declarativa,
+    // prefijo temporal, acuse, poseído —; 7/7 guards NULL; 6/6 regresiones
+    // HIT). El verbo «traer» es bivalente («traer pan» roza la compra;
+    // «traer suerte/consecuencias/la alegría» son figurados), así el piso
+    // se ACOTA a infinitivo «traer» + objeto (determinante opcional) +
+    // ancla DATIVA «a <destino>» (hermana de la ancla enclítica del piso
+    // dativo c.854): sin destino interpersonal queda fuera («traer pan»
+    // sigue siendo keyword TASK sola). El lookahead anti-figurado bloquea
+    // los objetos locucionados medidos en la sonda (suerte/consecuencias/
+    // alegría/desgracia); «traer a colación» no casa (sin objeto entre el
+    // verbo y «a»). Kind deliberado: ERRAND (gestión de desplazamiento
+    // hacia un tercero, hermana de «llevarle su cuaderno a Ana» c.854),
+    // no TASK. Lockstep: keyword-verbo «traer» YA existe en
+    // [ContextIntentKind.TASK] (lección c.751 satisfecha — la forma llega
+    // al análisis; NO se mueve de lista: sigue alimentando la deliberación
+    // TASK de sus otras formas) + plantilla de título en [extractTitle]
+    // (verbo preservado, lección c.616; doctrina c.653) + cláusula de
+    // negación dedicada en [imperativeIsNegated] (cinturón y tirantes,
+    // precedente c.854). El guard de envolvente [imperativeIsWrapped]
+    // fluye por [ERRAND_FLOORS] (fuente única, lección c.648/c.652).
+    // Acotado deliberado (una forma por ciclo): laterales «traerle
+    // <objeto>» enclítico y «traer <objeto>» sin dativo quedan a medir.
+    private val ERRAND_BRING_FLOOR =
+        Regex("""\b(?<!no )traer\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""")
     // c.893: piso acotado «sacar dinero/efectivo (del cajero)» — PRIMERA
     // familia NULL de la clase NOVENA (gestiones de dinero y banca
     // cotidiana, sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE
@@ -729,6 +757,7 @@ object ContextIntentEngine {
         ERRAND_HAIRCUT_FLOOR,
         ERRAND_BLOOD_TEST_FLOOR,
         ERRAND_DATIVE_FLOOR,
+        ERRAND_BRING_FLOOR,
         ERRAND_CASH_FLOOR,
         ERRAND_DEPOSIT_FLOOR
     )
@@ -2726,6 +2755,15 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+(?:llevar|devolver|recoger|retirar|repostar)les?\s+\w""").containsMatchIn(lower)
         ) return true
+        // "traer <objeto> a <persona/lugar>" (ERRAND, piso acotado c.900):
+        // la keyword-verbo «traer» (TASK, preexistente) + el bono temporal
+        // elevarían el score sin pasar por el piso (cuyo lookbehind sí la
+        // bloquea), así la negación se bloquea también aquí (cinturón y
+        // tirantes, precedente c.854). Ancla-objeto/datativa y guards
+        // anti-figurado IDÉNTICOS al piso [ERRAND_BRING_FLOOR].
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+traer\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b)\w+\s+a\s+\w""").containsMatchIn(lower)
+        ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
@@ -4003,6 +4041,23 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchDative != null) {
                     return "${capitalizeFirst(matchDative.groupValues[1])} ${matchDative.groupValues[2]}"
+                }
+                // "traer el cargador a Ana mañana" → "Traer el cargador a
+                // Ana" (c.900, lockstep con [ERRAND_BRING_FLOOR]): verbo
+                // preservado (alineación piso↔título, lección c.616;
+                // grafía del objeto y del destinatario preservadas,
+                // doctrina c.653); el match arranca en el verbo, así el
+                // acuse ("vale, …") y el prefijo temporal ("mañana …") no
+                // ensucian el título; [sanitizeTitle] depura el residuo
+                // temporal de cola ("…mañana"/"…el viernes"). El mismo
+                // lookahead anti-figurado del piso evita que un ERRAND
+                // ganado por otra vía tome un título figurado.
+                val matchBring = Regex(
+                    """\b(?<!no )traer\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?!suerte\b|consecuencias\b|alegr[íi]a\b|desgracia\b).+)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchBring != null) {
+                    return "Traer ${matchBring.groupValues[1]}"
                 }
                 // "sacar dinero/efectivo del cajero mañana" → "Sacar dinero
                 // del cajero" (c.893, lockstep con [ERRAND_CASH_FLOOR]): el

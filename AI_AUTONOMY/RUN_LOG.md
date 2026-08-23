@@ -1,3 +1,15 @@
+## Ciclo c.900 (2026-08-23)
+**Título**: feat(context): piso ERRAND «traer <objeto> a <persona/lugar>» — clase NOVENA-b candidata (a) (coordinación y préstamos cotidianos), lockstep TRES puntos.
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `35b6d27` (c.899). **HEAD final**: ver commit final del ciclo.
+**Problema (P1 — olvido medido 5/5 PRE)**: «traer el cargador a Ana mañana» / «traer el libro a Marta el viernes» / «mañana traer el cuaderno a Irene» / «vale, traer las llaves a papá hoy» / «traer el informe a la oficina mañana» caían a NULL (descarte silencioso: «traer» era keyword TASK suelta 0.12 y nunca verbo de ERRAND → ~0.22 < MINIMUM_CONFIDENCE; la envolvente «recuérdame traer…» ya capturaba por el candado c.613 → rendija pasiva↔manual hermana de c.583/c.893).
+**Sonda (persistida `tools/probe/TraerObjetoProbe.kt`, 18 casos; motor real vía `tools/run_probe.sh`)**: PRE — 5/5 candidatas NULL, 7/7 guards NULL (negación/subjuntivo/pasado/sustantivo + 3 figurados bivalentes), 6/6 regresiones HIT. POST — 5/5 HIT ERRAND 0.45, títulos limpios («Traer el cargador a Ana»…), dueAt=true; 7/7 guards NULL; 6/6 regresiones HIT (envolvente sigue TASK 0.54).
+**Decisión de dominio deliberada**: ERRAND (hermana de «llevarle» c.854: desplazamiento hacia un tercero). «traer» bivalente → piso ACOTADO a infinitivo + objeto (determinante opcional) + ancla DATIVA «a <destino>» + lookahead anti-figurado (suerte/consecuencias/alegría/desgracia medidos en la sonda).
+**Fix**: lockstep TRES puntos — (1) piso NUEVO `ERRAND_BRING_FLOOR` con guard `(?<!no )` y posición libre `\b` (prefijo temporal/acuse); (2) keyword «traer» PREEXISTENTE en TASK — cero cambios en `ContextIntent.kt` (hermana de c.860/c.862; sigue alimentando deliberación TASK de sus otras formas); (3) plantilla de título «traer» en `extractTitle` (verbo preservado c.616; grafía del objeto y del destinatario c.653). Cinturón y tirantes: cláusula de negación dedicada en `imperativeIsNegated` con ancla-objeto/datativa y guards anti-figurado idénticos al piso (precedente c.854); guard de envolvente fluye por `ERRAND_FLOORS` (fuente única c.648/c.652).
+**Tests**: nuevo `ContextIntentEngineTraerObjetoFloorTest.kt` (7 tests). Suite completa `bash tools/run_domain_tests.sh` → **OK (5961 = 5954 + 7)**; `run_domain_checks.sh` 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
+**Acotado deliberado** (UNA forma por ciclo, anti-overreach c.615): laterales «traerle <objeto>» enclítico y «traer <objeto>» sin dativo a medir.
+**NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+**Estado**: VERIFIED (JVM). **Próxima prioridad**: candidata (b) «dar las gracias a Ana por el regalo» (BACKLOG). Re-fetch OBLIGATORIO pre-push.
+---
 ## Ciclo c.898 (2026-08-23)
 **Título**: feat(context): familia (5/8) NOVENA comida/deberes — pisos acotados [HOUSEHOLD_MEAL]/[HOUSEHOLD_DEFROST]/[STUDY_HOMEWORK] + lockstep keyword↔piso↔título.
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `3b3766c` (c.895). **HEAD final**: ver commit final del ciclo.
