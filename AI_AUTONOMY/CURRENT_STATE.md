@@ -8,7 +8,7 @@
 - Suite FINAL `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → **OK (6195 = 6182 c.928 + 13)**; `run_domain_checks.sh` 25/25.
 - Cambios: M `NaturalTaskParser.kt` (guard pleonasmo + sufijo patrón + detección + shift effectiveDate + G3, con comentarios), A `NaturalTaskParserParteDelDiaSiguienteTest.kt` (14 tests), M `AI_AUTONOMY/*`. Sonda efímera `/tmp/probe929/` (medida documentada aquí y en el test).
 - Laterales medidas FUERA (registradas, UNA por ciclo): «reunión a última hora de la tarde» → 15:00 (la canónica de «tarde» sombrea «última hora» 18:00 en la cascada `parsedTime` — matiz preexistente de orden); «la primera hora de clase fue aburrida» → robo narrativo preexistente de `primeraHoraPattern` (due hoy 09:00, título mutilado 'la de clase fue aburrida').
-- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: (commit de este ciclo). Próxima prioridad: laterales medidas arriba o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: `1963025`. Próxima prioridad: laterales medidas arriba o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
 ## Ciclo c.928 (2026-08-23) — fix(parser): conector «para la» + parte del día («lo necesito para la mañana») — familia parte-del-día tras «para» (lateral medida FUERA en c.927)
 
