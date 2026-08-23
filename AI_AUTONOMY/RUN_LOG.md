@@ -15692,7 +15692,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Tests: +1 test (`contraccion al tambien ancla el destinatario`) en `ContextIntentEngineDarLasGraciasFloorTest` (archivo del hermano, precedente c.896). Suite `bash tools/run_domain_tests.sh` → **OK (5969 = 5968 + 1)**; smoke 25/25.
 - Archivos: M `ContextIntentEngine.kt` (piso extendido), M `ContextIntentEngineDarLasGraciasFloorTest.kt` (+1 test), M `tools/probe/DarLasGraciasProbe.kt` (CAND-F/G), M `CURRENT_STATE.md`, M `BACKLOG.md`, M `RUN_LOG.md`. Cero cambios en `ContextIntent.kt`.
 - Determinista (regex), cero random, cero IA fingida, cero UI. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
-- HEAD final: `1963025`. Próxima prioridad: clase NOVENA dinero/banca (`NinthClassMoneyProbe.kt` c.892); laterales NOVENA-b medidas NULL.
+- HEAD final: (commit de este ciclo). Próxima prioridad: clase NOVENA dinero/banca (`NinthClassMoneyProbe.kt` c.892); laterales NOVENA-b medidas NULL.
 
 
 ## Ciclo c.903 (2026-08-23)
