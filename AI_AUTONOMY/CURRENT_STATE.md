@@ -1,16 +1,16 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
-## Ciclo c.890 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA → familia «sacar dinero/efectivo (del cajero)» medida NULL, registrada CANDIDATA
+## Ciclo c.891 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA → familia «sacar dinero/efectivo (del cajero)» medida NULL, registrada CANDIDATA
 
 - Área: context (sin cambios de motor — convención c.822/c.834/c.845 «cero cambios de producto en ciclo de descubrimiento»).
 - Trigger: familia «hacerse» AGOTADA en c.889 → la doctrina exige escanear la siguiente clase antes de inventar; barrido de gestiones cotidianas externas (cajero ATM, reservas, paquetería, entradas, biblioteca, farmacia).
 - Sonda ephémera `/tmp/FamilySweep.kt` (8 casos, motor real vía `tools/run_probe.sh`, HEAD `d112367`): 2/8 NULL-captura — «sacar dinero mañana», «sacar efectivo del cajero el viernes» → NULL (ninguna keyword/OBJETO activa piso; «sacar» polivalente y el cajero NO está en `ERRAND_FLOORS` que exige «ir a…»). 6/8 HIT regresión confirmada: reservar mesa TASK 0.45; recoger paquete en Correos ERRAND 0.46; comprar entradas SHOPPING 0.45; devolver libro biblioteca ERRAND 0.45; recoger medicinas farmacia ERRAND 0.45.
-- Resultado: CANDIDATA P1 registrada en BACKLOG (primera fila, ciclo c.890). Decisión de dominio PENDIENTE para su ciclo (TASK gestión financiera vs ERRAND «ir al cajero»; preferible ERRAND doctrina c.842/c.862, deliberado en su ciclo). Laterales de la misma familia a medir: «sacar la tarjeta» (bivalente), anglicismo «coger dinero», plural «sacar 50 euros».
+- Resultado: CANDIDATA P1 registrada en BACKLOG (primera fila, ciclo c.891). Decisión de dominio PENDIENTE para su ciclo (TASK gestión financiera vs ERRAND «ir al cajero»; preferible ERRAND doctrina c.842/c.862, deliberado en su ciclo). Laterales de la misma familia a medir: «sacar la tarjeta» (bivalente), anglicismo «coger dinero», plural «sacar 50 euros».
 - Colisión ya experimentada este run (STALE_RUN c.888b del hermano c.888): resuelta con rebase limpio `cd55432→d112367` sobre `151d8f7`; suite re-verificada post-rebase **OK (5863)**, smoke 25/25 (re-run en la unidad anterior).
 - Suite: **OK (5863 = 5848 + 15 c.889)** sin delta en este ciclo (solo docs); NO VERIFICADO Android/gradle/lint/UI/Room.
 - Próxima prioridad: familia «sacar dinero/efectivo (del cajero)» (decidir dominio y lockstep) UNA por ciclo. Re-fetch OBLIGATORIO antes de cada push.
 
 
-## Ciclo c.890b (2026-08-22) — docs(ai_autonomy): auditoría complementaria clase NOVENA (coordinación y préstamos con personas)
+## Ciclo c.891b (2026-08-22) — docs(ai_autonomy): auditoría complementaria clase NOVENA (coordinación y préstamos con personas)
 
 - Área: context (sonda de descubrimiento persistida; **cero cambios de producto**, convención c.822/c.834/c.845/c.857).
 - Secuencia previa del run: STALE_RUN c.889b (duplicado con hermano d112367 «prueba de sonido»; mi commit local descartado no destructivamente vía merge -X theirs; cero force push) + restauración ADITIVA del historial de `CURRENT_STATE.md` (el hermano lo había wiped 13.581→21 líneas por mala lectura de «se reescribe al frente»; historial íntegro re-anexado conservando su sección primera; suite OK (5863) + smoke 25/25 sobre el merge; commit `94aadb4`).
@@ -20,6 +20,16 @@
 - Regresiones 8/8 HIT; controles: 5 NULLs correctos (negación/duda/pasado/sustantivo «préstamo»/figurado «preparar el terreno») + 3 relajaciones del invariante «verbo suelto NULL» («devolver el libro»/«avisar a»/«pedir prestado» HIT sin objeto — observación lateral a verificar).
 - Candidatas registradas en BACKLOG (UNA por ciclo, anti-overreach): (a) «traer el cargador…»; (b) «dar las gracias a <persona>». TESTS: suite pre-run OK (5863), smoke 25/25 — no afectadas (audit-only). NO VERIFICADO: Android/gradle/UI/Room (sin SDK).
 - Próxima prioridad: gap A «traer el cargador a Ana» (ir recibir?) — o alternativa de producto (relajaciones del invariante verbo-suelto detectadas como hallazgo lateral). Re-fetch OBLIGATORIO antes del push.
+
+## Ciclo c.891 (2026-08-22) — feat(context): objeto no-DNI del piso «fotocopiar» (contrato/notas/código QR)
+
+- Área: context (ContextIntentEngine hasStrongTaskImperative + extractTitle; CERO cambios en ContextIntent.kt — keyword «fotocopiar» existe desde c.887).
+- Latente: la ruta «fotocopiar el DNI» (c.887) dejó la clase de objetos no-DNI NULL — «fotocopiar el contrato/las notas/el código QR» se descartaba en silencio, mientras la envolvente «recuérdame fotocopiar el contrato…» ya ruteaba TASK 0.54 vía candado c.613 (asimetría hermana de c.765…c.888).
+- Sonda PRE persistida `tools/probe/FotocopiarDocumentosProbe.kt` (run_probe.sh, motor real, 15 casos): 6/6 candidatas NULL, guards 5/5 NULL, regresiones 4/4 HIT. POST: 6/6 HIT TASK 0.45 títulos limpios; guards intactas; regresiones HIT; envolvente 0.54 inalterada.
+- Fix (lockstep DOS puntos, lección c.616, hermana de c.888/c.886/c.884): (1) objeto del piso c.887 `dni → dni|contratos?|notas?|código\s+qr` (misma ancla ^/ACK/temporal y guard `(?<!no )`); (2) plantilla de título con la misma alternancia (grafía preservada, doctrina c.653); val renombrado `matchFotocopiarDocumento`. **CERO cambios en `ContextIntent.kt`**.
+- Test NUEVO `ContextIntentEngineFotocopiarDocumentosFloorTest.kt` (5 tests = 2 capturas + guards + lockstep-keyword TRIGGER_WORDS + regresiones): RED exacto (EXACTAMENTE 2 fallos sobre base 5848) → GREEN 5/5. Suite **OK (5868 = 5863 hermano + 5, bases fusionadas 94aadb4 y 38c7a49)**, smokes 25/25 + 9/9; afectados OK (20).
+- Determinista (regex), cero random, cero IA fingida, cero UI, cero strings/nuevos recursos. **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Integración NO destructiva: la rama avanzó a `94aadb4` durante el ciclo (hermano: «prueba de sonido» + STALE_RUN c.889b); stash → pull --ff-only → pop, código disjunto auto-merge, conflictos sólo en BACKLOG/CURRENT_STATE aditivos (fusión AMBAS: mío al frente). **Renumerada c.889 → c.891** (el hermano ya publicó c.889). Suite re-ejecutada sobre base fusionada.
 
 ## Ciclo c.889 (2026-08-22) — feat(context): objeto «prueba de sonido» en el piso «hacerse» (familia AGOTADA)
 

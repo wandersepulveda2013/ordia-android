@@ -1922,11 +1922,10 @@ object ContextIntentEngine {
             // pasado «fotocopié…» NO contienen «fotocopiar»; 0.12 sola
             // < umbral 0.45) + plantilla de título. Kind TASK
             // (convergente con «escanear el DNI» c.864 — fotocopia
-            // documental hermana del escaneo). Acotado deliberado (UNA
-            // forma por ciclo): «reescanear el DNI…» (prefijo re-) y la
-            // clase de objetos del hermano («contrato»/«notas»/«código
-            // QR») quedan FUERA como laterales candidatas.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )fotocopiar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b""").containsMatchIn(lower)
+            // documental hermana del escaneo). Objeto extendido en
+            // c.891: dni|contratos?|notas?|código qr (hermana de la
+            // extensión c.884 sobre «escanear»).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )fotocopiar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|código\s+qr)\b""").containsMatchIn(lower)
             // c.888: piso acotado «reescanear <documento>» — lateral
             // medida NULL desde c.864 (el prefijo re- de la familia
             // «escanear»; la sonda PRE persistida tools/probe/
@@ -3283,10 +3282,11 @@ object ContextIntentEngine {
                 // el verbo, así acuse/prefijo temporal se despojan; el
                 // residuo temporal de cola lo depura [sanitizeTitle]; el
                 // resto de la frase —«por las dos caras»— se conserva:
-                // es la misma gestión). Objeto ACOTADO (dni). La grafía
-                // del usuario se preserva (doctrina c.653).
-                val matchFotocopiarDni = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(fotocopiar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dni\b.*)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchFotocopiarDni != null) return "Fotocopiar ${matchFotocopiarDni.groupValues[2]}"
+                // es la misma gestión). Objeto extendido c.891:
+                // dni|contratos?|notas?|código qr. La grafía del usuario
+                // se preserva (doctrina c.653).
+                val matchFotocopiarDocumento = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(fotocopiar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|código\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFotocopiarDocumento != null) return "Fotocopiar ${matchFotocopiarDocumento.groupValues[2]}"
                 // c.888: plantilla «reescanear <documento>» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

@@ -1,19 +1,19 @@
-## Ciclo c.890 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA (familia «sacar dinero/efectivo» NULL registrada)
+## Ciclo c.891 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA (familia «sacar dinero/efectivo» NULL registrada)
 - **HEAD inicial**: `d112367` (mi c.889 ya publicado post-rebase). **HEAD final**: ver commits finales.
 - **Problema**: familia «hacerse» AGOTADA en c.889 → doctrina exige auditoría de descubrimiento de clase NOVENA (anti-overreach, cero cambios de producto en el ciclo de descubrimiento, convención c.822/c.834/c.845).
 - **Sonda ephémera** `/tmp/FamilySweep.kt` (8 frases realistas de gestiones externas, motor real `tools/run_probe.sh`): **familia NULL-captura descubierta**: «sacar dinero mañana»/«sacar efectivo del cajero el viernes» → NULL. 6/8 ya cubiertas (reservar mesa, paquete Correos, entradas, libro biblioteca, medicinas).
 - **Decisión**: CANDIDATA P1 registrada en BACKLOG (primera fila); decisión de dominio deliberadamente PENDIENTE para su ciclo (anti-overreach, UNA familia por ciclo).
 - **Suite**: OK (5863) sin delta — docs-only. NO VERIFICADO: Android/gradle/lint/UI/Room.
-- **Docs**: BACKLOG.md (fila c.890 al frente), CURRENT_STATE.md (entrada c.890 al frente).
+- **Docs**: BACKLOG.md (fila c.891 al frente), CURRENT_STATE.md (entrada c.891 al frente).
 - **Próxima prioridad**: «sacar dinero/efectivo (del cajero)» — decidir dominio y lockstep piso+plantilla(+keyword si hace falta) en su ciclo.
-- **Lección c.889 (wipe accidental mi propio)**: mi resolución de rebase en `cd55432→d112367` usó `re.sub(r"<<<<<<< HEAD\n.*=======...` con `.*` GREEDY + `re.S` sobre `CURRENT_STATE.md` → el archivo quedó en 21 líneas (historial de 13.5k borrado). El hermano lo restauró ADITIVAMENTE en `94aadb4` (STALE_RUN c.889b, convención explícita: PREPEND, nunca wipe — lección c.653/c.817/c.889b). Causa raíz: no verifiqué la longitud tras resolver. Corrección adoptada en c.890 (conflicto RUN_LOG): split exacto por marcador literal, sin regex greedy; assert de marcadores cero + longitud verificada (15.451 líneas). La evidencia respaldada: 94aadb4 hermano.
-## RUN 2026-08-22 — ciclo c.890b — auditoría complementaria clase NOVENA (coordinación y préstamos con personas)
+- **Lección c.889 (wipe accidental mi propio)**: mi resolución de rebase en `cd55432→d112367` usó `re.sub(r"<<<<<<< HEAD\n.*=======...` con `.*` GREEDY + `re.S` sobre `CURRENT_STATE.md` → el archivo quedó en 21 líneas (historial de 13.5k borrado). El hermano lo restauró ADITIVAMENTE en `94aadb4` (STALE_RUN c.889b, convención explícita: PREPEND, nunca wipe — lección c.653/c.817/c.889b). Causa raíz: no verifiqué la longitud tras resolver. Corrección adoptada en c.891 (conflicto RUN_LOG): split exacto por marcador literal, sin regex greedy; assert de marcadores cero + longitud verificada (15.451 líneas). La evidencia respaldada: 94aadb4 hermano.
+## RUN 2026-08-22 — ciclo c.891b — auditoría complementaria clase NOVENA (coordinación y préstamos con personas)
 
 - HEAD inicial: `94aadb4` (mi merge STALE_RUN c.889b, ver entrada anterior).
 - Colisión previa del run y resolución no destructiva: registrada en la entrada c.889b (merge -X theirs; dup local `b2e5e9c` descartado por equivalente; restauración aditiva del historial de CURRENT_STATE).
 - Trabajo: sonda NUEVA persistida `tools/probe/NinthClassCoordinationProbe.kt` (28 casos: 14 coordinación/préstamos + 8 regresiones + 6 controles), ejecutada con `tools/run_probe.sh` sobre HEAD 94aadb4 (kotlinc 2.1.20, JDK 21, domain JVM). Cero cambios de producto (convención de ciclos de descubrimiento c.822/c.834/c.845/c.857). Corrección de express: `tools/run_probe.sh` es la ruta correcta (`tools/probe/run_probe.sh` NO existe — lo anotó el hermano c.889 y aplica igual).
 - Resultado medido: la clase NOVENA está **CASI CUBIERTA** — 24 HIT de 28: «avisar a…» TASK 0.45 ×4, «devolver el X a <nombre>» ERRAND 0.45 ×4 (libro/cargador/dinero), «pedir prestado el X a <nombre>» TASK 0.45 ×2, «llevarle su cuaderno a…» ERRAND, «recoger el paquete en casa de…» ERRAND + 8 regresiones (llamar CALL 0.67, contestar TASK, devolver la llamada ERRAND, prueba de sonido ERRAND c.889, reclamar factura TASK, hipoteca PAYMENT, médico APPOINTMENT 0.85, pan SHOPPING 0.47). Solo **2 NULLs reales**: (a) «traer el cargador a Ana mañana»; (b) «dar las gracias a Ana por el regalo». Controles: 5 NULLs correctos (negación/duda/pasado/sustantivo «préstamo»/figurado «preparar el terreno») y 3 relajaciones del invariante «verbo suelto NULL» («devolver el libro»/«avisar a»/«pedir prestado» HIT sin objeto — observación lateral a verificar en su área, NO es de esta clase).
-- Bugs: ninguno nuevo. Features: ninguna (ciclo de descubrimiento). BACKLOG: 2 candidatas P1 nuevas (traer/gracias, UNA por ciclo — anti-overreach). CURRENT_STATE prepend c.890. Probe header actualizado con el estado medido.
+- Bugs: ninguno nuevo. Features: ninguna (ciclo de descubrimiento). BACKLOG: 2 candidatas P1 nuevas (traer/gracias, UNA por ciclo — anti-overreach). CURRENT_STATE prepend c.891. Probe header actualizado con el estado medido.
 - Tests: NO VERIFICADO re-ejecutar suite completa (audit-only, cero cambios en código compilado por la suite; probe no forma parte del dominio ni de los tests). Suite de referencia pre-run: OK (5863) sobre el mismo HEAD (entrada c.889b), smoke 25/25. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs.
 - HEAD final: (este commit). Próxima prioridad: gap A «traer el cargador a Ana» (decidir bivalencia del verbo «traer» con sonda — «traer suerte»/«la alegría») o gap B «dar las gracias a <persona>»; alternativa de producto: auditar las relajaciones del invariante «verbo suelto NULL».
 
@@ -15460,4 +15460,35 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales.
 - **Próxima prioridad**: «hacerme la prueba de sonido» (dominio
   pendiente); al agotar, auditoría clase NOVENA. Re-fetch OBLIGATORIO.
+---
+## Ciclo c.890 (2026-08-22) — feat(context): objeto no-DNI del piso «fotocopiar» (contrato/notas/código QR)
+
+- **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `151d8f7`
+  (docs STALE_RUN c.888b propio sobre hermano c.888 verificado OK 5848).
+- **Problema**: P1 olvido silencioso — el piso «fotocopiar el DNI»
+  (c.887) acotaba el objeto a `dni`; «fotocopiar el contrato/las
+  notas/el código QR mañana» caía a NULL pese a que la envolvente
+  «recuérdame fotocopiar el contrato…» ruteaba TASK 0.54 (c.613).
+- **Sonda PRE persistida** `tools/probe/FotocopiarDocumentosProbe.kt`
+  (15 casos, tools/run_probe.sh motor real): 6/6 candidatas NULL, guards 5/5 NULL, regresiones 4/4 HIT.
+- **Fix (lockstep DOS puntos, lección c.616)**: objeto
+  `dni → dni|contratos?|notas?|código\s+qr` en piso + plantilla
+  (grafía preservada c.653); CERO cambios en ContextIntent.kt
+  (keyword «fotocopiar» desde c.887); val renombrado.
+- **Tests**: `ContextIntentEngineFotocopiarDocumentosFloorTest.kt`
+  (NUEVO, 5 tests) RED exacto (2 fallos) → GREEN 5/5; afectados
+  OK (20); suite **OK (5868 = 5863 hermano + 5, bases fusionadas 94aadb4 y 38c7a49)** (merge no destructivo; verificación en base fusionada); smokes 25/25 + 9/9.
+- **Sonda POST**: 6/6 NULL→HIT TASK 0.45 títulos limpios; guards NULL;
+  envolvente 0.54 inalterada.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales
+  (sin SDK).
+- **Integración anti-colisión**: remoto avanzó 151d8f7 → 94aadb4 a mitad de ciclo
+  (hermano «prueba de sonido» como c.889 + STALE_RUN c.889b de restauración).
+  stash → pull --ff-only → pop: código disjunto auto-merge (ContextIntentEngine),
+  conflictos sólo aditivos en BACKLOG/CURRENT_STATE (fusión AMBAS). MI ciclo
+  renumerado c.889 → c.890. NO STALE_RUN (trabajo propio integrado, nada descartado).
+- **HEAD final**: (hash en git log; push a openhands/autonomous-ordia).
+- **Próxima prioridad**: «hacerme la prueba de sonido» (decidir dominio
+  — última lateral documentada); al agotar, auditoría de clase NOVENA
+  (descubrimiento). Re-fetch OBLIGATORIO antes de cada push.
 ---
