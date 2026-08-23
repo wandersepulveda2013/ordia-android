@@ -3490,6 +3490,25 @@ object NaturalTaskParser {
                 ),
                 " ",
             )
+            // Intensificador de plazo "sin falta" (without fail) pegado a un ancla
+            // temporal: la fecha se resolvía bien pero el intensificador sobrevivía
+            // como residuo en el título ("pagar la luz sin falta"). Simétrico de
+            // "a más tardar": se borra sólo cuando hay ancla adyacente —tras ella
+            // ("el viernes sin falta") o antes ("sin falta mañana")—; sin ancla
+            // ("pagar la luz sin falta") se conserva para no mutar contenido que
+            // quizá no es intensificador ("el informe sin falta de ortografía").
+            .replace(
+                Regex(
+                    """(?i)\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana|hoy|pasado\s+ma[nñ]ana|antepasad[oa]\s+ma[nñ]ana)\s+sin\s+falta\b""",
+                ),
+                "$1",
+            )
+            .replace(
+                Regex(
+                    """(?i)\bsin\s+falta\s+(?=(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana\b|hoy\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b))""",
+                ),
+                " ",
+            )
 
         // Fecha relativa COMPUESTA fraccionaria ("en una hora y media"/"en 2 horas y
         // cuarto"): se procesa ANTES que [relativePattern] para que este no robe solo
