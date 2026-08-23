@@ -124,11 +124,13 @@ class NaturalTaskParserWeekdayGenitivoNarrativoTest {
             LocalDate.of(2026, 8, 29), 21, "las fueron magicas"
         )
 
-    @Test fun compuestoH2ConWeekday_pinLateralFuera() =
-        assertDueAt(
-            "la primera hora de clase del lunes fue aburrida",
-            LocalDate.of(2026, 8, 24), 9, "la primera hora de clase fue aburrida"
-        )
+    // c.937: esta misma entrada dejó de ser pin de conducta vieja para ser
+    // captura protegida (weekday tras genitivo de contenido — H2). El pin de
+    // conducta vieja era byte-idéntico a la medida PRE c.936; convertirlo en
+    // aserción más estricta es un re-pin legítimo (precedente: guard
+    // «reunión el lunes» convertido en pin tras c.935).
+    @Test fun compuestoH2ConWeekday_capturaDesdeC937() =
+        assertNarrativeIntact("la primera hora de clase del lunes fue aburrida")
 
     // ---- Regresiones: doctrina hermanas intactas ----
 

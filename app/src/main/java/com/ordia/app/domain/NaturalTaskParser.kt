@@ -7788,6 +7788,15 @@ object NaturalTaskParser {
      * [containsRange] lo excluye de forma natural. Se usa en la resolución
      * (fecha) y en el borrado del título ([eraseWeekdayToken]) para que
      * nunca diverjan, como [ordinalHoraNarrativeRanges].
+     *
+     * c.937 (extensión a H2): el genitivo entre el ordinal y el weekday puede
+     * ser de CONTENIDO (H1/H2/«a la» de [ordinalHoraOccurrenceIsContent]) en
+     * vez del canónico dentro del match: «la primera hora de clase del lunes
+     * fue aburrida». En ese caso el weekday genitivo sigue al genitivo de
+     * contenido; se exige el mismo predicado a continuación. Un weekday
+     * genitivo DIRECTO sin genitivo de contenido intermedio («esa primera
+     * hora del lunes fue terrible») sigue la doctrina ancla (hermano del pin
+     * c.936 «las primeras horas del lunes son tranquilas»).
      */
     private fun ordinalHoraNarrativeWeekdayRanges(text: String): List<IntRange> {
         val ranges = mutableListOf<IntRange>()
@@ -7795,14 +7804,29 @@ object NaturalTaskParser {
             var idx = 0
             while (true) {
                 val m = pattern.find(text, idx) ?: break
-                if (ordinalHoraCanonicalSuffix.containsMatchIn(m.value) &&
-                    ordinalHoraOccurrenceIsContent(text, m)
-                ) {
-                    val wg = ordinalHoraNarrativeWeekdayGenitive.find(text.substring(m.range.last + 1))
-                    if (wg != null) {
-                        val wgFirst = m.range.last + 1 + wg.range.first
-                        val wgLast = m.range.last + 1 + wg.range.last
-                        if (text.substring(wgLast + 1).isNotBlank()) ranges += wgFirst..wgLast
+                if (ordinalHoraOccurrenceIsContent(text, m)) {
+                    val wgSearchStart = if (ordinalHoraCanonicalSuffix.containsMatchIn(m.value)) {
+                        // H3 (c.936): genitivo canónico dentro del match; el
+                        // weekday genitivo lo sigue directamente.
+                        m.range.last + 1
+                    } else {
+                        // c.937 (H2): el weekday genitivo sigue al genitivo de
+                        // contenido («de clase», «del partido») que hizo
+                        // narrativo al ordinal. Sin ese genitivo (o siendo un
+                        // genitivo-ancla como el propio weekday) no hay cadena
+                        // narrativa que proteger.
+                        val gen = ordinalHoraContentGenitive.find(text.substring(m.range.last + 1))
+                        if (gen != null && gen.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives) {
+                            m.range.last + 1 + gen.range.last + 1
+                        } else -1
+                    }
+                    if (wgSearchStart >= 0) {
+                        val wg = ordinalHoraNarrativeWeekdayGenitive.find(text.substring(wgSearchStart))
+                        if (wg != null) {
+                            val wgFirst = wgSearchStart + wg.range.first
+                            val wgLast = wgSearchStart + wg.range.last
+                            if (text.substring(wgLast + 1).isNotBlank()) ranges += wgFirst..wgLast
+                        }
                     }
                 }
                 idx = m.range.last + 1
