@@ -594,6 +594,31 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.985-(iii): palabra-límite + período relativo PASADO: "a finales del mes
+     * pasado", "a mediados de la semana pasada", "a fin de año pasado". Antes
+     * [lastPeriodPattern] consumía solo «el mes pasado» (hoy−1 período) y la
+     * palabra-límite sobrevivía como residuo en el título ("revisar las facturas a
+     * finales"), con una fecha que además ignoraba el límite pedido. Este patrón
+     * captura la frase ÍNTEGRA (límite + genitivo + período + "pasado/anterior") y
+     * se procesa ANTES que [lastPeriodPattern] para que no robe el período. Se
+     * resuelve al límite del período ANTERIOR: fin → último día del mes / domingo
+     * / 31-dic; mediados → 15 / miércoles / 30-jun (convención de
+     * [yearBaseForBoundary]); principios → 1 / lunes / 1-ene. Hora 09:00, como el
+     * resto de límites. Semana = lunes→domingo (doctrina c.778). El artículo "la"
+     * es OBLIGATORIO para semana: "fin de semana pasado" (sin artículo) es
+     * territorio de [weekendPattern] (sábado), no de esta clase.
+     * "cierre"/"corte" se EXCLUYEN a propósito de la lista de límites: a diferencia
+     * de su uso en [endOfMonthPattern] (futuro), ante un período pasado "Cierre del
+     * mes anterior" es con mucha más frecuencia una tarea LLAMADA "Cierre" fechada
+     * «del mes anterior» (test genitivoDelMesAnterior_noDejaResiduoDel) que una
+     * fecha-límite. Robarla dejaría la tarea sin título.
+     * Grupo 1 = palabra-límite, grupo 2 = período (con artículo).
+     */
+    private val lastPeriodBoundaryPattern = Regex(
+        """(?i)\b(?:a\s+|al\s+)?(finales?|fin(?:al|es)?|mediados?|mitad|principios?|comienzos?|inicios?|primeros?)\s+(?:de\s+|del\s+)(la\s+semana|(?:el\s+)?mes|(?:el\s+)?a[nñ]o)\s+(?:pasad[oa]|anterior)\b"""
+    )
+
+    /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
      * viene", "próximo mes", "la próxima semana", "la semana entrante"):
      * +1 período (semana/mes/año). "trimestre que viene" / "próximo trimestre"
@@ -3662,6 +3687,47 @@ object NaturalTaskParser {
         // (resta 1 semana/mes/año) y se combina con hora explícita. Se procesa DESPUÉS
         // de lastWeekdayOfMonthPattern: si la frase era "el último viernes del mes
         // pasado", aquél ya consumió la totalidad y aquí no queda nada por robar.
+        // c.985-(iii): límite + período pasado se consume ANTES que lastPeriodPattern
+        // (si no, éste roba "del mes pasado" y deja "a finales" como residuo).
+        val lastPeriodBoundaryMatch = lastPeriodBoundaryPattern.find(working)
+        val lastPeriodBoundaryDueAt = lastPeriodBoundaryMatch?.let { m ->
+            val bWord = m.groupValues[1].lowercase()
+            val period = m.groupValues[2].lowercase()
+            val today = base.toLocalDate()
+            val bKind = when {
+                bWord.startsWith("fin") -> "end"
+                bWord.startsWith("med") || bWord == "mitad" -> "mid"
+                else -> "start"
+            }
+            val date = when {
+                "semana" in period -> {
+                    val prevMonday = today.minusWeeks(1).with(DayOfWeek.MONDAY)
+                    when (bKind) {
+                        "end" -> prevMonday.plusDays(6)
+                        "mid" -> prevMonday.plusDays(2)
+                        else -> prevMonday
+                    }
+                }
+                "mes" in period -> {
+                    val prev = today.minusMonths(1)
+                    when (bKind) {
+                        "end" -> prev.withDayOfMonth(prev.lengthOfMonth())
+                        "mid" -> prev.withDayOfMonth(15)
+                        else -> prev.withDayOfMonth(1)
+                    }
+                }
+                else -> {
+                    val prev = today.minusYears(1)
+                    when (bKind) {
+                        "end" -> prev.withMonth(12).withDayOfMonth(31)
+                        "mid" -> prev.withMonth(6).withDayOfMonth(30)
+                        else -> prev.withMonth(1).withDayOfMonth(1)
+                    }
+                }
+            }
+            DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        }
+        lastPeriodBoundaryMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         val lastPeriodMatch = lastPeriodPattern.find(working)
         val lastPeriodDueAt = lastPeriodMatch?.let { m ->
             val text = m.value.lowercase()
@@ -4369,7 +4435,7 @@ object NaturalTaskParser {
         val effectiveRelativeDueAt =
             compoundFractionalAgoDueAt ?: fractionalAndQuarterAgoDueAt ?: fractionalAgoDueAt ?:
             diminutiveAgoDueAt ?:
-            agoDueAt ?: lastPeriodDueAt ?: deHoyEnIdiomDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
+            agoDueAt ?: lastPeriodBoundaryDueAt ?: lastPeriodDueAt ?: deHoyEnIdiomDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: bareMonthDueAt ?: paraMonthDueAt ?: yearBoundaryDueAt ?:
@@ -4379,7 +4445,7 @@ object NaturalTaskParser {
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
             nextMonthDayShortReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
-        val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
+        val relativeIsDays = (agoMatch != null || lastPeriodBoundaryMatch != null || lastPeriodMatch != null ||
             deHoyEnIdiomMatch != null || relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
