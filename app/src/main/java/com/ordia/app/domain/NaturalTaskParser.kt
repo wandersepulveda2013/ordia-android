@@ -3521,6 +3521,20 @@ object NaturalTaskParser {
                 ),
                 "$1",
             )
+            // Enfático "misma" tras ancla parte-del-día con preposición ("por la
+            // mañana misma", "en la tarde misma"): la parte del día se resolvía
+            // bien pero el enfático sobrevivía como residuo en el título
+            // ("avisar a Juan misma"). Hermana femenina de "hoy/mañana mismo":
+            // se borra SÓLO tras preposición + "la" + parte del día; sin
+            // preposición ("la mañana misma del accidente") o con genitivo a
+            // continuación ("en la mañana misma del accidente") es contenido y
+            // se conserva íntegro (guard (?!\s+(?:de|del)\b)).
+            .replace(
+                Regex(
+                    """(?i)\b((?:a|de|por|en|entrando|entrada|durante)\s+la\s+(?:tarde|noche|madrugada|ma[nñ]ana))\s+misma\b(?!\s+(?:de|del)\b)""",
+                ),
+                "$1",
+            )
             // Marcador de plazo coloquial "como muy tarde" (no later than) pegado
             // a un ancla temporal: la fecha se resolvía bien pero el marcador
             // sobrevivía como residuo en el título ("pagar la renta como muy
