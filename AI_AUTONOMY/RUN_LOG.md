@@ -15501,3 +15501,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: producto intocado.
 - **Próxima prioridad**: resolver familias UNA por ciclo (anti-overreach): (1) efectivo/cajero; (2) depósito/ingresos; (3) cobros; (4) membresías; (5) comida/deberes; (6) depositar-cheque. Re-fetch OBLIGATORIO otra vez antes del push.
 ---
+## Ciclo c.893 (2026-08-23) — feat(context): piso ERRAND «sacar dinero/efectivo (del cajero)» + «ir al cajero» (familia 1/8 clase NOVENA)
+- **HEAD inicial**: `ad463b6` (c.892). **HEAD final**: ver commit final.
+- **Preparación**: git pull --ff-only tras clone; OpenJDK 21 (21.0.12.1, PWD ajustado); baseline INTENCIOMALMENTE rota pre-fix (sonda PRE 6/6 NULL); baseline suite **OK (5868)**, smoke 25/25.
+- **Sonda PRE** (`tools/probe/SacarDineroProbe.kt` persistida, run_probe.sh, motor real): 6/6 NULL (sacar dinero/efectivo ×4 + ir al cajero ×2), 7/7 regresiones HIT, 8/8 guards NULL.
+- **TDD RED → verde**: `ContextIntentEngineSacarDineroFloorTest` (5 tests) RED exacto 3 fallos (lo esperado: 3 capturas NULL; keywords pasan trivialmente/false→true; guards/regresiones ya verdes). Excepción de negación Fig 21268216 añadida en TODAS las capturas/guards tras confirma-mismatch (necesario deterministic).
+- **Lockstep TRES puntos** (lección c.616/c.751): (1) piso `[ERRAND_CASH_FLOOR]` verbatim (`\b(?<!no )sacar\s+(det)?(dinero|efectivo)\b`) + destino `ir a` con `cajero|atm` añadido (lockstep negación dedicada en `imperativeIsNegated`: «no sacar dinero», «no ir al cajero»); (2) keywords OBJETO/DESTINO «dinero»/«efectivo»/«cajero» (`ContextIntent.kt`; verbo «sacar» deliberadamente fuera por bivalente); (3) plantilla de título en `extractTitle` rama ERRAND (Sacar + objeto, doctrina c.653).
+- **Regresión interna POSIX-cero**: guard c.717 «sacarDinero_noCaptura» actualizado a `sacarDinero_capturaErrand` (ERRAND) — captura deliberada c.893.
+- **Verificación**: POST sonda 6/6 HIT ERRAND 0.45; suite **OK (5873 = 5868 + 5)**; smoke 25/25 re-verificada.
+- **Archivos**: `ContextIntentEngine.kt` (floor + negación + plantilla), `ContextIntent.kt` (keywords), `ContextIntentEngineSacarDineroFloorTest.kt` (NUEVO), `ContextIntentEngineSacarBasuraFloorTest.kt` (guard actualizado), `tools/probe/SacarDineroProbe.kt` (NUEVO persistido), AI_AUTONOMY (BACKLOG/CURRENT_STATE/RUN_LOG). Cero producto fuera de context.
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room.
+- **Próxima prioridad**: familia (2) depósito/ingresos («ingresar dinero en el banco»/«hacer el ingreso»/«depositar el cheque»). Re-fetch OBLIGATORIO antes del push.
+---

@@ -247,7 +247,22 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // (<0.45 sin piso, que además la bloquea con su guard). Con bono
         // temporal 0.22 < 0.45 (negada/duda inertes). "devolverle" no
         // necesita keyword propia: la cubre "devolver" por subcadena.
-        "llevarle")),
+        "llevarle",
+        // c.893: keywords-OBJETO «dinero»/«efectivo» (lockstep con el piso
+        // acotado [ERRAND_CASH_FLOOR] «sacar dinero/efectivo», lección
+        // c.713/c.773/c.829). NO el verbo «sacar»: bivalente (la basura
+        // c.717, al perro c.740, a bailar, fotos, la tarjeta). 0.12 sola
+        // queda bajo el umbral: «el dinero está en la mesa» (declarativo)
+        // sigue descartado; con bono temporal 0.22 < 0.45. Además alimenta
+        // [TRIGGER_WORDS], sin lo cual la notificación ni llegaría al
+        // análisis (lección c.751).
+        "dinero", "efectivo",
+        // c.893: keyword-DESTINO «cajero» (lockstep con la extensión del
+        // piso `ir a` que añade «cajero|atm», lección c.751). Bivalente
+        // (cajero bancario/empleado de pago), así 0.12 sola inerte <
+        // umbral y el piso exige el verbo de destino — «el cajero cobra
+        // bien» sigue descartado.
+        "cajero")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",

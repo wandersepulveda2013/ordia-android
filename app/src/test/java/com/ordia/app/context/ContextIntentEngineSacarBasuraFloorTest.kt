@@ -95,9 +95,15 @@ class ContextIntentEngineSacarBasuraFloorTest {
     }
 
     @Test
-    fun sacarDinero_noCaptura() {
+    fun sacarDinero_capturaErrand() {
         // Objeto distinto: "sacar" no es piso de posición libre doméstica.
-        assertNull(analyze("sacar dinero mañana"))
+        // c.893 resolvió este NULL (guard c.717): «sacar dinero» es
+        // diligencia de efectivo → piso ERRAND propio
+        // ([ERRAND_CASH_FLOOR]), hermano de «echar gasolina» c.829.
+        val r = analyze("sacar dinero mañana")
+        assertNotNull(r)
+        assertEquals(ContextIntentKind.ERRAND, r!!.kind)
+        assertEquals("Sacar dinero", r.title)
     }
 
     @Test

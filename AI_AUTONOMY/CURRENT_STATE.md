@@ -1,4 +1,14 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.893 (2026-08-23) — feat(context): piso ERRAND «sacar dinero/efectivo (del cajero)» + «ir al cajero» (familia 1/8 clase NOVENA, lockstep TRES puntos)
+
+- Área: context (`ContextIntentEngine.kt` + `ContextIntent.kt`). Decisión de dominio deliberada: ERRAND (desplazamiento al cajero, doctrina c.842/c.862 «la diligencia gobierna»; hermano de «echar gasolina» c.829 e «ir al banco» c.639). NULL PRE medido por la sonda persistida `tools/probe/SacarDineroProbe.kt` (6/6 NULL; 8/8 guards NULL; 7/7 regresiones HIT; motor real vía `tools/run_probe.sh`).
+- Lockstep TRES puntos (lección c.616/c.751): (1) piso acotado `[ERRAND_CASH_FLOOR]` (`\b(?<!no )sacar\s+(det)?(dinero|efectivo)\b`) + extensión del destino del piso `ir a` con `cajero|atm`, ambos con cláusulas de negación dedicadas en `imperativeIsNegated` («no sacar dinero», «no ir al cajero» — cinturón y tirantes, precedente c.717/c.829/c.842); (2) keywords OBJETO/DESTINO «dinero»/«efectivo»/«cajero» en `ContextIntent.kt` (NO el verbo «sacar», bivalente; alimentan TRIGGER_WORDS, lección c.751); (3) plantilla de título en `extractTitle` rama ERRAND (verbo «Sacar» preservado + grafía del objeto, doctrina c.653; «ir al cajero» vía fallback `generateTitle`+`sanitizeTitle`).
+- TDD: test nuevo `ContextIntentEngineSacarDineroFloorTest` (5 tests: capturas ×2, keywords lockstep, 9 guards NULL, 7 regresiones HIT) — RED exacto 3 fallos → verde. Guard c.717 «sacarDinero_noCaptura» actualizado a captura ERRAND deliberada (`sacarDinero_capturaErrand`).
+- Verificación: sonda POST 6/6 HIT (ERRAND 0.45), 7/7 regresiones HIT, 8/8 guards NULL; suite **OK (5873 = 5868 + 5)**; smoke 25/25.
+- Laterales a medir (BACKLOG): «coger dinero» (anglicismo), «sacar 50 euros» (plural), «sacar la tarjeta» (bivalente).
+- NO VERIFICADO: Android/gradle/lint/UI/Room.
+- Próxima prioridad: familia (2) depósito/ingresos («ingresar dinero en el banco»/«hacer el ingreso»/«depositar el cheque»). Re-fetch OBLIGATORIO antes del push.
+
 ## Ciclo c.892 (2026-08-23) — test(context): auditoría COMPLEMENTARIA de descubrimiento clase NOVENA (dinero/banca cotidiana) — cero cambios de producto (renumber c.890→c.892 tras colisión con hermano c.890 ATM/efectivo y c.890b coordinación; convención c.857)
 
 - Área: context (motor real vía `tools/run_probe.sh`; sonda NUEVA persistida `tools/probe/NinthClassMoneyProbe.kt`, 48 casos; HEAD inicial `d112367` c.889, fetch PRE-trabajo reveló hermano ANTES de commit → stash → pull --ff-only → resolución NO destructiva conservando AMBAS secciones).

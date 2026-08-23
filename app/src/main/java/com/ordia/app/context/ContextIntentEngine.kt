@@ -645,8 +645,35 @@ object ContextIntentEngine {
     // forma medida de «retirar» llega vía la keyword-OBJETO «paquete».
     private val ERRAND_DATIVE_FLOOR =
         Regex("""\b(?<!no )(?:llevar|devolver|recoger|retirar|repostar)les?\s+(?!la\s+contraria\b|la\s+delantera\b|ventaja\b)\w""")
+    // c.893: piso acotado «sacar dinero/efectivo (del cajero)» — PRIMERA
+    // familia NULL de la clase NOVENA (gestiones de dinero y banca
+    // cotidiana, sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE
+    // verificado por la sonda persistida `SacarDineroProbe.kt`: 6/6 NULL).
+    // El verbo «sacar» es bivalente (la basura c.717 / al perro c.740 / a
+    // bailar / fotos / la tarjeta), así el piso se ACOTA a infinitivo
+    // «sacar» + ancla-objeto `dinero|efectivo` (determinante opcional).
+    // Kind deliberado: ERRAND (desplazamiento al cajero, doctrina
+    // c.842/c.862 «la diligencia gobierna», hermano de «echar gasolina»
+    // c.829 e «ir al banco» c.639), no TASK. Lockstep keywords-OBJETO
+    // «dinero»/«efectivo» + DESTINO «cajero» en [ContextIntentKind.ERRAND]
+    // (lección c.751; el verbo «sacar» sigue fuera por bivalente, igual
+    // que «echar» c.829 fue keyword-OBJETO «gasolina») + plantilla de
+    // título en [extractTitle] (verbo preservado, lección c.616; doctrina
+    // c.653) + cláusula de negación dedicada en [imperativeIsNegated]
+    // (cinturón y tirantes, precedente c.717/c.829/c.842). El guard de
+    // envolvente [imperativeIsWrapped] fluye por [ERRAND_FLOORS] (fuente
+    // única, lección c.648/c.652). La misma familia incluye el destino:
+    // «ir al cajero» se acota extendiendo la lista del piso `ir a`
+    // existente con `cajero|atm` (lockstep con la cláusula de negación de
+    // destino hermana). Acotado deliberado (una familia por ciclo):
+    // laterales «coger dinero»/«sacar 50 euros»/«sacar la tarjeta» a
+    // medir; 7 familias restantes del BACKLOG intocadas.
+    private val ERRAND_CASH_FLOOR =
+        Regex("""\b(?<!no )sacar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b""")
     private val ERRAND_FLOORS = listOf(
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
+        // c.893: destino «ir al cajero/atm» (lockstep con la cláusula de
+        // negación de destino en [imperativeIsNegated]).
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
         ERRAND_CARRY_FLOOR,
         ERRAND_STOPBY_FLOOR,
@@ -655,7 +682,8 @@ object ContextIntentEngine {
         ERRAND_FUEL_FLOOR,
         ERRAND_HAIRCUT_FLOOR,
         ERRAND_BLOOD_TEST_FLOOR,
-        ERRAND_DATIVE_FLOOR
+        ERRAND_DATIVE_FLOOR,
+        ERRAND_CASH_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -2525,9 +2553,20 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.STUDY &&
             Regex("""\bno\s+preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
         ) return true
-        // "ir al banco" (ERRAND) es imperativo multi-palabra.
+        // "ir al banco" (ERRAND) es imperativo multi-palabra. c.893: la
+        // lista de destino se extiende con «cajero|atm» (lockstep con el
+        // piso `ir a` de [ERRAND_FLOORS]).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm)\b""").containsMatchIn(lower)
+        ) return true
+        // "sacar dinero/efectivo" (ERRAND, piso acotado c.893) es imperativo
+        // multi-palabra: las keywords-OBJETO «dinero»/«efectivo» (lockstep
+        // c.893) + el bono temporal elevarían el score sin pasar por el
+        // piso (cuyo lookbehind sí la bloquea), así la negación se bloquea
+        // también aquí (cinturón y tirantes, precedente c.717 «sacar la
+        // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+sacar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b""").containsMatchIn(lower)
         ) return true
         // "pasar por el banco" (ERRAND, piso acotado c.718) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -3795,6 +3834,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchDative != null) {
                     return "${capitalizeFirst(matchDative.groupValues[1])} ${matchDative.groupValues[2]}"
+                }
+                // "sacar dinero/efectivo del cajero mañana" → "Sacar dinero
+                // del cajero" (c.893, lockstep con [ERRAND_CASH_FLOOR]): el
+                // verbo se preserva (alineación piso↔título, lección
+                // c.616); el match arranca en el verbo, así el acuse
+                // ("vale, …") y el prefijo temporal ("mañana …") no
+                // ensucian el título; [sanitizeTitle] depura el residuo
+                // temporal de cola. Ancla-objeto idéntica al piso
+                // (`dinero|efectivo` con determinante opcional, grafía
+                // preservada, doctrina c.653).
+                val matchCash = Regex(
+                    """\b(?<!no )(sacar)\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchCash != null) {
+                    return "Sacar ${matchCash.groupValues[2]}"
                 }
                 null
             }
