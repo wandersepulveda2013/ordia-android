@@ -15492,3 +15492,12 @@ a un permiso persistente frágil y silencioso ante fallos.
   — última lateral documentada); al agotar, auditoría de clase NOVENA
   (descubrimiento). Re-fetch OBLIGATORIO antes de cada push.
 ---
+## Ciclo c.892 (2026-08-23) — test(context): auditoría COMPLEMENTARIA de descubrimiento clase NOVENA (dinero/banca cotidiana) — cero cambios de producto (convención c.857)
+- **HEAD inicial**: `d112367` (propio c.889; fetch PRE-commit reveló hermano `dd22ef0a` [3 commits: docs lección c.889b `00af55d8`, auditoría c.890b coordinación `38c7a49c`, feat c.891 fotocopiar-documentos] → stash → pull --ff-only → resolución NO destructiva conservando AMBAS secciones; renumber c.890→c.892). **HEAD final**: ver commit final.
+- **Objetivo**: la familia «hacerse» se AGOTÓ en c.889; este ciclo abrió clase NOVENA paralela (DINERO/BANCA cotidiana + gestión de citas + cena/deberes) complementaria del barrido del hermano (ATM/efectivo c.890 [2 NULLs], coordinación c.890b [2 NULLs]).
+- **Entorno**: OpenJDK 21 instalado (apt); kotlinc 2.1.20 y jars `/tmp/libs` instalados en este run (rastreo honesto); baseline suite **OK (5863)**, smoke 25/25 verificadas pre-trabajo.
+- **Sonda PRE** (persistida `tools/probe/NinthClassMoneyProbe.kt`, run_probe.sh, motor real, 48 casos): 8 familias NULL-captura: (1) efectivo/cajero (sacar/ir al cajero); (2) depósito (ingresar/hacer el ingreso); (3) depositar-cheque; (4) cobros (nómina/reembolso); (5) membresía (baja del gimnasio); (6) comida (cena/almuerzo); (7) comida invariante (descongelar); (8) deberes. HITS de clase medidos: «cambiar euros/dólares» TASK (piso abierto c.710), «banco» ERRAND (keyword), «extracto» TASK, «tarjeta» PAYMENT, «cita dentista» APPOINTMENT, «cocinar almuerzo» HOUSEHOLD. 12 regresiones conocidas HIT. 12 controles NULL correctos. 2 observaciones bivalentes medidas.
+- **Archivos**: `tools/probe/NinthClassMoneyProbe.kt` (NUEVO persistido), `AI_AUTONOMY/BACKLOG.md` (fila c.892 al frente, remoto restaurado), `AI_AUTONOMY/CURRENT_STATE.md` (remoto restaurado; entrada c.892 al frente), `AI_AUTONOMY/RUN_LOG.md` (este append tras restaurar remoto). Cero producto.
+- **NO VERIFICADO**: producto intocado.
+- **Próxima prioridad**: resolver familias UNA por ciclo (anti-overreach): (1) efectivo/cajero; (2) depósito/ingresos; (3) cobros; (4) membresías; (5) comida/deberes; (6) depositar-cheque. Re-fetch OBLIGATORIO otra vez antes del push.
+---

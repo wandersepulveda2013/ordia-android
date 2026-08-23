@@ -1,4 +1,16 @@
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
+## Ciclo c.892 (2026-08-23) — test(context): auditoría COMPLEMENTARIA de descubrimiento clase NOVENA (dinero/banca cotidiana) — cero cambios de producto (renumber c.890→c.892 tras colisión con hermano c.890 ATM/efectivo y c.890b coordinación; convención c.857)
+
+- Área: context (motor real vía `tools/run_probe.sh`; sonda NUEVA persistida `tools/probe/NinthClassMoneyProbe.kt`, 48 casos; HEAD inicial `d112367` c.889, fetch PRE-trabajo reveló hermano ANTES de commit → stash → pull --ff-only → resolución NO destructiva conservando AMBAS secciones).
+- Prerequisito de entorno: OpenJDK 21 instalado (apt); kotlinc 2.1.20 y jars `/tmp/libs` instalados en este run (rastreo honesto); baseline suite **OK (5863)** verificada pre-trabajo.
+- Descubrimiento: familia «hacerse» AGOTADA en c.889; este ciclo abrió una clase NOVENA paralela (DINERO/BANCA cotidiana + gestión de citas + cena/deberes) complementaria del barrido del hermano (ATM/effectivo c.890 [2 NULLs], coordinación c.890b [2 NULLs]).
+- 8 familias NULL-captura (34 descubrimiento + 12 regresiones + 12 controles + 2 observaciones bivalentes): (1) «sacar dinero del cajero/atm/ir al cajero» — efectivo pre-viaje; (2) «ingresar el dinero/el reembolso/hacer el ingreso» — depósito; (3) «depositar el cheque» — dialectal; (4) «cobrar la nómina/el reembolso» — cobros; (5) «dar de baja el gimnasio» — membresía; (6) «hacer la cena/preparar el almuerzo» — comida; (7) «descongelar la carne» — comida invariante; (8) «hacer los deberes» — estudio cotidiano.
+- HITS de la clase medidos (regresiones internas): «cambiar euros/dólares» TASK (piso abierto «cambiar <objeto>» c.710), «pasar por/ir al banco» ERRAND (keyword), «revisar el extracto del banco» TASK, «pagar la tarjeta» PAYMENT, «pedir/cambiar cita dentista» APPOINTMENT, «cocinar el almuerzo» HOUSEHOLD.
+- Regresiones 12/12 HIT; controles 12/12 NULL correctos; observaciones bivalentes medidas («cambiar de tema/planes» HIT — piso abierto c.710 documentado deliberado; «ingresar en el club»/«sacar a bailar» NULL guardado).
+- Cero cambios de producto (convención c.822/c.834/c.845/c.857).
+- NO VERIFICADO: producto intocado (no aplican Android/gradle/ui).
+- Próxima prioridad: resolver familias UNA por ciclo: (1) efectivo/cajero; (2) depósito/ingresos; (3) cobros; (4) membresías; (5) comida/deberes; (6) depositar-cheque. Re-fetch OBLIGATORIO de nuevo antes del push.
+
 ## Ciclo c.891 (2026-08-22) — docs(ai_autonomy): auditoría de descubrimiento clase NOVENA → familia «sacar dinero/efectivo (del cajero)» medida NULL, registrada CANDIDATA
 
 - Área: context (sin cambios de motor — convención c.822/c.834/c.845 «cero cambios de producto en ciclo de descubrimiento»).
