@@ -29,11 +29,10 @@ import org.junit.Test
  *       y los weekdays («a primera hora del lunes» ya lleva conector «a»).
  * Usado en la resolución (fecha) y en el borrado del título (por rangos, como
  * `eraseMananaDateToken`) para que fecha y título nunca diverjan.
- * FUERA (lateral registrada, mecanismo apilado): genitivo canónico DENTRO del
- * match («las primeras horas de la mañana son las mejores») — proteger el
- * ordinal no basta porque `standalonePartOfDayPattern` robaría la parte del
- * día interior; requiere doctrina propia. Byte-idéntico pre-fix (pin de
- * alcance documentado abajo).
+ * FUERA en c.930 (lateral registrada, mecanismo apilado): genitivo canónico
+ * DENTRO del match («las primeras horas de la mañana son las mejores») —
+ * RESUELTA en c.932 (H3 + supresión de parte-del-día gobernada; ver
+ * NaturalTaskParserOrdinalHoraGenitivoGobernadoTest y el re-pin abajo).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserOrdinalHoraNarrativaGuardTest {
@@ -179,14 +178,15 @@ class NaturalTaskParserOrdinalHoraNarrativaGuardTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
-    @Test fun primerasHorasDeLaMananaDentroDelMatch_lateralByteIdentica() {
-        // LATERAL REGISTRADA FUERA (pin de alcance, comportamiento pre-fix
-        // byte-idéntico): genitivo canónico DENTRO del match — proteger el
-        // ordinal no basta porque standalonePartOfDayPattern robaría la parte
-        // del día interior («de la mañana» → 09:00); requiere doctrina propia.
+    @Test fun primerasHorasDeLaMananaDentroDelMatch_lateralResueltaC932() {
+        // Lateral registrada FUERA aquí en c.930 («las primeras horas de la
+        // mañana son las mejores», genitivo canónico DENTRO del match con
+        // robo apilado de standalonePartOfDayPattern) — RESUELTA en c.932:
+        // doctrina H3 (determinante al inicio + predicado) + supresión de la
+        // parte-del-día gobernada (ver NaturalTaskParserOrdinalHoraGenitivoGobernadoTest).
         val r = parse("las primeras horas de la mañana son las mejores")
-        assertEquals("las son las mejores", r.title)
-        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+        assertNull(r.dueAt)
+        assertEquals("las primeras horas de la mañana son las mejores", r.title)
     }
 
     // ---- Regresiones (verdes desde RED) ----

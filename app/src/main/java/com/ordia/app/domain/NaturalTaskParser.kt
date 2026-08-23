@@ -4745,7 +4745,12 @@ object NaturalTaskParser {
         }
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
+        // c.932: si el ordinal narrativo (H3) gobierna la parte del día dentro
+        // de su propio match («las primeras horas de la mañana son las
+        // mejores»), la parte del día interior NO es ancla independiente.
+        val ordinalNarrativeRanges = ordinalHoraNarrativeRanges(working)
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
+            ?.takeUnless { sm -> ordinalNarrativeRanges.any { it.containsRange(sm.range) } }
         val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
             (it.groupValues[1].ifBlank { it.groupValues[2] }.ifBlank { it.groupValues[3] }).lowercase().ifEmpty { null }
         }
@@ -5598,7 +5603,10 @@ object NaturalTaskParser {
                 }
                 acc
             }
-            .let { value -> standalonePartOfDayPattern.replace(value, " ") }
+            // c.932: borrado por rangos — la parte del día GOBERNADA por un
+            // ordinal narrativo (H3, «las primeras horas de la mañana son las
+            // mejores») se conserva íntegra; ver eraseStandalonePartOfDayToken.
+            .let { value -> eraseStandalonePartOfDayToken(value) }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             // c.930: borrado por rangos con guard anti-robo narrativo — las
             // apariciones de ordinal que son CONTENIDO («la primera hora de
@@ -7613,6 +7621,14 @@ object NaturalTaskParser {
         if (Regex("""(?i)\bla\s+$""").containsMatchIn(prefix) &&
             Regex("""(?i)^\s+siguientes?\b""").containsMatchIn(suffix)
         ) return true
+        // (G4) c.932: «mañana» gobernada por un ordinal narrativo (H3) —
+        //      «las primeras horas de la mañana son las mejores»: la parte
+        //      del día interior pertenece al sujeto narrativo; sin este guard
+        //      el borrado del token-fecha mutilaba el título protegido
+        //      («…de la son las mejores»). La fecha ya está excluida por el
+        //      timeMarker «de la» de [mananaAsDate], así que este guard sólo
+        //      blinda el título.
+        if (ordinalHoraNarrativeRanges(text).any { it.containsRange(range) }) return true
         return false
     }
 
@@ -7667,10 +7683,13 @@ object NaturalTaskParser {
      *       contenido a continuación («de clase», «del partido»): el ancla
      *       tampoco gobierna genitivo de contenido. Los genitivos-ancla
      *       ([ordinalHoraAnchorGenitives]) quedan como ancla.
-     * El genitivo canónico DENTRO del match («las primeras horas de la mañana»)
-     * queda como ancla (lateral registrada: proteger el ordinal no basta
-     * porque `standalonePartOfDayPattern` robaría la parte del día interior;
-     * requiere doctrina propia). Usada en la resolución (fecha) y en el
+     *  (H3) genitivo canónico DENTRO del match («las primeras horas de la
+     *       mañana son las mejores», c.932): contenido sólo con determinante
+     *       al inicio del texto + predicado a continuación; la parte del día
+     *       gobernada se suprime vía [ordinalHoraNarrativeRanges] (fecha y
+     *       título) y la «mañana» interior vía G4 de
+     *       [mananaOccurrenceIsContent].
+     * Usada en la resolución (fecha) y en el
      * borrado del título ([eraseOrdinalHoraToken]) para que nunca diverjan.
      */
     private val ordinalHoraCanonicalSuffix = Regex(
@@ -7678,6 +7697,44 @@ object NaturalTaskParser {
     )
     private val ordinalHoraContentGenitive =
         Regex("""(?i)^\s+(?:del|de(?:\s+(?:la|las|los))?)\s+(\p{L}+)""")
+
+    /**
+     * c.932 (H3): prefijo que convierte en CONTENIDO narrativo un ordinal con
+     * genitivo canónico dentro del match: TODO el prefijo es sólo un
+     * determinante (artículo/demostrativo, opcional «en») al inicio del texto
+     * («las primeras horas de la mañana son…», «en las primeras horas del día
+     * trabajé»). El ancla de las 09:00/18:00 siempre lleva conector «a»
+     * (c.102/c.546/c.931); el determinante desnudo al inicio + predicado es
+     * sujeto narrativo. Ver [ordinalHoraOccurrenceIsContent].
+     */
+    private val ordinalHoraNarrativeDeterminer = Regex(
+        """(?i)^\s*(?:en\s+)?(?:la|las|el|los|esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$"""
+    )
+
+    /**
+     * c.932: rangos de las apariciones de ordinal de hora que son CONTENIDO
+     * narrativo ([ordinalHoraOccurrenceIsContent]). Se usa para la supresión
+     * de la parte-del-día GOBERNADA: cuando el ordinal narrativo consumió el
+     * genitivo canónico dentro de su propio match («las primeras horas de la
+     * mañana son las mejores»), `standalonePartOfDayPattern` no debe robar la
+     * parte del día interior ni en la fecha ni en el título, y la «mañana»
+     * interior queda protegida del borrado de token-fecha (G4).
+     */
+    private fun ordinalHoraNarrativeRanges(text: String): List<IntRange> {
+        val ranges = mutableListOf<IntRange>()
+        for (pattern in listOf(primeraHoraPattern, ultimaHoraPattern)) {
+            var idx = 0
+            while (true) {
+                val m = pattern.find(text, idx) ?: break
+                if (ordinalHoraOccurrenceIsContent(text, m)) ranges += m.range
+                idx = m.range.last + 1
+            }
+        }
+        return ranges
+    }
+
+    private fun IntRange.containsRange(other: IntRange): Boolean =
+        other.first >= first && other.last <= last
 
     private fun ordinalHoraOccurrenceIsContent(text: String, match: MatchResult): Boolean {
         if (Regex("""(?i)^(?:justo\s+)?a\s""").containsMatchIn(match.value)) {
@@ -7694,7 +7751,22 @@ object NaturalTaskParser {
             val genitiveA = ordinalHoraContentGenitive.find(suffixA) ?: return false
             return genitiveA.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives
         }
-        if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
+        if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) {
+            // c.932 (H3): el genitivo canónico DENTRO del match («las primeras
+            // horas de la mañana son las mejores») es CONTENIDO narrativo sólo
+            // con evidencia inequívoca: determinante (artículo/demostrativo,
+            // opcional «en») AL INICIO del texto — sin verbo precedente —
+            // y predicado a continuación. El sujeto narrativo gobierna la
+            // parte del día interior; sin predicado («las primeras horas de
+            // la mañana») o con verbo/cláusula precedente («avisar las…»,
+            // «creo que las…») sigue la doctrina bivalente/ancla (c.931).
+            // La supresión de la parte-del-día gobernada (fecha y título)
+            // fluye de [ordinalHoraNarrativeRanges].
+            val prefixH3 = text.substring(0, match.range.first)
+            if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3)) return false
+            if (text.substring(match.range.last + 1).isBlank()) return false
+            return true
+        }
         val prefix = text.substring(0, match.range.first)
         if (Regex("""(?i)\b(?:esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$""")
                 .containsMatchIn(prefix)
@@ -7718,6 +7790,28 @@ object NaturalTaskParser {
         while (true) {
             val m = pattern.find(result, idx) ?: return result
             if (ordinalHoraOccurrenceIsContent(result, m)) {
+                idx = m.range.last + 1
+                continue
+            }
+            result = result.removeRange(m.range.first, m.range.last + 1)
+            idx = m.range.first
+        }
+    }
+
+    /**
+     * c.932: borra del título las apariciones de parte del día suelta y
+     * conserva íntegra la GOBERNADA por un ordinal narrativo (H3): en «las
+     * primeras horas de la mañana son las mejores» el «de la mañana» interior
+     * pertenece al sujeto narrativo, no es ancla. Opera por rangos (no replace
+     * global) para no tocar las apariciones protegidas, como
+     * [eraseOrdinalHoraToken]/[eraseMananaDateToken].
+     */
+    private fun eraseStandalonePartOfDayToken(title: String): String {
+        var result = title
+        var idx = 0
+        while (true) {
+            val m = standalonePartOfDayPattern.find(result, idx) ?: return result
+            if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) }) {
                 idx = m.range.last + 1
                 continue
             }
