@@ -15527,3 +15527,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room.
 - **Próxima prioridad**: familia (2) depósito/ingresos («ingresar dinero en el banco»/«hacer el ingreso»/«depositar el cheque»). Re-fetch OBLIGATORIO antes del push.
 ---
+
+## Ciclo c.895 (2026-08-23) — feat(context): laterales del piso ERRAND c.894 — «depositar el cheque», «hacer el ingreso» (familia 2/8 clase NOVENA)
+- **HEAD inicial**: `1f11582` (propio c.893). Re-fetch PRE-push reveló hermano `cec1e29` (c.894 máster «ingresar dinero/reembolso», suite 5878). **Integración no destructiva**: stash → pull --ff-only → stash drop (regeneración de delta complementaria). **HEAD final**: ver commit final.
+- **Preparación**: entorno ya equipado (OpenJDK 21, kotlinc 2.1.20, jars `/tmp/libs`); baseline sobre base hermano **OK (5878)**, smoke 25/25.
+- **Sonda PRE** (`tools/probe/DepositChequeProbe.kt` persistida, run_probe.sh, motor real, base `cec1e29`): 3/3 NULL (depositar el cheque, depositar el reembolso, hacer el ingreso), 5/5 guards NULL, 2/2 laterales bivalentes NULL deliberados («ir a ingresar»/«pasar a depositar»), 6/6 regresiones HIT (incl. máster hermano «ingresar dinero/el reembolso»).
+- **TDD RED → verde**: `ContextIntentEngineDepositChequeTest` (17 tests) RED exacto 5 fallos (las 5 capturas; guards/negaciones/regresiones verdes desde RED) → verde.
+- **Extensión aditiva del lockstep hermano (TRES puntos)**: (1) piso `[ERRAND_DEPOSIT_FLOOR]` → `(?<!no )(?:(?:ingresar|depositar)\s+(det)?(dinero|reembolso|cheque|ingreso)|hacer\s+(?:el|un)\s+ingreso)` (guard `(?<!no )` conservado con la alternancia verbo-inflexión); (2) keywords-OBJETO «cheque»/«ingreso» en `ContextIntent.kt` (NO el verbo «depositar»); (3) plantilla de título extendida a `(ingresar|depositar|hacer)`+objeto (grupo de verbo capitalizado, doctrina c.653) + cláusula de negación ampliada en `imperativeIsNegated`.
+- **Verificación**: POST sonda 3/3 HIT (ERRAND 0.45; «Depositar el cheque»/«Depositar el reembolso»/«Hacer el ingreso», dueAt=true), 5/5 guards NULL, 2/2 laterales NULL deliberados, 6/6 regresiones HIT; suite **OK (5895 = 5878 + 17)**; smoke 25/25 re-verificada.
+- **Archivos**: `ContextIntentEngine.kt` (piso ampliado + comentario c.895 aditivo + negación + plantilla), `ContextIntent.kt` (2 keywords), `ContextIntentEngineDepositChequeTest.kt` (NUEVO 17 tests), `tools/probe/DepositChequeProbe.kt` (NUEVO persistido), AI_AUTONOMY (BACKLOG/CURRENT_STATE/RUN_LOG). Cero producto fuera de context; cero reescritura del hermano.
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room.
+- **Próxima prioridad**: familia (3) cobros («cobrar la nómina/el reembolso»). Re-fetch OBLIGATORIO antes del push.
+---

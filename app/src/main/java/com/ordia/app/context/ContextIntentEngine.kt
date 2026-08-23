@@ -684,8 +684,21 @@ object ContextIntentEngine {
     // c.717/c.829/c.842/c.893). Acotado deliberado (una familia por
     // ciclo): laterales «hacer el ingreso» (débil) y «depositar el cheque»
     // (verbo hermano) a medir; el resto del BACKLOG intocado.
+    // c.895: laterales del hermano resueltas (NULL PRE medido por la sonda
+    // persistida `DepositChequeProbe.kt` sobre la base `cec1e29`: 3/3
+    // NULL): (a) verbo hermano «depositar» + ancla-objeto ampliada a
+    // `cheque|reembolso|ingreso` (determinante opcional; «depositar» es
+    // bivalente — la basura/la confianza — así sin verbo como keyword,
+    // lección c.893); (b) forma sustantiva «hacer el ingreso» acotada a
+    // «hacer»+`ingreso` para no recoger «hacer dinero/la limpieza»
+    // (bivalente). Lockstep additive del hermano: keywords-OBJETO
+    // «cheque»/«ingreso» en [ContextIntentKind.ERRAND] + plantilla de
+    // título extendida + cláusula de negación ampliada en
+    // [imperativeIsNegated]. Laterales bivalentes SIN ancla («ir a
+    // ingresar»/«pasar a depositar» — hospital/club/universidad)
+    // permanecen NULL deliberadamente.
     private val ERRAND_DEPOSIT_FLOOR =
-        Regex("""\b(?<!no )ingresar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso)\b""")
+        Regex("""\b(?<!no )(?:(?:ingresar|depositar)\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso|cheque|ingreso)\b|hacer\s+(?:el|un)\s+ingreso\b)""")
     private val ERRAND_FLOORS = listOf(
         // c.893: destino «ir al cajero/atm» (lockstep con la cláusula de
         // negación de destino en [imperativeIsNegated]).
@@ -2589,9 +2602,13 @@ object ContextIntentEngine {
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
         // + el bono temporal podrían elevar el score sin pasar por el piso
         // (cuyo lookbehind sí la bloquea), así la negación se bloquea
-        // también aquí (cinturón y tirantes).
+        // también aquí (cinturón y tirantes). c.895: ampliada con las
+        // laterales del hermano «depositar el cheque/reembolso/ingreso»
+        // y «hacer el ingreso» (misma vía; guard `(?<!no )` del piso no
+        // basta porque las keywords-OBJETO «cheque»/«ingreso» sumarían
+        // 0.12 sin pasar por el piso).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+ingresar\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+(?:(?:ingresar|depositar)\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso|cheque|ingreso)\b|hacer\s+(?:el|un)\s+ingreso\b)""").containsMatchIn(lower)
         ) return true
         // "pasar por el banco" (ERRAND, piso acotado c.718) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -3881,12 +3898,17 @@ object ContextIntentEngine {
                 // [ERRAND_DEPOSIT_FLOOR]): hermano del match-cash c.893, misma
                 // doctrina (verbo preservado lección c.616; ancla-objeto
                 // `dinero|reembolso` grafía preservada c.653).
+                // c.895: ampliada con las laterales del hermano — verbos
+                // «depositar»/«hacer» preservados (misma doctrina; la forma
+                // sustantiva «hacer el ingreso» arranca en «hacer») y ancla
+                // objetivamente idéntica a la del piso (`cheque|ingreso`
+                // añadidos, determinante opcional).
                 val matchDeposit = Regex(
-                    """\b(?<!no )ingresar\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso)\b.*)""",
+                    """\b(?<!no )(ingresar|depositar|hacer)\s+((?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso|cheque|ingreso)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchDeposit != null) {
-                    return "Ingresar ${matchDeposit.groupValues[1]}"
+                    return "${capitalizeFirst(matchDeposit.groupValues[1])} ${matchDeposit.groupValues[2]}"
                 }
                 null
             }

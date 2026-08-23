@@ -269,7 +269,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // de la gente, deberes). 0.12 sola inerte < umbral —
         // declarativos como «el reembolso tardó dos semanas» siguen
         // descartados aun con bono temporal (0.22 < 0.45).
-        "reembolso")),
+        "reembolso",
+        // c.895: keywords-OBJETO de las laterales del hermano («depositar
+        // el cheque»/«hacer el ingreso», lockstep con la ampliación del
+        // piso [ERRAND_DEPOSIT_FLOOR]). NO el verbo «depositar» (bivalente
+        // — la basura/la confianza). 0.12 cada una inertes solas < umbral
+        // (0.32 con bono temporal < 0.45) → «el cheque llegó ayer» sigue
+        // descartado; el piso exige el verbo anclado al objeto.
+        "cheque",
+        "ingreso")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",
