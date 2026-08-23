@@ -7834,11 +7834,12 @@ object NaturalTaskParser {
      * [ordinalHoraNarrativeArticlePrefix] (c.939) y
      * [ordinalHoraNarrativeEnArticlePrefix] (c.942): con verbo precedente
      * («quiero/prefiero una…») el prefijo no empieza en el indefinido y la
-     * forma sigue la doctrina ancla (byte-idéntica). Sólo se admite con
-     * weekday genitivo (directo o tras genitivo interior de parte del día):
-     * el genitivo de contenido H2 con indefinido («una primera hora de
-     * clase…») y el H3 canónico con indefinido («unas primeras horas de la
-     * mañana son duras») no están medidos — laterales conservadoras.
+     * forma sigue la doctrina ancla (byte-idéntica). Se admite con weekday
+     * genitivo (directo o tras genitivo interior de parte del día, c.943) y
+     * con el genitivo canónico DENTRO del match (rama H3, c.944: «unas
+     * primeras horas de la mañana son duras»): el genitivo de contenido H2
+     * con indefinido («una primera hora de clase…») no está medido — lateral
+     * conservadora (pin byte-idéntico).
      */
     private val ordinalHoraNarrativeIndefinitePrefix = Regex(
         """(?i)^\s*(?:una|unas|un|unos)\s+$"""
@@ -8047,11 +8048,17 @@ object NaturalTaskParser {
             // c.935: el determinante también es evidencia tras una cláusula de
             // OPINIÓN inequívoca («creo que las…», «para mí las…») — el nominal
             // es sujeto de la subordinada ([ordinalHoraNarrativeOpinionPrefix]).
-            // La supresión de la parte-del-día gobernada (fecha y título)
-            // fluye de [ordinalHoraNarrativeRanges].
+            // c.944: y el ARTÍCULO INDEFINIDO al inicio («unas primeras horas
+            // de la mañana son duras») es la misma evidencia de sujeto
+            // narrativo (lateral medida FUERA en c.943 — doctrina simétrica;
+            // con verbo precedente el prefijo no empieza en el indefinido y
+            // la forma sigue ancla byte-idéntica). La supresión de la
+            // parte-del-día gobernada (fecha y título) fluye de
+            // [ordinalHoraNarrativeRanges].
             val prefixH3 = text.substring(0, match.range.first)
             if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3) &&
-                !ordinalHoraNarrativeOpinionPrefix.containsMatchIn(prefixH3)
+                !ordinalHoraNarrativeOpinionPrefix.containsMatchIn(prefixH3) &&
+                !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefixH3)
             ) return false
             if (text.substring(match.range.last + 1).isBlank()) return false
             return true

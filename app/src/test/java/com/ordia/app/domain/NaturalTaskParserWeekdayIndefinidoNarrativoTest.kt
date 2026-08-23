@@ -124,9 +124,15 @@ class NaturalTaskParserWeekdayIndefinidoNarrativoTest {
 
     // ---- Pines byte-idénticos de laterales medidas FUERA (doctrina vigente) ----
 
-    @Test fun unasPrimerasHorasDeLaMananaSonDuras_pinLateralFuera() =
-        assertDueAt("unas primeras horas de la mañana son duras", LocalDate.of(2026, 8, 23), 9, "unas son duras")
+    // c.944: re-pin legítimo MÁS estricto — la lateral H3-canónico con
+    // indefinido quedó RESUELTA en c.944 (rama H3 admite
+    // [ordinalHoraNarrativeIndefinitePrefix]); ahora aserta due=null + título
+    // íntegro (precedente de re-pins c.925…c.941). Cobertura completa de la
+    // familia en NaturalTaskParserIndefinidoH3NarrativoTest.
 
-    @Test fun unaUltimaHoraDeLaTardeFueEterna_pinLateralFuera() =
-        assertDueAt("una última hora de la tarde fue eterna", LocalDate.of(2026, 8, 23), 15, "una fue eterna")
+    @Test fun unasPrimerasHorasDeLaMananaSonDuras_resueltaC944() =
+        assertNarrativeIntact("unas primeras horas de la mañana son duras")
+
+    @Test fun unaUltimaHoraDeLaTardeFueEterna_resueltaC944() =
+        assertNarrativeIntact("una última hora de la tarde fue eterna")
 }
