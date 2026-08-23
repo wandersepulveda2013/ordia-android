@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -86,19 +87,23 @@ class NaturalTaskParserMananaMismaMarkerTest {
     }
 
     @Test fun guardSinPreposicion_conservaMisma() {
-        // "la mañana misma del accidente" sin preposición: la rama no casa y el
-        // título queda byte-idéntico al PRE (el robo de "mañana" desnuda como
-        // "tomorrow" es comportamiento PREEXISTENTE ajeno a esta rama — pin de
-        // alcance, observación registrada en BACKLOG).
+        // "la mañana misma del accidente" sin preposición: la rama no casa. El
+        // robo de "mañana" desnuda como "tomorrow" (fecha +1 falsa y título
+        // mutilado "la misma del accidente…") se resolvió en c.927 (guard
+        // genitivo/demostrativo de `mananaAsDate` + borrado): ahora la frase
+        // es contenido íntegro sin fecha.
         val r = parse("la mañana misma del accidente fue terrible")
-        assertEquals("la misma del accidente fue terrible", r.title)
+        assertNull(r.dueAt)
+        assertEquals("la mañana misma del accidente fue terrible", r.title)
     }
 
     @Test fun guardOrdenInvertido_conservaFrase() {
         // "esa misma mañana" (misma ANTES del sustantivo) no es el enfático de
-        // esta familia: la rama no casa; título byte-idéntico al PRE.
+        // esta familia: la rama no casa. Desde c.927 tampoco se roba como fecha
+        // (guard demostrativo): frase íntegra sin fecha.
         val r = parse("esa misma mañana volví a casa")
-        assertEquals("esa misma volví a casa", r.title)
+        assertNull(r.dueAt)
+        assertEquals("esa misma mañana volví a casa", r.title)
     }
 
     @Test fun guardMismoComoAdjetivo_conservaFrase() {

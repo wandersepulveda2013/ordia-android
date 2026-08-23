@@ -5608,7 +5608,12 @@ object NaturalTaskParser {
             // suelta dejaba el conector como residuo en el título ("llamar de", "reunión desde"
             // en vez de "llamar"/"reunión") — contenido capturado degradado (P1). Se consume el
             // conector junto con el día relativo. El \b impide coincidir dentro de palabras como "desde"→ no aplica.
-            .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
+            .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
+            // c.927: el «mañana» suelto se borra con guard anti-robo — las apariciones
+            // que son CONTENIDO ("la mañana del accidente", "esa misma mañana") se
+            // conservan íntegras (ver [mananaOccurrenceIsContent]); el resto se borra
+            // con su conector "de/del/desde" como hacía la alternativa de arriba.
+            .let { value -> eraseMananaDateToken(value) }
             // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
             // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
             // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
@@ -7526,8 +7531,54 @@ object NaturalTaskParser {
         while (true) {
             val m = Regex("""(?i)\bma[nñ]ana\b""").find(working, idx) ?: return false
             val prefix = working.substring(0, m.range.first)
-            if (!timeMarker.containsMatchIn(prefix)) return true
+            if (!timeMarker.containsMatchIn(prefix) && !mananaOccurrenceIsContent(working, m.range)) return true
             idx = m.range.last + 1
+        }
+    }
+
+    /**
+     * c.927: ¿es esta aparición de «mañana» CONTENIDO ("la mañana" = the morning)
+     * y no la fecha "mañana" (tomorrow)? Sólo con evidencia gramatical inequívoca:
+     *  (G1) demostrativo precedente — «esa/aquella/dicha/tal [misma] mañana» o
+     *       «la misma mañana»: nadie dice «esa mañana» por "tomorrow".
+     *  (G2) genitivo con artículo a continuación — «mañana del accidente»,
+     *       «mañana misma del partido», «mañana de la victoria»: un "tomorrow"
+     *       nunca gobierna genitivo.
+     * Sin evidencia («el informe de mañana», genitivo de posesión temporal sobre
+     * la FECHA) sigue contando como fecha — doctrina vigente del borrado con
+     * conector. Usada por [mananaAsDate] (fecha) y [eraseMananaDateToken] (título)
+     * para que fecha y título nunca diverjan.
+     */
+    private fun mananaOccurrenceIsContent(text: String, range: IntRange): Boolean {
+        val prefix = text.substring(0, range.first)
+        if (Regex("""(?i)\b(?:esa|aquella|dicha|tal)(?:\s+misma)?\s+$""").containsMatchIn(prefix)) return true
+        if (Regex("""(?i)\bla\s+misma\s+$""").containsMatchIn(prefix)) return true
+        val suffix = text.substring(range.last + 1)
+        if (Regex("""(?i)^\s+(?:misma\s+)?(?:del|de\s+(?:la|las|los))\s+\p{L}""").containsMatchIn(suffix)) return true
+        return false
+    }
+
+    /**
+     * c.927: borra del título las apariciones de «mañana» que son FECHA (con su
+     * conector "de/del/desde" precedente, como hacía la alternativa del borrado
+     * genérico) y conserva íntegras las que son CONTENIDO
+     * ([mananaOccurrenceIsContent]). Opera por rangos (no replace global) para no
+     * tocar las apariciones protegidas.
+     */
+    private fun eraseMananaDateToken(title: String): String {
+        val token = Regex("""(?i)\bma[nñ]ana\b""")
+        val connector = Regex("""(?i)\b(?:de|del|desde)\s+$""")
+        var result = title
+        var idx = 0
+        while (true) {
+            val m = token.find(result, idx) ?: return result
+            if (mananaOccurrenceIsContent(result, m.range)) {
+                idx = m.range.last + 1
+                continue
+            }
+            val start = connector.find(result.substring(0, m.range.first))?.range?.first ?: m.range.first
+            result = result.removeRange(start, m.range.last + 1)
+            idx = start
         }
     }
 
