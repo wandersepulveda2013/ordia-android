@@ -7718,6 +7718,24 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.935 (extensión de H3): prefijo alternativo que convierte en CONTENIDO
+     * narrativo un ordinal con genitivo canónico dentro del match — una
+     * cláusula de OPINIÓN inequívoca («creo/pienso/opino/considero/digo/
+     * diría/siento que», «me parece que», «para mí», «a mi juicio», «en mi
+     * opinión») seguida del determinante al inicio de la subordinada («creo
+     * que las primeras horas de la mañana son las mejores», lateral medida
+     * FUERA en c.932/c.933). El marcador de opinión convierte el nominal en
+     * SUJETO de la subordinada: nunca es ancla (el ancla siempre lleva
+     * conector «a», c.102/c.546/c.931/c.933). Sigue exigiéndose predicado a
+     * continuación ([ordinalHoraOccurrenceIsContent]); sin él («creo que las
+     * primeras horas de la mañana») o con verbo NO de opinión («quiero
+     * trabajar las…», «avisar las…») se mantiene la doctrina bivalente/ancla.
+     */
+    private val ordinalHoraNarrativeOpinionPrefix = Regex(
+        """(?i)^\s*(?:(?:creo|pienso|opino|considero|digo|dir[ií]a|siento)\s+que|me\s+parece\s+que|para\s+m[ií]|a\s+mi\s+juicio|en\s+mi\s+opini[oó]n)\s+(?:la|las|el|los|esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$"""
+    )
+
+    /**
      * c.932: rangos de las apariciones de ordinal de hora que son CONTENIDO
      * narrativo ([ordinalHoraOccurrenceIsContent]). Se usa para la supresión
      * de la parte-del-día GOBERNADA: cuando el ordinal narrativo consumió el
@@ -7768,12 +7786,17 @@ object NaturalTaskParser {
             // opcional «en») AL INICIO del texto — sin verbo precedente —
             // y predicado a continuación. El sujeto narrativo gobierna la
             // parte del día interior; sin predicado («las primeras horas de
-            // la mañana») o con verbo/cláusula precedente («avisar las…»,
-            // «creo que las…») sigue la doctrina bivalente/ancla (c.931).
+            // la mañana») o con verbo/cláusula precedente («avisar las…»)
+            // sigue la doctrina bivalente/ancla (c.931).
+            // c.935: el determinante también es evidencia tras una cláusula de
+            // OPINIÓN inequívoca («creo que las…», «para mí las…») — el nominal
+            // es sujeto de la subordinada ([ordinalHoraNarrativeOpinionPrefix]).
             // La supresión de la parte-del-día gobernada (fecha y título)
             // fluye de [ordinalHoraNarrativeRanges].
             val prefixH3 = text.substring(0, match.range.first)
-            if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3)) return false
+            if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3) &&
+                !ordinalHoraNarrativeOpinionPrefix.containsMatchIn(prefixH3)
+            ) return false
             if (text.substring(match.range.last + 1).isBlank()) return false
             return true
         }

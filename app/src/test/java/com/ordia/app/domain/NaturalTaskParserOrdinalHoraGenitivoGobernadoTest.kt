@@ -24,9 +24,11 @@ import org.junit.Test
  * del texto (sin conector «a», sin verbo precedente) + predicado a
  * continuación — y entonces la parte del día gobernada se suprime también
  * (fecha y título) y la «mañana» interior queda protegida (G4). Sin predicado
- * («las primeras horas de la mañana»), con verbo precedente («avisar las
- * primeras horas de la mañana») o no al inicio («creo que las…») sigue la
- * doctrina vigente (bivalente/ancla, pins byte-idénticos).
+ * («las primeras horas de la mañana») o con verbo precedente («avisar las
+ * primeras horas de la mañana») sigue la doctrina vigente (bivalente/ancla,
+ * pins byte-idénticos); el determinante tras cláusula de opinión («creo que
+ * las…») se resolvió en c.935 (extensión de H3, ver
+ * NaturalTaskParserOpinionClauseNarrativeTest).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserOrdinalHoraGenitivoGobernadoTest {
@@ -157,12 +159,15 @@ class NaturalTaskParserOrdinalHoraGenitivoGobernadoTest {
     }
 
     @Test fun creoQueLasPrimerasHoras_noAlInicioPin() {
-        // Determinante NO al inicio del texto: evidencia insuficiente (el
-        // determinante podría ser objeto de la cláusula anterior) — doctrina
-        // conservadora, NO se protege. Pin de alcance.
+        // Re-pin legítimo c.935: la cláusula de opinión inequívoca («creo
+        // que») + determinante al inicio de la subordinada + predicado ES
+        // evidencia narrativa suficiente (extensión de H3; lateral medida
+        // FUERA en este ciclo c.932). El nominal es sujeto de la subordinada:
+        // due=null + título íntegro (MÁS estricto). La familia completa vive
+        // en NaturalTaskParserOpinionClauseNarrativeTest.
         val r = parse("creo que las primeras horas de la mañana son las mejores")
-        assertEquals("creo que las son las mejores", r.title)
-        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+        assertNull(r.dueAt)
+        assertEquals("creo que las primeras horas de la mañana son las mejores", r.title)
     }
 
     @Test fun avisarALasPrimerasHorasDeLaManana_articuloPluralSinConsumirPin() {
