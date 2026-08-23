@@ -376,6 +376,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // cantidad + «pesos» en posición de divisa («medirme el peso»,
         // «pesar las maletas» medidos NULL).
         "peso",
+        // c.912: keyword-DIVISA «libra» (lockstep con la extensión de la
+        // rama cantidad del piso [ERRAND_CASH_FLOOR] «sacar <N> libras»,
+        // lección c.751 — sin ella «sacar 50 libras mañana» ni llegaría
+        // al análisis). Subcadena: cubre «libra»/«libras». 0.12 sola
+        // inerte < umbral: la bivalencia «libras» = unidad de peso no
+        // colide («perder 5 libras», «pesar 150 libras», «levantar 100
+        // libras» medidos NULL aun con bono temporal); «la entrada
+        // cuesta 50 libras» (declarativo) sigue descartado; «pagar 50
+        // libras» sigue PAYMENT y «cambiar libras por euros» sigue
+        // TASK (piso c.710) porque la keyword solo suma 0.12 inerte a
+        // ERRAND.
+        "libra",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
