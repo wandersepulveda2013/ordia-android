@@ -2486,7 +2486,17 @@ object NaturalTaskParser {
     // c.672: perífrasis caribeña/latam "entrando/entrada la tarde/noche/…" (al caer la
     // tarde/noche) se une a la familia de conectores "a la|de la|por la|en la"; antes
     // caía a dueAt=null con el residuo íntegro en el título (paridad con "en la").
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
+    // c.928: conector "para la" ("lo necesito para la mañana", "para la tarde revisar
+    // el informe") — forma cotidiana del vencimiento intradía, hermana del "para las 3"
+    // de hora explícita (l.2109). Antes caía a dueAt=null (tarea olvidada) y, con
+    // "mañana", con doble daño: el borrado del token-fecha consumía "mañana" y dejaba
+    // el residuo mutilado "para la" en el título. Doctrina SIMÉTRICA a los conectores
+    // hermanos (misma resolución y mismo borrado); la simetría de riesgo se midió con
+    // sonda: los hermanos YA consumen en los mismos contextos ("el tren por la tarde
+    // sale tarde"), así que no se introduce ninguna clase de riesgo nueva. El artículo
+    // "la" es OBLIGATORIO: "para mañana" (sin artículo) es la forma-fecha (+1d) y no
+    // se toca.
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
