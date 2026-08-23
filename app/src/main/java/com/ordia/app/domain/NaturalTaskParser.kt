@@ -2563,8 +2563,12 @@ object NaturalTaskParser {
      * resolvía vía la parte del día (c.400). Como es una hora canónica de respaldo
      * (no un reloj explícito), no fuerza contexto PM.
      */
+    // c.931: el conector admite el artículo «la» («avisar a la primera hora») —
+    // `(?:a\s+la\s+|a\s+)?`; NUNCA «la» desnuda sin «a» («avisar la primera
+    // hora» = objeto bivalente, lateral registrada FUERA). La narrativa «a la
+    // primera hora de clase» sigue protegida por ordinalHoraOccurrenceIsContent.
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
+        Regex("""(?i)(?:justo\s+)?\b(?:a\s+la\s+|a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
@@ -2595,8 +2599,10 @@ object NaturalTaskParser {
      * "a última hora del día" dejaba "del día"/"de la jornada" como residuo aunque la
      * hora canónica (18:00) sí se resolvía. Mismo cierre de jornada que "al final del día".
      */
+    // c.931: conector «a la» simétrico de [primeraHoraPattern] («avisar a la
+    // última hora» → 18:00 con título limpio «avisar», sin residuo «a la»).
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
+        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+la\s+|a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
@@ -7653,7 +7659,8 @@ object NaturalTaskParser {
      * clase» = the first hour of class) y no el ancla canónica («a primera
      * hora» = 09:00, «a última hora» = 18:00)? Sólo con evidencia gramatical
      * inequívoca, y NUNCA con el conector «a»/«justo a» consumido por el
-     * patrón (ancla por doctrina c.102/c.546):
+     * patrón (ancla por doctrina c.102/c.546; excepción c.931: «a la» +
+     * genitivo de contenido a continuación = sustantivo narrativo):
      *  (H1) demostrativo precedente («esa primera hora»): nadie la usa como
      *       ancla de las 09:00/18:00.
      *  (H2) artículo precedente («la/las/el/los [misma/o/s/as]») + genitivo de
@@ -7666,12 +7673,28 @@ object NaturalTaskParser {
      * requiere doctrina propia). Usada en la resolución (fecha) y en el
      * borrado del título ([eraseOrdinalHoraToken]) para que nunca diverjan.
      */
+    private val ordinalHoraCanonicalSuffix = Regex(
+        """(?i)(?:de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)$"""
+    )
+    private val ordinalHoraContentGenitive =
+        Regex("""(?i)^\s+(?:del|de(?:\s+(?:la|las|los))?)\s+(\p{L}+)""")
+
     private fun ordinalHoraOccurrenceIsContent(text: String, match: MatchResult): Boolean {
-        if (Regex("""(?i)^(?:justo\s+)?a\s""").containsMatchIn(match.value)) return false
-        val canonicalSuffix = Regex(
-            """(?i)(?:de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)$"""
-        )
-        if (canonicalSuffix.containsMatchIn(match.value)) return false
+        if (Regex("""(?i)^(?:justo\s+)?a\s""").containsMatchIn(match.value)) {
+            // c.931: con el conector «a» consumido por el patrón la aparición es
+            // ancla por doctrina c.102/c.546 — EXCEPTO «a la» + genitivo de
+            // contenido a continuación («a la primera hora de clase me quedé
+            // dormido»): el artículo la vuelve sustantivo narrativo (protegida
+            // vía H2 antes de que el patrón consumiera «a la»). Sin artículo
+            // («a primera hora») o sin genitivo de contenido («avisar a la
+            // última hora») sigue siendo ancla.
+            if (!Regex("""(?i)^(?:justo\s+)?a\s+la\s""").containsMatchIn(match.value)) return false
+            if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
+            val suffixA = text.substring(match.range.last + 1)
+            val genitiveA = ordinalHoraContentGenitive.find(suffixA) ?: return false
+            return genitiveA.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives
+        }
+        if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
         val prefix = text.substring(0, match.range.first)
         if (Regex("""(?i)\b(?:esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$""")
                 .containsMatchIn(prefix)
@@ -7679,7 +7702,7 @@ object NaturalTaskParser {
         val articleBefore = Regex("""(?i)\b(?:la|las|el|los)(?:\s+mism[oa]s?)?\s+$""").containsMatchIn(prefix)
         if (!articleBefore) return false
         val suffix = text.substring(match.range.last + 1)
-        val genitive = Regex("""(?i)^\s+(?:del|de(?:\s+(?:la|las|los))?)\s+(\p{L}+)""").find(suffix) ?: return false
+        val genitive = ordinalHoraContentGenitive.find(suffix) ?: return false
         return genitive.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives
     }
 

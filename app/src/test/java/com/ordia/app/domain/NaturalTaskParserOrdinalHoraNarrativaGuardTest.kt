@@ -161,12 +161,13 @@ class NaturalTaskParserOrdinalHoraNarrativaGuardTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
-    @Test fun aLaUltimaHora_coloquialByteIdentico() {
-        // Coloquial «a la última hora» (≈ a última hora): sin genitivo de
-        // contenido tras el match el guard no aplica — byte-idéntico pre-fix
-        // (el residuo «a la» del título es preexistente, lateral registrada).
+    @Test fun aLaUltimaHora_coloquialAncla() {
+        // Coloquial «a la última hora» (≈ a última hora): ancla 18:00 con
+        // título limpio. El residuo «a la» preexistente era la lateral
+        // registrada aquí en c.930 — RESUELTA en c.931 (el patrón consume el
+        // conector «a la»; ver NaturalTaskParserALaOrdinalHoraTest).
         val r = parse("avisar a la última hora")
-        assertEquals("avisar a la", r.title)
+        assertEquals("avisar", r.title)
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
