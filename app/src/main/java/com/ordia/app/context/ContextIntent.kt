@@ -351,6 +351,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // cantidad, y «pagar 50 euros» sigue PAYMENT por su propio piso
         // (la keyword solo suma 0.12 inerte a ERRAND).
         "euro",
+        // c.910: keyword-DIVISA «dólar»/«dolar» (lockstep con la extensión
+        // de la rama cantidad del piso [ERRAND_CASH_FLOOR] «sacar <N>
+        // dólares», lección c.751 — sin ella «sacar 100 dólares mañana» ni
+        // llegaría al análisis). Ambas grafías: el motor no normaliza
+        // tildes (precedente «nómina»/«nomina» c.895b). Subcadena: cubre
+        // «dólar»/«dólares». 0.12 sola inerte < umbral: «la entrada cuesta
+        // 50 dólares» (declarativo, medido NULL en sonda PRE) sigue
+        // descartado aun con bono temporal (0.22 < 0.45); «pagar 50
+        // dólares» sigue PAYMENT y «coger 50 dólares» sigue TASK (piso
+        // deliberado c.716) porque la keyword solo suma 0.12 inerte a
+        // ERRAND.
+        "dólar", "dolar",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
