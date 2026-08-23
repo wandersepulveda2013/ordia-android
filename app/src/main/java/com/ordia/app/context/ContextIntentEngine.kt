@@ -2363,6 +2363,31 @@ object ContextIntentEngine {
             // (artículo intermedio lo impide… el ancla exige «baja\s+»), el
             // sustantivo «la baja…» no casa (falta el verbo «dar de»).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?)\b""").containsMatchIn(lower)
+            // c.901: "dar las gracias a <persona> (por <objeto>)" ("dar las
+            // gracias a Ana por el regalo"), candidata (b) y ÚLTIMA forma
+            // NULL de la clase NOVENA-b coordinación/préstamos (sonda
+            // persistida `tools/probe/DarLasGraciasProbe.kt`; NULL PRE sobre
+            // HEAD 8a557ef: 5/5 candidatas, 5/5 guards, 2/2 laterales, 6/6
+            // regresiones HIT intactas). Kind decidido: TASK (comunicación
+            // de gratitud pendiente, hermana de «avisar a…» TASK c.711 —
+            // gestión interpersonal SIN desplazamiento físico; la doctrina
+            // ERRAND c.842/c.862 gobierna solo el desplazamiento). El
+            // verbo-frase «dar las gracias» es cuasi-monosemántico
+            // (gratitud; hermano de «dar de baja» c.895c), así el ancla es
+            // la forma EXACTA + dativa «a <destino>». Lockstep keyword-frase
+            // «dar las gracias» (sin ella la forma sin gatillo ni llega al
+            // análisis, lección c.751) y plantilla en [extractTitle]
+            // (lección c.616). Anti-overreach: `(?<!no )` bloquea la negada
+            // («no dar las gracias a Ana»), el pasado «di las gracias…» no
+            // casa, el subjuntivo «quizá dé las gracias…» no casa, el
+            // sustantivo «las gracias de…» no casa (falta el verbo), «dar
+            // las gracias» suelto sin destino no casa (ancla «a \w»
+            // exigida — NULL deliberado), laterales «darle las gracias…»/
+            // «dar gracias a…» no casan (a medir, UNA forma por ciclo).
+            // La negada la cubre el guard del piso; la keyword 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral: no hace falta cláusula dedicada
+            // en [imperativeIsNegated] (mismo argumento que c.895b/c.895c).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+a\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3157,6 +3182,16 @@ object ContextIntentEngine {
                 // Mismo ancla/guard que el piso.
                 val matchDarDeBaja = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDarDeBaja != null) return "Dar de baja ${matchDarDeBaja.groupValues[1]}"
+
+                // "dar las gracias a X" → "Dar las gracias a X" (c.901):
+                // lockstep con el piso acotado «dar las gracias a <persona>»
+                // — el verbo-frase gobierna el contenido y se PRESERVA en el
+                // título (alineación piso↔título, lección c.616, doctrina
+                // c.653: ortografía del destinatario y del objeto conservada,
+                // solo capitalización inicial); el residuo temporal de cola
+                // lo depura [sanitizeTitle]. Mismo ancla/guard que el piso.
+                val matchDarLasGracias = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+las\s+gracias\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDarLasGracias != null) return "Dar las gracias ${matchDarLasGracias.groupValues[1]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se
