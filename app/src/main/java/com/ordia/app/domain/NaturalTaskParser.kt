@@ -3535,6 +3535,20 @@ object NaturalTaskParser {
                 ),
                 "$1",
             )
+            // Marcador de intención coloquial "de cara a(l)" (with an eye to)
+            // pegado a un ancla de día ("de cara al lunes", "de cara a mañana"):
+            // la fecha se resolvía bien pero el marcador sobrevivía como residuo
+            // gramaticalmente colgado en el título ("...de cara"). Hermano
+            // leading de "como muy tarde": se borra SÓLO cuando va seguido
+            // DIRECTAMENTE de un ancla de día; con sustantivo de contenido a
+            // continuación ("de cara al examen del viernes", "de cara a la
+            // maratón") se conserva íntegro (lookahead restringido a anclas).
+            .replace(
+                Regex(
+                    """(?i)\bde cara a(?:l| la)?\s+(?=(?:lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|hoy|pasado ma[nñ]ana|ma[nñ]ana|fin de semana|finde)\b)""",
+                ),
+                "",
+            )
             // Marcador de plazo coloquial "como muy tarde" (no later than) pegado
             // a un ancla temporal: la fecha se resolvía bien pero el marcador
             // sobrevivía como residuo en el título ("pagar la renta como muy

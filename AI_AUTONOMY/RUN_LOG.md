@@ -1,3 +1,14 @@
+## Ciclo c.926 (2026-08-23)
+**Título**: feat(parser): marcador de intención «de cara a(l)» limpio en título (familia (E) residuo, barrido c.918; 1 rama aditiva pre-normalización con lookahead restringido a anclas de día).
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `e892d04` (mi c.925). **HEAD final**: ver commit final del ciclo.
+**Problema (P2 — residuo de título medido 5/5 PRE)**: «preparar la presentación de cara al lunes» / «tener listo el informe de cara al viernes» / «dejar todo listo de cara a mañana» / «organizar la casa de cara al fin de semana» / «avisar al cliente de cara al miércoles» resolvían BIEN la fecha pero el marcador sobrevivía como residuo gramaticalmente colgado («preparar la presentación de cara»). Familia (E) del barrido c.918, marcada débil por riesgo de robar contenido («de cara al examen»); la medición resolvió el riesgo acotando el lookahead a anclas de día.
+**Sonda (efímera `/tmp/probe925/DeCaraProbe.kt`, 12 casos; motor real vía `tools/run_probe.sh`, now=domingo 2026-08-23 12:00 America/Santo_Domingo)**: PRE — 5/5 candidatas residuo; guards byte-idénticos POST (examen/viaje genitivos, maratón/futuro/elecciones null intactos); regresiones intactas.
+**Fix**: 1 rama ADITIVA pre-normalización (tras «misma» c.925, antes de «como muy tarde» c.924): `(?i)\bde cara a(?:l| la)?\s+(?=(?:lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|hoy|pasado ma[nñ]ana|ma[nñ]ana|fin de semana|finde)\b)` → ``. Doctrina hermana leading de «como muy tarde» (c.924): solo con ancla de día DIRECTAMENTE a continuación. Determinista, cero random, cero IA fingida, cero UI.
+**TDD**: test NUEVO `NaturalTaskParserDeCaraMarkerTest.kt` (13 tests: 5 capturas, 5 guards, 3 regresiones). RED exacto (13 run, EXACTAMENTE 5 fallos) → GREEN 13/13.
+**Tests**: `JAVA_OPTS=-Xmx6g bash tools/run_domain_tests.sh` → **OK (6155 = 6142 + 13)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+**Cambios**: M `NaturalTaskParser.kt` (1 rama aditiva + comentario), A `NaturalTaskParserDeCaraMarkerTest.kt` (13 tests), M `AI_AUTONOMY/*`.
+**Próxima prioridad**: robo preexistente de «mañana» desnuda en genitivo (observación c.925 — decisión de doctrina) o «a primera/última hora del <día>» (familia (F) barrido c.918) — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.925 (2026-08-23)
 **Título**: feat(parser): enfático «misma» tras ancla parte-del-día limpio en título (familia (F) residuo, lateral medida c.923; 1 rama aditiva pre-normalización + guard genitivo).
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `1cccffa` (c.924b remoto, ff-only limpio; sin colisión cycle-ID). **HEAD final**: ver commit final del ciclo.
