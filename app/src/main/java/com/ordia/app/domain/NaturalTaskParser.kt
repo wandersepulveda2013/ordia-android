@@ -7777,6 +7777,22 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.938: demostrativo AL INICIO del texto (sin verbo precedente) que hace
+     * narrativo al ordinal vía H1 ([ordinalHoraOccurrenceIsContent]) y basta
+     * por sí solo como evidencia para proteger el weekday genitivo DIRECTO
+     * («esa primera hora del lunes fue terrible»). Con verbo precedente
+     * («quiero esa primera hora del lunes para estudiar») la forma es
+     * bivalente (petición de hueco) y sigue la doctrina ancla — doctrina
+     * simétrica a la de H3 («determinante al inicio, sin verbo precedente»).
+     * Sólo demostrativos: con artículo («la primera hora del lunes…») el
+     * genitivo «del lunes» es genitivo-ancla ([ordinalHoraAnchorGenitives]) y
+     * H2 no dispara.
+     */
+    private val ordinalHoraNarrativeDemonstrativePrefix = Regex(
+        """(?i)^\s*(?:esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$"""
+    )
+
+    /**
      * c.936: rangos de las apariciones de weekday que son CONTENIDO narrativo
      * por gobernarlas un ordinal H3 protegido: el genitivo canónico está
      * dentro del match del ordinal ([ordinalHoraCanonicalSuffix]), el ordinal
@@ -7793,10 +7809,15 @@ object NaturalTaskParser {
      * ser de CONTENIDO (H1/H2/«a la» de [ordinalHoraOccurrenceIsContent]) en
      * vez del canónico dentro del match: «la primera hora de clase del lunes
      * fue aburrida». En ese caso el weekday genitivo sigue al genitivo de
-     * contenido; se exige el mismo predicado a continuación. Un weekday
-     * genitivo DIRECTO sin genitivo de contenido intermedio («esa primera
-     * hora del lunes fue terrible») sigue la doctrina ancla (hermano del pin
-     * c.936 «las primeras horas del lunes son tranquilas»).
+     * contenido; se exige el mismo predicado a continuación.
+     *
+     * c.938 (extensión a H1 puro): el demostrativo AL INICIO del texto
+     * ([ordinalHoraNarrativeDemonstrativePrefix]) basta como evidencia — no
+     * necesita genitivo de contenido — y protege el weekday genitivo DIRECTO:
+     * «esa primera hora del lunes fue terrible». Con verbo precedente la forma
+     * es bivalente y sigue la doctrina ancla; con artículo sin demostrativo el
+     * genitivo «del lunes» es genitivo-ancla y tampoco hay cadena que
+     * proteger (pin byte-idéntico, lateral registrada).
      */
     private fun ordinalHoraNarrativeWeekdayRanges(text: String): List<IntRange> {
         val ranges = mutableListOf<IntRange>()
@@ -7812,12 +7833,16 @@ object NaturalTaskParser {
                     } else {
                         // c.937 (H2): el weekday genitivo sigue al genitivo de
                         // contenido («de clase», «del partido») que hizo
-                        // narrativo al ordinal. Sin ese genitivo (o siendo un
-                        // genitivo-ancla como el propio weekday) no hay cadena
-                        // narrativa que proteger.
+                        // narrativo al ordinal.
                         val gen = ordinalHoraContentGenitive.find(text.substring(m.range.last + 1))
                         if (gen != null && gen.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives) {
                             m.range.last + 1 + gen.range.last + 1
+                        } else if (ordinalHoraNarrativeDemonstrativePrefix
+                                .containsMatchIn(text.substring(0, m.range.first))
+                        ) {
+                            // c.938 (H1 puro): demostrativo al inicio; el
+                            // weekday genitivo sigue DIRECTAMENTE al match.
+                            m.range.last + 1
                         } else -1
                     }
                     if (wgSearchStart >= 0) {

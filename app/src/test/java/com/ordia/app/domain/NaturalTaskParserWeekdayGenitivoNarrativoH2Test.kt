@@ -22,11 +22,11 @@ import java.time.ZoneId
  * pins y regresiones en conducta vigente (ver tests).
  *
  * Pins byte-idénticos (doctrina vigente NO tocada): sin predicado tras el
- * weekday («la primera hora de clase del lunes»), «que viene» (el match de
+ * weekday («la primera hora de clase del lunes») y «que viene» (el match de
  * weekdayPattern se extiende más allá del rango protegido y containsRange lo
- * excluye), y weekday genitivo DIRECTO sin genitivo de contenido intermedio
- * («esa primera hora del lunes fue terrible» — hermano del pin c.936
- * «las primeras horas del lunes son tranquilas»: sigue la doctrina ancla).
+ * excluye). El weekday genitivo DIRECTO sin genitivo de contenido intermedio
+ * («esa primera hora del lunes fue terrible») era pin aquí y pasó a captura
+ * protegida en c.938 (re-pin legítimo, H1 puro — demostrativo al inicio).
  */
 class NaturalTaskParserWeekdayGenitivoNarrativoH2Test {
 
@@ -106,11 +106,16 @@ class NaturalTaskParserWeekdayGenitivoNarrativoH2Test {
             LocalDate.of(2026, 8, 24), 9, "la primera hora de clase"
         )
 
-    @Test fun weekdayGenitivoDirectoSinGenitivoDeContenido_pinAncla() =
-        assertDueAt(
-            "esa primera hora del lunes fue terrible",
-            LocalDate.of(2026, 8, 24), 9, "esa primera hora fue terrible"
-        )
+    // c.938: esta misma entrada dejó de ser pin de conducta vieja para ser
+    // captura protegida (weekday genitivo DIRECTO tras demostrativo al inicio
+    // — H1 puro). El pin de conducta vieja reemplazado por una aserción más
+    // estricta es un re-pin legítimo (precedente: guard narrativa-pin c.925 →
+    // protección c.927, genitivo gobernado c.931 → c.933, opinión c.933 →
+    // c.935, H2+weekday en el hermano c.936 → c.937). La unidad y los pins
+    // byte-idénticos viven en
+    // NaturalTaskParserWeekdayGenitivoDirectoNarrativoTest.
+    @Test fun weekdayGenitivoDirectoSinGenitivoDeContenido_esContenidoNarrativo() =
+        assertNarrativeIntact("esa primera hora del lunes fue terrible")
 
     // ---- Regresiones: doctrinas hermanas intactas ----
 
