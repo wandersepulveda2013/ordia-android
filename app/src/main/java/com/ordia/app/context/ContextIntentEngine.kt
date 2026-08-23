@@ -783,10 +783,19 @@ object ContextIntentEngine {
     // permanecen NULL deliberadamente.
     private val ERRAND_DEPOSIT_FLOOR =
         Regex("""\b(?<!no )(?:(?:ingresar|depositar)\s+(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|reembolso|cheque|ingreso)\b|hacer\s+(?:el|un)\s+ingreso\b)""")
+    // Destinos de la diligencia «ir a <destino>» (piso c.639/c.647,
+    // extendido con «cajero» c.893, «atm» c.896 y «biblioteca» c.914).
+    // Constante ÚNICA compartida por el piso de detección
+    // ([ERRAND_FLOORS]), la cláusula de negación de destino de
+    // [imperativeIsNegated] y la plantilla de título de [extractTitle]
+    // (lockstep c.914) para que los TRES puntos no puedan divergir.
+    private val IR_A_DESTINATIONS =
+        "banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm|biblioteca"
     private val ERRAND_FLOORS = listOf(
-        // c.893: destino «ir al cajero/atm» (lockstep con la cláusula de
-        // negación de destino en [imperativeIsNegated]).
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm)\b"""),
+        // c.893: destino «ir al cajero/atm»; c.914: «biblioteca» (lockstep
+        // con la cláusula de negación de destino en [imperativeIsNegated]
+        // y la plantilla de [extractTitle] — misma constante).
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(?:$IR_A_DESTINATIONS)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
         ERRAND_CARRY_FLOOR,
         ERRAND_STOPBY_FLOOR,
@@ -2789,10 +2798,11 @@ object ContextIntentEngine {
             Regex("""\bno\s+preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
         ) return true
         // "ir al banco" (ERRAND) es imperativo multi-palabra. c.893: la
-        // lista de destino se extiende con «cajero|atm» (lockstep con el
-        // piso `ir a` de [ERRAND_FLOORS]).
+        // lista de destino se extiende con «cajero|atm»; c.914:
+        // «biblioteca» (lockstep con el piso `ir a` de [ERRAND_FLOORS] —
+        // misma constante [IR_A_DESTINATIONS]).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(?:$IR_A_DESTINATIONS)\b""").containsMatchIn(lower)
         ) return true
         // "sacar dinero/efectivo" (ERRAND, piso acotado c.893) es imperativo
         // multi-palabra: las keywords-OBJETO «dinero»/«efectivo» (lockstep
@@ -4229,6 +4239,19 @@ object ContextIntentEngine {
                 if (matchDeposit != null) {
                     return "${capitalizeFirst(matchDeposit.groupValues[1])} ${matchDeposit.groupValues[2]}"
                 }
+                // "ir a la biblioteca/banco/…" → "Ir a la biblioteca"
+                // (c.914, lockstep con el piso `ir a` de [ERRAND_FLOORS] —
+                // la alternación vive en la constante ÚNICA
+                // [IR_A_DESTINATIONS]): verbo preservado (doctrina c.653),
+                // residuo temporal de cola depurado por [sanitizeTitle]; el
+                // match arranca en el verbo, así el acuse/prefijo temporal
+                // no ensucia el título (lección c.616 — antes «Vale, ir al
+                // banco»/«Mañana ir al banco» vía la ruta genérica).
+                val matchIrDestino = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(ir\s+a(?:l| la| los| las)?\s+(?:$IR_A_DESTINATIONS).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchIrDestino != null) return capitalizeFirst(matchIrDestino.groupValues[1])
                 null
             }
             ContextIntentKind.DEADLINE -> {
