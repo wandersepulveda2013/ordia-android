@@ -115,11 +115,13 @@ class NaturalTaskParserEnIndefinidoH3NarrativoTest {
 
     // ---- Pines byte-idénticos de laterales FUERA (medidos PRE) ----
 
-    @Test fun enUnaPrimeraHoraDelLunes_weekdayEnIndefinidoLateralFueraPin() =
-        assertAnchor(
-            "en una primera hora del lunes fue rara",
-            LocalDate.of(2026, 8, 24), 9, "en una fue rara"
-        )
+    // c.948: la lateral weekday con «en»+indefinido quedó RESUELTA (doctrina
+    // simétrica c.943 con «en» prefijado). Re-pin legítimo MÁS estricto del
+    // pin c.947 (precedente c.925…c.947): ahora aserta contenido narrativo
+    // íntegro. Cobertura canónica en
+    // NaturalTaskParserWeekdayEnIndefinidoNarrativoTest.
+    @Test fun enUnaPrimeraHoraDelLunes_weekdayEnIndefinidoLateralResueltaC948() =
+        assertNarrativeIntact("en una primera hora del lunes fue rara")
 
     @Test fun enUnaPrimeraHoraDeClase_h2EnIndefinidoLateralFueraPin() =
         assertAnchor(
