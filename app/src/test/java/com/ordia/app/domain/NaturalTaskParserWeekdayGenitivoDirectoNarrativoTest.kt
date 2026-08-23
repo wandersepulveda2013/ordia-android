@@ -29,8 +29,10 @@ import java.time.ZoneId
  * esa primera hora del lunes para estudiar», «necesito esa primera hora del
  * lunes libre») la forma es bivalente (petición de hueco) y sigue la doctrina
  * ancla — pins byte-idénticos. Con artículo sin demostrativo («la primera hora
- * del lunes fue aburrida») el genitivo «del lunes» es genitivo-ancla y H2 no
- * dispara: sigue ancla (pin byte-idéntico, lateral registrada).
+ * del lunes fue aburrida») el genitivo «del lunes» era genitivo-ancla en c.938
+ * (pin vigente entonces); c.939 extendió la misma doctrina al artículo al
+ * inicio (re-pin legítimo: ahora aserta due=null + título íntegro, MÁS
+ * estricto; precedente c.925/c.927/c.931/c.933/c.935/c.937).
  *
  * Pins byte-idénticos (doctrina vigente NO tocada): sin predicado tras el
  * weekday («esa primera hora del lunes»), «que viene» (el match de
@@ -102,8 +104,8 @@ class NaturalTaskParserWeekdayGenitivoDirectoNarrativoTest {
     @Test fun verboNecesitoMasDemostrativo_pinBivalente() =
         assertDueAt("necesito esa primera hora del lunes libre", LocalDate.of(2026, 8, 24), 9, "necesito esa primera hora libre")
 
-    @Test fun articuloSinDemostrativo_pinAncla() =
-        assertDueAt("la primera hora del lunes fue aburrida", LocalDate.of(2026, 8, 24), 9, "la fue aburrida")
+    @Test fun articuloSinDemostrativo_esContenidoNarrativoDesdeC939() =
+        assertNarrativeIntact("la primera hora del lunes fue aburrida")
 
     // ---- Guards ancla hermanos (byte-idénticos) ----
 

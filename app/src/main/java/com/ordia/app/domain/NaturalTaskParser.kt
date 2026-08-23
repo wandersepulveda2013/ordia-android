@@ -5622,8 +5622,8 @@ object NaturalTaskParser {
             // c.930: borrado por rangos con guard anti-robo narrativo — las
             // apariciones de ordinal que son CONTENIDO («la primera hora de
             // clase») se conservan íntegras; ver ordinalHoraOccurrenceIsContent.
-            .let { value -> eraseOrdinalHoraToken(value, primeraHoraPattern) }
-            .let { value -> eraseOrdinalHoraToken(value, ultimaHoraPattern) }
+            .let { value -> eraseOrdinalHoraToken(value, primeraHoraPattern, primeraHoraMatch != null) }
+            .let { value -> eraseOrdinalHoraToken(value, ultimaHoraPattern, ultimaHoraMatch != null) }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
             .let { value -> alInicioDelDiaPattern.replace(value, " ") }
             .let { value -> amanecerPattern.replace(value, " ") }
@@ -5690,7 +5690,7 @@ object NaturalTaskParser {
             // weekday genitivo de una cadena narrativa H3 protegida («las
             // primeras horas de la mañana del lunes son tranquilas») se
             // conserva íntegro; ver ordinalHoraNarrativeWeekdayRanges.
-            .let { value -> eraseWeekdayToken(value) }
+            .let { value -> eraseWeekdayToken(value, primeraHoraMatch != null, ultimaHoraMatch != null) }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
             // semana, día de la semana) se consume pero la frase modificadora no.
@@ -7784,12 +7784,31 @@ object NaturalTaskParser {
      * («quiero esa primera hora del lunes para estudiar») la forma es
      * bivalente (petición de hueco) y sigue la doctrina ancla — doctrina
      * simétrica a la de H3 («determinante al inicio, sin verbo precedente»).
-     * Sólo demostrativos: con artículo («la primera hora del lunes…») el
-     * genitivo «del lunes» es genitivo-ancla ([ordinalHoraAnchorGenitives]) y
-     * H2 no dispara.
+     * El artículo al inicio siguió la misma doctrina en c.939
+     * ([ordinalHoraNarrativeArticlePrefix]).
      */
     private val ordinalHoraNarrativeDemonstrativePrefix = Regex(
         """(?i)^\s*(?:esa|esas|ese|esos|esta|estas|este|estos|aquella|aquellas|aquel|aquellos|dicha|dichas|dicho|dichos|tal|tales)(?:\s+mism[oa]s?)?\s+$"""
+    )
+
+    /**
+     * c.939: ARTÍCULO AL INICIO del texto (sin verbo precedente) que, con
+     * weekday genitivo DIRECTO tras el match y predicado a continuación, hace
+     * narrativo al ordinal («la primera hora del lunes fue aburrida») —
+     * doctrina H1-artículo, simétrica a [ordinalHoraNarrativeDemonstrativePrefix]
+     * (c.938). Con verbo precedente («quiero/prefiero/avisar la primera hora
+     * del lunes…») la forma es bivalente (petición de hueco) y sigue la
+     * doctrina ancla. Sólo artículos definidos: «en la…»/«una…» quedan fuera
+     * (laterales medidas c.939).
+     */
+    private val ordinalHoraNarrativeArticlePrefix = Regex(
+        """(?i)^\s*(?:la|las|el|los)(?:\s+mism[oa]s?)?\s+$"""
+    )
+
+    /** c.939: palabras weekday admitidas como genitivo directo narrativo. */
+    private val ordinalHoraNarrativeWeekdayWords = setOf(
+        "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
+        "sábado", "sabado", "domingo"
     )
 
     /**
@@ -7815,17 +7834,41 @@ object NaturalTaskParser {
      * ([ordinalHoraNarrativeDemonstrativePrefix]) basta como evidencia — no
      * necesita genitivo de contenido — y protege el weekday genitivo DIRECTO:
      * «esa primera hora del lunes fue terrible». Con verbo precedente la forma
-     * es bivalente y sigue la doctrina ancla; con artículo sin demostrativo el
-     * genitivo «del lunes» es genitivo-ancla y tampoco hay cadena que
-     * proteger (pin byte-idéntico, lateral registrada).
+     * es bivalente y sigue la doctrina ancla.
+     *
+     * c.939 (extensión a H1-artículo): el ARTÍCULO al inicio del texto
+     * ([ordinalHoraNarrativeArticlePrefix]) con weekday genitivo DIRECTO y
+     * predicado a continuación es la misma evidencia de sujeto narrativo:
+     * «la primera hora del lunes fue aburrida». La ocurrencia del ordinal se
+     * vuelve contenido en [ordinalHoraOccurrenceIsContent] con el mismo
+     * predicado (nunca divergen); con verbo precedente, sin predicado o con
+     * modificador («que viene») sigue la doctrina ancla vigente.
      */
-    private fun ordinalHoraNarrativeWeekdayRanges(text: String): List<IntRange> {
+    private fun ordinalHoraNarrativeWeekdayRanges(
+        text: String,
+        forcePrimeraHoraAnchor: Boolean = false,
+        forceUltimaHoraAnchor: Boolean = false
+    ): List<IntRange> {
         val ranges = mutableListOf<IntRange>()
-        for (pattern in listOf(primeraHoraPattern, ultimaHoraPattern)) {
+        for ((patternIdx, pattern) in listOf(primeraHoraPattern, ultimaHoraPattern).withIndex()) {
+            // c.939: el borrado del título re-computa sobre texto YA mutado
+            // (p. ej. «de la noche» consumido como hora), donde un genitivo-
+            // ancla intermedio desapareció y el weekday genitivo parecería
+            // DIRECTO. Si la RESOLUCIÓN ancló la primera ocurrencia del patrón
+            // (match != null), esa ocurrencia es ancla por doctrina «nunca
+            // divergen» y aquí se fuerza igual — el resto sigue con guard.
+            val forceFirst = if (patternIdx == 0) forcePrimeraHoraAnchor else forceUltimaHoraAnchor
+            var isFirst = true
             var idx = 0
             while (true) {
                 val m = pattern.find(text, idx) ?: break
-                if (ordinalHoraOccurrenceIsContent(text, m)) {
+                val isContent = if (forceFirst && isFirst) {
+                    false
+                } else {
+                    ordinalHoraOccurrenceIsContent(text, m)
+                }
+                isFirst = false
+                if (isContent) {
                     val wgSearchStart = if (ordinalHoraCanonicalSuffix.containsMatchIn(m.value)) {
                         // H3 (c.936): genitivo canónico dentro del match; el
                         // weekday genitivo lo sigue directamente.
@@ -7838,10 +7881,13 @@ object NaturalTaskParser {
                         if (gen != null && gen.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives) {
                             m.range.last + 1 + gen.range.last + 1
                         } else if (ordinalHoraNarrativeDemonstrativePrefix
+                                .containsMatchIn(text.substring(0, m.range.first)) ||
+                            ordinalHoraNarrativeArticlePrefix
                                 .containsMatchIn(text.substring(0, m.range.first))
                         ) {
-                            // c.938 (H1 puro): demostrativo al inicio; el
-                            // weekday genitivo sigue DIRECTAMENTE al match.
+                            // c.938 (H1 puro) / c.939 (H1-artículo): determinante
+                            // al inicio; el weekday genitivo sigue DIRECTAMENTE
+                            // al match.
                             m.range.last + 1
                         } else -1
                     }
@@ -7911,7 +7957,25 @@ object NaturalTaskParser {
         if (!articleBefore) return false
         val suffix = text.substring(match.range.last + 1)
         val genitive = ordinalHoraContentGenitive.find(suffix) ?: return false
-        return genitive.groupValues[1].lowercase() !in ordinalHoraAnchorGenitives
+        val genWord = genitive.groupValues[1].lowercase()
+        if (genWord !in ordinalHoraAnchorGenitives) return true
+        // c.939 (H1-artículo): artículo AL INICIO del texto + weekday genitivo
+        // DIRECTO + predicado a continuación → sujeto narrativo («la primera
+        // hora del lunes fue aburrida»). El weekday con modificador («del lunes
+        // que viene»: el match de [weekdayPattern] se extiende más allá del
+        // genitivo) sigue la doctrina ancla vigente, como en c.936/c.938. Sin
+        // artículo al inicio («quiero/prefiero/avisar la…») o sin predicado el
+        // fragmento es bivalente y sigue ancla (pins byte-idénticos).
+        if (genWord in ordinalHoraNarrativeWeekdayWords &&
+            ordinalHoraNarrativeArticlePrefix.containsMatchIn(prefix)
+        ) {
+            val afterWg = suffix.substring(genitive.range.last + 1)
+            if (afterWg.isNotBlank()) {
+                val wm = weekdayPattern.find(suffix)
+                if (wm == null || wm.range.last <= genitive.range.last) return true
+            }
+        }
+        return false
     }
 
     /**
@@ -7920,15 +7984,29 @@ object NaturalTaskParser {
      * ([ordinalHoraOccurrenceIsContent]). Opera por rangos (no replace global)
      * para no tocar las apariciones protegidas, como [eraseMananaDateToken].
      */
-    private fun eraseOrdinalHoraToken(title: String, pattern: Regex): String {
+    private fun eraseOrdinalHoraToken(
+        title: String,
+        pattern: Regex,
+        forceFirstOccurrenceAnchor: Boolean = false
+    ): String {
         var result = title
+        var isFirst = true
         var idx = 0
         while (true) {
             val m = pattern.find(result, idx) ?: return result
-            if (ordinalHoraOccurrenceIsContent(result, m)) {
-                idx = m.range.last + 1
-                continue
+            // c.939: si la RESOLUCIÓN ancló la primera ocurrencia de este patrón
+            // (match != null), se borra sin re-evaluar — el texto ya mutado
+            // (p. ej. «de la noche» consumido) podría fingir un weekday genitivo
+            // DIRECTO que en el original no lo era («las primeras horas de la
+            // noche del sábado fueron mágicas»). Doctrina «nunca divergen».
+            if (!forceFirstOccurrenceAnchor || !isFirst) {
+                if (ordinalHoraOccurrenceIsContent(result, m)) {
+                    isFirst = false
+                    idx = m.range.last + 1
+                    continue
+                }
             }
+            isFirst = false
             result = result.removeRange(m.range.first, m.range.last + 1)
             idx = m.range.first
         }
@@ -7964,12 +8042,18 @@ object NaturalTaskParser {
      * para no tocar las apariciones protegidas, como [eraseOrdinalHoraToken]/
      * [eraseStandalonePartOfDayToken].
      */
-    private fun eraseWeekdayToken(title: String): String {
+    private fun eraseWeekdayToken(
+        title: String,
+        forcePrimeraHoraAnchor: Boolean = false,
+        forceUltimaHoraAnchor: Boolean = false
+    ): String {
         var result = title
         var idx = 0
         while (true) {
             val m = weekdayPattern.find(result, idx) ?: return result
-            if (ordinalHoraNarrativeWeekdayRanges(result).any { it.containsRange(m.range) }) {
+            if (ordinalHoraNarrativeWeekdayRanges(result, forcePrimeraHoraAnchor, forceUltimaHoraAnchor)
+                    .any { it.containsRange(m.range) }
+            ) {
                 idx = m.range.last + 1
                 continue
             }

@@ -112,11 +112,14 @@ class NaturalTaskParserWeekdayGenitivoNarrativoTest {
             LocalDate.of(2026, 8, 24), 9, "las primeras horas de la mañana"
         )
 
-    @Test fun genitivoWeekdaySinGenitivoCanonico_pinAncla() =
-        assertDueAt(
-            "las primeras horas del lunes son tranquilas",
-            LocalDate.of(2026, 8, 24), 9, "las son tranquilas"
-        )
+    // c.939: esta misma entrada dejó de ser pin de conducta vieja para ser
+    // captura protegida (artículo AL INICIO + weekday genitivo DIRECTO +
+    // predicado = sujeto narrativo, doctrina c.939 simétrica a H1/c.938). El
+    // pin de conducta vieja era byte-idéntico a la medida PRE c.939;
+    // convertirlo en aserción más estricta es un re-pin legítimo (precedente:
+    // guard c.937 re-pineado en c.938, pin c.938 re-pineado en c.939).
+    @Test fun genitivoWeekdaySinGenitivoCanonico_esContenidoNarrativo() =
+        assertNarrativeIntact("las primeras horas del lunes son tranquilas")
 
     @Test fun primeraHoraDeLaNocheNoCanonicoEnPattern_pin() =
         assertDueAt(
