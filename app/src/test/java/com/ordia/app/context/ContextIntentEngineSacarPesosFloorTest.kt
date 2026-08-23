@@ -128,6 +128,14 @@ class ContextIntentEngineSacarPesosFloorTest {
         // Bivalencia «peso» = pesas/balanza: sin ancla de divisa.
         assertNull("«medirme el peso» bivalente", analyze("medirme el peso mañana"))
         assertNull("«pesar las maletas» verbo distinto", analyze("pesar las maletas mañana"))
+        // Refuerzo c.913 (delta de colisión, medido NULL con sonda
+        // efímera /tmp/probe911d sobre HEAD 724539f): la forma más
+        // cotidiana de la bivalencia — peso corporal (dieta) — sigue
+        // NULL incluso con bono temporal («este mes»: keyword-DIVISA
+        // 0.12 + 0.22 = 0.34 < umbral) y en declarativo con cantidad
+        // sin «sacar» (la keyword sola no llega).
+        assertNull("«bajar de peso» corporal con bono temporal", analyze("bajar de peso este mes"))
+        assertNull("«peso 80 kilos» declarativo corporal", analyze("peso 80 kilos"))
     }
 
     // ─── Regresiones (HIT/NULL esperado) — verdes desde RED ─────────
@@ -159,5 +167,16 @@ class ContextIntentEngineSacarPesosFloorTest {
         val cambiar = analyze("cambiar pesos por dólares mañana")
         assertNotNull(cambiar)
         assertEquals(ContextIntentKind.TASK, cambiar!!.kind)
+
+        // Refuerzo c.913 (delta de colisión, medido HIT TASK con sonda
+        // efímera /tmp/probe911d): la asimetría deliberada «coger»
+        // TASK (piso abierto c.716) vs «sacar» ERRAND (c.893) se
+        // mantiene con la divisa nueva — el piso exige «sacar», la
+        // keyword-DIVISA sola (0.12 + bono temporal < umbral) no
+        // compite. Título limpio «Coger 50 pesos del cajero».
+        val coger = analyze("coger 50 pesos del cajero el lunes")
+        assertNotNull(coger)
+        assertEquals(ContextIntentKind.TASK, coger!!.kind)
+        assertEquals("Coger 50 pesos del cajero", coger.title)
     }
 }
