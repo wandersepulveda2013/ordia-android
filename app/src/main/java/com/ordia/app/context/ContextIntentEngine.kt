@@ -350,7 +350,17 @@ object ContextIntentEngine {
     // heredado (?<!no ) + cláusula dedicada en [imperativeIsNegated].
     private val HOUSEHOLD_BATHE_PET_FLOOR =
         Regex("""\b(?<!no )bañar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR)
+    // c.898 (familia NOVENA 5/8, sonda `HacerCenaProbe.kt`): «hacer/preparar
+    // la cena/el almuerzo/la comida/el desayuno/la merienda» — verbos
+    // bivalentes acotados al objeto comida (familia «hacer la cama» c.728 /
+    // «hacer la compra» c.758). Declarados antes de HOUSEHOLD_FLOORS porque
+    // la lista los referencia; lockstep keyword↔piso↔título. PRE-sonda:
+    // NULL medido 4/4 (olvido P1) heredado del piso libre `hacer/preparar`.
+    private val HOUSEHOLD_MEAL_FLOOR =
+        Regex("""\b(?<!no )(?:hacer|preparar)\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:cena|comida|almuerzo|desayuno|merienda)\b""")
+    private val HOUSEHOLD_DEFROST_FLOOR =
+        Regex("""\b(?<!no )descongelar\s+\w""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -715,9 +725,17 @@ object ContextIntentEngine {
         ERRAND_CASH_FLOOR,
         ERRAND_DEPOSIT_FLOOR
     )
+    // c.898 (familia NOVENA 5/8): «hacer (los|mis|tus) deberes» — acotado
+    // al objeto (lockstep con keyword «deberes» y plantilla de título en
+    // [extractTitle]; declarado antes de STUDY_FLOORS porque la lista lo
+    // referencia). «entregar» queda fuera: ya tiene piso libre en TASK
+    // (fluctuación de la suite al añadirlo — recortado, no reintroducido).
+    private val STUDY_HOMEWORK_FLOOR =
+        Regex("""\b(?<!no )hacer\s+(?:(?:los|las|mis|tus|sus)\s+)?deberes\b""")
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
-        Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""")
+        Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b"""),
+        STUDY_HOMEWORK_FLOOR
     )
 
     // Regex del piso de DEADLINE (c.654): marcadores de fecha límite INEQUÍVOCOS
@@ -3529,6 +3547,16 @@ object ContextIntentEngine {
             ContextIntentKind.STUDY -> {
                 val match = Regex("""(estudiar|estudio|examen|repasar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "Estudio: ${capitalizeFirst(match.groupValues[2])}"
+                // c.898: «hacer/entregar (los|mis|tus) deberes» — verbo
+                // preservado (lockstep con [STUDY_HOMEWORK_FLOOR], lección
+                // c.616); el residuo temporal lo depura [sanitizeTitle].
+                val matchDeberes = Regex(
+                    """\b(?<!no )(hacer)\s+((?:(?:los|las|mis|tus|sus)\s+)?deberes\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDeberes != null) {
+                    return "${capitalizeFirst(matchDeberes.groupValues[1])} ${matchDeberes.groupValues[2]}"
+                }
                 null
             }
             ContextIntentKind.CALL -> {
@@ -3595,6 +3623,24 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {
+                // c.898: «hacer/preparar (la|el) cena/almuerzo/comida/
+                // desayuno/merienda …» y «descongelar (la carne …)» —
+                // verbos preservados (lockstep con [HOUSEHOLD_MEAL_FLOOR] /
+                // [HOUSEHOLD_DEFROST_FLOOR], lección c.616/c.717).
+                val matchComida = Regex(
+                    """\b(?<!no )(hacer|preparar)\s+((?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:cena|comida|almuerzo|desayuno|merienda)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchComida != null) {
+                    return "${capitalizeFirst(matchComida.groupValues[1])} ${matchComida.groupValues[2]}"
+                }
+                val matchDescongelar = Regex(
+                    """\b(?<!no )(descongelar)\s+(.+)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDescongelar != null) {
+                    return "${capitalizeFirst(matchDescongelar.groupValues[1])} ${matchDescongelar.groupValues[2]}"
+                }
                 // "sacar (la) basura …" → "Sacar la basura …" (c.717): verbo
                 // preservado (alineación piso↔título, lección c.616) y objeto
                 // restringido como en [HOUSEHOLD_TRASH_FLOOR]; el match

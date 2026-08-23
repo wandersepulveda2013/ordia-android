@@ -1,3 +1,11 @@
+## Ciclo c.898 (2026-08-23) — feat(context): familia (5/8) NOVENA comida/deberes — «hacer la cena»/«preparar el almuerzo»/«descongelar la carne»/«hacer los deberes»
+
+- Área: **context** `ContextIntentEngine.kt` (pisos acotados + plantillas de título) + `ContextIntent.kt` (keywords-OBJETO comida/deberes) + test nuevo `ContextIntentEngineHacerCenaTest.kt` + sonda persistida `tools/probe/HacerCenaProbe.kt` (PRE 4/4 NULL medido).
+- Fix de compilación durante el ciclo: los pisos nuevos se declaraban tras la lista `HOUSEHOLD_FLOORS` (forward reference) — redeclarados ANTES de la lista (verificación: el primer heredoc python falló por parse; aplicado con file_editor; fuentes intactas).
+- Recorte honesto del sabor «entregar los deberes»: «entregar» tiene piso libre en TASK → el sabor recortado a `hacer` solo (fluctuación de suite medida 5948 → 5947; doctrina: no chocar con el piso hermano existente; el guard «no entregar los deberes» sigue NULL por el `(?<!no )` universal).
+- TDD estricto: RED comprobado con `git stash` del fix → sonda GAP 4/4 → `git stash pop` → GREEN (sonda: 4/4 candidatas HIT HOUSEHOLD/STUDY (0.45), títulos limpios, dueAt correcto; 5/5 guards NULL; regresiones SHOPPING/ERRAND/TASK HIT). Suite completa `bash tools/run_domain_tests.sh` → **OK (5947)**. Determinista (regex), cero random, cero IA fingida, cero UI.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+- Próxima prioridad: familia (6/8) NOVENA — observaciones/laterales del barrido c.892 (ver BACKLOG); re-fetch OBLIGATORIO antes de cada paso.
 # CURRENT_STATE — Estado actual de Ordía (se reescribe al frente cada run)
 
 ## Ciclo c.896 (2026-08-23) — feat(context): keyword-DESTINO «atm» (delta lockstep del piso c.893) + STALE_RUN c.893 duplicado resuelto no destructivo

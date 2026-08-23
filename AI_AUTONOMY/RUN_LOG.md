@@ -1,3 +1,13 @@
+## Ciclo c.898 (2026-08-23)
+**Título**: feat(context): familia (5/8) NOVENA comida/deberes — pisos acotados [HOUSEHOLD_MEAL]/[HOUSEHOLD_DEFROST]/[STUDY_HOMEWORK] + lockstep keyword↔piso↔título.
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `3b3766c` (c.895). **HEAD final**: ver commit final del ciclo.
+**Problema (P1 — olvido medido 4/4 PRE)**: «hacer la cena esta noche»/«preparar el almuerzo»/«descongelar la carne»/«hacer los deberes» caían a NULL (verbos bivalentes sin ancla de objeto + familia acotada de sonda `HacerCenaProbe.kt` persistida; doctrina c.892 convención c.857).
+**Fix**: lockstep TRES puntos aditivo — (1) pisos acotados nuevos declarados ANTES de la lista HOUSEHOLD_FLOORS (forward-resolved tras la primera compilación) + [STUDY_HOMEWORK_FLOOR] en STUDY_FLOORS; (2) keywords-OBJETO comida («cena/comida/almuerzo/desayuno/merienda/descongelar») en HOUSEHOLD y «deberes» en STUDY (alimentan TRIGGER_WORDS); (3) plantillas de título dedicadas en extractTitle (ramas HOUSEHOLD/STUDY). Sabor «entregar los deberes» recortado: «entregar» ya tiene piso libre TASK (fluctuación de suite medida; cero choque).
+**Sonda (persistida `tools/probe/HacerCenaProbe.kt`)**: PRE — 4/4 candidatas NULL, 5/5 guards NULL (negación/«quizá»/«hacer la lista/el plan»), hermana «cocinar la cena» HIT cubierta. POST — 4/4 candidatas HIT (HOUSEHOLD/STUDY 0.45, títulos limpios, dueAt correcto); guards 5/5 NULL intactas; regresiones SHOPPING/ERRAND/TASK HIT.
+**TDD estricto**: RED comprobado con `git stash` del fix → sonda GAP 4/4 → `git stash pop` → GREEN. Tests nuevo `ContextIntentEngineHacerCenaTest.kt` (capturas + dueAt + lockstep keywords + guards + regresiones). Suite completa `bash tools/run_domain_tests.sh` → **OK (5947)**; smoke 25/25; run_domain_checks 25/25.
+**NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
+**Estado**: VERIFIED (JVM). Familia 5/8 AGOTADA; quedan laterales «hacer la lista/el plan» NULL deliberado (bivalentes). **Próxima prioridad**: familia (6/8) NOVENA.
+---
 ## RUN 2026-08-23 — ciclo c.893 STALE_RUN (duplicado con hermano, descartado no destructivo) → ciclo c.894 — piso ERRAND «ingresar dinero/reembolso» (familia 2/8 clase NOVENA)
 
 - HEAD inicial: `ad463b6` (c.892); HEAD final: (este commit).

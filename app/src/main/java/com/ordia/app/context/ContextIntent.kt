@@ -215,7 +215,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "quedamos con", "quedar para")),
     STUDY("Estudio", listOf("estudiar", "estudio", "examen", "prueba", "curso",
         "tarea escolar", "lección", "práctica", "ejercicio",
-        "repasar", "preparar examen")),
+        "repasar", "preparar examen",
+        // c.898: objeto del piso `hacer/entregar (los) deberes`
+        // (lockstep keyword↔piso↔título; familia NOVENA 5/8).
+        "deberes")),
     SHOPPING("Compra", listOf("comprar", "supermercado", "mercado", "tienda",
         "farmacia", "mandado", "despensa", "víveres",
         "ir al super", "ir a comprar")),
@@ -408,6 +411,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // c.740/c.744, así el lockstep añade el VERBO — precedente de
         // verbos keyword c.748 "podar", c.757 "vacunar"; familia mascota
         // c.740/c.747/c.757).
+        // c.898: objetos del piso comida `hacer/preparar la cena/el
+        // almuerzo/la comida/el desayuno/la merienda` (lockstep
+        // keyword↔piso↔título; verbos bivalentes acotados al OBJETO —
+        // familia NOVENA 5/8) y el verbo inequívoco `descongelar`
+        // (familia "cocinar" posición libre).
+        "cena", "comida", "almuerzo", "desayuno", "merienda", "descongelar",
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
         // c.758: objeto del piso `pintar la(s) casa(s)` (lockstep
         // keyword↔piso; "pintar" suelto es bivalente — un cuadro/la
