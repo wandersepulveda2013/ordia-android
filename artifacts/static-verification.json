@@ -1,11 +1,14 @@
 {
-  "project_files": 111,
-  "kotlin_source_files": 52,
-  "kotlin_source_lines": 6604,
-  "unit_test_files": 9,
-  "instrumentation_test_files": 2,
+  "project_files": 1183,
+  "kotlin_source_files": 35,
+  "kotlin_source_lines": 908,
+  "unit_test_files": 11,
+  "instrumentation_test_files": 4,
   "errors": [],
   "warnings": [
-    "gradle-wrapper.jar is absent; Android Studio or `gradle wrapper --gradle-version 8.13` must generate it before ./gradlew works"
+    "Mojibake token '�' in AUDITORIA_ORDIA_2026.md",
+    "Mojibake token '├' in docs/INTELLIGENCE_ARCHITECTURE_SUMMARY.md",
+    "Non UTF-8 text file: AI_AUTONOMY/RUN_LOG.md ('utf-8' codec can't decode byte 0xd3 in position 27709: invalid continuation byte)",
+    "Non UTF-8 text file: AI_AUTONOMY/DECISIONS.md ('utf-8' codec can't decode byte 0xf3 in position 9346: invalid continuation byte)"
   ]
 }
