@@ -756,8 +756,13 @@ object ContextIntentEngine {
     // NULL en sonda PRE efímera propia `/tmp/probe912/`; ciclo
     // renumerado c.912→c.914→c.915 por DOBLE colisión con hermanos, convención
     // c.857; «sacar mil euros» sin dígito queda FUERA — ancla distinta).
+    // c.917: la divisa admite «yenes» (lateral fría JPY
+    // medida NULL 4/4 en sonda PRE `/tmp/probe915/`;
+    // monosémica, sin bivalencia; ciclo renumerado
+    // c.915→c.916→c.917 por DOBLE colisión cycle-ID con los hermanos
+    // c.915 «mil», convención c.857).
     private val ERRAND_CASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b)""")
+        Regex("""\b(?<!no )sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""")
     // c.894: SEGUNDA familia de la clase NOVENA (dinero/banca cotidiana,
     // sonda persistida `NinthClassMoneyProbe.kt` c.892; NULL PRE verificado
     // por la sonda persistida `IngresarDineroProbe.kt`: 6/6 NULL). El verbo
@@ -2815,7 +2820,7 @@ object ContextIntentEngine {
         // también aquí (cinturón y tirantes, precedente c.717 «sacar la
         // basura»/c.829 «echar gasolina»/c.842 «cortar el pelo»).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b)""").containsMatchIn(lower)
+            Regex("""\bno\s+sacar\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b)""").containsMatchIn(lower)
         ) return true
         // "ingresar dinero/reembolso" (ERRAND, piso acotado c.894): hermano
         // del guard «sacar dinero» — las keywords-OBJETO (lockstep c.894)
@@ -4222,7 +4227,7 @@ object ContextIntentEngine {
                 // admite el cuantificador «mil» («Sacar 50 mil pesos del
                 // cajero», grafía preservada).
                 val matchCash = Regex(
-                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?)\b).*)""",
+                    """\b(?<!no )(sacar)\s+((?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?(?:dinero|efectivo)\b|\d+(?:[.,]\d+)?(?:\s+mil)?\s+(?:euros?|d[oó]lares?|pesos?|libras?|yenes?)\b).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCash != null) {

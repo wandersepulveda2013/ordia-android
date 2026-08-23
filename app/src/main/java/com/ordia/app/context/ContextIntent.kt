@@ -396,6 +396,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // TASK (piso c.710) porque la keyword solo suma 0.12 inerte a
         // ERRAND.
         "libra",
+        // c.917: keyword-DIVISA «yen» (lockstep TRES puntos con la
+        // rama cantidad del piso [ERRAND_CASH_FLOOR] «sacar <N> yenes»,
+        // lección c.751 — sin ella «sacar 20000 yenes mañana» ni
+        // llegaría al análisis, medido NULL 4/4 en sonda PRE
+        // `/tmp/probe915/`). Subcadena: cubre «yen»/«yenes» (JPY,
+        // monosémica — sin bivalencia que guardar). 0.12 sola inerte
+        // < umbral: declarativos financieros («los yenes están
+        // caros», «el yen se fortalece») siguen descartados aun con
+        // bono temporal; «pagar 500 yenes» sigue PAYMENT y «cambiar
+        // yenes por euros» sigue TASK (piso c.710) porque la keyword
+        // solo suma 0.12 inerte a ERRAND.
+        "yen",
         // c.894: keyword-OBJETO «reembolso» (lockstep con el piso acotado
         // [ERRAND_DEPOSIT_FLOOR] «ingresar dinero/reembolso», hermano de
         // «dinero» c.893). NO el verbo «ingresar»: bivalente (en el club,
