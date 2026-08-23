@@ -7845,6 +7845,24 @@ object NaturalTaskParser {
         """(?i)^\s*(?:una|unas|un|unos)\s+$"""
     )
 
+    /**
+     * c.946: preposición «en» SIN artículo AL INICIO del texto — la misma
+     * evidencia de circunstancial narrativo que
+     * [ordinalHoraNarrativeEnArticlePrefix] (c.942) con el artículo elidido
+     * («en primera hora del lunes me quedé dormido», común en español
+     * informal). Doctrina simétrica: con verbo/nombre/cláusula precedente
+     * («avisar en…», «reunión en…», «quiero en…») el prefijo no empieza en
+     * «en» y la forma sigue la doctrina ancla (byte-idéntica). Se admite con
+     * weekday genitivo (directo o tras genitivo interior de parte del día):
+     * el genitivo canónico DENTRO del match (H3) sin determinante queda
+     * FUERA — «en primera hora de la mañana llamar al banco» (comando) y
+     * «…llamé al banco» (narrativa) son indistinguibles por regex (lateral
+     * bivalente medida c.946, pin conservador).
+     */
+    private val ordinalHoraNarrativeEnPrefix = Regex(
+        """(?i)^\s*en\s+$"""
+    )
+
     /** c.939: palabras weekday admitidas como genitivo directo narrativo. */
     private val ordinalHoraNarrativeWeekdayWords = setOf(
         "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
@@ -7891,7 +7909,8 @@ object NaturalTaskParser {
         if (!ordinalHoraNarrativeDemonstrativePrefix.containsMatchIn(prefix) &&
             !ordinalHoraNarrativeArticlePrefix.containsMatchIn(prefix) &&
             !ordinalHoraNarrativeEnArticlePrefix.containsMatchIn(prefix) &&
-            !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix)
+            !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix) &&
+            !ordinalHoraNarrativeEnPrefix.containsMatchIn(prefix)
         ) return null
         val suffix = text.substring(match.range.last + 1)
         val pod = ordinalHoraNarrativePartOfDayGenitive.find(suffix) ?: return null
@@ -7981,11 +8000,14 @@ object NaturalTaskParser {
                             ordinalHoraNarrativeEnArticlePrefix
                                 .containsMatchIn(text.substring(0, m.range.first)) ||
                             ordinalHoraNarrativeIndefinitePrefix
+                                .containsMatchIn(text.substring(0, m.range.first)) ||
+                            ordinalHoraNarrativeEnPrefix
                                 .containsMatchIn(text.substring(0, m.range.first))
                         ) {
                             // c.938 (H1 puro) / c.939 (H1-artículo) / c.942 («en»
                             // + artículo al inicio) / c.943 (indefinido al
-                            // inicio): determinante al inicio; el weekday
+                            // inicio) / c.946 («en» sin artículo al inicio):
+                            // determinante al inicio; el weekday
                             // genitivo sigue DIRECTAMENTE al match. c.941:
                             // o tras el genitivo INTERIOR de parte del día («de
                             // la noche/tarde»), ya validado por
@@ -8073,8 +8095,12 @@ object NaturalTaskParser {
         // genitivo (directo o interior): el genitivo de contenido H2 con
         // indefinido («una primera hora de clase…») no está medido (lateral
         // conservadora) — por eso no basta `articleBefore || indefinite`.
+        // c.946: la misma restricción para «en» SIN artículo al inicio — sólo
+        // weekday genitivo (directo o interior); H3 sin determinante queda
+        // fuera (bivalente comando/narrativa, pin conservador).
         val indefiniteBefore = ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix)
-        if (!articleBefore && !indefiniteBefore) return false
+        val enPrefixBefore = ordinalHoraNarrativeEnPrefix.containsMatchIn(prefix)
+        if (!articleBefore && !indefiniteBefore && !enPrefixBefore) return false
         val suffix = text.substring(match.range.last + 1)
         val genitive = ordinalHoraContentGenitive.find(suffix) ?: return false
         val genWord = genitive.groupValues[1].lowercase()
@@ -8091,11 +8117,14 @@ object NaturalTaskParser {
         // fragmento es bivalente y sigue ancla (pins byte-idénticos). c.942:
         // la misma doctrina con «en» + artículo al inicio («en la primera
         // hora del lunes me quedé dormido»). c.943: y con artículo INDEFINIDO
-        // al inicio («una primera hora del lunes fue rara»).
+        // al inicio («una primera hora del lunes fue rara»). c.946: y con
+        // «en» SIN artículo al inicio («en primera hora del lunes me quedé
+        // dormido»).
         if (genWord in ordinalHoraNarrativeWeekdayWords &&
             (ordinalHoraNarrativeArticlePrefix.containsMatchIn(prefix) ||
                 ordinalHoraNarrativeEnArticlePrefix.containsMatchIn(prefix) ||
-                ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix))
+                ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix) ||
+                ordinalHoraNarrativeEnPrefix.containsMatchIn(prefix))
         ) {
             val afterWg = suffix.substring(genitive.range.last + 1)
             if (afterWg.isNotBlank()) {

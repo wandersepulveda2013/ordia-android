@@ -24,7 +24,10 @@ import org.junit.Test
  * fragmento sin predicado, anclas con conector «a primera/última hora»);
  * 5/5 regresiones c.932/c.935/c.943 intactas; pines de laterales FUERA
  * («en primera hora del lunes…» sin artículo, «una primera hora de clase…»
- * H2 con indefinido) medidos byte-idénticos.
+ * H2 con indefinido) medidos byte-idénticos. c.946: la lateral «en» sin
+ * artículo quedó RESUELTA (re-pin estricto en
+ * [enPrimeraHoraDelLunes_sinArticuloLateralResueltaC946]; cobertura canónica
+ * en `NaturalTaskParserWeekdayEnSinArticuloNarrativoTest`).
  *
  * Doctrina (extensión simétrica de la rama H3 c.932, como la cláusula de
  * opinión c.935): cuando TODO el prefijo es un artículo INDEFINIDO al inicio
@@ -151,11 +154,13 @@ class NaturalTaskParserIndefinidoH3NarrativoTest {
 
     // ---- Pines byte-idénticos de laterales FUERA (medidos PRE) ----
 
-    @Test fun enPrimeraHoraDelLunes_sinArticuloLateralFueraPin() =
-        assertAnchor(
-            "en primera hora del lunes me quedé dormido",
-            LocalDate.of(2026, 8, 24), 9, "en me quedé dormido"
-        )
+    // c.946: la lateral «en» SIN artículo quedó RESUELTA (doctrina simétrica
+    // c.942 con el artículo elidido). Re-pin legítimo MÁS estricto del pin
+    // c.944 (precedente c.925…c.944): ahora aserta contenido narrativo
+    // íntegro. La cobertura canónica vive en
+    // NaturalTaskParserWeekdayEnSinArticuloNarrativoTest.
+    @Test fun enPrimeraHoraDelLunes_sinArticuloLateralResueltaC946() =
+        assertNarrativeIntact("en primera hora del lunes me quedé dormido")
 
     @Test fun unaPrimeraHoraDeClase_h2IndefinidoLateralFueraPin() =
         assertAnchor(
