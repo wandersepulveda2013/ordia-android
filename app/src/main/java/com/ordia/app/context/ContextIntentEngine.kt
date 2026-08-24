@@ -1254,6 +1254,17 @@ object ContextIntentEngine {
         // "gluten" no es envolvente de obligación.
         if (obligationWrapperIsNegated(lower)) return 0f
 
+        // Guard de envolvente de PLAN/VOLICIÓN negado en 1ª persona (c.1008,
+        // hermano de c.681/c.835). "no voy a sacar al perro", "no pienso ir
+        // al médico", "ya no voy a llamar a mamá": la frase entera niega el
+        // plan, pero ni [imperativeIsNegated] (exige "no" INMEDIATO al verbo
+        // del kind) ni los lookbehind `(?<!no )` de los pisos lo cubrían —
+        // la captura pasiva persistía EXACTAMENTE lo opuesto de lo dicho
+        // (13/16 formas de la batería HIT, medida con sonda efímera). Se
+        // descarta TODA la clasificación. Anti-overreach: 2ª persona
+        // ("no vas a…") y presente simple ("no voy al super") NO se tocan.
+        if (planWrapperIsNegated(lower)) return 0f
+
         // Guard de obligación/posesión PASADA que gobierna la acción (c.824
         // anti-overreach). Ver [PAST_OBLIGATION_PATTERN] para el alcance:
         // "tenía que ir al médico"/"tenía cita con el dentista"/"había que
@@ -2982,6 +2993,21 @@ object ContextIntentEngine {
      */
     private fun obligationWrapperIsNegated(lower: String): Boolean =
         Regex("""\b(?:ya\s+)?no\s+(?:tengo\s+(?:que|q)\b|hay\s+que\b|tengo\s+(?:reuni[oó]n|cita)\b|(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que\b|deber[ií]a(?:s|mos|is|n)?\b)""")
+            .containsMatchIn(lower)
+
+    /**
+     * Detecta la negación del envolvente de plan/volición en 1ª persona
+     * (c.1008, hermano de [obligationWrapperIsNegated] c.681/c.835). Cubre
+     * "no|ya no voy|vamos a …", "no pienso|pensamos …", "no quiero|queremos
+     * …", "no planeo|planeamos …" y "no cuento|contamos con …": la frase
+     * entera afirma la AUSENCIA del plan, así que ningún kind puede
+     * capturarla (el guard se evalúa para todos los kinds en [scoreKind]).
+     * Determinista (regex), sin IA fingida. Acotado deliberado: la 2ª
+     * persona ("no vas a …", otro hablante/desenfoque) y el presente
+     * simple ("no voy al super") quedan FUERA (laterales documentadas).
+     */
+    private fun planWrapperIsNegated(lower: String): Boolean =
+        Regex("""\b(?:ya\s+)?no\s+(?:voy\s+a\b|vamos\s+a\b|pienso\b|pensamos\b|quiero\b|queremos\b|planeo\b|planeamos\b|cuento\s+con\b|contamos\s+con\b)""")
             .containsMatchIn(lower)
 
     /**
