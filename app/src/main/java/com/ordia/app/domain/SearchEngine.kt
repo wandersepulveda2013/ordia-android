@@ -323,7 +323,30 @@ object SearchEngine {
             projects.filter { (!typed || wantsProjects) && !it.archived && !pureDateScope && (matches(it.name, it.description) || semanticMatches(PROJECT_TERMS + activeTerms, it.name, it.description)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
-            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (!wantsPinned || it.pinned) }.filter {
+            // Alcance de fecha sobre notas («notas de ayer», «notas de esta
+            // semana»): una nota no tiene startAt/dueAt; su fecha natural es
+            // createdAt — cuándo la escribió el usuario. Antes el alcance se
+            // ignoraba para notas y «notas de ayer» devolvía TODAS las notas
+            // (la de ayer, invisible entre el resto: mentira por omisión en la
+            // consulta más cotidiana de recuperación de notas — sonda JVM
+            // c.963: 6/6 consultas con alcance devolvían las 5 notas del
+            // fixture). Ahora filtra por createdAt con el MISMO anclaje
+            // calendario que las tareas (anchorMatchesScope / weekdayTarget /
+            // weekendTarget) — pero SÓLO cuando el usuario pide notas
+            // explícitamente (wantsNotes): en la consulta mixta sin tipo
+            // («hoy reunion») se conserva la decisión ya documentada de que el
+            // contenido sin fecha que casa por texto sigue siendo relevante
+            // (no se suprime, sólo se filtra por texto). El guard anti-ruido
+            // se mantiene: un alcance PURO sin la palabra «nota» («ayer» a
+            // secas) sigue sin inundar con notas; el `|| wantsNotes` es
+            // defensivo (si «nota» llegara a ser stop-word, textWords quedaría
+            // vacío y la consulta tipada no se vaciaría).
+            val scopeNotesByDate = dateScope != null && wantsNotes
+            notes.filter {
+                (!typed || wantsNotes) && !it.archived && (!wantsPinned || it.pinned) &&
+                    (!pureDateScope || wantsNotes) &&
+                    (!scopeNotesByDate || noteMatchesDateScope(it, dateScope!!, now, zone, weekdayTarget, weekendTarget, dayBand))
+            }.filter {
                 val ph = projectHaystack(it.projectId)
                 matches(it.title, it.body, *ph) || semanticMatches(NOTE_TERMS + pinnedTerms, it.title, it.body, *ph)
             }.forEach {
@@ -877,6 +900,41 @@ object SearchEngine {
         val delta = (DayOfWeek.SATURDAY.value - today.dayOfWeek.value + 7) % 7
         val days = if (delta == 0) 7L else delta.toLong()
         return today.plusDays(days)
+    }
+
+    // Membresía de una NOTA a un alcance de fecha (c.963): la nota no tiene
+    // startAt/dueAt, así que el ancla es createdAt — cuándo la escribió el
+    // usuario, la lectura natural de «notas de ayer». Sólo se invoca cuando la
+    // consulta pide notas explícitamente (wantsNotes); la consulta mixta sin
+    // tipo («hoy reunion») conserva la relevancia por contenido ya decidida.
+    // Reutiliza el anclaje
+    // calendario canónico de las tareas (anchorMatchesScope: hoy/ayer/semana/
+    // mes lunes-domingo y partes del día) y los objetivos ya resueltos de
+    // WEEKDAY/WEEKEND, para que buscar signifique lo mismo en ambas familias.
+    // OVERDUE/MISSED/UNDATED son conceptos de TAREA (una nota no vence ni se
+    // olvida): excluirlas es honesto, no inventar membresía. Con franja
+    // horaria («notas de ayer por la tarde») el createdAt debe caer además en
+    // la franja — paridad con taskMatchesDateScope.
+    private fun noteMatchesDateScope(
+        note: NoteEntity,
+        scope: DateScope,
+        now: Long,
+        zone: ZoneId,
+        weekdayTarget: LocalDate?,
+        weekendTarget: LocalDate?,
+        dayBand: IntRange?
+    ): Boolean {
+        val created = DateRules.toLocalDate(note.createdAt, zone)
+        return when (scope) {
+            DateScope.WEEKDAY -> weekdayTarget?.let { created == it } ?: false
+            DateScope.WEEKEND -> weekendTarget?.let { created == it || created == it.plusDays(1) } ?: false
+            DateScope.OVERDUE, DateScope.MISSED, DateScope.UNDATED -> false
+            else -> {
+                if (!anchorMatchesScope(scope, note.createdAt, now, zone)) false
+                else if (dayBand == null) true
+                else Instant.ofEpochMilli(note.createdAt).atZone(zone).hour in dayBand
+            }
+        }
     }
 
     private fun taskMatchesDateScope(

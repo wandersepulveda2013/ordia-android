@@ -5,6 +5,15 @@
 - Descartes de sesión: P0/P1 conocidos → ninguno (barrido de memoria). Selecta P2 de la cola de laterales: la más frecuente en lenguaje natural «avisar para la mañana».
 - **Próxima prioridad:** laterales del sweep c.960 ya cerrados («para» aquí, «en» en c.960); siguiente: barridos laterales restantes (genitivos «desde/hasta/de ayer» títulos parser, pins «aviso la última hora» heredados, fragmentos bivalentes) o nueva auditoría funcional (What Now / rutinas adaptables) si la cola de laterales se vacía — SIEMPRE con sonda de medida previa (no cambiar sin medición). Familia «madrugada» sigue excluida doctrinalmente (c.688).
 
+## Ciclo c.963 (2026-08-24) — fix(search): «notas de ayer/hoy/esta semana…» filtra por createdAt (antes devolvía TODAS las notas)
+
+- HEAD inicial: `ae4b3a1` (c.961; sync limpio `pull --ff-only`; NO force, NO reset --hard, NO clean destructivo, NO toques a `main`).
+- Unidad única (P1, búsqueda/notas — descubrimiento por auditoría de búsqueda, no backlog): el alcance de fecha nunca se aplicaba a notas — «notas de ayer» devolvía TODAS las notas (sonda PRE 6/6; la nota buscada, invisible). Fix: helper `noteMatchesDateScope` (ancla `createdAt`, MISMO anclaje calendario que las tareas) gobernado por `wantsNotes` — la mixta sin tipo («hoy reunion») conserva la relevancia por contenido ya decidida (test preexistente intacto). Sana las DOS superficies (buscador + asistente OPEN_SEARCH; sonda de rutas 6/6, control agenda no secuestrado).
+- TDD: 5 tests nuevos en `SearchEngineTest`; RED exacto (EXACTAMENTE 2 fallos = capturas) → GREEN. Suite FINAL **OK (6673 = 6668+5)**; smoke 25/25. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK).
+- Colisión cycle-ID con el hermano (`b4f5d2d`, c.962 context «para la»): renumber propio c.962→c.963 + amend (commit local no publicado) + rebase; conflictos sólo en BACKLOG/CURRENT_STATE (ambas piezas conservadas). Suite FINAL integrada **OK (6681 = 6668+8+5)**; smoke 25/25. NO force, NO reset --hard, NO `main`.
+- Cambios: M `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, M `app/src/test/java/com/ordia/app/domain/SearchEngineTest.kt` (+5 tests), M `AI_AUTONOMY/*`. HEAD final: (commit de este ciclo).
+- Próxima prioridad: laterales documentadas («para la» suite-canónica c.960, familia «madrugada» doctrinal, pins parser FUERA: genitivos c.950 / «primera hora de clase») o nueva auditoría de producto — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.961 (2026-08-24) — test(infra): heap estable para kotlinc en run_domain_tests.sh + auditoría a11y estática limpia
 
 - HEAD inicial: `980bb01`/c.958 remoto con avances hermano a `305e7df` (c.959/c.960); integración NO destructiva vía stash (`c959-infra-work-in-progress`) → `git pull --ff-only` (ff 980bb01→305e7df, regiones DISJUNTAS: él context/AI_AUTONOMY, yo tools/run_domain_tests.sh) → pop; re-verificación suite **OK (6668)** post-integración; NO STALE_RUN destructivo, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`.

@@ -15,6 +15,9 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.local.TaskTagCrossRef
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -1650,5 +1653,75 @@ class SearchEngineTest {
         val task = TaskEntity(id = 12, title = "Cierre activos 2025")
         val results = SearchEngine.search("activos", listOf(task), emptyList(), emptyList(), emptyList())
         assertEquals(listOf(12L), results.map { it.id })
+    }
+
+    // ── c.963: alcance de fecha sobre notas («notas de ayer») ────────────────
+    // El buscador detectaba el alcance («ayer», «esta semana»…) pero para las
+    // notas lo IGNORABA: «notas de ayer» devolvía TODAS las notas y la escrita
+    // ayer quedaba invisible entre el resto (sonda JVM c.963: 6/6 consultas
+    // con alcance devolvían las 5 notas del fixture). Una nota no tiene
+    // startAt/dueAt; su fecha natural es createdAt (cuándo la escribió el
+    // usuario). El alcance ahora filtra por createdAt con el mismo anclaje
+    // calendario que las tareas. Baseline preservado: un alcance puro SIN la
+    // palabra «nota» («ayer» a secas) sigue sin listar notas (anti-ruido), y
+    // «notas»/«notas de compras» no cambian.
+
+    private val notesScopeZone: ZoneId = ZoneId.systemDefault()
+    // Lunes 2026-08-24 12:00 local: hoy=lunes, ayer=domingo (semana pasada).
+    private val notesScopeToday: LocalDate = LocalDate.of(2026, 8, 24)
+    private val notesScopeNow: Long =
+        notesScopeToday.atTime(LocalTime.NOON).atZone(notesScopeZone).toInstant().toEpochMilli()
+
+    private fun noteOn(id: Long, title: String, date: LocalDate, hour: Int = 9): NoteEntity {
+        val epoch = date.atTime(LocalTime.of(hour, 0)).atZone(notesScopeZone).toInstant().toEpochMilli()
+        return NoteEntity(id = id, title = title, createdAt = epoch, updatedAt = epoch)
+    }
+
+    private fun notesScopeFixture(): List<NoteEntity> = listOf(
+        noteOn(1, "Nota de hoy", notesScopeToday),
+        noteOn(2, "Nota de ayer", notesScopeToday.minusDays(1), 15),
+        noteOn(3, "Nota semana pasada", notesScopeToday.minusDays(5), 10),
+        noteOn(4, "Nota mes pasado", LocalDate.of(2026, 7, 15), 10),
+        noteOn(5, "Lista de compras", notesScopeToday, 10)
+    )
+
+    private fun noteIds(query: String): Set<Long> =
+        SearchEngine.search(query, emptyList(), emptyList(), notesScopeFixture(), emptyList(), now = notesScopeNow)
+            .filter { it.kind == SearchKind.NOTE }.map { it.id }.toSet()
+
+    @Test fun notesDateScope_filtersByCreatedAt() {
+        assertEquals(setOf(2L), noteIds("notas de ayer"))
+        assertEquals(setOf(1L, 5L), noteIds("notas de hoy"))
+        // Semana calendario lunes-domingo: hoy (lunes 24) es el único de ESTA
+        // semana; ayer (domingo 23) ya pertenece a la pasada.
+        assertEquals(setOf(1L, 5L), noteIds("notas de esta semana"))
+        assertEquals(setOf(2L, 3L), noteIds("notas de la semana pasada"))
+        assertEquals(setOf(1L, 2L, 3L, 5L), noteIds("notas de este mes"))
+        assertEquals(setOf(4L), noteIds("notas del mes pasado"))
+    }
+
+    @Test fun notesDateScope_weekdayScopeFiltersByCreatedAt() {
+        // Hoy ES lunes: «notas del lunes» recupera las escritas hoy, no las de
+        // otros días (paridad con «tareas del lunes» vía weekdayTarget).
+        assertEquals(setOf(1L, 5L), noteIds("notas del lunes"))
+    }
+
+    @Test fun notesDateScope_futureScopeReturnsNoNotes() {
+        // Honestidad: no existen notas escritas en el futuro — el alcance
+        // futuro devuelve vacío, nunca el listado completo.
+        assertEquals(emptySet<Long>(), noteIds("notas de mañana"))
+    }
+
+    @Test fun notesDateScope_untypedPureScopeStillExcludesNotes() {
+        // Baseline anti-ruido intacto: «ayer» a secas (alcance puro sin la
+        // palabra «nota») NO debe inundar los resultados con notas.
+        assertEquals(emptySet<Long>(), noteIds("ayer"))
+    }
+
+    @Test fun notesDateScope_listingAndContentQualifierUnaffected() {
+        // Baseline intacto: el listado desnudo sigue devolviendo todas las
+        // notas y el calificador de contenido sigue filtrando por texto.
+        assertEquals(setOf(1L, 2L, 3L, 4L, 5L), noteIds("notas"))
+        assertEquals(setOf(5L), noteIds("notas de compras"))
     }
 }
