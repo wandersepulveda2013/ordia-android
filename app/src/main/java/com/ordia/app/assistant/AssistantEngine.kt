@@ -1093,15 +1093,20 @@ object AssistantEngine {
     // directo («apunta llamar al banco»). Frontera de palabra tras el verbo:
     // «apuntarse»/«apuntarme»/«anotaciones» nunca casan (descubrimiento de la
     // auditoría pedida en la «próxima prioridad» de c.969 — sonda PRE 9/9 GAP).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?)\\b")
+    // c.972 (delta tras colisión de lateral): enclíticos «apúntame»/«anótame»
+    // (± sin tilde — escritura móvil real; «apuntarme»/«anotarme» siguen FUERA
+    // por bivalencia con apuntarse/anotarse) y el contenido «esto» a secas se
+    // trata como pelada (antes creaba una nota BASURA titulada «esto»).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
-    private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
+    private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
         if (!TAKE_NOTE_PREFIX.containsMatchIn(trimmed)) return null
         val content = TAKE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: JOT_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+                ?.takeUnless { it.equals("esto", ignoreCase = true) }
         return if (content.isNullOrEmpty()) {
             AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
         } else {
