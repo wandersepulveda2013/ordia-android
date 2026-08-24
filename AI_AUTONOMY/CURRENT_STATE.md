@@ -1,3 +1,11 @@
+## Ciclo c.1022 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022 por QUÍNTUPLE asignación del cycle-ID durante los re-fetch pre-push: SU c.1017 «desparasitar» contexto (`d8a815e`/`f339c4a`), SU c.1018 «pasear» contexto (`23b2761`/`171e448`), SU c.1019 delta parser convergente (`2825964`/`4edce73`, merge `8d16c9c`/`9857100`) + SU c.1020 contexto «pasear» (`fed4dbd`) + SU c.1021 assistant ARCHIVE (`5f7c77f`/`1012210`); regiones SIEMPRE DISJUNTAS, precedentes c.1000/c.1004/c.1008/c.1011/c.1016] (2026-08-24) — test(parser): delta de COBERTURA tras colisión convergente «a la/las» + pretérito
+- HEAD inicial: `9920a22` (docs-close c.1016 del hermano), sync limpio. Re-fetch pre-push: el hermano había publicado la MISMA lateral como SU c.1019 (ya integrada sobre `5233834`).
+- Unidad (P2 cobertura): mis 22 tests originales corridos contra la implementación convergente → 21/22 verdes; el único fallo era mi pin FUERA erróneo («a la primera hora de la mañana llegó el cartero» — SU c.1019 lo resuelve CORRECTAMENTE como narrativa intacta porque su chequeo H4 va ANTES del retorno por sufijo canónico; mi versión lo dejaba anclado 09:00 con título mutilado). Decisión (precedente c.1002/c.1003): descartar mi implementación, conservar la suya.
+- Delta conservado: 10 tests complementarios `NaturalTaskParserOrdinalHoraArticuloPreteritoNarrativoDeltaTest.kt` (casos no ejercitados por su batería de 18: prefijo «justo», plural «llegaron», «empezó», «llamó el banco», ancla «mañana», encargo sufijo, ambigua «comimos», regresiones H3/H2-sin-conector) — 10/10 GREEN sobre HEAD `5233834`.
+- **Archivos:** SOLO test nuevo + docs (cero cambios de producción; parser/c.1016-test restaurados a HEAD vía `git checkout HEAD --`).
+- **Estado: VERIFIED (JVM).** **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad:** lateral «ya <pretérito>» narrativa (regla de inmediatez «ya» ancla a AHORA — medida SU c.1019 `/tmp/probe1014/Probe3.kt`; pin `aLaPrimeraHoraYaSonoLaAlarma_pinLateralYa`); luego laterales FUERA vigentes (weekday genitivo, pretérito con complemento).
+
 ## Ciclo c.1019 (2026-08-24) — fix(parser): delta UNIÓN sobre H4 c.1016 — «a la/las primeras?/últimas? horas?» + pretérito inequívoco → narrativa intacta
 - HEAD inicial: `9920a22` (fix c.1016 del hermano), sync limpio tras COLISIÓN convergente: este run tenía la lateral MADRE completa implementada (sin commitear) cuando el hermano publicó SUS c.1014/c.1015/c.1016; integración NO-destructiva (`checkout --` del parser + `pull --ff-only` + delta re-aplicado). Renumeración c.1014→c.1017→c.1018→c.1019 (TERCERA colisión cycle-ID del run: SU c.1017 «desparasitar al perro/gato» `d8a815e`+`f339c4a` y SU c.1018 «pasear al perro» `23b2761`+`171e448`, ambos contexto, llegaron en los re-fetch pre-push; regiones DISJUNTAS parser/context; fila DÉCIMA AGOTADA por el hermano). NO force, NO reset --hard, NO `main`. Toolchain heredada /tmp.
 - Unidad (P1, lateral FUERA de SU c.1016): «a la primera hora vino el técnico» / «a las primeras horas empezó la reunión» / «llegué a la primera hora» nacían con fecha FALSA ya PASADA (hoy 09:00/18:00) Y título MUTILADO — doble daño P1 (4/4 PRE, sonda efímera `/tmp/probe1014/Probe4.kt` sobre `9920a22`).
@@ -14887,20 +14895,15 @@ AGOTADA (S/a/b/c/d/e RESUELTAS): próxima auditoría de descubrimiento =
 clase UNDÉCIMA (nueva sonda persistida, convención c.822/c.1007).
 NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 
-### Último ciclo: c.1020 (2026-08-24)
-DELTA UNIÓN sobre c.1018 del hermano (colisión convergente: este run
-implementó en paralelo la MISMA candidata (e) «pasear al perro» como
-extensión in-situ del piso c.740 — funcionalmente equivalente a su piso
-nuevo `HOUSEHOLD_WALK_DOG_FLOOR`; comportamiento medido byte-equivalente
-con sonda PRE/POST propia: 6/6 HIT, 7/7 guards NULL, 4/4 regresiones HIT,
-envolvente TASK). Duplicado propio descartado NO-destructivo (stash drop,
-precedente c.1014); su producción conservada íntegra. Delta DISJUNTO
-unido: +3 pins en SU clase `ContextIntentEnginePasearPerroFloorTest.kt`
-(acuse coloquial «vale, pasear al perro esta noche» HIT; duda con
-indicativo «quizá pasear al perro esta tarde» NULL; envolvente
-«recuérdame pasear al perro el lunes» gobierna TASK seam c.613).
-Suite UNIÓN FINAL OK (7372 = 7369 + 3); smoke 25/25. Fila DÉCIMA AGOTADA
-(S/a/b/c/d/e). Próxima prioridad: auditoría de descubrimiento clase
-UNDÉCIMA (nueva sonda persistida `tools/probe/`, convención
-c.822/c.834/c.845/c.857/c.890/c.1007); laterales ABIERTAS registradas en
-BACKLOG. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+### Último ciclo: c.1022 (2026-08-24)
+test(parser): delta de COBERTURA tras COLISIÓN CONVERGENTE con SU c.1019
+(misma lateral «a la/las» + pretérito implementada en paralelo; su
+versión ESTRICTAMENTE SUPERIOR — chequeo H4 antes del retorno por sufijo
+canónico: cubre «a la primera hora de la mañana llegó…» que la mía
+dejaba anclada). Implementación propia descartada (precedente
+c.1002/c.1003); +10 tests DISJUNTOS en
+`NaturalTaskParserOrdinalHoraArticuloPreteritoNarrativoDeltaTest.kt`
+(prefijo «justo», plural «llegaron», «empezó», «llamó el banco», ancla
+«mañana», encargo sufijo, ambigua «comimos», regresiones H3/H2).
+Suite UNIÓN FINAL OK (7418 = 7408 + 10); smoke 25/25; automation 9/9.
+NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
