@@ -14929,3 +14929,17 @@ respuestas honestas; guards/pines/regresiones verdes desde RED) → GREEN
 con la conducta real (advierte borrado definitivo pero el flujo archiva
 — advertencia conservadora heredada c.1001). NO VERIFICADO
 Android/gradle/lint/assemble/UI/Room (sin SDK).
+
+### Último ciclo: c.1022 (2026-08-24)
+Honestidad en «borra»: la confirmación de deleteCapture ya no promete
+borrado definitivo — deleteTask ARCHIVA (recuperable, c.225; nombre
+canónico de la app «Archivar», string task_detail_archive; el borrado
+definitivo es otra acción explícita en la pantalla Archivo). Texto
+alineado con la conducta real y con ARCHIVE c.1021: «Saldrá de tu vista
+y podrás recuperarla desde Archivo.» TDD: pin de honestidad
+`delete_confirmacionHonestaNuncaDefinitiva` añadido a la clase del
+hermano (delta disjunto); RED exacto 1 fallo → GREEN, suite OK (7409 =
+7408 + 1); smoke 25/25; sonda POST con texto honesto en vivo. Sync
+limpio sin colisión (base 1012210). Próxima prioridad: auditoría clase
+UNDÉCIMA (sonda persistida); laterales parser/context ABIERTAS. NO
+VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
