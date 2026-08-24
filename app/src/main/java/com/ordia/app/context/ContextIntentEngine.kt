@@ -1254,6 +1254,12 @@ object ContextIntentEngine {
         // "gluten" no es envolvente de obligación.
         if (obligationWrapperIsNegated(lower)) return 0f
 
+        // Guard de PLAN/VOLICIÓN negado (c.1009, hermano de
+        // [obligationWrapperIsNegated] c.681): «no voy a sacar al perro»,
+        // «no pienso ir al médico», «no quiero llamar a mamá» afirman lo
+        // OPUESTO de un compromiso; se descarta TODA la clasificación.
+        if (planWrapperIsNegated(lower)) return 0f
+
         // Guard de obligación/posesión PASADA que gobierna la acción (c.824
         // anti-overreach). Ver [PAST_OBLIGATION_PATTERN] para el alcance:
         // "tenía que ir al médico"/"tenía cita con el dentista"/"había que
@@ -2983,6 +2989,39 @@ object ContextIntentEngine {
     private fun obligationWrapperIsNegated(lower: String): Boolean =
         Regex("""\b(?:ya\s+)?no\s+(?:tengo\s+(?:que|q)\b|hay\s+que\b|tengo\s+(?:reuni[oó]n|cita)\b|(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que\b|deber[ií]a(?:s|mos|is|n)?\b)""")
             .containsMatchIn(lower)
+
+    /**
+     * Negación COMPUESTA de plan/volición de 1ª persona (c.1009, hermano de
+     * [obligationWrapperIsNegated] c.681/c.835). La sonda persistida c.1007
+     * (`tools/probe/TenthClassPetProbe.kt`, control G1) + micro-sondas
+     * efímeras `/tmp/probe1007/Probe.kt` y `Probe2.kt` midieron que «no voy
+     * a sacar al perro», «no pienso ir al médico», «no quiero llamar a
+     * mamá», «no planeo llamar…», «no cuento con llamar…» se capturaban en
+     * 10/12 pisos representativos — la captura pasiva persistía EXACTAMENTE
+     * lo opuesto de lo dicho (misma clase P1 que c.681). Ni los lookbehind
+     * `(?<!no )` de los pisos ni las cláusulas de [imperativeIsNegated] la
+     * cubrían: ambos exigen «no» INMEDIATO al verbo del kind. Aquí el «no»
+     * precede al envolvente de plan («voy/vamos a», «pienso/pensamos»,
+     * «quiero/queremos», «planeo/planeamos», «cuento/contamos con» +
+     * infinitivo, «ya» opcional), así que se descarta TODA la clasificación
+     * (todos los kinds) igual que c.681.
+     * Anti-overreach: (1) 2ª persona «no vas a …» FUERA (lateral documentada
+     * c.1007 — en captura pasiva la 2ª persona suele ser otro hablante);
+     * (2) la coma «no, voy a …» (respuesta + plan afirmativo) no casa
+     * (`no\s+` exige espacio tras «no»); (3) inversión «sin»: «no quiero
+     * irme SIN pagar la luz» — negar la volición principal fuerza la
+     * subordinada («pagar la luz» SÍ es compromiso), así que si hay
+     * infinitivo tras «sin» posterior al envolvente el guard NO dispara.
+     * Determinista (regex), sin IA fingida.
+     */
+    private fun planWrapperIsNegated(lower: String): Boolean {
+        val m = Regex(
+            """\b(?:ya\s+)?no\s+(?:(?:voy|vamos)\s+a\b|(?:pienso|pensamos|planeo|planeamos|quiero|queremos)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b|(?:cuento|contamos)\s+con\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b)"""
+        ).find(lower) ?: return false
+        return Regex(
+            """\bsin\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b"""
+        ).find(lower, m.range.last + 1) == null
+    }
 
     /**
      * Detecta marcadores de duda/condicional (c.649). "quizá"/"a lo mejor"/"tal
