@@ -77,6 +77,7 @@ object AssistantEngine {
         val remindMeCapture = remindMeCapture(clean)
         val createTaskCapture = createTaskCapture(clean)
         val avisaMeCapture = avisaMeCapture(clean)
+        val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -488,6 +489,9 @@ object AssistantEngine {
             // c.994: lateral (b1) de la sonda persistente — «avísame…»,
             // hermana de remindMeCapture (mismo contrato).
             avisaMeCapture != null -> avisaMeCapture
+            // c.995: lateral (b2) de la sonda persistente — «quiero que
+            // me recuerdes…», hermana de remindMeCapture (mismo contrato).
+            quieroQueRecuerdesCapture != null -> quieroQueRecuerdesCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1302,6 +1306,32 @@ object AssistantEngine {
         if (content.startsWith("cuando ", ignoreCase = true)) return null
         val payload = if (temporal.isEmpty()) content else "$content $temporal"
         return AssistantAnswer("La tarea está lista para guardarse: “${payload.take(120)}”.", AssistantAction.CREATE_TASK, payload)
+    }
+
+    // c.995: lateral (b2) de la sonda persistente — «quiero que me
+    // recuerdes…», el recordatorio envuelto. Hermana de remindMeCapture
+    // (mismo contrato: guía honesta pelada, NUNCA tarea vacía; negación
+    // → menú honesto). El extractor ([^:].*) es simétrico a c.992:
+    // NUNCA tarea basura «:». El ancla ^ hace disjuntas la negación
+    // previa («no quiero que…») y el pasado («quería que me
+    // recordaras…», otra persona y otro tiempo).
+    private val QUIERO_QUE_PREFIX = Regex("(?i)^quiero que me recuerdes(?:\\s*:)?(?:\\s+|$)")
+    private val QUIERO_QUE_WITH_CONTENT =
+        Regex("(?i)^quiero que me recuerdes\\s*:?\\s*([^:].*)$")
+
+    private fun quieroQueRecuerdesCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!QUIERO_QUE_PREFIX.containsMatchIn(trimmed)) return null
+        val content = QUIERO_QUE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA tarea vacía (doctrina c.969): guía honesta SIN acción.
+            return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «quiero que me recuerdes …» y lo guardo como tarea.")
+        }
+        // Anti-overreach: el contenido negado («quiero que me recuerdes
+        // NO llamar…») pide no hacerlo; crear la tarea capturaría lo
+        // contrario de la intención (hermana de c.986/c.993/c.994).
+        if (content.startsWith("no ", ignoreCase = true)) return null
+        return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
     }
 
     // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la

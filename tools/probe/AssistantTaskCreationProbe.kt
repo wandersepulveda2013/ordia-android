@@ -46,7 +46,10 @@ fun main() {
         "recuérdame que tengo que llamar al banco",
         // CERRADA c.994 (lateral (b1)): «avísame…» — recordatorio
         // declarativo (temporal intercalado reordenado al payload).
-        "avísame mañana de llamar al banco"
+        "avísame mañana de llamar al banco",
+        // CERRADA c.995 (lateral (b2)): «quiero que me recuerdes…» —
+        // recordatorio envuelto (extractor ([^:].*) simétrico a c.992).
+        "quiero que me recuerdes pagar la luz"
     )
 
     // LATERALES ABIERTAS (documentadas, toleradas hasta su ciclo — doctrina
@@ -56,8 +59,11 @@ fun main() {
     //      menú genérico (mentira por omisión). Resuelta con rama
     //      avisaMeCapture hermana de remindMeCapture (despoje del «de»,
     //      temporal intercalado reordenado al payload); pins en guards
-    //      (pelada, negación tras «de», evento «cuando»). ABIERTA (b2):
-    //      «quiero que me recuerdes…» — recordatorio envuelto;
+    //      (pelada, negación tras «de», evento «cuando»). CERRADA c.995
+    //      (b2): «quiero que me recuerdes…» — recordatorio envuelto al
+    //      menú genérico. Resuelta con rama quieroQueRecuerdesCapture
+    //      hermana (extractor ([^:].*) simétrico a c.992); pins en
+    //      guards (pelada, negación previa/contenido, pasado);
     //  (c) CERRADA c.993: «recuérdame que…» — el «que» subordinado quedaba
     //      en el título; la pelada-con-«que» creaba tarea BASURA «que» y la
     //      negación tras «que» capturaba lo contrario. Resuelta con despoje
@@ -72,9 +78,8 @@ fun main() {
     //      «:» (medido c.990: payload ":"); el (.+) se tragaba el propio «:»
     //      en REMIND_ME_WITH_CONTENT. Resuelta con extractor ([^:].*);
     //      pin en guards (exit 1 si reaparece).
-    val openLaterals = listOf(
-        "quiero que me recuerdes pagar la luz"
-    )
+    val openLaterals = listOf<String>()
+    // (sin laterales abiertas tras c.995; descubrir nuevas con auditoría)
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
     val guards = listOf(
@@ -87,7 +92,10 @@ fun main() {
         "recuérdame que no llame a ana", // negación tras «que» — c.993: NUNCA capturar lo contrario
         "avísame", // pelada — c.994: guía honesta, NUNCA tarea vacía
         "avísame de no llamar al banco", // negación tras «de» — c.994: NUNCA capturar lo contrario
-        "avísame cuando llegue Ana" // evento condicional — c.994: no programable, NUNCA capturar
+        "avísame cuando llegue Ana", // evento condicional — c.994: no programable, NUNCA capturar
+        "quiero que me recuerdes", // pelada — c.995: guía honesta, NUNCA tarea vacía
+        "quiero que me recuerdes no llamar al banco", // contenido negado — c.995: NUNCA capturar lo contrario
+        "quería que me recordaras la cita" // pasado/otra persona — c.995: NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
