@@ -1088,13 +1088,20 @@ object AssistantEngine {
     // exige inicio de frase para no secuestrar contenido («quiero tomar nota»
     // no es forma directa). El contenido puede venir tras «:» (hermano de
     // «guardar como nota: X») o tras «de» («tomar nota de la reunión»).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^toma(?:r)?\\s+notas?\\b")
+    // c.971: «apunta …» / «anota …» (imperativo e infinitivo cotidianos) se
+    // suman al prefijo; su contenido puede venir tras «:», tras «esto:» o
+    // directo («apunta llamar al banco»). Frontera de palabra tras el verbo:
+    // «apuntarse»/«apuntarme»/«anotaciones» nunca casan (descubrimiento de la
+    // auditoría pedida en la «próxima prioridad» de c.969 — sonda PRE 9/9 GAP).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?)\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
+    private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
         if (!TAKE_NOTE_PREFIX.containsMatchIn(trimmed)) return null
         val content = TAKE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+            ?: JOT_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
         return if (content.isNullOrEmpty()) {
             AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
         } else {
