@@ -1121,12 +1121,20 @@ object AssistantEngine {
     // «-melo» — «escríbemelo:/apúntemelo:/anótamelo: …» EXIGE «:» (el prefijo
     // usa lookahead «:» o fin de frase: «escríbemelo mañana»/«apúntemelo en la
     // lista» ni siquiera entran en la rama — quedan en el menú, no secuestran).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]bemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)(?=\\s*:|\\s*$))\\b")
+    // c.984: cierra la familia «-melo» (lateral BACKLOG descubierta c.981 —
+    // sonda PRE 6/6 GAP al menú): (a) fusión de «guarda» — «guárdamelo/
+    // guardamelo: …» (tú), simétrica de c.980(b); (b) formas de usted —
+    // «guárdemelo/guardemelo: …» y «escríbamelo/escribamelo: …» («apúntemelo»/
+    // «anótamelo» ya quedaron cubiertas por el [ae] de c.980). El vocalismo
+    // [ae] de «guarda» cubre tú+usted en una sola alternativa; el lookahead
+    // «:»/fin sigue exigiéndose, así «guárdamelo mañana»/«escríbamelo bonito»
+    // nunca entran en la rama.
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$))\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
     private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
     private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
-    private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]bemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)\\s*:\\s*(.+)$")
+    private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
