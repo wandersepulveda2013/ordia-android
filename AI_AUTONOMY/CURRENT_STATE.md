@@ -1,3 +1,10 @@
+## Ciclo c.960 (2026-08-25 acumulativo) — fix(context): residuo «en la» tras franja blanda — «Avisar en la» (familia «en» hermana de «por» c.688)
+
+- HEAD inicial: `361dfb5` (c.959 committed+pushed). Descubrimiento inmediato en el mismo run con sonda de barrido de conectores.
+- Medida: «en la mañana/tarde/noche» → 'TITLE=…en la' P2 visible; la plural «en las mañanas» no se despojaba. Guards contenido («en la entrada»/«en las montañas») y regresión «por la mañana» + canónica c.959 intactas.
+- Fix 1 punto: alternancia `(?:por|en)` en `bandTail`. RED exacto (6668 run, 6 fallos = capturas) → GREEN 8/8. Suite FINAL **OK (6668 = 6660 + 8)**. Smokes 25/25 y 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room.
+- Cambios: M `ContextIntentEngine.kt`, A `ContextIntentEngineEnLaBandaResidueTest.kt`, M `AI_AUTONOMY/*`. HEAD final: (commit). Next: laterales documentas o auditoría; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.959 (2026-08-24) — fix(context): residuo de conector huérfano en el título canónico («al mediodía»/«a(la) medianoche») — «Recoger el paquete al»
 
 - HEAD inicial: `bc3688b`; integrado el docs-only remoto `980bb01` (marcador STALE_RUN hermano) vía `pull --ff-only` limpio, regiones disjuntas.

@@ -1,3 +1,15 @@
+## Ciclo c.960 (2026-08-25 acumulativo c.959)
+**Título**: fix(context): residuo de conector huérfano «en la » tras despojar franja blanda — «Avisar en la» (familia «en», hermana del «por» c.688).
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `361dfb5` (c.959 committed). **HEAD final**: (commit de este ciclo). Ciclo acumulativo — descubrimiento con sonda de barrido en el mismo run, después de cerrar c.959.
+**Problema (P2 — descubierto con sonda de barrido de conectores)**: «avisar en la mañana/tarde/noche» dejaba el conector huérfano en el título ('Avisar en la'); la plural «en las mañanas» además ni siquiera se despojaba. La rama `bandTail` (c.688, franja blanda) exigía el introductor «por»; «en» comparte el papel introductor con residuo/user-render evidente. Causa raíz: el `bareRelative` cortaba «mañana» primero y el alterno «por» nunca veía el conector resultado.
+**Sondas (efímeras `/tmp/probe960/`, motor real vía `tools/run_probe.sh`)**: barrido sistemático de conectores (4 verbos × 33 anclas) — sólo restos «en la»/«para la» con doble sentido; la plural «para las madrugadas»/«en las madrugadas» también fuera (familia madrugada excluida doctrinal c.688). POST — 9/9 byte-idéntica: el título «Avisar», guards «en la entrada»/«en las montañas» contenido íntegro, regresión «por la mañana» c.688 y canónica c.959 intactas.
+**Fix (1 punto, simétrico)**: `bandTail` de `stripTrailingTemporalResidue` ahora alterna `(?:por|en)` como introductor de franja blanda. Determinista (regex), cero random, cero IA fingida, cero UI.
+**TDD estricto**: test NUEVO `ContextIntentEngineEnLaBandaResidueTest` (8 tests: 6 capturas singular+plural + 2 guards contenido). **RED exacto** (fix stashed, 6668 run, EXACTAMENTE 6 fallos = las 6 capturas; 2 guards verdes desde RED) → **GREEN 8/8** tras `git stash pop`.
+**Tests**: suite FINAL **OK (6668 = 6660 commit c.959 + 8 nuevos)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+**Cambios**: M `ContextIntentEngine.kt` (alternancia + KDoc c.960), A `ContextIntentEngineEnLaBandaResidueTest.kt` (8 tests), M `AI_AUTONOMY/*`. Sondas efímeras `/tmp/probe960/` (NO commiteadas).
+**Laterales medidas FUERA (registradas)**: familia «madrugada» doctrinal fuera del conector («en las madrugadas»/«por la madrugada» — medida FUERA, no se toca); alternativa «para la» temporal (medida FUERA — se trata de suite-canónica, no franja).
+**Próxima prioridad**: laterales documentadas o nueva auditoría — una por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.959 (2026-08-24)
 **Título**: fix(context): residuo de conector huérfano en el título con formas canónicas de hora «al mediodía»/«a(la) medianoche» — «Recoger el paquete al» (P2 calidad de título, barrido de resolución canónica).
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `bc3688b` (docs colisión c.957/c.958). Pre-commit el remoto avanzó a `980bb01` (docs-only del hermano — marcador STALE_RUN-convergido) → `pull --ff-only` limpio, regiones disjuntas (él AI_AUTONOMY, yo engine+test). **HEAD final**: (commit de este ciclo).

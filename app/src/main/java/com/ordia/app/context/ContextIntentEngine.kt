@@ -5003,7 +5003,9 @@ object ContextIntentEngine {
         // cortaba sólo "mañana", y el artículo+preposición quedaban
         // colgando en el título visible).
         // (c.690b: `noches?` cubre el singular "por la noche", caso común.)
-        val bandTail = Regex("""\s*por\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        // (c.960: «en» comparte el papel introductor de franja: «avisar en
+        // la mañana» dejaba 'Avisar en la' en el título — medida con probe.)
+        val bandTail = Regex("""\s*(?:por|en)\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
         // c.839: «para» huérfana tras despojar la fecha de cola
         // («reservar el hotel para el sábado» → despojo de «el sábado»
