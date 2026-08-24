@@ -28,6 +28,7 @@
     <string name="assistant_action_cancel">Descartar tarea</string>
     <string name="assistant_action_reopen">Reabrir tarea</string>
     <string name="assistant_action_restore">Recuperar tarea</string>
+    <string name="assistant_action_priority">Marcar tarea</string>
     <string name="assistant_action_search">Abrir búsqueda</string>
     <string name="search_kind_conversation">CONVERSACIÓN</string>
     <string name="search_kind_commitment">COMPROMISO</string>

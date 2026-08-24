@@ -16914,3 +16914,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Re-verificación sobre la unión: `run_domain_tests.sh` → **OK (7147)**; `run_domain_checks.sh` → 25/25. Objetivo del ciclo (recuperar archivadas confirmable) YA cumplido en la rama.
 - Commits: docs-close c.1005 (este). HEAD final: docs-close c.1005.
 - Próxima prioridad: ARCHIVE/UPDATE-EDIT/subárbol en tests; PRIORITY (requiere capacidad VM primero); ERRAND c.816; delta c.998. Verificar remoto ANTES de implementar laterales anunciadas (colisiones convergentes frecuentes).
+## Ciclo c.1006 (2026-08-24)
+- HEAD inicial: `b0de96a` (docs-close c.1005), sync limpio `pull --ff-only`. Baseline **OK (7147)**, smoke 25/25.
+- Unidad (P1, lateral ABIERTA c.1003/c.1005): orden «marca/pon la tarea <nombre> como importante|urgente|prioridad alta|baja» era robada por la consulta de prioridad (PRE `/tmp/probe1006/PriorityProbe.kt`: 6/6 robadas — mentira por omisión).
+- Implementación: rama `priorityCapture` ANTES de `priorityIntent` (consulta hermana intacta, pin en test) → NUEVO `AssistantAction.SET_PRIORITY` payload `«<id>:<NIVEL>»` + botón «Marcar tarea» que CONFIRMA (NADA se marca en silencio); «pon/poner» exige «tarea» (anti-overreach); matching tokens ⊆ título SOLO pendientes; varias → lista SIN acción; pelada/stopwords puros → guía honesta SIN acción (NUNCA marcar a ciegas, doctrina c.1000); ya-en-nivel → honesto sin acción; negación/pasado/2ª persona disjuntas por ancla ^.
+- Capacidad NUEVA: `OrdiaViewModel.setTaskPriority` (mutex `TaskMutationGate`, re-lee por id, no-op mismo nivel, `updateWidget()`); mapeo paridad consulta (importante→HIGH, urgente→URGENT, alta→HIGH, baja→LOW).
+- TDD: 20 tests `AssistantEnginePriorityCaptureTest.kt` — RED real → 2 fallos depurados con sonda `/tmp/probe1006b/Rx.kt` (bug mío: `PRIORITY_LEVELS` capturante desplazaba índices → `(?:…)`; aserción de test con «» que la consulta no usa → fix del test al contrato real). GREEN final.
+- Verificación: `run_domain_tests.sh` → **OK (7167 = 7147 + 20)**; `run_domain_checks.sh` → 25/25. Wiring `AssistantScreen` (case SET_PRIORITY) + string `assistant_action_priority`. Determinista, cero random, cero IA fingida.
+- Archivos: AssistantEngine.kt, OrdiaViewModel.kt, AssistantScreen.kt, strings_assistant_workspace.xml, AssistantEnginePriorityCaptureTest.kt (nuevo). Eliminados: ninguno.
+- Commits: feat + docs-close (este). HEAD final: docs-close c.1006. **Estado: VERIFIED (JVM). NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: ARCHIVE «archiva la tarea…» (espejo RESTORE c.1004); UPDATE/EDIT; subárbol en tests; ERRAND c.816; delta c.998. Re-fetch OBLIGATORIO pre-push (hermano muy activo).

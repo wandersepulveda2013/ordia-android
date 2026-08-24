@@ -557,6 +557,24 @@ class OrdiaViewModel(
     }
 
     /**
+     * Cambia la prioridad de una tarea sin abrir el editor (acción confirmable
+     * del asistente, c.1006). Persiste de verdad, bajo el mutex compartido con
+     * toggleTask (datos sagrados), y refresca el widget. No-op si el nivel ya
+     * era ese (la pantalla del asistente ya filtra el caso, pero la capacidad
+     * se defiende sola).
+     */
+    fun setTaskPriority(task: TaskEntity, priority: TaskPriority) {
+        viewModelScope.launch {
+            TaskMutationGate.mutex.withLock {
+                val current = taskRepository.get(task.id) ?: return@withLock
+                if (current.priority == priority) return@withLock
+                taskRepository.update(current.copy(priority = priority, updatedAt = System.currentTimeMillis()))
+            }
+            updateWidget()
+        }
+    }
+
+    /**
      * Pospone una tarea a "mañana a la misma hora" sin abrir el editor: acción
      * directa detrás de la sugerencia de posposición cuando el día está
      * saturado. Reusa [TaskRules.deferToNextDay] (regla pura que preserva el

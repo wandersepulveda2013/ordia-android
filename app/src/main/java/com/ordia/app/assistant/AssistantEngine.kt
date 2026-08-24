@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, REOPEN_TASK, RESTORE_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, REOPEN_TASK, RESTORE_TASK, SET_PRIORITY, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -104,6 +104,13 @@ object AssistantEngine {
         // activas con archived = 0, así que las archivadas llegan por su
         // propio parámetro; el botón confirma.
         val restoreCapture = restoreCapture(clean, archivedTasks)
+        // c.1006: captura «marca/pon la tarea … como importante» (lateral
+        // PRIORITY). Debe evaluarse ANTES de la consulta de prioridad
+        // (priorityIntent): PRE medido con la sonda /tmp/probe1006 — las 6
+        // variantes de marcado caían ahí y respondían «No tienes tareas
+        // marcadas como importantes.» a una ORDEN de acción (robo de rama,
+        // misma doctrina que c.991 recordatorios / c.999 posponer).
+        val priorityCapture = priorityCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -658,6 +665,12 @@ object AssistantEngine {
             // "tareas de 15 minutos": "no tienes urgentes" frente a una
             // promesa vencida es mentira por omisión); con coincidencias anexa
             // la cola de conteo (overdueCommitmentTail).
+            // c.1006: la ORDEN de marcado gana a la CONSULTA (robo de rama
+            // medido con la sonda /tmp/probe1006: 6/6 órdenes respondían la
+            // consulta «No tienes tareas marcadas como importantes.»). Con
+            // coincidencia única → SET_PRIORITY (el botón confirma; NADA se
+            // marca en silencio).
+            priorityCapture != null -> priorityCapture
             priorityIntent != null -> {
                 val (allowed, hitLabel, emptyText) = priorityIntent
                 val hits = WhatNowEngine.ordered(active, now, zone).filter { it.priority in allowed }.take(6)
@@ -1567,6 +1580,116 @@ object AssistantEngine {
             else -> {
                 val task = matches.first()
                 AssistantAnswer("¿Recupero «${task.title}»? Volverá a tu vista principal.", AssistantAction.RESTORE_TASK, task.id.toString(), listOf(task.id))
+            }
+        }
+    }
+
+    // c.1006: «marca/pon la tarea <nombre> como importante|urgente|prioridad
+    // alta|baja» — acción de priorizar la tarea NOMBRADA (lateral PRIORITY
+    // de la sonda de capturas c.1002). PRE medido con la sonda efímera
+    // /tmp/probe1006/PriorityProbe.kt (base b0de96a): las 6 variantes de
+    // marcado caían en la CONSULTA de prioridad y respondían «No tienes
+    // tareas marcadas como importantes.» a una ORDEN de acción — robo de
+    // rama (misma doctrina que c.991 setReminderCapture y c.999
+    // postponeCapture: la captura imperativa debe evaluarse ANTES que su
+    // consulta hermana). Hermana de markDoneCapture/postponeCapture: tokens
+    // significativos del contenido ⊆ tokens del título, mismas stopwords.
+    // NADA se marca en silencio: el botón confirma vía vm.setTaskPriority
+    // (capacidad real: persiste la prioridad y refresca el widget). Solo se
+    // ofrecen tareas PENDIENTES no archivadas (una completada no necesita
+    // prioridad; una archivada no se marca a ciegas). Cero → guía honesta;
+    // varias → lista honesta SIN acción; pelada o de stopwords puros →
+    // guía honesta SIN acción (doctrina c.1000); si la candidata ya tiene
+    // ese nivel → honesto SIN acción. El ancla ^ en imperativo/infinitivo
+    // disjunta la negación («no marques…»), el pasado («ya marqué…») y la
+    // 2ª persona («¿marcaste…?»). Los verbos «pon/poner» exigen la palabra
+    // «tarea» (anti-overreach: «pon la mesa» NUNCA entra; solo entra si la
+    // tarea nombrada existe). Mapeo paridad con priorityIntent (consulta
+    // hermana): importante → HIGH (nivel alto no urgente), urgente → URGENT,
+    // «prioridad alta» → HIGH, «prioridad baja» → LOW. El payload lleva
+    // «<id>:<NIVEL>» (la pantalla resuelve la tarea por id y aplica el
+    // nivel con vm.setTaskPriority).
+    // Grupo NO capturante: los índices de captura de los regex de abajo
+    // asumen que el nivel es 1 grupo, no 2 (sonda /tmp/probe1006b/Rx.kt).
+    private val PRIORITY_LEVELS = "(?:importante|urgente|prioridad\\s+alta|prioridad\\s+baja)"
+    private val PRIORITY_MARCAR_LEVEL_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
+    private val PRIORITY_MARCAR_PREFIX_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val PRIORITY_MARCAR_SUFFIX = Regex("(?i)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
+    private val PRIORITY_PON_LEVEL_PREFIX = Regex("(?i)^pon(?:er)?(?:le)?\\s+(prioridad\\s+(?:alta|baja))(?:\\s|:|$)")
+    private val PRIORITY_PON_SUFFIX_LEVEL = Regex("(?i)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(?:como|en)\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
+    private val PRIORITY_PON_FIRST = Regex("(?i)^pon(?:er)?(?:le)?\\s+(prioridad\\s+alta|prioridad\\s+baja)\\s+a\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s*[.!?]?$")
+    private val PRIORITY_PON_SUFFIX = Regex("(?i)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s+(?:como|en)\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
+
+    private fun priorityLevelOf(level: String): TaskPriority {
+        val folded = level.lowercase().replace(Regex("\\s+"), " ")
+        return when (folded) {
+            "urgente" -> TaskPriority.URGENT
+            "prioridad baja" -> TaskPriority.LOW
+            else -> TaskPriority.HIGH // «importante» y «prioridad alta»: el nivel alto no urgente.
+        }
+    }
+
+    // Frase del nivel para guías y confirmaciones («como importante» /
+    // «en prioridad alta»), espejo del mapeo anterior.
+    private fun priorityLevelPhrase(level: String): String =
+        if (level.lowercase().startsWith("prioridad")) "en ${level.lowercase().replace(Regex("\\s+"), " ")}"
+        else "como ${level.lowercase()}"
+
+    private fun priorityCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        var level: String? = null
+        var content = PRIORITY_MARCAR_PREFIX_CONTENT.matchEntire(trimmed)?.let {
+            level = it.groupValues[1]; it.groupValues[2]
+        } ?: PRIORITY_MARCAR_SUFFIX.matchEntire(trimmed)?.let {
+            level = it.groupValues[2]; it.groupValues[1]
+        } ?: PRIORITY_PON_FIRST.matchEntire(trimmed)?.let {
+            level = it.groupValues[1]; it.groupValues[2]
+        } ?: PRIORITY_PON_SUFFIX.matchEntire(trimmed)?.let {
+            level = it.groupValues[2]; it.groupValues[1]
+        }
+        content = content?.trim()?.trimEnd('.', '!', '?')
+        if (content.isNullOrEmpty()) {
+            // NUNCA marcar a ciegas: guía honesta SIN acción. El nivel se
+            // extrae del prefijo para que la guía lo nombre.
+            val marcarLevel = PRIORITY_MARCAR_LEVEL_PREFIX.find(trimmed)?.groupValues?.get(1)
+            val ponLevel = PRIORITY_PON_LEVEL_PREFIX.find(trimmed)?.groupValues?.get(1)
+                ?: PRIORITY_PON_SUFFIX_LEVEL.find(trimmed)?.groupValues?.get(1)
+            if (marcarLevel == null && ponLevel == null) return null
+            return AssistantAnswer(when {
+                marcarLevel != null ->
+                    "¿Qué tarea marco ${priorityLevelPhrase(marcarLevel)}? Escríbela y la preparo."
+                ponLevel != null ->
+                    "¿Qué tarea pongo ${priorityLevelPhrase(ponLevel)}? Escríbela tras «pon la tarea … $ponLevel» y la preparo."
+                else -> "¿Qué tarea marco? Escríbela tras «marca la tarea … como importante» y la preparo."
+            })
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val livingLevel = level ?: return null
+        if (wanted.isEmpty()) {
+            // Stopwords puros («marca la tarea como importante»): NUNCA
+            // marcar a ciegas — guía honesta SIN acción (doctrina c.1000).
+            return AssistantAnswer("¿Qué tarea marco ${priorityLevelPhrase(livingLevel)}? Escríbela y la preparo.")
+        }
+        val matches = tasks.filter { task ->
+            !task.completed && !task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea pendiente que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas pendientes que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                val target = priorityLevelOf(livingLevel)
+                if (task.priority == target) {
+                    AssistantAnswer("«${task.title}» ya está ${priorityLevelPhrase(livingLevel)}.")
+                } else {
+                    AssistantAnswer(
+                        "¿Marco «${task.title}» ${priorityLevelPhrase(livingLevel)}?",
+                        AssistantAction.SET_PRIORITY, "${task.id}:${target.name}", listOf(task.id)
+                    )
+                }
             }
         }
     }

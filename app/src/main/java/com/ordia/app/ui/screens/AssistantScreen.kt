@@ -35,6 +35,7 @@ import com.ordia.app.R
 import com.ordia.app.assistant.AssistantAction
 import com.ordia.app.assistant.AssistantAnswer
 import com.ordia.app.assistant.AssistantEngine
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.LearningEngine
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
@@ -151,6 +152,15 @@ fun AssistantScreen(
                                     // se restaura por id directo: vm.restoreArchived la
                                     // devuelve y REARMA sus recordatorios (c.225).
                                     AssistantAction.RESTORE_TASK -> answer.actionPayload.toLongOrNull()?.let { vm.restoreArchived("task", it) }
+                                    // c.1006: «marca/pon la tarea … como importante» — payload
+                                    // «<id>:<NIVEL>»; el botón confirma (NUNCA marcado en
+                                    // silencio). vm.setTaskPriority persiste y refresca el widget.
+                                    AssistantAction.SET_PRIORITY -> answer.actionPayload.split(':').let { parts ->
+                                        parts.getOrNull(0)?.toLongOrNull()?.let(state::task)?.let { task ->
+                                            parts.getOrNull(1)?.let { level -> runCatching { TaskPriority.valueOf(level) }.getOrNull() }
+                                                ?.let { priority -> vm.setTaskPriority(task, priority) }
+                                        }
+                                    }
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -178,6 +188,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.DELETE_TASK -> stringResource(R.string.assistant_action_delete)
     AssistantAction.REOPEN_TASK -> stringResource(R.string.assistant_action_reopen)
     AssistantAction.RESTORE_TASK -> stringResource(R.string.assistant_action_restore)
+    AssistantAction.SET_PRIORITY -> stringResource(R.string.assistant_action_priority)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }
