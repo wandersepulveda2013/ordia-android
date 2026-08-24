@@ -14858,3 +14858,22 @@ byte-idénticos; persistente: cerradas 13, laterales 0 (+5 pins). Smoke
 «marca <tarea> como importante» (requiere capacidad de mutación de
 prioridad en el VM antes de la captura). Próxima prioridad: UNA lateral
 por ciclo con medida previa.
+
+### Último ciclo: c.1018 (2026-08-24)
+Candidata (e) — ÚLTIMA de la fila clase DÉCIMA mascotas c.1007: piso
+sinónimo «pasear al perro» HOUSEHOLD (hermano de «sacar al perro» c.740,
+con la alternancia de artículo directo c.756 heredada: «pasear la perra»).
+NULL PRE medido 6/6 (sonda efímera /tmp/probe1017/Probe.kt sobre HEAD
+9920a22). Lockstep 3 puntos (piso + cláusula de negación dedicada +
+plantilla de título; CERO keywords nuevas — «pasear» es bivalente y NO se
+añade como keyword). TDD: RED exacto 7 fallos (7 capturas) → GREEN 19/19;
+suite UNIÓN OK (7369 = 7350 suyo + 19 míos); smoke 25/25. Sonda POST:
+6/6 capturas HIT (títulos limpios, dueAt correcto), 8/8 guards NULL
+(negación ×2, pasado, duda, nominalización, bebé, «salir a pasear», gato),
+8/8 regresiones HIT byte-idénticas. Laterales ABIERTAS: «pasear al gato»
+FUERA pineado; cola relativa «después de cenar» queda en el título
+(byte-idéntico al hermano c.740 — depuración de colas relativas es
+lateral de TODA la familia de pisos, no de esta unidad). Fila DÉCIMA
+AGOTADA (S/a/b/c/d/e RESUELTAS): próxima auditoría de descubrimiento =
+clase UNDÉCIMA (nueva sonda persistida, convención c.822/c.1007).
+NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
