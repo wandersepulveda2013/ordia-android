@@ -33,6 +33,9 @@ import org.junit.Test
  *  y «avisar a las primeras horas» (artículo plural «las»: otra forma).
  *  [c.933: la lateral del artículo plural se RESUELVE en c.933 — ver
  *  NaturalTaskParserALasOrdinalHoraTest; el pin queda re-pinneado abajo.]
+ *  [c.965: la lateral del artículo huérfano se RESUELVE en c.965 — el
+ *  artículo/conector que precede a la ocurrencia ancla se consume con ella
+ *  en `eraseOrdinalHoraToken`; el pin queda re-pinneado abajo.]
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserALaOrdinalHoraTest {
@@ -110,10 +113,14 @@ class NaturalTaskParserALaOrdinalHoraTest {
         assertEquals("la primera hora de clase fue aburrida", r.title)
     }
 
-    // ---- Pins de alcance: laterales FUERA, byte-idénticas al PRE ----
+    // ---- Pin de alcance: lateral resuelta en c.965 ----
 
     @Test fun avisarLaUltimaHora_pinObjetoSinConector() =
-        assertDueAt("avisar la última hora", 18, "avisar la")
+        // Re-pin legítimo c.965: el artículo huérfano «la» se consume junto
+        // con la ocurrencia ancla borrada (eraseOrdinalHoraToken) — su único
+        // referente era el ancla. La captura completa vive en
+        // NaturalTaskParserALasOrdinalHoraTest.
+        assertDueAt("avisar la última hora", 18, "avisar")
 
     @Test fun avisarALasPrimerasHoras_pinArticuloPlural() =
         // Re-pin legítimo c.933: la lateral (artículo plural «a las») se

@@ -81,27 +81,32 @@ class NaturalTaskParserGenitivoInteriorNarrativoTest {
     // ---- Guards: anclas (byte-idénticos a la medida PRE) ----
 
     @Test fun sinPredicadoTrasWeekday_pinBivalente() =
+        // Re-pin legítimo c.965: el artículo huérfano se consume con el ancla
+        // y el título queda vacío → fallback resucita el original íntegro.
         assertDueAt(
             "las primeras horas de la noche del sábado",
-            LocalDate.of(2026, 8, 29), 21, "las"
+            LocalDate.of(2026, 8, 29), 21, "las primeras horas de la noche del sábado"
         )
 
     @Test fun weekdayConModificadorQueViene_pinBivalente() =
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         assertDueAt(
             "las primeras horas de la noche del sábado que viene fue tranquila",
-            LocalDate.of(2026, 8, 29), 21, "las fue tranquila"
+            LocalDate.of(2026, 8, 29), 21, "fue tranquila"
         )
 
     @Test fun verboPrecedente_pinBivalente() =
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         assertDueAt(
             "avisar las primeras horas de la noche del sábado",
-            LocalDate.of(2026, 8, 29), 21, "avisar las"
+            LocalDate.of(2026, 8, 29), 21, "avisar"
         )
 
     @Test fun verboYClausula_pinBivalente() =
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         assertDueAt(
             "quiero las primeras horas de la noche del sábado para estudiar",
-            LocalDate.of(2026, 8, 29), 21, "quiero las para estudiar"
+            LocalDate.of(2026, 8, 29), 21, "quiero para estudiar"
         )
 
     // ---- Regresiones: doctrinas hermanas intactas ----

@@ -28,8 +28,12 @@ import org.junit.Test
  *      consumir «a las» en el match: el chequeo «a la» pasa a «a las?».
  * La resolución y el borrado del título fluyen del mismo patrón/guard
  * (fecha y título nunca divergen, doctrina c.930).
- * FUERA (lateral registrada, byte-idéntica — pin de alcance abajo):
- * «avisar la última hora» (objeto sin conector: residuo «la» preexistente).
+ * c.965: la lateral FUERA de arriba se RESUELVE — el artículo (con conector
+ * «en/para/por/de» opcional) que precede DIRECTAMENTE a una ocurrencia ancla
+ * borrada es residuo puro y se consume con ella en `eraseOrdinalHoraToken`
+ * («avisar la última hora» → 'avisar', «llegar en la última hora» → 'llegar').
+ * Las ocurrencias de contenido (guard H2/H3) se preservan antes, así que el
+ * artículo narrativo («la última hora del partido») está a salvo.
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserALasOrdinalHoraTest {
@@ -132,8 +136,38 @@ class NaturalTaskParserALasOrdinalHoraTest {
         assertEquals("terminar", r.title)
     }
 
-    // ---- Pin de alcance: lateral FUERA, byte-idéntica al PRE ----
+    // ---- Capturas c.965: artículo/conector huérfano consumido con el ancla ----
+
+    @Test fun avisarLasUltimasHoras_articuloHuerfanoConsumido() =
+        assertDueAt("avisar las últimas horas", 18, "avisar")
+
+    @Test fun avisarLasPrimerasHoras_articuloHuerfanoConsumido() =
+        assertDueAt("avisar las primeras horas", 9, "avisar")
+
+    @Test fun llegarEnLaUltimaHora_conectorEnConsumido() =
+        assertDueAt("llegar en la última hora", 18, "llegar")
+
+    @Test fun avisarParaLaUltimaHora_conectorParaConsumido() =
+        assertDueAt("avisar para la última hora", 18, "avisar")
+
+    @Test fun avisarLaUltimaHoraDeLaTarde_sufijoFranjaYArticuloConsumidos() =
+        assertDueAt("avisar la última hora de la tarde", 15, "avisar")
+
+    @Test fun avisarMayusculasLaUltimaHora_articuloHuerfanoConsumido() =
+        assertDueAt("avisar LA última hora", 18, "avisar")
+
+    @Test fun avisarLaUltimaHoraYLlamarAPrimeraHora_dobleAnclaLimpia() =
+        assertDueAt("avisar la última hora y llamar a primera hora", 9, "avisar y llamar")
+
+    @Test fun pagarlaUltimaHora_pronombrePegadoIntacto() =
+        // «la» pegada al verbo es pronombre de contenido, NO artículo huérfano.
+        assertDueAt("pagarla última hora", 18, "pagarla")
+
+    // ---- Pin de alcance: lateral resuelta en c.965 ----
 
     @Test fun avisarLaUltimaHora_pinObjetoSinConector() =
-        assertDueAt("avisar la última hora", 18, "avisar la")
+        // Re-pin legítimo c.965: el artículo huérfano «la» se consume junto
+        // con la ocurrencia ancla borrada (eraseOrdinalHoraToken) — su único
+        // referente era el ancla.
+        assertDueAt("avisar la última hora", 18, "avisar")
 }

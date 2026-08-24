@@ -145,16 +145,19 @@ class NaturalTaskParserOrdinalHoraGenitivoGobernadoTest {
     @Test fun lasPrimerasHorasDeLaManana_sinPredicadoBivalentePin() {
         // Sin predicado a continuación: forma bivalente (¿objeto? ¿ancla
         // truncada?), doctrina c.931 — NO se protege. Pin de alcance.
+        // Re-pin legítimo c.965: el artículo huérfano se consume con el ancla
+        // y el título queda vacío → fallback resucita el original íntegro.
         val r = parse("las primeras horas de la mañana")
-        assertEquals("las", r.title)
+        assertEquals("las primeras horas de la mañana", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
     @Test fun avisarLasPrimerasHorasDeLaManana_verboPrecedentePin() {
         // Verbo precedente: el ordinal es objeto bivalente (doctrina c.931,
         // hermana de «avisar la última hora») — NO se protege. Pin de alcance.
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         val r = parse("avisar las primeras horas de la mañana")
-        assertEquals("avisar las", r.title)
+        assertEquals("avisar", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 

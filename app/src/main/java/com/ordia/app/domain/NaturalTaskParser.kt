@@ -8307,10 +8307,28 @@ object NaturalTaskParser {
                 }
             }
             isFirst = false
-            result = result.removeRange(m.range.first, m.range.last + 1)
-            idx = m.range.first
+            // c.965: la cadena «(en|para|por|de) la/las» que precede DIRECTAMENTE
+            // a la ocurrencia ancla borrada es residuo puro — su único referente
+            // era el ancla que se acaba de consumir («avisar la última hora» →
+            // 'avisar', no 'avisar la'; «llegar en la última hora» → 'llegar').
+            // Las ocurrencias de CONTENIDO se preservan antes (continue), así que
+            // el artículo de contenido («la última hora del partido») está a salvo.
+            val orphan = ordinalHoraOrphanArticlePattern
+                .find(result.substring(0, m.range.first))
+            val removeStart = orphan?.range?.first ?: m.range.first
+            result = result.removeRange(removeStart, m.range.last + 1)
+            idx = removeStart
         }
     }
+
+    /**
+     * c.965: artículo (con conector opcional) huérfano inmediatamente ANTES de una
+     * ocurrencia ancla de ordinal de hora borrada por [eraseOrdinalHoraToken].
+     * Exige límite de palabra real (`^` o espacio) para no tocar «la» pegada a un
+     * pronombre («pagarla última hora» conserva «pagarla»).
+     */
+    private val ordinalHoraOrphanArticlePattern =
+        Regex("""(?i)(?:^|\s)(?:(?:en|para|por|de)\s+)?las?\s+$""")
 
     /**
      * c.932: borra del título las apariciones de parte del día suelta y

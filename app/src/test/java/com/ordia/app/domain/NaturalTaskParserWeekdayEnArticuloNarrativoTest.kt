@@ -90,25 +90,34 @@ class NaturalTaskParserWeekdayEnArticuloNarrativoTest {
     // ---- Guards bivalentes: doctrina ancla vigente (byte-idénticos) ----
 
     @Test fun avisarEnLaPrimeraHoraDelLunes_sigueAncla() =
-        assertDueAt("avisar en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "avisar en la")
+        // Re-pin legítimo c.965: «en la» huérfano consumido con el ancla.
+        assertDueAt("avisar en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "avisar")
 
     @Test fun reunionEnLaPrimeraHoraDelLunes_sigueAncla() =
-        assertDueAt("reunión en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "reunión en la")
+        // Re-pin legítimo c.965: «en la» huérfano consumido con el ancla.
+        assertDueAt("reunión en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "reunión")
 
     @Test fun enLaPrimeraHoraDelLunesSinPredicado_sigueAncla() =
-        assertDueAt("en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "en la")
+        // Re-pin legítimo c.965: «en la» consumido y título vacío → fallback
+        // resucita el original íntegro.
+        assertDueAt("en la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "en la primera hora del lunes")
 
     @Test fun enLaPrimeraHoraDelLunesQueViene_sigueAncla() =
-        assertDueAt("en la primera hora del lunes que viene me quedé dormido", LocalDate.of(2026, 8, 24), 9, "en la me quedé dormido")
+        // Re-pin legítimo c.965: «en la» huérfano consumido con el ancla.
+        assertDueAt("en la primera hora del lunes que viene me quedé dormido", LocalDate.of(2026, 8, 24), 9, "me quedé dormido")
 
     @Test fun enLaPrimeraHoraDeLaNocheDelSabadoSinPredicado_sigueAncla() =
-        assertDueAt("en la primera hora de la noche del sábado", LocalDate.of(2026, 8, 29), 21, "en la")
+        // Re-pin legítimo c.965: «en la» consumido y título vacío → fallback
+        // resucita el original íntegro.
+        assertDueAt("en la primera hora de la noche del sábado", LocalDate.of(2026, 8, 29), 21, "en la primera hora de la noche del sábado")
 
     @Test fun quieroEnLaPrimeraHoraDelLunesMeAvies_sigueAnclaConVerboPrecedente() =
-        assertDueAt("quiero en la primera hora del lunes me avises", LocalDate.of(2026, 8, 24), 9, "quiero en la me avises")
+        // Re-pin legítimo c.965: «en la» huérfano consumido con el ancla.
+        assertDueAt("quiero en la primera hora del lunes me avises", LocalDate.of(2026, 8, 24), 9, "quiero me avises")
 
     @Test fun creoQueEnLaPrimeraHoraDelLunes_sigueAnclaConClausulaPrecedente() =
-        assertDueAt("creo que en la primera hora del lunes me quedé dormido", LocalDate.of(2026, 8, 24), 9, "creo que en la me quedé dormido")
+        // Re-pin legítimo c.965: «en la» huérfano consumido con el ancla.
+        assertDueAt("creo que en la primera hora del lunes me quedé dormido", LocalDate.of(2026, 8, 24), 9, "creo que me quedé dormido")
 
     // ---- Regresiones: doctrinas vigentes byte-idénticas ----
 

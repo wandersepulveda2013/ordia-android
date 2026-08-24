@@ -133,9 +133,13 @@ class NaturalTaskParserWeekdayEnSinArticuloNarrativoTest {
         assertDueAt("avisar a la última hora", LocalDate.of(2026, 8, 23), 18, "avisar")
 
     // ---- Pines de laterales FUERA: BYTE-IDÉNTICOS (conducta vigente) ----
+    // [c.965: la lateral «avisar la última hora» se resuelve — re-pin abajo.
+    //  Las laterales «en primera hora…» (sin artículo) siguen vigentes.]
 
     @Test fun avisarLaUltimaHora_pinLateralFuera() =
-        assertDueAt("avisar la última hora", LocalDate.of(2026, 8, 23), 18, "avisar la")
+        // Re-pin legítimo c.965: la lateral se resuelve — el artículo huérfano
+        // «la» se consume con la ocurrencia ancla (eraseOrdinalHoraToken).
+        assertDueAt("avisar la última hora", LocalDate.of(2026, 8, 23), 18, "avisar")
 
     // H3 sin determinante con «en»: bivalente real (pasado narrativo vs
     // comando imperativo indistinguibles por regex) — pin conservador.

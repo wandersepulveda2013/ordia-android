@@ -86,19 +86,26 @@ class NaturalTaskParserWeekdayGenitivoDirectoArticuloNarrativoTest {
     // ---- Guards bivalentes: siguen ancla (byte-idénticos) ----
 
     @Test fun articuloSinPredicadoTrasWeekday_pinBivalente() =
-        assertDueAt("la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "la")
+        // Re-pin legítimo c.965: artículo huérfano consumido y título vacío →
+        // fallback resucita el original íntegro.
+        assertDueAt("la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "la primera hora del lunes")
 
     @Test fun articuloWeekdayQueViene_pinBivalente() =
-        assertDueAt("la primera hora del lunes que viene", LocalDate.of(2026, 8, 24), 9, "la")
+        // Re-pin legítimo c.965: artículo huérfano consumido y título vacío →
+        // fallback resucita el original íntegro.
+        assertDueAt("la primera hora del lunes que viene", LocalDate.of(2026, 8, 24), 9, "la primera hora del lunes que viene")
 
     @Test fun verboMasArticuloSinPredicado_pinBivalente() =
-        assertDueAt("avisar la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "avisar la")
+        // Re-pin legítimo c.965: artículo huérfano «la» consumido con el ancla.
+        assertDueAt("avisar la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "avisar")
 
     @Test fun verboMasArticuloConPredicado_pinBivalente() =
-        assertDueAt("quiero la primera hora del lunes para estudiar", LocalDate.of(2026, 8, 24), 9, "quiero la para estudiar")
+        // Re-pin legítimo c.965: artículo huérfano «la» consumido con el ancla.
+        assertDueAt("quiero la primera hora del lunes para estudiar", LocalDate.of(2026, 8, 24), 9, "quiero para estudiar")
 
     @Test fun verboPrefieroMasArticulo_pinBivalente() =
-        assertDueAt("prefiero la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "prefiero la")
+        // Re-pin legítimo c.965: artículo huérfano «la» consumido con el ancla.
+        assertDueAt("prefiero la primera hora del lunes", LocalDate.of(2026, 8, 24), 9, "prefiero")
 
     // ---- Guards ancla hermanos (byte-idénticos) ----
 

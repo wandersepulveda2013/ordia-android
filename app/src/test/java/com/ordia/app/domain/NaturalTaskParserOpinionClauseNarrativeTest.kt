@@ -106,20 +106,23 @@ class NaturalTaskParserOpinionClauseNarrativeTest {
     @Test fun creoQueLasPrimerasHorasDeLaManana_sinPredicadoSigueBivalente() {
         // Sin predicado a continuación el nominal es bivalente (fragmento) —
         // doctrina conservadora c.932, NO se protege. Pin de alcance.
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         val r = parse("creo que las primeras horas de la mañana")
-        assertEquals("creo que las", r.title)
+        assertEquals("creo que", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
     @Test fun avisarLasPrimerasHorasDeLaManana_verboNoOpinionSigueBivalente() {
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         val r = parse("avisar las primeras horas de la mañana")
-        assertEquals("avisar las", r.title)
+        assertEquals("avisar", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
     @Test fun quieroTrabajarLasPrimerasHoras_verboNoOpinionSigueBivalente() {
+        // Re-pin legítimo c.965: artículo huérfano «las» consumido con el ancla.
         val r = parse("quiero trabajar las primeras horas de la mañana")
-        assertEquals("quiero trabajar las", r.title)
+        assertEquals("quiero trabajar", r.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
