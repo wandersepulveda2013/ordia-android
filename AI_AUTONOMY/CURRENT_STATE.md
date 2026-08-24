@@ -41,6 +41,17 @@
 - **Próxima prioridad:** laterales ABIERTAS (UNA por ciclo): clíticos múltiples «ya me lo pagó»; «ya, <narrativa>» con coma; genitivos «desde/hasta/de ayer» (c.957); auditoría clase UNDÉCIMA (registrada por SU c.1020/c.1021); alinear texto «borra» con conducta real (registrada por SU c.1021); plural «los pelos» (c.842). Re-fetch OBLIGATORIO pre-implementación y pre-push.
 
 ## Ciclo c.1019 (2026-08-24) — fix(parser): delta UNIÓN sobre H4 c.1016 — «a la/las primeras?/últimas? horas?» + pretérito inequívoco → narrativa intacta
+## Ciclo c.1023 (2026-08-24, este lado, DISJUNTO parser) [renumerado c.1017→c.1019→c.1020→c.1021→c.1022→c.1023 por SÉXTUPLE asignación del cycle-ID durante los re-fetch — ver RUN_LOG c.1023]
+- HEAD inicial: `9920a228` (mi docs-close c.1016, PUSHED). Sync limpio `pull --ff-only`; re-fetch pre-implementación y pre-push: el hermano publicó c.1017/c.1018/c.1019/c.1020/c.1021/c.1022 durante mi TDD (renumeraciones sucesivas, evidencia en RUN_LOG).
+- Unidad (P1 — compromiso falso + contenido mutilado; lateral registrada FUERA en el test de c.1016, UNA por ciclo): «me quedé dormido a primera hora» / «sonó la alarma a primera hora» — ordinal «a» tras cláusula narrativa en pretérito CON complemento: nacía con fecha FALSA ya pasada y título mutilado.
+- Fix mínimo (1 punto): extensión H5 de la rama prefijo de `ordinalHoraOccurrenceIsPreteriteNarrative` — prefijo ABRE con pretérito inequívoco, complemento sin infinitivo/«que» (anti-compromiso-embebido), idiom «quedar con» excluido (3 regexes: `ordinalHoraPreteriteNarrativePrefixHead` + `ordinalHoraEmbeddedCommandToken` + guard).
+- TDD estricto: 36 tests nuevos `NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest.kt` (15 capturas + 11 guards + 4 regresiones + 6 re-pins/articulo) — RED exacto 13 → GREEN 36/36; 3 re-pins convergentes tras la UNIÓN con c.1019-hermano (delta «a la/las»): con-artículo = sin-artículo, misma evidencia narrativa.
+- Integración: push rechazado por SU c.1022 (`1980dc77` + UNIÓN `9922a69f`) → `pull --rebase` no destructivo, conflictos SOLO AI_AUTONOMY resueltos UNIÓN preservando AMBOS lados (dedupe fila idéntica, heading vacío duplicado eliminado, heading obsoleto renombrado); fix reaplicado como `fc3f5c8c`.
+- Verificación: suite FINAL REAL sobre la UNIÓN rebaseada **OK (7455 = 7419 hermano [7409 + 10 su delta] + 36 míos — aritmética exacta)**; smoke 25/25; automation 9/9. Determinista (regex), cero random, cero IA fingida, cero UI.
+- **Archivos:** `NaturalTaskParser.kt` (H5: 3 regexes + rama prefijo); `NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest.kt` (nuevo); docs AI_AUTONOMY.
+- **Estado: VERIFIED (JVM).** **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad:** laterales parser ABIERTAS (UNA por ciclo, medida previa): «ya <pretérito>» narrativa (regla de inmediatez «ya» ancla a AHORA — medida SU c.1019) u otra lateral del BACKLOG; UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 - HEAD inicial: `9920a22` (fix c.1016 del hermano), sync limpio tras COLISIÓN convergente: este run tenía la lateral MADRE completa implementada (sin commitear) cuando el hermano publicó SUS c.1014/c.1015/c.1016; integración NO-destructiva (`checkout --` del parser + `pull --ff-only` + delta re-aplicado). Renumeración c.1014→c.1017→c.1018→c.1019 (TERCERA colisión cycle-ID del run: SU c.1017 «desparasitar al perro/gato» `d8a815e`+`f339c4a` y SU c.1018 «pasear al perro» `23b2761`+`171e448`, ambos contexto, llegaron en los re-fetch pre-push; regiones DISJUNTAS parser/context; fila DÉCIMA AGOTADA por el hermano). NO force, NO reset --hard, NO `main`. Toolchain heredada /tmp.
 - Unidad (P1, lateral FUERA de SU c.1016): «a la primera hora vino el técnico» / «a las primeras horas empezó la reunión» / «llegué a la primera hora» nacían con fecha FALSA ya PASADA (hoy 09:00/18:00) Y título MUTILADO — doble daño P1 (4/4 PRE, sonda efímera `/tmp/probe1014/Probe4.kt` sobre `9920a22`).
 - Fix mínimo (1 punto): rama «a» CON artículo de `ordinalHoraOccurrenceIsContent` — la MISMA evidencia H4 (`ordinalHoraOccurrenceIsPreteriteNarrative`: pretérito inequívoco adyacente, lista cerrada c.950) declara la aparición CONTENIDO narrativo. Fecha y título fluyen del mismo predicado (nunca divergen).
@@ -14984,7 +14995,7 @@ NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest — RED exacto
 13 → GREEN 36/36. 3 re-pins convergentes tras la UNIÓN con c.1019-hermano
 (delta «a la/las»): con-artículo = sin-artículo, misma evidencia narrativa.
 Renumerado c.1020→c.1023 por doble colisión cycle-ID (hermano fijó
-c.1020/c.1021/c.1022 durante mi TDD). Suite UNION FINAL OK (7445 = 7409 hermano + 36 mios). NO VERIFICADO Android/gradle/lint/assemble/UI
+c.1020/c.1021/c.1022 durante mi TDD). Suite UNION FINAL REAL sobre la base rebaseada (post c.1022-hermano) OK (7455 = 7419 hermano + 36 mios). NO VERIFICADO Android/gradle/lint/assemble/UI
 (sin SDK).
 
 ### Último ciclo: c.1022 (2026-08-24)
