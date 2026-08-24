@@ -6347,4 +6347,58 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("que tareas tengo de quimica", emptyList(), emptyList(), emptyList())
         assertEquals("contenido cualificado → OPEN_SEARCH", AssistantAction.OPEN_SEARCH, answer.action)
     }
+
+    // c.968 — delta de completitud sobre el fix c.967 (hermano, 68000af):
+    // «quiero ver todas MIS notas» rutea por tokens desde c.967, pero las
+    // variantes con artículo «quiero ver (todas) LAS notas» y «dime LAS
+    // notas» seguían al menú (sonda PRE `/tmp/probe967/DeltaProbe.kt` sobre
+    // 68000af: 3/3 GAP) — asimetría dentro de la misma familia de formas
+    // que c.967 cubrió para «muéstrame/enséñame las notas». Fix: 3 formas
+    // explícitas en ENTITY_LISTING_FORMS («las» no es ruido). Colisión
+    // cycle-ID: este ciclo tomó primero c.967 sobre base obsoleta 10ce7bc;
+    // el hermano publicó su c.967 (misma lateral) → integración NO
+    // destructiva (reset --soft + reconstrucción sobre 68000af, backup
+    // local `backup/c967-local`, SIN force/reset --hard/rebase sobre lo
+    // publicado) conservando sólo el delta no duplicado, renumerado c.968.
+    @Test fun notesListing_quieroVerLasNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver las notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_quieroVerTodasLasNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver todas las notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_dimeLasNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("dime las notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_guard_guardarComoNotaSigueCreateNote() {
+        // CREATE_NOTE se evalúa ANTES en el when: «nota» singular en
+        // ENTITY_LISTING_FORMS (c.967) no debe secuestrarlo.
+        val answer = AssistantEngine.answer("guardar como nota: comprar leche", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("comprar leche", answer.actionPayload)
+    }
+
+    @Test fun notesListing_guard_quieroVerLaNotaSigueEnElMenu() {
+        // «quiero ver la nota» (artículo singular definido) alude a UNA nota
+        // concreta que el asistente no puede conocer: sigue al menú (paridad
+        // con «quiero ver la tarea» de las demás familias).
+        val answer = AssistantEngine.answer("quiero ver la nota", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun notesListing_guard_notaDeVozSigueBusquedaDeContenido() {
+        // «nota de voz» es contenido («de voz» cualifica, c.794): sigue
+        // buscando el contenido, no inventa el listado de la familia.
+        val answer = AssistantEngine.answer("nota de voz", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("nota de voz", answer.actionPayload)
+    }
 }

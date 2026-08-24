@@ -1246,7 +1246,13 @@ object AssistantEngine {
         // notas») necesitan forma explícita porque «el/la/las» no es ruido.
         "nota" to "notas", "la nota" to "notas", "mi nota" to "notas",
         "cuales son mis notas" to "notas", "cuales son las notas" to "notas",
-        "muestrame las notas" to "notas", "ensename las notas" to "notas"
+        "muestrame las notas" to "notas", "ensename las notas" to "notas",
+        // c.968: variantes con artículo de «quiero ver…»/«dime…» (hermanas
+        // de las de arriba — «las» no es ruido). «quiero ver todas MIS
+        // notas» ya rutea por tokens (c.967); «quiero ver todas LAS notas»
+        // caía al menú (sonda PRE `/tmp/probe967/DeltaProbe.kt` 3/3 GAP).
+        "quiero ver las notas" to "notas", "quiero ver todas las notas" to "notas",
+        "dime las notas" to "notas"
     )
     private val ENTITY_LISTING_LABELS = mapOf(
         "habitos" to "los hábitos", "rutinas" to "las rutinas",

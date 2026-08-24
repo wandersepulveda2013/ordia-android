@@ -1,3 +1,9 @@
+## Ciclo c.968 (2026-08-24) — fix(assistant): delta de completitud del listing de notas («quiero ver (todas) las notas», «dime las notas») tras colisión cycle-ID c.967 con el hermano
+
+- HEAD inicial: `10ce7bc`; **colisión real:** c.967 local (`fea1252`, NO publicado) duplicaba la misma lateral que el hermano publicó como `68000af`. Integración NO destructiva: backup local `backup/c967-local`, `reset --soft` + reconstrucción sobre `68000af` (SIN force/reset --hard/rebase sobre lo publicado/`main`); el duplicado queda STALE y se conserva sólo el delta no cubierto, renumerado c.968.
+- Unidad 1 (P2, delta medido): «quiero ver LAS notas», «quiero ver todas LAS notas», «dime LAS notas» seguían al menú (asimetría con «quiero ver todas MIS notas» que c.967 sí cubre por tokens). Sonda PRE `/tmp/probe967/DeltaProbe.kt` sobre 68000af: 3/3 GAP; controles 6/6 HIT; guards 7/7. FIX mínimo: `ENTITY_LISTING_FORMS` += 3 formas («las» no es ruido). TDD: 6 tests (3 capturas + 3 guards) — RED exacto (6724 run, EXACTAMENTE 3 fallos; guards verdes desde RED) → GREEN. Suite FINAL **OK (6724 = 6718 hermano + 6)**; SMOKE-OK 25/25; sonda POST 9/9 HIT + 7/7 guards estables. NO VERIFICADO: gradle/lint/assemble/Android (sin SDK).
+- **Próxima prioridad:** descubrimiento c.967 del hermano (BACKLOG ABIERTO — «la nota de <contenido>» → OPEN_SEARCH íntegra; «tomar nota» → captura) — UNA por ciclo con sonda previa; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.967 (2026-08-24) — fix(assistant): paridad de notas singular/interrogativa/imperativa — «la nota», «cuáles son mis notas», «enséñame mis notas» ya listan vía OPEN_SEARCH «notas»
 
 - HEAD inicial: `10ce7bc` (c.966), sync inicial limpio `pull --ff-only` (sin divergencia; NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain reconstruida en /tmp (JDK Temurin 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`). Baseline verificada: suite **OK (6706)**, smoke 25/25.
