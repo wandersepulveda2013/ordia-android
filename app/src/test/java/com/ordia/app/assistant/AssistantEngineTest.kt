@@ -6093,6 +6093,21 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
+    // c.970 — delta de cobertura tras la colisión con el c.969 del hermano
+    // (que resolvió la misma lateral «la nota de <contenido>» con el MISMO
+    // fix de producción: NOTE_LEAD_ARTICLES += «la»; mis 4 tests hermanos
+    // — «de la reunión», «del trabajo», guards — eran duplicados exactos de
+    // los suyos y se descartaron en la integración NO-destructiva). Este
+    // pin cubre el camino de código que él no testa: conector «de» DESNUDO
+    // («la nota de física» — `rest[0]=="de"` con calificador directo, sin
+    // artículo interior), distinto de «de la reunión» (artículo interior)
+    // y «del médico» (contracción) que él sí pinó.
+    @Test fun notesContent_laNotaDeFisica_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("la nota de física", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("la nota de física", answer.actionPayload)
+    }
+
     // c.796 — residuo (f) de la sonda c.793: la forma sustantiva «búsqueda de
     // <X>» («búsqueda de notas») caía al menú pese a que su verbo hermano
     // «busca» ya ruteaba (y el sustantivo, empleado como token de contenido,
