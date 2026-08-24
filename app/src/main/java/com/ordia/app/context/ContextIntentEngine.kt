@@ -5005,7 +5005,12 @@ object ContextIntentEngine {
         // (c.690b: `noches?` cubre el singular "por la noche", caso común.)
         // (c.960: «en» comparte el papel introductor de franja: «avisar en
         // la mañana» dejaba 'Avisar en la' en el título — medida con probe.)
-        val bandTail = Regex("""\s*(?:por|en)\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        // (c.962: «para» completa la alternancia de introductores blandos:
+        // «avisar para la mañana» dejaba 'Avisar para la' y las formas
+        // singulares/plurales de tarde/noche no se despojaban en absoluto
+        // — medida con probe. El ancla de franja exige mañana/tarde/noche,
+        // así «para el abuelo»/«para la entrada» nunca se tocan.)
+        val bandTail = Regex("""\s*(?:por|en|para)\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
         // c.839: «para» huérfana tras despojar la fecha de cola
         // («reservar el hotel para el sábado» → despojo de «el sábado»
