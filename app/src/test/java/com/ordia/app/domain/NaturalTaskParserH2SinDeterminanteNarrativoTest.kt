@@ -8,7 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.954: narrativa ordinal H2 (genitivo de CONTENIDO tras el match: «de
+ * c.955: narrativa ordinal H2 (genitivo de CONTENIDO tras el match: «de
  * clase», «del partido», «de trabajo») SIN determinante ni «en» al inicio del
  * texto («primera hora de clase me quedé dormido») — lateral medida FUERA en
  * c.950/c.952 (pin byte-idéntico

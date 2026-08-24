@@ -95,11 +95,14 @@ class NaturalTaskParserWeekdayPreteriteNarrativoTest {
             LocalDate.of(2026, 8, 24), 9, "la reunión fue productiva"
         )
 
-    @Test fun elLunesEnLaMananaLlegoElPaquete_parteDelDiaIntercaladaLateralFueraPin() =
-        assertAnchor(
-            "el lunes en la mañana llegó el paquete",
-            LocalDate.of(2026, 8, 24), 9, "llegó el paquete"
-        )
+    // c.954: la lateral «parte del día intercalada» (N3') se midió y pinó como
+    // FUERA en c.950; en c.954 quedó RESUELTA de forma conservadora (sólo
+    // «en la X»/«por la X» entre weekday y pretérito) — el pin de abajo se
+    // actualizó explícitamente a la nueva expectativa (narrativa intacta).
+    // Los conectores «a la X»/«de la X» siguen FUERA con pins propios en
+    // NaturalTaskParserWeekdayPreteriteParteDiaNarrativoTest (c.954).
+    @Test fun elLunesEnLaMananaLlegoElPaquete_parteDelDiaIntercaladaResueltaC954() =
+        assertNarrativeIntact("el lunes en la mañana llegó el paquete")
 
     @Test fun ayerCompreLeche_ayerPreteritoLateralFueraPin() =
         assertAnchor("ayer compré leche", LocalDate.of(2026, 8, 22), 9, "compré leche")
