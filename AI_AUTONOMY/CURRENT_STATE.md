@@ -1,3 +1,10 @@
+## Ciclo c.997 (2026-08-24) — feat(assistant): «marca como hecha/completada <tarea>» → AssistantAction.COMPLETE_TASK confirmable (primera rama de ACCIÓN SOBRE DATOS del asistente) vía sonda DiscoveryProbe
+- HEAD inicial: `e927098` (c.996 docs-close), sync limpio `pull --ff-only` (árbol limpio, HEAD==origin==`e927098` — NO STALE_RUN; re-fetch pre-commit sin avance del hermano). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7025)**, smoke 25/25. [La fase RED/wiring se inició en la sesión previa sobre base anterior; la verificación FINAL completa se rehízo sobre `e927098`.]
+- Unidad (P1, descubrimiento continuo tras cerrar la familia de CREACIÓN en c.996 — la sonda persistente quedó con CERO laterales): nueva ronda con sonda efímera `/tmp/probe997/DiscoveryProbe.kt` (motor real, fixture con tarea completada + archivada + pendientes). PRE medido: 5/6 candidatas de ACCIÓN al menú genérico (action=NONE) — mentira por omisión: la capacidad de completar YA existía (`vm.toggleTask`) pero el asistente no la ofrecía; «pospón …» YA funcionaba (rama existente, paridad «aplaza» queda P2). FIX mínimo: rama `markDoneCapture` hermana de `remindMeCapture` (regex `^m[áa]rca(?:r)?(?:la|lo)?\s+como\s+(?:hech[ao]|completad[ao]|terminad[ao])` + extractor `([^:].*)`; matching de tokens significativos del contenido ⊆ tokens del título plegado con `foldForSearch`, SOLO sobre tareas PENDIENTES) → NUEVO `AssistantAction.COMPLETE_TASK` con el id en payload y botón «Marcar completada» (CONFIRMA — NADA se completa en silencio); cero coincidencias → guía honesta; varias → lista honesta SIN acción (NUNCA completar a ciegas); completadas/archivadas NUNCA se ofrecen; ancla ^ disjunta negación («no marques…») y pasado («ya la marqué…»). Wiring lockstep `AssistantScreen` (`state::task` + `vm::toggleTask`) + string `assistant_action_complete`.
+- TDD estricto: 12 tests nuevos `AssistantEngineMarcaComoHechaTest.kt` — RED exacto (7037 run, EXACTAMENTE 8 fallos = 6 capturas + completada-no-ofrecida + lista honesta; 4 guards/controles verdes desde RED) → GREEN **OK (7037 = 7025 + 12)**. Smoke 25/25. Sonda POST `/tmp/probe997/PostProbe.kt`: 10/10 coherentes (2 capturas COMPLETE_TASK con id correcto; completada → guía; múltiples → lista; inexistente → guía; pelada → guía; negación/pasado NONE; controles hermanos byte-idénticos). Determinista (regex + tokens), cero random, cero IA fingida.
+- Sonda persistente `AssistantTaskCreationProbe.kt`: 3 pins nuevos en guards (captura, negación, pasado — exit 1 si «marca como hecha…» reaparece como CREATE_TASK). POST: cerradas 13, laterales 0, inesperados 0, exit 0.
+- **Commits:** `9d87029` (fix) + docs-close (ver hash en RUN_LOG). **HEAD final:** docs-close c.997. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+
 ## Ciclo c.996 (2026-08-24) — fix(assistant): lateral (d) «recuérdamelo» deíctico → guía honesta SIN acción (NUNCA tarea basura «lo»)
 - HEAD inicial: `de4a39d` (c.995 docs-close), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano (parent real `de4a39d` — NO STALE_RUN). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7016)**, smoke 25/25.
 - Unidad (P1, lateral (d) de la sonda persistente `AssistantTaskCreationProbe.kt` — ÚLTIMA abierta; UNA por ciclo): «recuérdamelo» deíctico (± tilde, con temporal, con mayúscula) caía al menú genérico (4/4 medido PRE con sonda efímera `/tmp/probe996`) — mentira por omisión. Causa raíz: `remindMeCapture` exige contenido explícito tras «recuérdame »; «lo» pegado al imperativo no entraba en ninguna rama, y el motor no tiene contexto conversacional para resolverlo. Fix mínimo: `REMIND_ME_LO` + `remindMeLoGuide` → guía honesta SIN acción (NUNCA tarea basura «lo», doctrina c.969); ancla ^ disjunta negación y pasado.
@@ -14641,11 +14648,13 @@ antes del "y", así que no casaba. Resultado:
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
 
-### Último ciclo: c.996 (2026-08-24)
-Lateral (d) CERRADA: «recuérdamelo» deíctico → guía honesta SIN acción
-(NUNCA tarea basura «lo»; el motor no tiene contexto para resolver «lo»
-y lo honesto es pedir el contenido explícito). PRE medido: 4/4 deícticos
-al menú genérico. Tests 9/9 (RED exacto 4 fallos; suite 7025 OK). Sonda
-persistente: cerradas 13, laterales 0, inesperados 0 — CERO laterales
-abiertas en la familia de creación de tareas. Smoke 25/25. Commit 1bf92bc.
-Próxima prioridad: nueva ronda de descubrimiento continuo u otro P1/P2.
+### Último ciclo: c.997 (2026-08-24)
+NUEVA familia ABIERTA (acción sobre datos): «marca como hecha/completada
+<tarea>» → AssistantAction.COMPLETE_TASK confirmable (el botón confirma;
+NADA se completa en silencio; única coincidencia sobre tareas pendientes).
+PRE medido: 5/6 candidatas de acción al menú genérico. Tests 12/12
+(RED exacto 8 fallos; suite 7037 OK). Sonda persistente: cerradas 13,
+laterales 0, inesperados 0 (+3 pins). Smoke 25/25. Laterales ABIERTAS
+nuevas: «completé/terminé…» (pasado declarativo), «borra/elimina la
+tarea…» (destructiva — diseño con confirmación), «aplaza…» (paridad P2).
+Próxima prioridad: UNA lateral por ciclo con medida previa.
