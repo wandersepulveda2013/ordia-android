@@ -8150,7 +8150,15 @@ object NaturalTaskParser {
             // clase me quedé dormido») — ya protegida PRE vía H2 (match sin
             // conector + artículo precedente); tras consumir «a las» en el
             // match el chequeo debe admitir «las» o la protección se pierde.
-            if (!Regex("""(?i)^(?:justo\s+)?a\s+las?\s""").containsMatchIn(match.value)) return false
+            // c.1016 (H4): SIN artículo, la aparición es CONTENIDO narrativo
+            // cuando el predicado adyacente es pretérito inequívoco («a
+            // primera hora llegó el cartero», «llegué a primera hora») — la
+            // nota nacía como tarea vencida hoy 09:00/18:00 con el título
+            // mutilado (doble daño P1, medido c.1008/c.1016). Con artículo
+            // («a la primera hora llegó…») sigue la doctrina ancla vigente
+            // (lateral registrada FUERA, pin byte-idéntico en el test c.1016).
+            if (!Regex("""(?i)^(?:justo\s+)?a\s+las?\s""").containsMatchIn(match.value))
+                return ordinalHoraOccurrenceIsPreteriteNarrative(text, match)
             if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
             val suffixA = text.substring(match.range.last + 1)
             val genitiveA = ordinalHoraContentGenitive.find(suffixA) ?: return false
@@ -8287,6 +8295,38 @@ object NaturalTaskParser {
         // falsos). Ver [ordinalHoraInteriorPartOfDayWeekdayRange].
         if (ordinalHoraInteriorPartOfDayWeekdayRange(text, match) != null) return true
         return false
+    }
+
+    /**
+     * c.1016 (H4): ¿es esta aparición de ordinal de hora con conector «a» (sin
+     * artículo) la marca temporal de una CADENA NARRATIVA en pretérito y no un
+     * ancla de las 09:00/18:00? Sólo con evidencia gramatical inequívoca
+     * ([preteriteNarrativeVerbAlternation], la lista cerrada de c.950: un
+     * encargo real jamás abre ni se reduce a un pretérito):
+     *  (H4-sufijo) el texto TRAS el match abre con pretérito («a primera hora
+     *      llegó el cartero», «a última hora de la noche cerró la tienda» — el
+     *      sufijo canónico «de la mañana/noche» lo consume el propio patrón,
+     *      así que el pretérito queda inmediatamente después del match);
+     *  (H4-prefijo) TODO el prefijo es un predicado pretérito SOLO («llegué a
+     *      primera hora», «me desperté a primera hora», «ya salí a última
+     *      hora») — ver [ordinalHoraPreteriteNarrativeLonePrefix].
+     * FUERA a propósito (laterales medidas, pins byte-idénticos en
+     * NaturalTaskParserOrdinalHoraPreteritoNarrativoTest): artículo tras «a»
+     * («a la primera hora llegó…» — otra rama del guard), weekday genitivo
+     * («a primera hora del lunes llegó…» — doctrina ancla vigente), pretérito
+     * con complemento antes del ancla («me quedé dormido a primera hora»,
+     * «sonó la alarma a primera hora») y formas ambiguas pretérito/presente
+     * («salimos/comimos a primera hora», excluidas por doctrina c.950).
+     * Usado por [ordinalHoraOccurrenceIsContent], así que la resolución
+     * (fecha), el borrado del título ([eraseOrdinalHoraToken]) y la
+     * protección de la parte del día gobernada comparten el mismo predicado:
+     * fecha y título nunca divergen (doctrina c.930/c.950).
+     */
+    private fun ordinalHoraOccurrenceIsPreteriteNarrative(text: String, match: MatchResult): Boolean {
+        val suffix = text.substring(match.range.last + 1)
+        if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
+        val prefix = text.substring(0, match.range.first)
+        return ordinalHoraPreteriteNarrativeLonePrefix.matches(prefix)
     }
 
     /**
@@ -8469,9 +8509,12 @@ object NaturalTaskParser {
      * jamás casaría; el lookahead exige separador real y bloquea prefijos
      * («vio» ≠ «violento», «fue» ≠ «fuera»).
      */
-    private val weekdayPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:""" +
-            "llegó|llegué|llegaste|llegaron|fue|fui|fuiste|fueron|era|eran|" +
+    // c.1016: la alternación de pretéritos inequívocos se extrae a constante
+    // compartida (mismo contenido, byte a byte) para reutilizarla en el guard
+    // narrativo del ordinal de hora ([ordinalHoraOccurrenceIsPreteriteNarrative])
+    // sin duplicar la lista ni arriesgar deriva entre copias.
+    private val preteriteNarrativeVerbAlternation =
+        "llegó|llegué|llegaste|llegaron|fue|fui|fuiste|fueron|era|eran|" +
             "estuvo|estuve|estuviste|estuvieron|vino|vine|viniste|vinieron|" +
             "pasó|pasé|pasaste|pasaron|ocurrió|ocurrieron|sucedió|sucedieron|" +
             "sonó|sonaste|sonaron|llamó|llamé|llamaste|llamaron|" +
@@ -8498,8 +8541,23 @@ object NaturalTaskParser {
             "levanté|levantó|levantaste|levantaron|trabajé|trabajó|trabajaste|trabajaron|" +
             "estudié|estudió|estudiaste|estudiaron|hablé|habló|hablaste|hablaron|" +
             "encontré|encontró|encontraste|encontraron|dejé|dejó|dejaste|dejaron|" +
-            "tomé|tomó|tomaste|tomaron|leí|leyó|leyeron|sentí|sintió|sintieron" +
-            ")(?=\\s|$|[,.;:!?)])"
+            "tomé|tomó|tomaste|tomaron|leí|leyó|leyeron|sentí|sintió|sintieron"
+
+    private val weekdayPreteriteNarrativeSuffix = Regex(
+        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+    )
+
+    /**
+     * c.1016 (H4-prefijo): el prefijo COMPLETO antes de un ordinal de hora con
+     * conector «a» es un predicado pretérito SOLO («llegué a primera hora»,
+     * «me desperté a primera hora», «ya salí a última hora»): un encargo real
+     * jamás se reduce a un pretérito antes del ancla (doctrina c.950), así que
+     * la marca temporal pertenece a la narración. Conservador a propósito:
+     * pretérito + complemento («me quedé dormido…», «sonó la alarma…») NO casa
+     * (lateral registrada FUERA en el test del ciclo, pin byte-idéntico).
+     */
+    private val ordinalHoraPreteriteNarrativeLonePrefix = Regex(
+        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)\s*[,.;:!?]?$"""
     )
 
     /**
