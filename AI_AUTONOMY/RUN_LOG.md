@@ -16804,3 +16804,35 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commit fix: 2fec59e. Docs-close con hash real: (ver siguiente línea del log).
 - Próxima prioridad: lateral (b2) «quiero que me recuerdes…»
   (recordatorio envuelto) o (d) «recuérdamelo» (deíctico).
+
+
+---
+
+## c.995 — fix(assistant): captura «quiero que me recuerdes…» — VERIFIED
+
+- Fecha: 2026-08-24 · HEAD inicial: `d952d77`
+- Problema (P1: funciones falsas — mentira por omisión): la forma
+  envuelta «quiero que me recuerdes pagar la luz» caía al menú genérico
+  (action=NONE, 4/4 capturas medidas con sonda efímera
+  /tmp/probe995/QuieroQueProbe.kt sobre base d952d77). El usuario pide
+  que le recuerden algo y el asistente recitaba el menú.
+- TDD estricto: sonda PRE (medida real) → test RED
+  `AssistantEngineQuieroQueRecuerdesCaptureTest` (10 tests: 4 capturas
+  + pelada guía + 3 guards + 2 regresiones hermanas c.986/c.994) → RED
+  exacto (7016 run, 5 fallos: 4 capturas + pelada) → fix mínimo →
+  GREEN.
+- Fix: rama `quieroQueRecuerdesCapture` hermana de `remindMeCapture`
+  (mismo contrato: guía honesta pelada, NUNCA tarea vacía; extractor
+  `([^:].*)` simétrico a c.992 — NUNCA tarea basura «:»; negación del
+  contenido → menú honesto). Ancla `^` disjunta: «no quiero que…»
+  (negación previa) y «quería que me recordaras…» (pasado/otra persona)
+  NUNCA capturan. Despoje del «:» opcional.
+- Laterales de la sonda persistente: cerradas 13, abiertas 0.
+- Sonda persistente: `=== RESUMEN: cerradas 13, laterales 0, inesperados 0 ===`.
+- Smoke de dominio Ordia: 25 assertions OK.
+- Tests: `OK (7016 tests)` (= 7006 + 10 nuevos) · smoke 25 OK.
+- Commits: `0ed82f3` fix(assistant): captura «quiero que me recuerdes…»
+  recordatorio envuelto (c.995)
+- HEAD final: `0ed82f3`
+- Próxima prioridad: sin laterales abiertas; auditoría de nuevas formas
+  de captura o siguiente P1/P2 del BACKLOG.

@@ -1,3 +1,11 @@
+## Ciclo c.995 (2026-08-24) — fix(assistant): lateral (b2) «quiero que me recuerdes…» recordatorio envuelto → CREATE_TASK (rama quieroQueRecuerdesCapture hermana de remindMeCapture)
+- HEAD inicial: `d952d77` (c.994 docs-close), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano (parent real `d952d77` — NO STALE_RUN). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7006)**, smoke 25/25.
+- Unidad (P1, lateral (b2) de la sonda persistente `AssistantTaskCreationProbe.kt` — UNA por ciclo, doctrina anti-overreach): el recordatorio envuelto «quiero que me recuerdes pagar la luz» (± mayúscula inicial, con «:», con temporal al final) caía al menú genérico (4/4 medido PRE con sonda efímera `/tmp/probe995`) — mentira por omisión. Causa raíz: ninguna rama reconocía la forma envuelta (el verbo «recuerdes» es subjuntivo, no el imperativo «recuérdame»). Fix mínimo: `quieroQueRecuerdesCapture` hermana de `remindMeCapture` — extractor `([^:].*)` simétrico a c.992 (NUNCA tarea basura «:»); pelada → guía honesta SIN acción (doctrina c.969); anti-overreach: negación previa («no quiero que…», ancla ^), contenido negado («…me recuerdes NO llamar…») y pasado/otra persona («quería que me recordaras…») → menú honesto.
+- TDD estricto: 10 tests nuevos `AssistantEngineQuieroQueRecuerdesCaptureTest.kt` — RED exacto (7016 run, EXACTAMENTE 5 fallos = 4 capturas + pelada; 3 guards + 2 regresiones hermanas c.986/c.994 verdes desde RED) → GREEN **OK (7016 = 7006 + 10)**. Smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Sonda persistente: (b2) → CERRADA (cerradas 13, laterales 0, inesperados 0, exit 0); pins nuevos en guards (pelada, contenido negado, pasado). POST efímera: 4/4 capturas limpias, guards NONE, controles byte-idénticos.
+- Laterales ABIERTAS restantes: (d) «recuérdamelo» deíctico (única restante de la sonda persistente).
+- **Commits:** `0ed82f3` (fix) + docs-close (ver hash en RUN_LOG). **HEAD final:** docs-close c.995. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+
 ## Ciclo c.994 (2026-08-24) — fix(assistant): lateral (b1) «avísame…» recordatorio declarativo → CREATE_TASK (rama avisaMeCapture hermana de remindMeCapture)
 - HEAD inicial: `2f7c94c` (c.993 docs-close), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano (parent real `2f7c94c` — NO STALE_RUN). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (6996)**, smoke 25/25.
 - Unidad (P1, lateral (b1) de la sonda persistente `AssistantTaskCreationProbe.kt` — UNA por ciclo, doctrina anti-overreach): el recordatorio declarativo «avísame mañana de llamar al banco» (± tilde, con «:», «avísame de pagar la luz») caía al menú genérico (4/4 medido PRE con sonda efímera `/tmp/probe994`) — mentira por omisión. Causa raíz: ninguna rama reconocía «avísame…» y el temporal intercalado habría dejado residuo en el título. Fix mínimo: `avisaMeCapture` hermana de `remindMeCapture` — despoja el «de» preposicional, REORDENA el temporal intercalado al final del payload («llamar al banco mañana») para que `NaturalTaskParser` ancle fecha con título limpio; pelada → guía honesta SIN acción (doctrina c.969); anti-overreach: negación tras «de» y evento «cuando» → menú honesto.
@@ -14626,11 +14634,10 @@ antes del "y", así que no casaba. Resultado:
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
 
-### Último ciclo: c.993 (2026-08-24)
-Lateral (c) CERRADA: despoje del «que» subordinado en «recuérdame que…»
-(LEADING_QUE antes de los checks). PRE medido: residuo en título 4/4,
-tarea basura «que» en pelada, negación tras «que» capturaba lo contrario.
-Tests 10/10 (RED exacto 6 fallos; suite 6996 OK). Sonda persistente:
-cerradas 11, laterales 2, inesperados 0. Smoke 25/25. Commit eb33b26.
-Laterales abiertas restantes: (b) «avísame…»/«quiero que me recuerdes…»,
-(d) «recuérdamelo».
+### Último ciclo: c.995 (2026-08-24)
+Lateral (b2) CERRADA: captura «quiero que me recuerdes…» (recordatorio
+envuelto) → CREATE_TASK (rama quieroQueRecuerdesCapture hermana de
+remindMeCapture; extractor ([^:].*) simétrico a c.992). PRE medido: 4/4
+capturas al menú genérico. Tests 10/10 (RED exacto 5 fallos; suite 7016
+OK). Sonda persistente: cerradas 13, laterales 0, inesperados 0. Smoke
+25/25. Commit 0ed82f3. Laterales abiertas restantes: (d) «recuérdamelo».
