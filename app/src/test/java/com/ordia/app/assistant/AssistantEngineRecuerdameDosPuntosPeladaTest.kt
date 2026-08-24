@@ -5,7 +5,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// c.991: lateral (f) de la sonda persistente de creación de tareas —
+// c.992: lateral (f) de la sonda persistente de creación de tareas —
 // «recuérdame:» (pelada CON «:») creaba una tarea BASURA con payload «:»
 // (medido c.990 con sonda efímera /tmp/probe990/PeladaDosPuntosProbe.kt:
 // action=CREATE_TASK, payload=":"). Causa raíz: el (.+) de
@@ -33,7 +33,7 @@ class AssistantEngineRecuerdameDosPuntosPeladaTest {
         assertTrue(answer.text.contains("recuerde"))
     }
 
-    // Pin conservador byte-idéntico (medido c.991): TODO mayúsculas va al
+    // Pin conservador byte-idéntico (medido c.992): TODO mayúsculas va al
     // menú genérico — el motor no captura en mayúsculas sostenidas
     // (comportamiento preexistente global, FUERA de la unidad).
     @Test fun recuerdameDosPuntosMayusculasPelada_noCaptura() {

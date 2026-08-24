@@ -15,8 +15,11 @@ import kotlin.system.exitProcess
 // (AssistantEngineRecuerdameCaptureTest, 12 tests). c.990 cerró la lateral
 // (a) «crea/añade/agrega (una) tarea…» → CREATE_TASK
 // (AssistantEngineCreaTareaCaptureTest, 17 tests; pelada y conector pelado
-// «de» → guía honesta SIN acción). Fixture vacío: el routing
-// correcto no depende del dato.
+// «de» → guía honesta SIN acción). c.991 cerró la lateral (e) «ponme un
+// recordatorio…» → CREATE_TASK (AssistantEnginePonmeRecordatorioCaptureTest,
+// 13 tests; robo de rama por la consulta c.808 resuelto: el imperativo de
+// creación se evalúa ANTES; pelada → guía honesta SIN acción). Fixture
+// vacío: el routing correcto no depende del dato.
 // Formato heredado (c.803-b): regresiones fallan (exit 1) ante GAP nuevo;
 // laterales abiertas se imprimen toleradas hasta su ciclo.
 fun main() {
@@ -34,7 +37,10 @@ fun main() {
         "crea una tarea: llamar a Ana",
         "crear tarea pagar la luz mañana",
         "añade una tarea: sacar al perro",
-        "agrega una tarea llamar al dentista"
+        "agrega una tarea llamar al dentista",
+        // CERRADAS c.991 (lateral (e)): «ponme un recordatorio…» — ya no la
+        // roba la consulta c.808.
+        "ponme un recordatorio para mañana llamar al banco"
     )
 
     // LATERALES ABIERTAS (documentadas, toleradas hasta su ciclo — doctrina
@@ -43,19 +49,18 @@ fun main() {
     //  (b) «avísame…» / «quiero que me recuerdes…» — recordatorio declarativo;
     //  (c) «recuérdame que…» — subordinada (el «que» quedaría en el título);
     //  (d) «recuérdamelo» — deíctico sin contenido explícito;
-    //  (e) «ponme un recordatorio…» — ROBO DE RAMA: cae en la consulta de
-    //      recordatorios c.808 y miente («No tienes recordatorios
-    //      programados») cuando el usuario pedía CREAR uno. Bug de routing
-    //      aparte (precedente del conflicto crear-vs-consultar).
-    //  (f) «recuérdame:» pelada con «:» — creaba tarea BASURA «:» (medido
-    //      c.990: payload ":"); el (.+) se tragaba el propio «:» en
-    //      REMIND_ME_WITH_CONTENT. RESUELTA c.991: extractor ([^:].*);
+    //  (e) CERRADA c.991: «ponme un recordatorio…» — el ROBO DE RAMA por la
+    //      consulta de recordatorios c.808 («No tienes recordatorios
+    //      programados» a una orden de CREAR) se resolvió evaluando la
+    //      captura ANTES de la consulta (setReminderCapture).
+    //  (f) CERRADA c.992: «recuérdame:» pelada con «:» — creaba tarea BASURA
+    //      «:» (medido c.990: payload ":"); el (.+) se tragaba el propio «:»
+    //      en REMIND_ME_WITH_CONTENT. Resuelta con extractor ([^:].*);
     //      pin en guards (exit 1 si reaparece).
     val openLaterals = listOf(
         "avísame mañana de llamar al banco",
         "quiero que me recuerdes pagar la luz",
-        "recuérdame que tengo que llamar al banco",
-        "ponme un recordatorio para mañana llamar al banco"
+        "recuérdame que tengo que llamar al banco"
     )
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
@@ -63,7 +68,8 @@ fun main() {
         "no me recuerdes nada", // negación previa
         "recuerdo la tarea de ayer", // afirmación en pasado
         "el recuerdo llegó ayer", // sustantivo
-        "recuérdame no llamar al banco" // contenido negado (anti-overreach)
+        "recuérdame no llamar al banco", // contenido negado (anti-overreach)
+        "recuérdame:" // pelada CON «:» — c.992: NUNCA tarea basura «:»
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
@@ -81,7 +87,7 @@ fun main() {
 
     var unexpected = 0
 
-    println("=== CERRADAS c.986+c.990 (regresión CREATE_TASK) ===")
+    println("=== CERRADAS c.986+c.990+c.991 (regresión CREATE_TASK) ===")
     for (p in closed) {
         val ans = AssistantEngine.answer(p, emptyList(), emptyList(), emptyList(), now, zone)
         if (ans.action != AssistantAction.CREATE_TASK) {

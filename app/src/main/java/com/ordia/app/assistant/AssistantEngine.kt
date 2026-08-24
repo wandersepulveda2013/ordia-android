@@ -76,6 +76,11 @@ object AssistantEngine {
         val takeNoteCapture = takeNoteCapture(clean)
         val remindMeCapture = remindMeCapture(clean)
         val createTaskCapture = createTaskCapture(clean)
+        // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
+        // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
+        // c.808: «recordatorio» en la query la robaba y respondía la mentira
+        // «No tienes recordatorios programados.» a una orden de CREAR.
+        val setReminderCapture = setReminderCapture(clean)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -479,6 +484,10 @@ object AssistantEngine {
             // c.990: lateral (a) de la sonda persistente — «crea/añade/agrega
             // (una) tarea…», hermana de remindMeCapture (mismo contrato).
             createTaskCapture != null -> createTaskCapture
+            // c.991: el imperativo de creación gana a la consulta c.808
+            // (robo de rama medido: 5/5 capturas respondían «No tienes
+            // recordatorios programados.» — mentira a una orden de crear).
+            setReminderCapture != null -> setReminderCapture
             // (v) sonda c.779: "notas fijadas" — el asistente no recibe notas, así la
             // ÚNICA ruta honesta hacia ellas es la vista de búsqueda (SearchKind.NOTE
             // + wantsPinned). Antes caía al menú genérico: mentira por omisión
@@ -1199,7 +1208,7 @@ object AssistantEngine {
     // nada», «recuerdo la tarea de ayer» y «el recuerdo llegó ayer» nunca
     // entran en la rama.
     private val REMIND_ME_PREFIX = Regex("(?i)^recu[ée]rdame(?:\\s*:)?(?:\\s+|$)")
-    // c.991: ([^:].*) en lugar de (.+) — la pelada CON «:» («recuérdame:»)
+    // c.992: ([^:].*) en lugar de (.+) — la pelada CON «:» («recuérdame:»)
     // creaba tarea BASURA «:» (el (.+) se tragaba el propio «:» por
     // backtracking al ser opcional). NUNCA tarea basura (doctrina c.969;
     // simetría con el extractor c.990 de createTaskCapture).
@@ -1247,6 +1256,32 @@ object AssistantEngine {
             return AssistantAnswer("¿Qué tarea quieres crear? Escríbela tras «crea una tarea: …» y la guardo.")
         }
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
+
+    // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la
+    // sonda persistente AssistantTaskCreationProbe. El ancla ^ con «pon(me)»
+    // imperativo hace disjuntas la negación («no me pongas recordatorios»),
+    // el sustantivo pasado («el recordatorio sonó ayer») y la consulta
+    // («qué recordatorios tengo», rama c.808 intacta). El «:» opcional da
+    // simetría con notas («ponme un recordatorio: llamar al banco»).
+    private val SET_REMINDER_PREFIX = Regex("(?i)^pon(?:me)?\\s+(?:un\\s+)?recordatorio(?:\\s|:|$)")
+    private val SET_REMINDER_WITH_CONTENT = Regex("(?i)^pon(?:me)?\\s+(?:un\\s+)?recordatorio\\s*:?\\s*(.+)$")
+    // El conector «para» («…recordatorio PARA mañana llamar al banco») se
+    // despoja: medido con sonda que NaturalTaskParser extrae la fecha pero
+    // dejaba el «para» de residuo en el título («para llamar al banco»).
+    private val LEADING_PARA = Regex("(?i)^para\\s+")
+
+    private fun setReminderCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!SET_REMINDER_PREFIX.containsMatchIn(trimmed)) return null
+        val content = SET_REMINDER_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+            ?.replaceFirst(LEADING_PARA, "")
+        return if (content.isNullOrEmpty()) {
+            // NUNCA tarea vacía (doctrina c.969): guía honesta SIN acción.
+            AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «ponme un recordatorio …» y lo guardo como tarea.")
+        } else {
+            AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+        }
     }
 
     private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")
