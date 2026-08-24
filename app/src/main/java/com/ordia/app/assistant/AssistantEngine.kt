@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -74,6 +74,7 @@ object AssistantEngine {
         val contentQualifiedInterrogativePayload = contentQualifiedInterrogativePayload(clean)
         // c.969: captura «tomar nota» (calculada una vez, fuera del when).
         val takeNoteCapture = takeNoteCapture(clean)
+        val remindMeCapture = remindMeCapture(clean)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -466,6 +467,14 @@ object AssistantEngine {
             // de cómo dictarlo, SIN acción: la UI crea «Nota sin título» si
             // CREATE_NOTE llega sin payload — NUNCA nota vacía.
             takeNoteCapture != null -> takeNoteCapture
+            // c.986: «recuérdame <contenido>» — la hermana de TAREAS de la
+            // familia de notas (c.969…c.985). Sonda PRE
+            // tools/probe/AssistantTaskCreationProbe.kt: 9/10 candidatas de
+            // creación caían al menú genérico (mentira por omisión: la
+            // capacidad ya existe — la UI ejecuta vm.addSmartTask(payload) →
+            // NaturalTaskParser, la misma captura rápida). UNA forma por
+            // ciclo (anti-overreach); laterales documentadas en la sonda.
+            remindMeCapture != null -> remindMeCapture
             // (v) sonda c.779: "notas fijadas" — el asistente no recibe notas, así la
             // ÚNICA ruta honesta hacia ellas es la vista de búsqueda (SearchKind.NOTE
             // + wantsPinned). Antes caía al menú genérico: mentira por omisión
@@ -1151,6 +1160,31 @@ object AssistantEngine {
         } else {
             AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
         }
+    }
+
+    // c.986: «recuérdame <contenido>» — captura de TAREA hermana de la
+    // familia de notas. El [ée] cubre la escritura móvil sin tilde; el «:»
+    // opcional la simetría con notas («recuérdame: sacar al perro»). El
+    // ancla ^ hace disjuntas las formas no imperativas: «no me recuerdes
+    // nada», «recuerdo la tarea de ayer» y «el recuerdo llegó ayer» nunca
+    // entran en la rama.
+    private val REMIND_ME_PREFIX = Regex("(?i)^recu[ée]rdame(?:\\s*:)?(?:\\s+|$)")
+    private val REMIND_ME_WITH_CONTENT = Regex("(?i)^recu[ée]rdame\\s*:?\\s*(.+)$")
+
+    private fun remindMeCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!REMIND_ME_PREFIX.containsMatchIn(trimmed)) return null
+        val content = REMIND_ME_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA tarea vacía (hermana de la nota pelada c.969): guía
+            // honesta de cómo dictarlo, SIN acción.
+            return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «recuérdame …» y lo guardo como tarea.")
+        }
+        // Anti-overreach: «recuérdame NO llamar…» pide no hacerlo; crear la
+        // tarea capturaría lo contrario de la intención (falso positivo
+        // grave). Menú honesto.
+        if (content.startsWith("no ", ignoreCase = true)) return null
+        return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
     }
 
     private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")

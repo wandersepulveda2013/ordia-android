@@ -122,6 +122,9 @@ fun AssistantScreen(
                                     AssistantAction.OPEN_CONVERSATIONS -> onConversations()
                                     AssistantAction.RUN_REPLAN -> vm.replanDay(LocalDate.now())
                                     AssistantAction.CREATE_NOTE -> vm.addNote(stringResourceSafeTitle(), answer.actionPayload)
+                                    // c.986: «recuérdame …» — misma captura rápida
+                                    // (NaturalTaskParser extrae fecha y señales).
+                                    AssistantAction.CREATE_TASK -> vm.addSmartTask(answer.actionPayload)
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -142,6 +145,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.OPEN_CONVERSATIONS -> stringResource(R.string.assistant_action_conversations)
     AssistantAction.RUN_REPLAN -> stringResource(R.string.assistant_action_replan)
     AssistantAction.CREATE_NOTE -> stringResource(R.string.assistant_action_note)
+    AssistantAction.CREATE_TASK -> stringResource(R.string.assistant_action_task)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }
