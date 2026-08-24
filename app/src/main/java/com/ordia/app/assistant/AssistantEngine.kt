@@ -1836,7 +1836,12 @@ object AssistantEngine {
                 relatedTaskIds = matches.map { it.id })
             else -> {
                 val task = matches.first()
-                AssistantAnswer("¿Elimino «${task.title}»? Se borrará de forma definitiva.", AssistantAction.DELETE_TASK, task.id.toString(), listOf(task.id))
+                // c.1022 — honestidad: deleteTask ARCHIVA (recuperable; nombre
+                // canónico de la app «Archivar», string task_detail_archive; el
+                // borrado definitivo es otra acción explícita en la pantalla
+                // Archivo). La confirmación dice la consecuencia real, nunca
+                // «definitiva» (mentira por exageración).
+                AssistantAnswer("¿Elimino «${task.title}»? Saldrá de tu vista y podrás recuperarla desde Archivo.", AssistantAction.DELETE_TASK, task.id.toString(), listOf(task.id))
             }
         }
     }

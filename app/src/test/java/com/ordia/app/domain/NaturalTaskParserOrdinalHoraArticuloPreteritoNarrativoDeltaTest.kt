@@ -8,11 +8,11 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.1022 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022 por QUÍNTUPLE asignación del cycle-ID
+ * c.1023 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022→c.1023 por SÉXTUPLE asignación del cycle-ID
  * durante el re-fetch pre-push: SU c.1017 «desparasitar al perro» contexto
  * (`d8a815e`/`f339c4a`), SU c.1018 «pasear al perro» contexto
  * (`23b2761`/`171e448`) y SU c.1019 delta parser CONVERGENTE
- * (`2825964`/`4edce73`, merge `8d16c9c`/`9857100`) + SU c.1020 contexto «pasear» (`fed4dbd`) + SU c.1021 assistant ARCHIVE (`5f7c77f`/`1012210`); regiones SIEMPRE
+ * (`2825964`/`4edce73`, merge `8d16c9c`/`9857100`) + SU c.1020 contexto «pasear» (`fed4dbd`) + SU c.1021 assistant ARCHIVE (`5f7c77f`/`1012210`) + SU c.1022 assistant «borra» honestidad (`64fe8d3`/`1980dc7`); regiones SIEMPRE
  * DISJUNTAS, precedentes c.1000/c.1004/c.1008/c.1011/c.1016] — delta de
  * COBERTURA sobre la colisión convergente de la lateral «a la/las» + pretérito
  * (ordinal de hora con artículo en narrativa en pretérito):

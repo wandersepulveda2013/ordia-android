@@ -1,4 +1,4 @@
-## Ciclo c.1022 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022 por QUÍNTUPLE asignación del cycle-ID durante los re-fetch pre-push: SU c.1017 «desparasitar» contexto (`d8a815e`/`f339c4a`), SU c.1018 «pasear» contexto (`23b2761`/`171e448`), SU c.1019 delta parser convergente (`2825964`/`4edce73`, merge `8d16c9c`/`9857100`) + SU c.1020 contexto «pasear» (`fed4dbd`) + SU c.1021 assistant ARCHIVE (`5f7c77f`/`1012210`); regiones SIEMPRE DISJUNTAS, precedentes c.1000/c.1004/c.1008/c.1011/c.1016] (2026-08-24) — test(parser): delta de COBERTURA tras colisión convergente «a la/las» + pretérito
+## Ciclo c.1023 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022→c.1023 por SÉXTUPLE asignación del cycle-ID durante los re-fetch pre-push: SU c.1017 «desparasitar» contexto (`d8a815e`/`f339c4a`), SU c.1018 «pasear» contexto (`23b2761`/`171e448`), SU c.1019 delta parser convergente (`2825964`/`4edce73`, merge `8d16c9c`/`9857100`) + SU c.1020 contexto «pasear» (`fed4dbd`) + SU c.1021 assistant ARCHIVE (`5f7c77f`/`1012210`) + SU c.1022 assistant «borra» honestidad (`64fe8d3`/`1980dc7`); regiones SIEMPRE DISJUNTAS, precedentes c.1000/c.1004/c.1008/c.1011/c.1016] (2026-08-24) — test(parser): delta de COBERTURA tras colisión convergente «a la/las» + pretérito
 - HEAD inicial: `9920a22` (docs-close c.1016 del hermano), sync limpio. Re-fetch pre-push: el hermano había publicado la MISMA lateral como SU c.1019 (ya integrada sobre `5233834`).
 - Unidad (P2 cobertura): mis 22 tests originales corridos contra la implementación convergente → 21/22 verdes; el único fallo era mi pin FUERA erróneo («a la primera hora de la mañana llegó el cartero» — SU c.1019 lo resuelve CORRECTAMENTE como narrativa intacta porque su chequeo H4 va ANTES del retorno por sufijo canónico; mi versión lo dejaba anclado 09:00 con título mutilado). Decisión (precedente c.1002/c.1003): descartar mi implementación, conservar la suya.
 - Delta conservado: 10 tests complementarios `NaturalTaskParserOrdinalHoraArticuloPreteritoNarrativoDeltaTest.kt` (casos no ejercitados por su batería de 18: prefijo «justo», plural «llegaron», «empezó», «llamó el banco», ancla «mañana», encargo sufijo, ambigua «comimos», regresiones H3/H2-sin-conector) — 10/10 GREEN sobre HEAD `5233834`.
@@ -14937,6 +14937,20 @@ respuestas honestas; guards/pines/regresiones verdes desde RED) → GREEN
 con la conducta real (advierte borrado definitivo pero el flujo archiva
 — advertencia conservadora heredada c.1001). NO VERIFICADO
 Android/gradle/lint/assemble/UI/Room (sin SDK).
+
+### Último ciclo: c.1023 (2026-08-24)
+Honestidad en «borra»: la confirmación de deleteCapture ya no promete
+borrado definitivo — deleteTask ARCHIVA (recuperable, c.225; nombre
+canónico de la app «Archivar», string task_detail_archive; el borrado
+definitivo es otra acción explícita en la pantalla Archivo). Texto
+alineado con la conducta real y con ARCHIVE c.1021: «Saldrá de tu vista
+y podrás recuperarla desde Archivo.» TDD: pin de honestidad
+`delete_confirmacionHonestaNuncaDefinitiva` añadido a la clase del
+hermano (delta disjunto); RED exacto 1 fallo → GREEN, suite OK (7409 =
+7408 + 1); smoke 25/25; sonda POST con texto honesto en vivo. Sync
+limpio sin colisión (base 1012210). Próxima prioridad: auditoría clase
+UNDÉCIMA (sonda persistida); laterales parser/context ABIERTAS. NO
+VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 ### Último ciclo: c.1022 (2026-08-24)
 test(parser): delta de COBERTURA tras COLISIÓN CONVERGENTE con SU c.1019
 (misma lateral «a la/las» + pretérito implementada en paralelo; su
@@ -14947,5 +14961,5 @@ c.1002/c.1003); +10 tests DISJUNTOS en
 `NaturalTaskParserOrdinalHoraArticuloPreteritoNarrativoDeltaTest.kt`
 (prefijo «justo», plural «llegaron», «empezó», «llamó el banco», ancla
 «mañana», encargo sufijo, ambigua «comimos», regresiones H3/H2).
-Suite UNIÓN FINAL OK (7418 = 7408 + 10); smoke 25/25; automation 9/9.
+Suite UNIÓN FINAL OK (7419 = 7409 + 10); smoke 25/25; automation 9/9.
 NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
