@@ -4769,8 +4769,14 @@ object NaturalTaskParser {
         // de su propio match («las primeras horas de la mañana son las
         // mejores»), la parte del día interior NO es ancla independiente.
         val ordinalNarrativeRanges = ordinalHoraNarrativeRanges(working)
+        // c.954: la parte del día INTERCALADA de una narrativa en pretérito
+        // c.950 («el lunes en la mañana llegó el paquete») tampoco es ancla:
+        // pertenece al enunciado narrativo.
+        val weekdayPreteriteNarrativeIntercalatedRanges =
+            weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(working)
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
             ?.takeUnless { sm -> ordinalNarrativeRanges.any { it.containsRange(sm.range) } }
+            ?.takeUnless { sm -> weekdayPreteriteNarrativeIntercalatedRanges.any { it.containsRange(sm.range) } }
         val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
             (it.groupValues[1].ifBlank { it.groupValues[2] }.ifBlank { it.groupValues[3] }).lowercase().ifEmpty { null }
         }
@@ -7658,6 +7664,12 @@ object NaturalTaskParser {
         //      timeMarker «de la» de [mananaAsDate], así que este guard sólo
         //      blinda el título.
         if (ordinalHoraNarrativeRanges(text).any { it.containsRange(range) }) return true
+        // (G5) c.954: «mañana» dentro de la parte del día INTERCALADA de una
+        //      narrativa en pretérito c.950 («el lunes en la mañana llegó el
+        //      paquete»): sin este guard eraseMananaDateToken mutilaba el
+        //      título protegido («…en la llegó el paquete»). La fecha ya está
+        //      excluida por el timeMarker «en/por la» de [mananaAsDate].
+        if (weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(text).any { it.containsRange(range) }) return true
         return false
     }
 
@@ -8249,7 +8261,12 @@ object NaturalTaskParser {
         var idx = 0
         while (true) {
             val m = standalonePartOfDayPattern.find(result, idx) ?: return result
-            if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) }) {
+            // c.954: la parte del día INTERCALADA de una narrativa en
+            // pretérito c.950 («el lunes en la mañana llegó el paquete») se
+            // conserva íntegra, simétrico al guard ordinal c.932.
+            if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) } ||
+                weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(result).any { it.containsRange(m.range) }
+            ) {
                 idx = m.range.last + 1
                 continue
             }
@@ -8345,6 +8362,17 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.954 (N3'): parte del día INTERCALADA admitida entre el weekday y el
+     * predicado en pretérito de una narrativa c.950 («el lunes en la mañana
+     * llegó el paquete», «el martes por la tarde llegó la noticia»).
+     * Conservadora: sólo «en la X»/«por la X» (los conectores «a la X» y
+     * «de la X» quedan como ancla, medidos en los pins de c.954).
+     */
+    private val weekdayPreteriteNarrativeIntercalatedPartOfDay = Regex(
+        """(?i)^\s*,?\s*(?:en|por)\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)\s+"""
+    )
+
+    /**
      * c.950: ¿es esta aparición de weekday el inicio de una CADENA NARRATIVA en
      * pretérito («el lunes llegó el paquete») y no un ancla de fecha? Sólo con
      * evidencia gramatical inequívoca:
@@ -8371,7 +8399,47 @@ object NaturalTaskParser {
             mv.contains("siguiente") || mv.contains("posterior")
         ) return false
         val suffix = text.substring(match.range.last + 1)
-        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
+        if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
+        // c.954 (N3'): parte del día INTERCALADA entre el weekday y el
+        // pretérito («el lunes en la mañana llegó el paquete») — extensión de
+        // la lateral que c.950 midió y pinó como FUERA, ahora resuelta: la
+        // cadena completa sigue siendo narrativa. Sólo se admiten las formas
+        // «en la X»/«por la X» (conservador: «a la X»/«de la X» siguen como
+        // ancla, medidas en los pins de c.954). El weekday sin artículo
+        // (N1) y con modificador (N2) siguen excluidos.
+        val intercalated = weekdayPreteriteNarrativeIntercalatedPartOfDay.find(suffix) ?: return false
+        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix.substring(intercalated.range.last + 1))
+    }
+
+    /**
+     * c.954: rangos de las partes del día que son el segmento INTERCALADO de
+     * una narrativa en pretérito c.950 («el lunes en la mañana llegó el
+     * paquete»): la parte del día pertenece al enunciado narrativo, así que
+     * no debe resolver fecha/hora ni borrarse del título. Requiere: un
+     * weekday que ya es narrativa c.950 (con la extensión N3') y que entre el
+     * match del weekday y el de la parte del día sólo haya separadores. Se
+     * usa en la resolución (fecha/hora), en [eraseStandalonePartOfDayToken]
+     * y en [mananaOccurrenceIsContent] (G5) para que nunca diverjan.
+     */
+    private fun weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(text: String): List<IntRange> {
+        val ranges = mutableListOf<IntRange>()
+        var idx = 0
+        while (true) {
+            val sm = standalonePartOfDayPattern.find(text, idx) ?: break
+            idx = sm.range.last + 1
+            var wIdx = 0
+            while (true) {
+                val wm = weekdayPattern.find(text, wIdx) ?: break
+                wIdx = wm.range.last + 1
+                if (wm.range.last >= sm.range.first) continue
+                if (text.substring(wm.range.last + 1, sm.range.first).trim(',', ' ', ';').isNotEmpty()) continue
+                if (weekdayOccurrenceIsPreteriteNarrative(text, wm)) {
+                    ranges.add(sm.range)
+                    break
+                }
+            }
+        }
+        return ranges
     }
 
     private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
