@@ -82,16 +82,9 @@ class NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest {
     @Test fun meDesperteALaPrimeraHora_esContenidoNarrativo() =
         assertNarrativeIntact("me desperté a la primera hora")
 
-    @Test fun aLaPrimeraHoraYaSonoLaAlarma_pinLateralYa() {
-        // Pin de la conducta POST: el ordinal narrativo YA se suprime (título
-        // íntegro, sin 09:00), pero la regla de inmediatez «ya» (intencional
-        // para comandos: «avisar ya» → ahora) sigue anclando «ya <pretérito>»
-        // a AHORA — lateral narrativa INDEPENDIENTE registrada ABIERTA en
-        // BACKLOG (medida c.1019 `/tmp/probe1014/Probe3.kt` sobre la base
-        // c.1016 + delta: «ya sonó/pagué/llegó…» → now, byte-idéntica PRE/POST
-        // de este ciclo).
-        assertAnchor("a la primera hora ya sonó la alarma", LocalDate.of(2026, 8, 23), 12, "a la primera hora sonó la alarma")
-    }
+    // Re-pin c.1027: la lateral «ya <pretérito>» se resuelve en
+    // [NaturalTaskParserYaPreteritoNarrativoTest] («a la primera hora ya sonó
+    // la alarma» → due=null + título íntegro; precedente c.925…c.1019).
 
     // ---- Guards ancla (byte-idénticos): sin pretérito inequívoco adyacente ----
 

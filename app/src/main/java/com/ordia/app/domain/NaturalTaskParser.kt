@@ -312,6 +312,9 @@ object NaturalTaskParser {
      * dejar el título limpio. "ya mismo" va antes que "ya" en la alternancia para
      * que el match capture la frase entera. NO entra en [relativeIsDays]: "ya" es
      * sub-hora, no debe combinarse con una hora explícita (no se rueda a hoy+hora).
+     * Guard narrativo c.1027: un «ya» suelto seguido de pretérito inequívoco
+     * ([yaPreteriteNarrativeSuffix]) NO ancla: es relato de un hecho cumplido,
+     * no una petición de inmediatez.
      */
     private val nowPattern = Regex(
         """(?i)\b(?:ahorita\s+mismo|ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad|ya\s+mismo|ya)\b"""
@@ -3658,7 +3661,13 @@ object NaturalTaskParser {
         // → vence ahora: la tarea sale a la superficie en "What Now" y puede recordar.
         // Se procesa después de [vagueRelativePattern] (por si una frase los combina)
         // y consume la frase completa para no dejar residuo en el título.
-        val nowMatch = nowPattern.find(working)
+        // Guard narrativo c.1027: «ya» suelto seguido de pretérito inequívoco
+        // («ya sonó la alarma») NO es inmediatez sino relato de un hecho
+        // cumplido: el ancla se suprime (sin fecha falsa ni título mutilado).
+        val nowMatch = nowPattern.find(working)?.takeUnless { match ->
+            match.value.trim().equals("ya", ignoreCase = true) &&
+                yaPreteriteNarrativeSuffix.containsMatchIn(working.substring(match.range.last + 1))
+        }
         val nowDueAt = nowMatch?.let { now }
         nowMatch?.let { working = working.replaceRange(it.range, " ") }
 
@@ -8555,6 +8564,21 @@ object NaturalTaskParser {
 
     private val weekdayPreteriteNarrativeSuffix = Regex(
         """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+    )
+
+    /**
+     * c.1027: ¿el predicado que sigue a un «ya» suelto abre con pretérito
+     * inequívoco («ya sonó la alarma», «ya me tomé la pastilla»)? Entonces el
+     * «ya» NO es inmediatez de comando (c.112) sino relato de un hecho
+     * cumplido: el ancla `now` se suprime (la anécdota no es un compromiso
+     * que vence hoy) y el título conserva el «ya» (contenido del usuario).
+     * Misma lista cerrada de c.950 (un encargo real jamás abre su predicado
+     * en pretérito) y mismo conservadurismo: un único clítico opcional, las
+     * formas ambiguas pretérito/presente («ya salimos») siguen ancla, y sólo
+     * el «ya» suelto se evalúa («ya mismo» queda intacto para comandos).
+     */
+    private val yaPreteriteNarrativeSuffix = Regex(
+        """(?i)^\s*,?\s*(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
