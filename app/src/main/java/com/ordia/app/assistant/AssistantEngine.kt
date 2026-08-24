@@ -1478,8 +1478,13 @@ object AssistantEngine {
     private val REOPEN_MARK_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente(?:\\s|:|$)")
     private val REOPEN_MARK_WITH_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente\\s*:?\\s*([^:].*)$")
     private val REOPEN_MARK_SUFFIX = Regex("(?i)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+pendiente\\s*[.!?]?$")
-    private val REOPEN_VERB_PREFIX = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s|:|$)")
-    private val REOPEN_VERB_WITH_CONTENT = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)\\s*:?\\s*([^:].*)$")
+    // c.1004 (UNIÓN): el verbo puede llevar la inserción «como
+    // hecha/completada/terminada» antes del objeto («desmarca como hecha la
+    // tarea del presupuesto») — sin ella el contenido tragaba «como hecha» y
+    // ningún título la contiene (mentira por omisión medida: «No encuentro
+    // ninguna tarea completada…» pese a existir la completada exacta).
+    private val REOPEN_VERB_PREFIX = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?(?:\\s|:|$)")
+    private val REOPEN_VERB_WITH_CONTENT = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?\\s*:?\\s*([^:].*)$")
 
     private fun reopenCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()

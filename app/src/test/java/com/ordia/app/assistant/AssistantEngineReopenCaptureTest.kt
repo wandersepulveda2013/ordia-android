@@ -120,6 +120,25 @@ class AssistantEngineReopenCaptureTest {
         assertTrue(ans.relatedTaskIds.isEmpty())
     }
 
+    // c.1004 (UNIÓN tras colisión convergente: este lado implementó la MISMA
+    // lateral en paralelo como su c.1002; el hermano la publicó como c.1003 con
+    // cobertura estrictamente superior — producción propia descartada
+    // NO-destructivo, precedente c.1000). Pins únicos conservados: la
+    // inserción «como hecha/completada» entre el verbo y la meta-palabra era
+    // mentira por omisión sobre la base c.1003 (el contenido tragaba «como
+    // hecha» y ningún título la contiene → «No encuentro…»); «reactivar»
+    // infinitivo y el objeto ajeno quedan como pin transversal.
+    @Test fun reopen_desmarcaComoHecha() = assertCaptures("desmarca como hecha la tarea del presupuesto", "4")
+    @Test fun reopen_reactivarInfinitivo() = assertCaptures("reactivar la tarea del informe", "1")
+
+    @Test
+    fun reopen_otroObjetoNuncaCaptura() {
+        val ans = ask("reabre la ventana")
+        assertEquals(AssistantAction.NONE, ans.action)
+        assertTrue(ans.actionPayload.isEmpty())
+        assertTrue(ans.relatedTaskIds.isEmpty())
+    }
+
     @Test
     fun reopen_controlesHermanosIntactos() {
         assertEquals(AssistantAction.COMPLETE_TASK, ask("marca como hecha la tarea de pasear al perro").action)

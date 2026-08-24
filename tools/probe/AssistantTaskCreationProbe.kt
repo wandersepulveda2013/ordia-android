@@ -138,7 +138,13 @@ fun main() {
         "descarta la tarea", // pelada — c.1002: guía honesta, NUNCA acción
         "no descartes la tarea del informe", // negación — c.1002: NUNCA capturar
         "ya descarté la tarea del informe", // pasado — c.1002: NUNCA capturar
-        "cancela el recordatorio" // c.1002: la palabra «tarea» es obligatoria; NUNCA roba recordatorios
+        "cancela el recordatorio", // c.1002: la palabra «tarea» es obligatoria; NUNCA roba recordatorios
+        "reabre la tarea del informe", // c.1003: REOPEN_TASK guía honesta (fixture vacío), NUNCA CREATE_TASK
+        "desmarca como hecha la tarea del presupuesto", // c.1004 (UNIÓN): guía honesta, NUNCA acción
+        "reabre la tarea", // pelada — c.1003: guía honesta, NUNCA acción
+        "no reabras la tarea del informe", // negación — c.1003: NUNCA capturar
+        "ya reabrí la tarea del informe", // pasado — c.1003: NUNCA capturar
+        "reabre la ventana" // objeto ajeno — c.1004: guía honesta, NUNCA acción
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
