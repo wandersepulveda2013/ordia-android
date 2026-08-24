@@ -175,4 +175,46 @@ class ContextIntentEnginePonerleVacunaFloorTest {
         assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
         assertEquals("Sacar al perro", i.title)
     }
+
+    // ---- Delta UNIÓN c.1014 [renumerado c.1012->c.1013->c.1014] (colisión convergente con el run hermano que
+    // también tomó la candidata (a) — su producción c.1010/c.1011-UNIÓN es
+    // funcionalmente idéntica; se conserva intacta y sólo se añaden (1) la
+    // lateral DISJUNTA del artículo INDEFINIDO «una vacuna», NULL medido PRE
+    // sobre el HEAD 4c43a85f con el piso hermano, y (2) pins únicos del run
+    // duplicado descartado: envolvente gobernando TASK, interop con los pisos
+    // hermanos del verbo «poner», residuo «el mes que viene»). ----
+
+    @Test
+    fun `captura articulo indefinido una vacuna`() {
+        val i = analyze("ponerle una vacuna a mi perra esta tarde")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Ponerle una vacuna a mi perra", i.title)
+        assertNotNull(i.dueAt)
+    }
+
+    @Test
+    fun `envolvente gobierna TASK anti-robo`() {
+        val i = analyze("recuérdame ponerle la vacuna al perro el lunes")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+        assertNotNull(i.dueAt)
+    }
+
+    @Test
+    fun `regresion interop poner la lavadora c729`() {
+        val i = analyze("poner la lavadora")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Poner la lavadora", i.title)
+    }
+
+    @Test
+    fun `captura forma backlog el mes que viene sin residuo`() {
+        val i = analyze("ponerle la vacuna al perro el mes que viene")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Ponerle la vacuna al perro", i.title)
+        assertNotNull(i.dueAt)
+    }
 }
