@@ -17162,3 +17162,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: `b40c6404` (fix reaplicado) + `8fe8eaca` (docs-close c.1023) + docs-close c.1026 (este). HEAD final: el de este push.
 - Estado: VERIFIED (JVM, verificación de unión). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push).
+
+
+## Ciclo c.1029 (2026-08-24) — candidata (a) UNDÉCIMA «cambiar la contraseña…» RECHAZADA por diseño P0 (privacidad deliberada, `ContextPrivacyFilter`) + pin persistido 16 tests [renumerado c.1027→c.1029 por colisión cycle-ID con SU c.1027 parser «ya»/SU c.1028 re-pin]
+- Branch: openhands/autonomous-ordia. HEAD inicial: `fde9cbfa` (mi docs-close c.1026). Re-fetch pre-implementación limpio. Re-fetch pre-push: hermano publicó SU c.1027 (`a60333a6`+…) y SU c.1028 (`25cce920`) durante mi TDD → `pull --ff-only` limpio (mi trabajo = 1 archivo nuevo untracked). Toolchain heredada /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`), `JAVA_OPTS=-Xmx6g`.
+- Selección: candidata (a) de la clase UNDÉCIMA (P1, sonda c.1026 C3) «cambiar la contraseña del banco esta tarde» NULL. Sonda PRE efímera `/tmp/probe1027/Probe.kt` (16 casos, motor real vía `tools/run_probe.sh`): C1–C3/E1–E2 NULL (gaps), C4 HIT TASK 0.45 (keyword «cuentas»), G1–G6 NULL correctos, R1–R4 pins.
+- TDD: 16 tests nuevos → RED exacto (EXACTAMENTE 3 fallos = las 3 candidatas) → fix keyword-OBJETO «contraseña» en TASK (lockstep piso c.710, precedente c.1013) → SEGUÍA FALLANDO; sonda POST: C1–C3 NULL con keyword puesta.
+- CAUSA RAÍZ: `ContextPrivacyFilter.blockedContentPatterns` (línea con `\b(contraseña|contrasena|password|…)\b`) descarta TODA notificación con la palabra «antes de cualquier análisis y en todas las fuentes» — diseño deliberado P0 (el texto podría contener el secreto). La keyword era inerte: el filtro manda sobre el gate TRIGGER_WORDS.
+- DECISIÓN: NO relajar el filtro (riesgo de fuga del secreto en el título capturado: «cambiar la contraseña a abc123»). Candidata RECHAZADA por diseño; revert del fix (`git checkout ContextIntent.kt`, producción byte-idéntica a la base). Registrada en DECISIONS.md.
+- Aporte real: pin de privacidad `ContextIntentEnginePasswordPrivacyPinTest.kt` (16 tests: 10 NULL \bcontraseña\b + 1 NULL plural declarativo + 1 pin HIT plural «…las contraseñas de las cuentas…» TASK 0.45 vía keyword «cuentas» + 4 pins vecinos c.710/c.605). Lección: cribar candidatas contra `ContextPrivacyFilter` antes de planear keywords.
+- Verificación UNIÓN final (post-pull SU c.1027+c.1028): `run_domain_tests.sh` → **OK (7505 = 7489 [SU medida c.1028] + 16 míos)**; `run_domain_checks.sh` → smoke 25/25. Determinista, cero random, cero producción neta.
+- Archivos: +1 test (`ContextIntentEnginePasswordPrivacyPinTest.kt`); docs AI_AUTONOMY (BACKLOG fila UNDÉCIMA, CURRENT_STATE, RUN_LOG, DECISIONS). Cero cambios de producción netos.
+- Commits: test+docs c.1029 (este push). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: candidata (b) UNDÉCIMA «configurar el móvil nuevo» (cribar contra filtro primero) o (c) «formatear el ordenador»; laterales parser ABIERTAS del hermano.
