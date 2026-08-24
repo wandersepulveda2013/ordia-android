@@ -2992,7 +2992,11 @@ object ContextIntentEngine {
 
     /**
      * Negación COMPUESTA de plan/volición de 1ª persona (c.1009, hermano de
-     * [obligationWrapperIsNegated] c.681/c.835). La sonda persistida c.1007
+     * [obligationWrapperIsNegated] c.681/c.835). UNIÓN convergente: ambos
+     * agentes implementaron este guard en paralelo en el mismo ciclo
+     * (commits `0fce566` + `cd48d03`); el merge conserva la variante
+     * SUPERSET (infinitivo obligatorio + inversión «sin») que pasa las
+     * 50 tests de ambos. La sonda persistida c.1007
      * (`tools/probe/TenthClassPetProbe.kt`, control G1) + micro-sondas
      * efímeras `/tmp/probe1007/Probe.kt` y `Probe2.kt` midieron que «no voy
      * a sacar al perro», «no pienso ir al médico», «no quiero llamar a
