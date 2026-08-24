@@ -8345,7 +8345,17 @@ object NaturalTaskParser {
         val suffix = text.substring(match.range.last + 1)
         if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
         val prefix = text.substring(0, match.range.first)
-        return ordinalHoraPreteriteNarrativeLonePrefix.matches(prefix)
+        if (ordinalHoraPreteriteNarrativeLonePrefix.matches(prefix)) return true
+        // c.1023 (H5): el prefijo ABRE con pretérito inequívoco y sigue con un
+        // complemento narrativo («me quedé dormido…», «sonó la alarma…»,
+        // «fui al banco…», «hablé con María…»). Anti-compromiso-embebido: el
+        // complemento no puede contener infinitivo ni «que» («avisé a Juan de
+        // llamar al banco…» conserva su ancla real) y el idiom «quedar con»
+        // («quedé con Ana a primera hora» = cita futura) nunca dispara.
+        val head = ordinalHoraPreteriteNarrativePrefixHead.find(prefix) ?: return false
+        if (ordinalHoraQuedarConArrangement.containsMatchIn(prefix)) return false
+        val complement = prefix.substring(head.range.last + 1)
+        return !ordinalHoraEmbeddedCommandToken.containsMatchIn(complement)
     }
 
     /**
@@ -8592,6 +8602,39 @@ object NaturalTaskParser {
      */
     private val ordinalHoraPreteriteNarrativeLonePrefix = Regex(
         """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)\s*[,.;:!?]?$"""
+    )
+
+    /**
+     * c.1023 (H5): cabeza del prefijo narrativo con complemento — la misma
+     * forma de arranque del predicado SOLO ([ordinalHoraPreteriteNarrativeLonePrefix])
+     * pero SIN exigir fin: lo que siga se valida aparte
+     * ([ordinalHoraEmbeddedCommandToken], [ordinalHoraQuedarConArrangement]).
+     */
+    private val ordinalHoraPreteriteNarrativePrefixHead = Regex(
+        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$)"""
+    )
+
+    /**
+     * c.1023 (H5): compromiso embebido dentro del complemento del prefijo —
+     * cualquier infinitivo («avisé a Juan de llamar…», «quedé en llamar…») o
+     * el subordinador «que» («me pidió que llamara…») bloquea el disparo:
+     * la ambigüedad se resuelve a favor de NO suprimir un compromiso real
+     * (doctrina c.950). Coste conocido y aceptado: falsos infinitivos por
+     * terminación («ayer», «lugar») dejan narrativas ancladas (lateral FUERA
+     * pineada en el test del ciclo).
+     */
+    private val ordinalHoraEmbeddedCommandToken = Regex(
+        """(?i)(?:^|\s)(?:que|[a-záéíóúüñ]+(?:ar|er|ir|arse|erse|irse))(?=\s|$|[,.;:!?])"""
+    )
+
+    /**
+     * c.1023 (H5): «quedar con» + persona es CITA futura («quedé con Ana a
+     * primera hora» = nos vemos a primera hora), no narrativa. Incluye el
+     * clítico a propósito («me quedé con Ana…» también se ancla: bivalente,
+     * doctrina c.950).
+     */
+    private val ordinalHoraQuedarConArrangement = Regex(
+        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?qued(?:é|ó|aste|aron)(?=\s+con(?:\s|$))"""
     )
 
     /**

@@ -37,10 +37,11 @@ import org.junit.Test
  * FUERA (laterales registradas, byte-idénticas — pins de alcance abajo):
  *  «a primera hora del lunes llegó…» (weekday genitivo: doctrina ancla
  *  vigente c.950), «me quedé dormido a primera hora» y «sonó la alarma a
- *  primera hora» (prefijo pretérito + complemento: no es predicado SOLO).
+ *  primera hora» (prefijo pretérito + complemento: no es predicado SOLO —
+ *  RESUELTAS en c.1023 [guard H5], re-pineadas abajo como capturas).
  *  La lateral «a LA primera hora llegó…» (artículo tras «a») quedó RESUELTA
- *  por el delta c.1019 (re-pin abajo; su clase propia cubre la familia
- *  con-artículo: NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest).
+ *  por el delta c.1019 del hermano (re-pin abajo; su clase propia cubre la
+ *  familia con-artículo: NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserOrdinalHoraPreteritoNarrativoTest {
@@ -139,11 +140,17 @@ class NaturalTaskParserOrdinalHoraPreteritoNarrativoTest {
     @Test fun aPrimeraHoraDelLunesLlego_lateralWeekdayGenitivoFuera() =
         assertDueAt("a primera hora del lunes llegó el paquete", LocalDate.of(2026, 8, 24), 9, "llegó el paquete")
 
-    @Test fun meQuedeDormidoAPrimeraHora_lateralPreteritoConComplementoFuera() =
-        assertDueAt("me quedé dormido a primera hora", LocalDate.of(2026, 8, 23), 9, "me quedé dormido")
+    // Las laterales «pretérito + complemento/objeto antes del ancla» dejaron
+    // de ser FUERA en c.1023 (guard H5: prefijo que ABRE con pretérito
+    // inequívoco + complemento sin infinitivo/«que»/«quedar con» → narrativa
+    // intacta). Re-pineadas aquí como capturas resueltas; la cobertura
+    // completa vive en NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest.
 
-    @Test fun sonoLaAlarmaAPrimeraHora_lateralPreteritoConObjetoFuera() =
-        assertDueAt("sonó la alarma a primera hora", LocalDate.of(2026, 8, 23), 9, "sonó la alarma")
+    @Test fun meQuedeDormidoAPrimeraHora_lateralResueltaC1020() =
+        assertNarrativeIntact("me quedé dormido a primera hora")
+
+    @Test fun sonoLaAlarmaAPrimeraHora_lateralResueltaC1020() =
+        assertNarrativeIntact("sonó la alarma a primera hora")
 
     // ---- Regresiones narrativas hermanas (c.930/c.932/c.956) re-pineadas ----
 

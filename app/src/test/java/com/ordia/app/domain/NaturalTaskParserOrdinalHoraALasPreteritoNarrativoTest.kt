@@ -31,11 +31,13 @@ import org.junit.Test
  * c.1016 «a la primera hora llegó el cartero» pasa de ancla a narrativa con
  * comentario c.1019.
  * FUERA a propósito (byte-idénticos — pins abajo): weekday genitivo tras
- * artículo («a la primera hora del lunes llegó…» — doctrina ancla vigente),
- * pretérito con complemento antes del ancla («me quedé dormido a la primera
- * hora», «sonó la alarma a la primera hora» — no es predicado SOLO, doctrina
- * c.1016) y formas ambiguas pretérito/presente («salimos a la primera hora»,
- * doctrina c.950). La lateral «ya <pretérito>» (regla de inmediatez «ya» que
+ * artículo («a la primera hora del lunes llegó…» — doctrina ancla vigente) y
+ * formas ambiguas pretérito/presente («salimos a la primera hora», doctrina
+ * c.950). Pretérito con complemento antes del ancla («me quedé dormido a la
+ * primera hora», «sonó la alarma a la primera hora») quedó RESUELTO en la
+ * UNIÓN por el guard H5 de c.1023 (prefijo pretérito + complemento sin
+ * infinitivo/«que»/«quedar con» → narrativa — la rama con-artículo comparte
+ * el predicado; re-pins MÁS estrictos abajo, precedente c.957/c.965/c.1016). La lateral «ya <pretérito>» (regla de inmediatez «ya» que
  * ancla a AHORA narrativas sin marca temporal — medida c.1019 en
  * `/tmp/probe1014/Probe3.kt`: «ya sonó/pagué/llegó…» → now) es INDEPENDIENTE
  * y sigue ABIERTA registrada en BACKLOG.
@@ -108,11 +110,16 @@ class NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest {
     @Test fun aLaPrimeraHoraDelLunesLlego_lateralWeekdayGenitivoFuera() =
         assertAnchor("a la primera hora del lunes llegó el paquete", LocalDate.of(2026, 8, 24), 9, "llegó el paquete")
 
-    @Test fun meQuedeDormidoALaPrimeraHora_lateralPreteritoConComplementoFuera() =
-        assertAnchor("me quedé dormido a la primera hora", LocalDate.of(2026, 8, 23), 9, "me quedé dormido")
+    // Re-pins legítimos MÁS estrictos (precedente c.957/c.965/c.1016): estas
+    // laterales FUERA (ancla 09:00 + título mutilado) quedaron RESUELTAS en la
+    // UNIÓN por el guard H5 de c.1023 — prefijo que abre con pretérito
+    // inequívoco + complemento sin infinitivo/«que»/«quedar con» → narrativa
+    // intacta (due=null, título íntegro), con-artículo igual que sin-artículo.
+    @Test fun meQuedeDormidoALaPrimeraHora_lateralResueltaC1020() =
+        assertNarrativeIntact("me quedé dormido a la primera hora")
 
-    @Test fun sonoLaAlarmaALaPrimeraHora_lateralPreteritoConObjetoFuera() =
-        assertAnchor("sonó la alarma a la primera hora", LocalDate.of(2026, 8, 23), 9, "sonó la alarma")
+    @Test fun sonoLaAlarmaALaPrimeraHora_lateralResueltaC1020() =
+        assertNarrativeIntact("sonó la alarma a la primera hora")
 
     // ---- Regresiones narrativas hermanas (c.931 H2 / c.1016 H4) intactas ----
 

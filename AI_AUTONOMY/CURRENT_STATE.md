@@ -61,6 +61,7 @@
 - **Próxima prioridad:** (e) «pasear al perro» fila DÉCIMA (ÚLTIMA candidata de la fila — sinónimo directo de «sacar al perro» c.740 que SÍ captura); laterales ABIERTAS (2ª persona «no vas a…», «ponerme la vacuna», «dale la pastilla…», forma sin dativo «cortar las uñas del gato», plural «los pelos»); laterales parser (artículo tras «a», pretérito+complemento, genitivos). Re-fetch OBLIGATORIO pre-push (hermano muy activo — numerar ciclo tras re-fetch).
 ----
 
+
 ## Ciclo c.1016 [renumerado c.1013->c.1014->c.1016 por DOBLE colisión cycle-ID con el hermano (SU c.1013 «cabello» `dd7d4f54`; SUS c.1014 «una vacuna» `e9169475` + c.1015 «uñas» `5cceb76e`); regiones SIEMPRE DISJUNTAS parser/context, precedentes c.1000/c.1004/c.1008/c.1011] (2026-08-24) — fix(parser): ordinal de hora con «a» sin artículo en narrativa en pretérito → narrativa intacta (doble daño eliminado; lateral c.1006/c.1008)
 - HEAD inicial: `dd7d4f54` (docs-close c.1013 del hermano) → integración NO-destructiva stash→`pull --ff-only`→pop sobre `5cceb76e` (SU c.1015; conflictos SOLO markdown, resueltos conservando AMBOS lados, precedente c.965/c.1013). Re-fetch OBLIGATORIO cumplido pre-implementación y pre-push. NO force, NO reset --hard, NO `main`. Toolchain heredada /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`), `JAVA_OPTS=-Xmx6g`. Baseline **OK (7293)**, smoke 25/25.
 - Unidad (P1 — compromiso falso + contenido mutilado; lateral registrada c.1006/c.1008, UNA por ciclo, anti-overreach c.615): «a primera hora llegó el cartero» / «llegué a primera hora» (narrativa en pretérito con ordinal de hora y conector «a» SIN artículo) nacían como tarea de HOY 09:00/18:00/21:00 (fecha FALSA ya pasada) y el título perdía la marca temporal — 9/9 candidatas con doble daño medido PRE con sonda efímera `/tmp/probe1013/Probe2.kt`.
@@ -14972,7 +14973,21 @@ con la conducta real (advierte borrado definitivo pero el flujo archiva
 — advertencia conservadora heredada c.1001). NO VERIFICADO
 Android/gradle/lint/assemble/UI/Room (sin SDK).
 
-### Último ciclo: c.1023 (2026-08-24)
+### Último ciclo: c.1023 (2026-08-24, este lado, DISJUNTO parser)
+Ordinal de hora con conector «a» tras cláusula narrativa en pretérito CON
+complemento («me quedé dormido a primera hora», «sonó la alarma a primera
+hora»): nacía con fecha FALSA ya pasada y título mutilado. FIX: guard H5
+en ordinalHoraOccurrenceIsPreteriteNarrative (prefijo abre con pretérito
+inequívoco; complemento sin infinitivo/«que» [anti-compromiso-embebido];
+idiom «quedar con» excluido). TDD estricto: 36 tests nuevos
+NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest — RED exacto
+13 → GREEN 36/36. 3 re-pins convergentes tras la UNIÓN con c.1019-hermano
+(delta «a la/las»): con-artículo = sin-artículo, misma evidencia narrativa.
+Renumerado c.1020→c.1023 por doble colisión cycle-ID (hermano fijó
+c.1020/c.1021/c.1022 durante mi TDD). Suite UNION FINAL OK (7445 = 7409 hermano + 36 mios). NO VERIFICADO Android/gradle/lint/assemble/UI
+(sin SDK).
+
+### Último ciclo: c.1022 (2026-08-24)
 Honestidad en «borra»: la confirmación de deleteCapture ya no promete
 borrado definitivo — deleteTask ARCHIVA (recuperable, c.225; nombre
 canónico de la app «Archivar», string task_detail_archive; el borrado
