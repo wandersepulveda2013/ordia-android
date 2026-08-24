@@ -1380,7 +1380,12 @@ object AssistantEngine {
     private val MARK_DONE_STOPWORDS = setOf(
         "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
         "al", "en", "y", "o", "a", "con", "por", "para", "mi", "mis",
-        "tu", "tus", "su", "sus", "que"
+        "tu", "tus", "su", "sus", "que",
+        // c.1000: «lo» («terminé lo del gimnasio») y la meta-palabra «tarea»
+        // («completé la tarea de …») nunca deben exigirse en el título; al
+        // ser matching simétrico por subconjunto, tampoco envenenan títulos
+        // que sí las contengan (ambas partes las pierden).
+        "lo", "tarea"
     )
 
     // c.998: «completé/terminé/acabé <tarea>» — pasado declarativo, hermano de
@@ -1409,7 +1414,13 @@ object AssistantEngine {
         }
         if (content.lowercase().startsWith("no ")) return null
         val wanted = markDoneTokens(content)
-        val matches = if (wanted.isEmpty()) emptyList() else tasks.filter { task ->
+        if (wanted.isEmpty()) {
+            // c.1000: contenido de stopwords puros («completé la tarea») —
+            // guía honesta SIN acción (NUNCA completar a ciegas).
+            return AssistantAnswer(if (past) "¿Qué tarea completaste? Escríbela y la marco como completada."
+                else "¿Qué tarea marco como completada? Escríbela tras «marca como hecha …» y la preparo.")
+        }
+        val matches = tasks.filter { task ->
             !task.completed && !task.archived && markDoneTokens(task.title).containsAll(wanted)
         }
         return when {

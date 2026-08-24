@@ -87,7 +87,9 @@ fun main() {
     //  «marca como hecha/completada <tarea>» → COMPLETE_TASK confirmable;
     //  pins en guards. c.998 cerró «completé/terminé…» (pasado declarativo).
     //  c.999 cerró «pospón/aplaza <tarea> (para mañana)» → POSTPONE_TASK
-    //  confirmable (pins en guards/regresiones). Lateral documentada en
+    //  confirmable (pins en guards/regresiones). c.1000 (UNIÓN transversal
+    //  tras colisión c.998/c.998 convergente): stopwords «lo»/«tarea» +
+    //  pins terminé/no terminé/terminaré. Lateral documentada en
     //  BACKLOG: «borra/elimina la tarea…» (destructiva, diseño cuidadoso).)
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
@@ -117,7 +119,10 @@ fun main() {
         "casi termino la presentación", // presente — c.998: NUNCA capturar
         "pospón el informe", // c.999: POSTPONE_TASK guía honesta (fixture vacío), NUNCA CREATE_TASK
         "aplaza", // pelada — c.999: guía honesta, NUNCA acción
-        "no pospongas el informe" // negación — c.999: NUNCA capturar
+        "no pospongas el informe", // negación — c.999: NUNCA capturar
+        "terminé el informe", // c.1000 (UNIÓN): guía honesta en fixture vacío, NUNCA CREATE_TASK
+        "no terminé el informe", // negación — c.1000 (UNIÓN): NUNCA capturar
+        "terminaré el informe mañana" // futuro — c.1000 (UNIÓN): NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
