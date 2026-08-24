@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.1010: forma DATIVA del cuidado veterinario de la mascota —
+ * c.1011: forma DATIVA del cuidado veterinario de la mascota —
  * «ponerle la vacuna al perro» (dicho-como-se-habla: la vacunación
  * en dativo, de las citas de veterinario más cotidianas). Candidata
  * (a) documentada ABIERTA en la fila de la clase DÉCIMA mascotas

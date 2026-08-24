@@ -291,7 +291,7 @@ object ContextIntentEngine {
     private val HOUSEHOLD_VACCINE_FLOOR =
         Regex("""\b(?<!no )vacunar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
     // Piso mascota DATIVO "ponerle/ponerles la(s) vacuna(s) al perro/gato"
-    // (c.1010 — candidata (a) de la fila clase DÉCIMA c.1007, sonda
+    // (c.1011 — candidata (a) de la fila clase DÉCIMA c.1007, sonda
     // `TenthClassPetProbe.kt`): la forma transitiva "vacunar" ya captura
     // (c.757), pero la dativa dicho-como-se-habla ("ponerle la vacuna al
     // perro") caía a NULL (olvido silencioso). "vacuna" suelta es bivalente
@@ -2961,7 +2961,7 @@ object ContextIntentEngine {
             Regex("""\bno\s+vacunar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
         ) return true
         // "ponerle la(s) vacuna(s) al perro/gato" (HOUSEHOLD, piso dativo
-        // acotado c.1010) es imperativo multi-palabra: la keyword-mascota +
+        // acotado c.1011) es imperativo multi-palabra: la keyword-mascota +
         // el bono temporal NO alcanzan el umbral sin el piso (medido PRE),
         // pero la cláusula se añade por cinturón y tirantes simétrico
         // (precedente hermano c.1006 dativo "cortarle el pelo" / c.842).
@@ -4086,7 +4086,7 @@ object ContextIntentEngine {
                     return "${capitalizeFirst(matchVacunarMascota.groupValues[1])} ${matchVacunarMascota.groupValues[2]}"
                 }
                 // Piso DATIVO "ponerle la(s) vacuna(s) al perro/gato"
-                // (c.1010): titular la forma completa, pronombre dativo
+                // (c.1011): titular la forma completa, pronombre dativo
                 // conservado (doctrina c.653; precedente hermano c.1006
                 // "cortarle el pelo"); el objeto mascota es el ANCLA (no se
                 // despoja) y la cola temporal la depura [sanitizeTitle].

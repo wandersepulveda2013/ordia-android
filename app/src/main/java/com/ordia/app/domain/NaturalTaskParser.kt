@@ -8517,9 +8517,11 @@ object NaturalTaskParser {
      * c.950: ¿es esta aparición de weekday el inicio de una CADENA NARRATIVA en
      * pretérito («el lunes llegó el paquete») y no un ancla de fecha? Sólo con
      * evidencia gramatical inequívoca:
-     *  (N1) artículo «el»/demostrativo «este» al frente (los genitivos
-     *       «del/de <weekday>» —«la reunión del lunes»— quedan FUERA: su
-     *       weekday modifica al sustantivo y la doctrina vigente los ancla);
+     *  (N1) artículo «el»/demostrativo «este» al frente o —desde c.1006—
+     *       weekday DESNUDO con pretérito inmediato («lunes llegó el
+     *       paquete», lateral c.949); los genitivos «del/de <weekday>»
+     *       —«la reunión del lunes»— quedan FUERA: su weekday modifica al
+     *       sustantivo y la doctrina vigente los ancla;
      *  (N2) SIN modificador de dirección futura («que viene», «próximo»,
      *       «siguiente», «posterior»): si el usuario pidió futuro explícito,
      *       el modificador gana aunque el enunciado sea contradictorio;
@@ -8535,7 +8537,16 @@ object NaturalTaskParser {
      */
     private fun weekdayOccurrenceIsPreteriteNarrative(text: String, match: MatchResult): Boolean {
         val mv = match.value.trimStart().lowercase()
-        if (!mv.startsWith("el ") && !mv.startsWith("este ")) return false
+        val withArticle = mv.startsWith("el ") || mv.startsWith("este ")
+        // c.1006 (lateral c.949): el weekday DESNUDO (sin artículo: «lunes
+        // llegó el paquete») también abre narrativa cuando el pretérito es
+        // INMEDIATO — la misma clase de doble daño de c.950 (compromiso
+        // futuro falso + título mutilado). Los genitivos «del/de <weekday>»
+        // siguen FUERA (modifican al sustantivo, doctrina ancla vigente) y
+        // la parte del día intercalada con weekday desnudo («lunes en la
+        // mañana llegó…») sigue anclada (pin c.954 byte-idéntico: esa
+        // extensión conservadora sólo aplica a «el/este»).
+        if (!withArticle && (mv.startsWith("del ") || mv.startsWith("de "))) return false
         if (mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
             mv.contains("siguiente") || mv.contains("posterior")
         ) return false
@@ -8546,8 +8557,10 @@ object NaturalTaskParser {
         // la lateral que c.950 midió y pinó como FUERA, ahora resuelta: la
         // cadena completa sigue siendo narrativa. Sólo se admiten las formas
         // «en la X»/«por la X» (conservador: «a la X»/«de la X» siguen como
-        // ancla, medidas en los pins de c.954). El weekday sin artículo
-        // (N1) y con modificador (N2) siguen excluidos.
+        // ancla, medidas en los pins de c.954). El weekday con modificador
+        // (N2) sigue excluido y, desde c.1006, el desnudo sólo vale con
+        // pretérito inmediato (arriba): sin artículo no hay intercalada.
+        if (!withArticle) return false
         val intercalated = weekdayPreteriteNarrativeIntercalatedPartOfDay.find(suffix) ?: return false
         return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix.substring(intercalated.range.last + 1))
     }
