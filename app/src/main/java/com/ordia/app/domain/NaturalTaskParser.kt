@@ -981,7 +981,10 @@ object NaturalTaskParser {
      * para que "la semana que viene" no se robe el +7d genérico dejando "a finales
      * de" como residuo.
      */
-    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+(?:misma\s+)?semana(?:\s+misma)?(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+(?:la\s+(?:pr[oó]xim[oa]\s+)?semana(?:\s+misma)?|esta\s+(?:misma\s+)?semana(?:\s+misma)?)(?:\s+que\s+viene)?)\b""")
+    // c.982: la rama «fin/finales de la …» admite el intensificador intercalado
+    // tras «la» («finales de la misma semana») — antes caía a dueAt=null con la
+    // frase íntegra de residuo (sonda c.982). La post-puesta ya existía.
+    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+(?:misma\s+)?semana(?:\s+misma)?(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+(?:la\s+(?:(?:pr[oó]xim[oa]|misma)\s+)?semana(?:\s+misma)?|esta\s+(?:misma\s+)?semana(?:\s+misma)?)(?:\s+que\s+viene)?)\b""")
     /**
      * "principios de semana" / "a principios de semana": plazo blando de "a inicios de
      * la semana" (el lunes). Frases cotidianas ("lo termino a principios de semana") que
@@ -996,7 +999,13 @@ object NaturalTaskParser {
      * "principios de la semana que viene" → lunes de la SEMANA PRÓXIMA; sin él,
      * al lunes más cercano en hoy/futuro de esta semana.
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?semana(?:\s+que\s+viene)?\b""")
+    // c.982: intensificador «misma» en ambas posiciones (doctrina c.646: neutro, no
+    // altera el rango): intercalada tras «la» (alternativa «misma» en el grupo de
+    // determinante — el conector «de la » ya se consumió) y post-puesta
+    // («semana misma», simétrica a thisWeekPattern). Sin ellas la fecha base se
+    // resolvía pero «misma» quedaba de residuo y «que viene» fuera del match
+    // (fecha de ESTA semana: doble daño silencioso, medido en sonda c.982).
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+|misma\s+)?semana(?:\s+misma)?(?:\s+que\s+viene)?\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
@@ -1007,7 +1016,9 @@ object NaturalTaskParser {
      * "mediados de la semana que viene" → miércoles de la SEMANA PRÓXIMA; sin él,
      * al miércoles más cercano en hoy/futuro de esta semana.
      */
-    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?semana(?:\s+que\s+viene)?\b""")
+    // c.982: mismo tratamiento del intensificador «misma» que startOfWeekPattern
+    // (intercalada tras «la» + post-puesta), simétrico a thisWeekPattern.
+    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+|misma\s+)?semana(?:\s+misma)?(?:\s+que\s+viene)?\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Variante de monthNamePattern para la limpieza del título: añade un prefijo
     // opcional no capturador `(?:\bdel?\s+)?` para consumir la preposición genitiva
