@@ -24,7 +24,7 @@ import org.junit.Test
  * «avisar en…»/«quiero en…»/«recordar en…», conector «avisar a primera…»);
  * 5/5 regresiones c.937/c.946/c.951 intactas; 3/3 laterales FUERA medidas
  * (H3 sin determinante bivalente c.946; ordinal sin determinante ni «en» —
- * resuelto narrativo en c.955 via prefijo «en blanco», pin volcado abajo).
+ * resuelto narrativo en c.956 via prefijo «en blanco», pin volcado abajo).
  *
  * Doctrina (extensión simétrica de la rama H2 c.937, como c.946 lo fue de la
  * rama weekday y c.951 del indefinido H2): cuando TODO el prefijo es «en»
@@ -133,7 +133,7 @@ class NaturalTaskParserH2EnSinArticuloNarrativoTest {
         )
 
     // ---- Pines byte-idénticos de laterales FUERA (medidos PRE en la sonda) ----
-    // c.955: el pin «sin determinante ni «en»» («primera hora de clase») se
+    // c.956: el pin «sin determinante ni «en»» («primera hora de clase») se
     // resolvió narrativo vía prefijo «en blanco» (NaturalTaskParserH2SinDeterminanteNarrativoTest);
     // quedan FUERA sólo los genitivos-ancla (H3 sin determinante, c.946).
 
