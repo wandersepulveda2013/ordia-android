@@ -23,7 +23,8 @@ import org.junit.Test
  * del usuario]); 4/4 guards bivalentes ancla correctos (verbo precedente
  * «avisar en…»/«quiero en…»/«recordar en…», conector «avisar a primera…»);
  * 5/5 regresiones c.937/c.946/c.951 intactas; 3/3 laterales FUERA medidas
- * (H3 sin determinante bivalente c.946; ordinal sin determinante ni «en»).
+ * (H3 sin determinante bivalente c.946; ordinal sin determinante ni «en» —
+ * resuelto narrativo en c.954 via prefijo «en blanco», pin volcado abajo).
  *
  * Doctrina (extensión simétrica de la rama H2 c.937, como c.946 lo fue de la
  * rama weekday y c.951 del indefinido H2): cuando TODO el prefijo es «en»
@@ -132,6 +133,9 @@ class NaturalTaskParserH2EnSinArticuloNarrativoTest {
         )
 
     // ---- Pines byte-idénticos de laterales FUERA (medidos PRE en la sonda) ----
+    // c.954: el pin «sin determinante ni «en»» («primera hora de clase») se
+    // resolvió narrativo vía prefijo «en blanco» (NaturalTaskParserH2SinDeterminanteNarrativoTest);
+    // quedan FUERA sólo los genitivos-ancla (H3 sin determinante, c.946).
 
     @Test fun enPrimeraHoraDeLaMananaLlameAlBanco_h3SinDeterminanteBivalentePinC946() =
         assertAnchor(
@@ -143,11 +147,5 @@ class NaturalTaskParserH2EnSinArticuloNarrativoTest {
         assertAnchor(
             "en primera hora de la mañana llamar al banco",
             LocalDate.of(2026, 8, 23), 9, "en llamar al banco"
-        )
-
-    @Test fun primeraHoraDeClase_sinDeterminanteNiEnLateralFueraPin() =
-        assertAnchor(
-            "primera hora de clase",
-            LocalDate.of(2026, 8, 23), 9, "de clase"
         )
 }

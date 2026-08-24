@@ -7711,7 +7711,10 @@ object NaturalTaskParser {
      *  (H2) artículo precedente («la/las/el/los [misma/o/s/as]») + genitivo de
      *       contenido a continuación («de clase», «del partido»): el ancla
      *       tampoco gobierna genitivo de contenido. Los genitivos-ancla
-     *       ([ordinalHoraAnchorGenitives]) quedan como ancla.
+     *       ([ordinalHoraAnchorGenitives]) quedan como ancla. Desde c.954 el
+     *       prefijo «en blanco» (aparición al inicio del texto, sin
+     *       determinante ni «en») también dispara esta rama, añadido a los
+     *       determinantes/«en» ya admitidos (c.937/c.951/c.952).
      *  (H3) genitivo canónico DENTRO del match («las primeras horas de la
      *       mañana son las mejores», c.932): contenido sólo con determinante
      *       al inicio del texto + predicado a continuación; la parte del día
@@ -8138,12 +8141,15 @@ object NaturalTaskParser {
         // weekday genitivo (directo o interior). c.951: también con genitivo
         // de contenido H2 («una primera hora de clase…») — ver la rama H2.
         // c.946: la misma restricción para «en» SIN artículo al inicio — sólo
-        // weekday genitivo (directo o interior); H3 sin determinante queda
-        // fuera (bivalente comando/narrativa, pin conservador).
+        // weekday genitivo (directo o interior); H3-bare y weekday-bare quedan
+        // fuera (genitivos-ancla bivalentes, pin conservador). c.954: el
+        // prefijo «en blanco» (aparición al inicio del texto, módulo espacios)
+        // es evidencia aditiva válida sólo para el genitivo de CONTENIDO (H2).
         val indefiniteBefore = ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefix)
         val enPrefixBefore = ordinalHoraNarrativeEnPrefix.containsMatchIn(prefix)
         val enIndefiniteBefore = ordinalHoraNarrativeEnIndefinitePrefix.containsMatchIn(prefix)
-        if (!articleBefore && !indefiniteBefore && !enPrefixBefore && !enIndefiniteBefore) return false
+        val bareBefore = prefix.isBlank()
+        if (!articleBefore && !indefiniteBefore && !enPrefixBefore && !enIndefiniteBefore && !bareBefore) return false
         val suffix = text.substring(match.range.last + 1)
         val genitive = ordinalHoraContentGenitive.find(suffix) ?: return false
         val genWord = genitive.groupValues[1].lowercase()
@@ -8161,11 +8167,15 @@ object NaturalTaskParser {
             // «en» SIN artículo al inicio («en primera hora de clase me quedé
             // dormido») — lateral medida FUERA en c.951 (sonda
             // /tmp/probe952/PreProbe.kt: 7/7 candidatas con doble daño P1, 4/4
-            // guards ancla correctos). Lateral FUERA: H3 sin determinante
-            // («en primera hora de la mañana llamé/llamar al banco» —
-            // bivalente real comando/narrativa, pin conservador c.946) y el
-            // ordinal sin determinante ni «en» («primera hora de clase»).
-            if (articleBefore || indefiniteBefore || enIndefiniteBefore || enPrefixBefore) return true
+            // guards ancla correctos). c.954: y el prefijo «en blanco» (sin
+            // determinante ni «en», aparición al inicio del texto: «primera
+            // hora de clase me quedé dormido») — lateral medida FUERA en
+            // c.952 (sonda /tmp/probe954/ProbePreFix.kt: 5/5 candidatas con
+            // doble daño P1, 4/4 guards ancla correctos, 4/4 pines FUERA).
+            // Laterales FUERA (pins byte-idénticos): H3 sin determinante
+            // («primera/en primera hora de la mañana…») y weekday-bare
+            // («primera hora del lunes…») — genitivos-ancla bivalentes.
+            if (articleBefore || indefiniteBefore || enIndefiniteBefore || enPrefixBefore || bareBefore) return true
         }
         // c.939 (H1-artículo): artículo AL INICIO del texto + weekday genitivo
         // DIRECTO + predicado a continuación → sujeto narrativo («la primera
