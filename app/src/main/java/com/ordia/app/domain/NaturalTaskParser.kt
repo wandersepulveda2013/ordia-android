@@ -7838,8 +7838,8 @@ object NaturalTaskParser {
      * genitivo (directo o tras genitivo interior de parte del día, c.943) y
      * con el genitivo canónico DENTRO del match (rama H3, c.944: «unas
      * primeras horas de la mañana son duras»): el genitivo de contenido H2
-     * con indefinido («una primera hora de clase…») no está medido — lateral
-     * conservadora (pin byte-idéntico).
+     * con indefinido («una primera hora de clase…») se admitió en c.950
+     * (lateral medida FUERA c.943…c.948, doctrina simétrica a c.937).
      */
     private val ordinalHoraNarrativeIndefinitePrefix = Regex(
         """(?i)^\s*(?:una|unas|un|unos)\s+$"""
@@ -7872,8 +7872,9 @@ object NaturalTaskParser {
      * forma sigue la doctrina ancla (byte-idéntica); la bivalente pura con
      * predicado de comando queda del lado narrativo, mismo compromiso que
      * c.932/c.944. c.948: la misma evidencia se admite también con weekday
-     * genitivo (directo o interior) — hueco entre c.943 y c.946. El genitivo
-     * de CONTENIDO H2 sigue exigiendo artículo definido (lateral conservadora).
+     * genitivo (directo o interior) — hueco entre c.943 y c.946. c.950: y con
+     * el genitivo de CONTENIDO H2 («en una primera hora de clase…»), doctrina
+     * simétrica a c.937 con el indefinido de c.943/c.948.
      */
     private val ordinalHoraNarrativeEnIndefinitePrefix = Regex(
         """(?i)^\s*en\s+(?:una|unas|un|unos)\s+$"""
@@ -8119,10 +8120,9 @@ object NaturalTaskParser {
         ) return true
         val articleBefore = Regex("""(?i)\b(?:la|las|el|los)(?:\s+mism[oa]s?)?\s+$""").containsMatchIn(prefix)
         // c.943: el artículo INDEFINIDO al inicio («una/un/unas») es la misma
-        // evidencia de sujeto narrativo, pero SÓLO se admite con weekday
-        // genitivo (directo o interior): el genitivo de contenido H2 con
-        // indefinido («una primera hora de clase…») no está medido (lateral
-        // conservadora) — por eso no basta `articleBefore || indefinite`.
+        // evidencia de sujeto narrativo; hasta c.948 SÓLO se admitía con
+        // weekday genitivo (directo o interior). c.950: también con genitivo
+        // de contenido H2 («una primera hora de clase…») — ver la rama H2.
         // c.946: la misma restricción para «en» SIN artículo al inicio — sólo
         // weekday genitivo (directo o interior); H3 sin determinante queda
         // fuera (bivalente comando/narrativa, pin conservador).
@@ -8134,8 +8134,18 @@ object NaturalTaskParser {
         val genitive = ordinalHoraContentGenitive.find(suffix) ?: return false
         val genWord = genitive.groupValues[1].lowercase()
         if (genWord !in ordinalHoraAnchorGenitives) {
-            // H2 (genitivo de contenido): sólo artículo definido (c.937).
-            if (articleBefore) return true
+            // H2 (genitivo de contenido): artículo definido (c.937); c.950:
+            // también el artículo INDEFINIDO al inicio del texto («una primera
+            // hora de clase fue genial») y «en» + indefinido al inicio («en
+            // una primera hora de clase me quedé dormido») — la misma evidencia
+            // de sujeto narrativo que c.943/c.948, ahora con genitivo de
+            // contenido (lateral medida FUERA c.943…c.948). Con verbo/nombre
+            // precedente («quiero una…», «avisar en una…») el prefijo no
+            // empieza en el indefinido y la forma sigue ancla (byte-idéntica).
+            // Como la H2 de c.937, no se exige predicado: el fragmento nominal
+            // «una primera hora de clase» tampoco es ancla. Lateral FUERA:
+            // «en» SIN artículo + H2 (pin byte-idéntico, medida c.950).
+            if (articleBefore || indefiniteBefore || enIndefiniteBefore) return true
         }
         // c.939 (H1-artículo): artículo AL INICIO del texto + weekday genitivo
         // DIRECTO + predicado a continuación → sujeto narrativo («la primera
