@@ -467,7 +467,7 @@ object AssistantEngine {
             // de cómo dictarlo, SIN acción: la UI crea «Nota sin título» si
             // CREATE_NOTE llega sin payload — NUNCA nota vacía.
             takeNoteCapture != null -> takeNoteCapture
-            // c.986: «recuérdame <contenido>» — la hermana de TAREAS de la
+            // c.987: «recuérdame <contenido>» — la hermana de TAREAS de la
             // familia de notas (c.969…c.985). Sonda PRE
             // tools/probe/AssistantTaskCreationProbe.kt: 9/10 candidatas de
             // creación caían al menú genérico (mentira por omisión: la
@@ -1138,12 +1138,19 @@ object AssistantEngine {
     // [ae] de «guarda» cubre tú+usted en una sola alternativa; el lookahead
     // «:»/fin sigue exigiéndose, así «guárdamelo mañana»/«escríbamelo bonito»
     // nunca entran en la rama.
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$))\\b")
+    // c.987: familia enclítica «-lo» (sonda efímera
+    // /tmp/probe987/EncliticoLoCaptureProbe.kt — PRE 12/12 capturas + 2/2
+    // peladas GAP al menú): «escríbelo/apúntalo/anótalo/guárdalo: …» (tú) y
+    // «escríbalo/apúntelo/anótelo/guárdelo: …» (usted), hermana simétrica de
+    // la «-melo» c.984 con el mismo vocalismo [ae] y el mismo lookahead
+    // «:»/fin — «escríbelo mañana»/«guárdalo en el archivo» nunca entran.
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$)|(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)(?=\\s*:|\\s*$))\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
     private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
     private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
     private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)\\s*:\\s*(.+)$")
+    private val LO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1155,6 +1162,7 @@ object AssistantEngine {
                 ?.takeUnless { it.equals("esto", ignoreCase = true) }
             ?: DICTATE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: MELO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+            ?: LO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
         return if (content.isNullOrEmpty()) {
             AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
         } else {
@@ -1162,7 +1170,7 @@ object AssistantEngine {
         }
     }
 
-    // c.986: «recuérdame <contenido>» — captura de TAREA hermana de la
+    // c.987: «recuérdame <contenido>» — captura de TAREA hermana de la
     // familia de notas. El [ée] cubre la escritura móvil sin tilde; el «:»
     // opcional la simetría con notas («recuérdame: sacar al perro»). El
     // ancla ^ hace disjuntas las formas no imperativas: «no me recuerdes
