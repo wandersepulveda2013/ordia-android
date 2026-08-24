@@ -78,6 +78,7 @@ object AssistantEngine {
         val createTaskCapture = createTaskCapture(clean)
         val avisaMeCapture = avisaMeCapture(clean)
         val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
+        val remindMeLoGuide = remindMeLoGuide(clean)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -492,6 +493,9 @@ object AssistantEngine {
             // c.995: lateral (b2) de la sonda persistente — «quiero que
             // me recuerdes…», hermana de remindMeCapture (mismo contrato).
             quieroQueRecuerdesCapture != null -> quieroQueRecuerdesCapture
+            // c.996: lateral (d) de la sonda persistente — «recuérdamelo»
+            // deíctico: guía honesta (NUNCA tarea basura «lo»).
+            remindMeLoGuide != null -> remindMeLoGuide
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1332,6 +1336,23 @@ object AssistantEngine {
         // contrario de la intención (hermana de c.986/c.993/c.994).
         if (content.startsWith("no ", ignoreCase = true)) return null
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
+
+    // c.996: lateral (d) de la sonda persistente — «recuérdamelo»
+    // deíctico. El motor no tiene contexto conversacional para resolver
+    // «lo», así que lo honesto es reconocer la forma y pedir el
+    // contenido explícito: guía SIN acción (NUNCA tarea basura «lo»).
+    // Ancla ^ con «recuérdamelo» cerrado: disjuntas la negación («no me
+    // lo recuerdes») y el pasado («me lo recordó ayer»). El temporal
+    // final («… mañana») se tolera en la forma pero no se puede guardar
+    // sin saber QUÉ recordar — la guía es la respuesta honesta.
+    private val REMIND_ME_LO =
+        Regex("(?i)^recu[ée]rdamelo(?:\\s+(?:ma[ñn]ana|hoy|pasado ma[ñn]ana|esta (?:tarde|noche|ma[ñn]ana)))?\\.?$")
+
+    private fun remindMeLoGuide(clean: String): AssistantAnswer? {
+        if (!REMIND_ME_LO.matches(clean.trim())) return null
+        // Guía honesta SIN acción: NUNCA tarea basura «lo» (doctrina c.969).
+        return AssistantAnswer("No sé a qué se refiere «lo». Escríbeme qué quieres que te recuerde — por ejemplo «recuérdame llamar al banco» — y lo guardo como tarea.")
     }
 
     // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la

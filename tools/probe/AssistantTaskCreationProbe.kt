@@ -69,7 +69,10 @@ fun main() {
     //      negación tras «que» capturaba lo contrario. Resuelta con despoje
     //      LEADING_QUE ANTES de los checks; pin en guards (exit 1 si
     //      reaparece la tarea basura o la captura de la negación);
-    //  (d) «recuérdamelo» — deíctico sin contenido explícito;
+    //  (d) CERRADA c.996: «recuérdamelo» — deíctico sin contenido
+    //      explícito. Resuelta con guía honesta SIN acción (el motor no
+    //      tiene contexto para resolver «lo»; NUNCA tarea basura «lo»);
+    //      pins en guards (deíctico, negación, pasado);
     //  (e) CERRADA c.991: «ponme un recordatorio…» — el ROBO DE RAMA por la
     //      consulta de recordatorios c.808 («No tienes recordatorios
     //      programados» a una orden de CREAR) se resolvió evaluando la
@@ -95,7 +98,11 @@ fun main() {
         "avísame cuando llegue Ana", // evento condicional — c.994: no programable, NUNCA capturar
         "quiero que me recuerdes", // pelada — c.995: guía honesta, NUNCA tarea vacía
         "quiero que me recuerdes no llamar al banco", // contenido negado — c.995: NUNCA capturar lo contrario
-        "quería que me recordaras la cita" // pasado/otra persona — c.995: NUNCA capturar
+        "quería que me recordaras la cita", // pasado/otra persona — c.995: NUNCA capturar
+        "recuérdamelo", // deíctico — c.996: guía honesta, NUNCA tarea basura «lo»
+        "recuérdamelo mañana", // deíctico con temporal — c.996: guía honesta
+        "no me lo recuerdes", // negación — c.996: NUNCA capturar
+        "me lo recordó ayer" // pasado/otra persona — c.996: NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
