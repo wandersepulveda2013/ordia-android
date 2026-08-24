@@ -74,7 +74,8 @@ fun AssistantScreen(
         latest = AssistantEngine.answer(
             value, state.tasks, conversations, commitments, now = clockNow,
             profile = profile, focusSessions = state.focusSessions,
-            routines = state.routines
+            routines = state.routines,
+            archivedTasks = state.archivedTasks
         )
         input = ""
     }
@@ -145,6 +146,11 @@ fun AssistantScreen(
                                     // sobre una completada la reabre (revierte la ocurrencia
                                     // recurrente generada, c.260).
                                     AssistantAction.REOPEN_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::toggleTask)
+                                    // c.1004: «recupera/desarchiva/restaura la tarea …» — la
+                                    // candidata es ARCHIVADA (no está en state.tasks), así que
+                                    // se restaura por id directo: vm.restoreArchived la
+                                    // devuelve y REARMA sus recordatorios (c.225).
+                                    AssistantAction.RESTORE_TASK -> answer.actionPayload.toLongOrNull()?.let { vm.restoreArchived("task", it) }
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -171,6 +177,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.CANCEL_TASK -> stringResource(R.string.assistant_action_cancel)
     AssistantAction.DELETE_TASK -> stringResource(R.string.assistant_action_delete)
     AssistantAction.REOPEN_TASK -> stringResource(R.string.assistant_action_reopen)
+    AssistantAction.RESTORE_TASK -> stringResource(R.string.assistant_action_restore)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }
