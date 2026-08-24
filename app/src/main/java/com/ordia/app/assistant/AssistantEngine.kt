@@ -1199,7 +1199,11 @@ object AssistantEngine {
     // nada», «recuerdo la tarea de ayer» y «el recuerdo llegó ayer» nunca
     // entran en la rama.
     private val REMIND_ME_PREFIX = Regex("(?i)^recu[ée]rdame(?:\\s*:)?(?:\\s+|$)")
-    private val REMIND_ME_WITH_CONTENT = Regex("(?i)^recu[ée]rdame\\s*:?\\s*(.+)$")
+    // c.991: ([^:].*) en lugar de (.+) — la pelada CON «:» («recuérdame:»)
+    // creaba tarea BASURA «:» (el (.+) se tragaba el propio «:» por
+    // backtracking al ser opcional). NUNCA tarea basura (doctrina c.969;
+    // simetría con el extractor c.990 de createTaskCapture).
+    private val REMIND_ME_WITH_CONTENT = Regex("(?i)^recu[ée]rdame\\s*:?\\s*([^:].*)$")
 
     private fun remindMeCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()

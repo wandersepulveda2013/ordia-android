@@ -47,9 +47,10 @@ fun main() {
     //      recordatorios c.808 y miente («No tienes recordatorios
     //      programados») cuando el usuario pedía CREAR uno. Bug de routing
     //      aparte (precedente del conflicto crear-vs-consultar).
-    //  (f) «recuérdame:» pelada con «:» — crea tarea BASURA «:» (medido
-    //      c.990: payload ":"); el (.+) se traga el propio «:» en
-    //      REMIND_ME_WITH_CONTENT. Hermana de la pelada c.986. Abierta.
+    //  (f) «recuérdame:» pelada con «:» — creaba tarea BASURA «:» (medido
+    //      c.990: payload ":"); el (.+) se tragaba el propio «:» en
+    //      REMIND_ME_WITH_CONTENT. RESUELTA c.991: extractor ([^:].*);
+    //      pin en guards (exit 1 si reaparece).
     val openLaterals = listOf(
         "avísame mañana de llamar al banco",
         "quiero que me recuerdes pagar la luz",
