@@ -8157,9 +8157,15 @@ object NaturalTaskParser {
             // precedente («quiero una…», «avisar en una…») el prefijo no
             // empieza en el indefinido y la forma sigue ancla (byte-idéntica).
             // Como la H2 de c.937, no se exige predicado: el fragmento nominal
-            // «una primera hora de clase» tampoco es ancla. Lateral FUERA:
-            // «en» SIN artículo + H2 (pin byte-idéntico, medida c.951).
-            if (articleBefore || indefiniteBefore || enIndefiniteBefore) return true
+            // «una primera hora de clase» tampoco es ancla. c.952: también
+            // «en» SIN artículo al inicio («en primera hora de clase me quedé
+            // dormido») — lateral medida FUERA en c.951 (sonda
+            // /tmp/probe952/PreProbe.kt: 7/7 candidatas con doble daño P1, 4/4
+            // guards ancla correctos). Lateral FUERA: H3 sin determinante
+            // («en primera hora de la mañana llamé/llamar al banco» —
+            // bivalente real comando/narrativa, pin conservador c.946) y el
+            // ordinal sin determinante ni «en» («primera hora de clase»).
+            if (articleBefore || indefiniteBefore || enIndefiniteBefore || enPrefixBefore) return true
         }
         // c.939 (H1-artículo): artículo AL INICIO del texto + weekday genitivo
         // DIRECTO + predicado a continuación → sujeto narrativo («la primera

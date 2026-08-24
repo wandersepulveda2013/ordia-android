@@ -39,9 +39,9 @@ import org.junit.Test
  * exige predicado: el fragmento nominal «una primera hora de clase» tampoco
  * es ancla (evidencia de sujeto idéntica; PRE nacía con fecha falsa y título
  * mutilado — mejora estricta medida). La lateral «en» SIN artículo + H2
- * («en primera hora de clase me quedé dormido») sigue FUERA — pins
- * byte-idénticos en este test. Determinista (regex), cero random, cero IA
- * fingida, cero UI.
+ * («en primera hora de clase me quedé dormido») quedó RESUELTA en c.952 —
+ * re-pin legítimo más estricto en este test. Determinista (regex), cero
+ * random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserH2IndefinidoNarrativoTest {
 
@@ -142,17 +142,12 @@ class NaturalTaskParserH2IndefinidoNarrativoTest {
     @Test fun enUnaPrimeraHoraDelDiaTrabajeMejor_regresionC947() =
         assertNarrativeIntact("en una primera hora del día trabajé mejor")
 
-    // ---- Pines byte-idénticos de laterales FUERA (medidos PRE en la sonda) ----
+    // ---- Laterales medidas FUERA en c.943…c.951; RESUELTAS en c.952 (re-pin
+    // legítimo MÁS estricto: ahora narrativa intacta, precedente c.925…c.951) ----
 
-    @Test fun enPrimeraHoraDeClase_h2EnSinArticuloLateralFueraPin() =
-        assertAnchor(
-            "en primera hora de clase me quedé dormido",
-            LocalDate.of(2026, 8, 23), 9, "en de clase me quedé dormido"
-        )
+    @Test fun enPrimeraHoraDeClase_h2EnSinArticuloLateralResueltaC952() =
+        assertNarrativeIntact("en primera hora de clase me quedé dormido")
 
-    @Test fun enUltimaHoraDelPartido_h2EnSinArticuloLateralFueraPin() =
-        assertAnchor(
-            "en última hora del partido llegó el gol",
-            LocalDate.of(2026, 8, 23), 18, "en del partido llegó el gol"
-        )
+    @Test fun enUltimaHoraDelPartido_h2EnSinArticuloLateralResueltaC952() =
+        assertNarrativeIntact("en última hora del partido llegó el gol")
 }
