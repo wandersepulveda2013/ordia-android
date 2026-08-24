@@ -541,10 +541,19 @@ object ContextIntentEngine {
     // [ContextIntentKind.ERRAND] (lección c.751) + plantilla de título en
     // [extractTitle] (lección c.616, pronombre conservado, doctrina
     // c.653). Acotado deliberado (una forma por ciclo): plural «los
-    // pelos», dativo «cortarle el pelo al niño» y objeto «cabello»
-    // quedan FUERA — candidatas documentadas.
+    // pelos» y objeto «cabello» quedan FUERA — candidatas documentadas.
+    // c.1006: el enclítico DATIVO «le/les» («cortarle el pelo al niño»
+    // — la peluquería del hijo, recado familiar cotidiano) se une al
+    // grupo (precedente dativo «llevarle/devolverle» c.854/c.855 y
+    // «echarle/echarles» c.833); NULL PRE medido con sonda efímera
+    // `/tmp/probe1006/Probe.kt` (4/4 formas dativas NULL — el dativo
+    // rompía el verbo literal, misma clase de defecto que la sexta
+    // clase c.834/c.836/c.840). Lockstep con la cláusula de negación
+    // en [imperativeIsNegated] y la plantilla de título en
+    // [extractTitle] (lección c.616); la keyword-OBJETO «pelo» ya
+    // existía (c.842), cero cambios en `ContextIntent.kt`.
     private val ERRAND_HAIRCUT_FLOOR =
-        Regex("""\b(?<!no )cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
+        Regex("""\b(?<!no )cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
     // Piso analítica de sangre acotado al objeto (c.862, candidata 4/7 de
     // la sonda persistida `EighthClassAdminProbe.kt` c.857 — OCTAVA clase,
     // gestiones de adulto — salud cotidiana; sonda PRE
@@ -2869,8 +2878,9 @@ object ContextIntentEngine {
         // c.842) + el bono temporal elevarían el score sin pasar por el
         // piso (cuyo lookbehind sí la bloquea), así la negación se bloquea
         // también aquí (cinturón y tirantes, precedente c.829).
+        // c.1006: dativo «le/les» en lockstep con [ERRAND_HAIRCUT_FLOOR].
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""").containsMatchIn(lower)
+            Regex("""\bno\s+cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""").containsMatchIn(lower)
         ) return true
         // "llevarle/devolverle <objeto>" (ERRAND, piso dativo enclítico
         // c.854): la keyword-verbo-enclítico "llevarle" (lockstep c.854,
@@ -4155,9 +4165,12 @@ object ContextIntentEngine {
                 // arranca en el verbo, así el acuse ("vale, …") y el
                 // prefijo temporal ("hoy …") no ensucian el título;
                 // [sanitizeTitle] depura el residuo temporal de cola
-                // ("…el sábado"/"…esta tarde").
+                // ("…el sábado"/"…esta tarde"). c.1006: dativo «le/les»
+                // en lockstep con [ERRAND_HAIRCUT_FLOOR] («Cortarle el
+                // pelo al niño» — el destinatario es contenido, no
+                // residuo temporal, y no se despoja).
                 val matchHaircut = Regex(
-                    """\b(?<!no )(cortar(?:me|te|se|nos)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b.*)""",
+                    """\b(?<!no )(cortar(?:me|te|se|nos|le|les)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchHaircut != null) {
