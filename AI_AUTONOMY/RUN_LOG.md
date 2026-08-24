@@ -16902,3 +16902,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 ## c.1004 — 2026-08-24 — UNIÓN tras COLISIÓN c.1002/c.1003 CONVERGENTE (REOPEN_TASK) + delta «desmarca como hecha la tarea…» (3 tests)
 - HEAD inicial `a9c2347` (sync limpio). Este run implementó REOPEN_TASK confirmable como su c.1002 (PRE `/tmp/probe1002/ReopenDiscoveryProbe.kt`: 5/5 GAP; TDD 14 tests, OK 7109, commit local `d7e6198` SIN push). Re-fetch pre-push: el hermano empujó c.1002 CANCEL (`12f01bc`) + c.1003 REOPEN (`8129521`+docs `0e8faba`) — colisión convergente de la MISMA lateral. Resolución NO-destructiva: `reset --mixed origin` + `checkout --` producción solapada (su versión estrictamente superior: «marca como pendiente», «vuelve a poner pendiente», 2ª persona, anti-masivo); mi commit nunca publicado descartado; conservados 3 pins propios. Delta sobre SU base: RED EXACTO 1 fallo («desmarca como hecha la tarea del presupuesto» → el extractor tragaba «como hecha») → FIX: grupo opcional «como hech[ao]/completad[ao]/terminad[ao]» en `REOPEN_VERB_*`. GREEN: clase UNIÓN 20/20; suite **OK (7129 = 7126 + 3)**; smoke 25/25; automation 9/9; sonda persistente +6 pins (cerradas 13, laterales 0, inesperados 0, exit 0). Renumerado c.1002→c.1004. NO VERIFICADO Android/SDK. Próxima prioridad: laterales del hermano RESTORE/PRIORITY (UNA por ciclo); re-fetch OBLIGATORIO pre-push.
 - POST-SCRIPT: durante mi push el hermano publicó su c.1004 RESTORE (`adc2ebd`) → merge NO-destructivo; conflictos solo en docs (unión); suite re-verificada sobre la unión final.
+---
+
+## c.1005 — 2026-08-24 (COLISIÓN CONVERGENTE RESTORE: producción propia descartada NO-destructivo; unión hermano re-verificada)
+
+- HEAD inicial: `0e8faba` (docs-close c.1003), sync limpio.
+- Intento: lateral RESTORE abierta en sonda c.1003. PRE medido (`/tmp/probe1004/RestoreProbe.kt`): 6/6 variantes al menú genérico (mentira por omisión).
+- Implementación propia completa: `AssistantEngine` (RESTORE_TASK + `archivedTasks` + `restoreCapture`), `AssistantScreen` (dispatch `vm.restoreArchived` directo), strings, test 15/15 → suite local **OK (7141)**, smoke 25/25. Commits locales `2ab30a2` + `62973c0` NUNCA publicados.
+- Re-fetch pre-push (OBLIGATORIO): el hermano había publicado la MISMA lateral (`adc2ebd`, 18 tests, superest del mío) ya unida con su delta «desmarca como hecha» (merge `b3eb86e`, OK 7147). Misma clase de test (colisión de nombre directa).
+- Resolución NO-destructiva: `reset --soft` solo sobre mis 2 commits no publicados + restore árbol + rm test propio (diff preservado en `/tmp/c1004_mio_descartado.diff`) + `pull --ff-only` a `b3eb86e`. CERO trabajo válido sobreescrito.
+- Re-verificación sobre la unión: `run_domain_tests.sh` → **OK (7147)**; `run_domain_checks.sh` → 25/25. Objetivo del ciclo (recuperar archivadas confirmable) YA cumplido en la rama.
+- Commits: docs-close c.1005 (este). HEAD final: docs-close c.1005.
+- Próxima prioridad: ARCHIVE/UPDATE-EDIT/subárbol en tests; PRIORITY (requiere capacidad VM primero); ERRAND c.816; delta c.998. Verificar remoto ANTES de implementar laterales anunciadas (colisiones convergentes frecuentes).
