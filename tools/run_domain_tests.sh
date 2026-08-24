@@ -122,6 +122,12 @@ SOURCES=(
   "$ROOT/app/src/test/java/com/ordia/app/conversations"/*.kt
 )
 
+# Heap estable para el compilador: con ~330 fuentes en una sola pasada el
+# default JVM (-Xmx = 1/4 RAM física) OOMa intermitentemente según el sesgo de
+# la máquina (los mismos 328–330 fuentes alternan PASS/OOM). Reservar 4g hace
+# el entorno determinista; JAVA_OPTS externo sigue prevaleciendo.
+export JAVA_OPTS="${JAVA_OPTS:--Xmx4g}"
+
 echo ">> Compilando ${#SOURCES[@]} fuentes (main+stubs+tests)..."
 "$KOTLINC" -cp "$CP" "${SOURCES[@]}" -d "$OUT" 2>"$OUT/compile.err" || {
   echo "ERROR de compilación:"; tail -40 "$OUT/compile.err"; exit 1
