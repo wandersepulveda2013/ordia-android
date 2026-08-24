@@ -12,7 +12,10 @@ import kotlin.system.exitProcess
 // genérico — mentira por omisión (la capacidad de crear tareas YA existe:
 // vm.addSmartTask → NaturalTaskParser, la misma captura rápida).
 // c.986 cerró «recuérdame <contenido>» (± tilde, ± «:») → CREATE_TASK
-// (AssistantEngineRecuerdameCaptureTest, 12 tests). Fixture vacío: el routing
+// (AssistantEngineRecuerdameCaptureTest, 12 tests). c.990 cerró la lateral
+// (a) «crea/añade/agrega (una) tarea…» → CREATE_TASK
+// (AssistantEngineCreaTareaCaptureTest, 17 tests; pelada y conector pelado
+// «de» → guía honesta SIN acción). Fixture vacío: el routing
 // correcto no depende del dato.
 // Formato heredado (c.803-b): regresiones fallan (exit 1) ante GAP nuevo;
 // laterales abiertas se imprimen toleradas hasta su ciclo.
@@ -26,12 +29,17 @@ fun main() {
         "recuérdame pagar la luz el viernes",
         "recuérdame comprar leche",
         "recuerdame llamar a Ana", // escritura móvil sin tilde
-        "recuérdame: sacar al perro" // simetría «:» con notas
+        "recuérdame: sacar al perro", // simetría «:» con notas
+        // CERRADAS c.990 (lateral (a)): imperativo explícito de tarea.
+        "crea una tarea: llamar a Ana",
+        "crear tarea pagar la luz mañana",
+        "añade una tarea: sacar al perro",
+        "agrega una tarea llamar al dentista"
     )
 
     // LATERALES ABIERTAS (documentadas, toleradas hasta su ciclo — doctrina
     // anti-overreach UNA forma por ciclo):
-    //  (a) «crea/añade/agrega una tarea…» — imperativo explícito de tarea;
+    //  (a) CERRADA c.990: «crea/añade/agrega (una) tarea…» → CREATE_TASK;
     //  (b) «avísame…» / «quiero que me recuerdes…» — recordatorio declarativo;
     //  (c) «recuérdame que…» — subordinada (el «que» quedaría en el título);
     //  (d) «recuérdamelo» — deíctico sin contenido explícito;
@@ -39,11 +47,10 @@ fun main() {
     //      recordatorios c.808 y miente («No tienes recordatorios
     //      programados») cuando el usuario pedía CREAR uno. Bug de routing
     //      aparte (precedente del conflicto crear-vs-consultar).
+    //  (f) «recuérdame:» pelada con «:» — crea tarea BASURA «:» (medido
+    //      c.990: payload ":"); el (.+) se traga el propio «:» en
+    //      REMIND_ME_WITH_CONTENT. Hermana de la pelada c.986. Abierta.
     val openLaterals = listOf(
-        "crea una tarea: llamar a Ana",
-        "crear tarea pagar la luz mañana",
-        "añade una tarea: sacar al perro",
-        "agrega una tarea llamar al dentista",
         "avísame mañana de llamar al banco",
         "quiero que me recuerdes pagar la luz",
         "recuérdame que tengo que llamar al banco",
@@ -73,7 +80,7 @@ fun main() {
 
     var unexpected = 0
 
-    println("=== CERRADAS c.986 (regresión CREATE_TASK) ===")
+    println("=== CERRADAS c.986+c.990 (regresión CREATE_TASK) ===")
     for (p in closed) {
         val ans = AssistantEngine.answer(p, emptyList(), emptyList(), emptyList(), now, zone)
         if (ans.action != AssistantAction.CREATE_TASK) {

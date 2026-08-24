@@ -75,6 +75,7 @@ object AssistantEngine {
         // c.969: captura «tomar nota» (calculada una vez, fuera del when).
         val takeNoteCapture = takeNoteCapture(clean)
         val remindMeCapture = remindMeCapture(clean)
+        val createTaskCapture = createTaskCapture(clean)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -475,6 +476,9 @@ object AssistantEngine {
             // NaturalTaskParser, la misma captura rápida). UNA forma por
             // ciclo (anti-overreach); laterales documentadas en la sonda.
             remindMeCapture != null -> remindMeCapture
+            // c.990: lateral (a) de la sonda persistente — «crea/añade/agrega
+            // (una) tarea…», hermana de remindMeCapture (mismo contrato).
+            createTaskCapture != null -> createTaskCapture
             // (v) sonda c.779: "notas fijadas" — el asistente no recibe notas, así la
             // ÚNICA ruta honesta hacia ellas es la vista de búsqueda (SearchKind.NOTE
             // + wantsPinned). Antes caía al menú genérico: mentira por omisión
@@ -1210,6 +1214,34 @@ object AssistantEngine {
         // tarea capturaría lo contrario de la intención (falso positivo
         // grave). Menú honesto.
         if (content.startsWith("no ", ignoreCase = true)) return null
+        return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
+
+    // c.990: lateral (a) de la sonda persistente de creación de tareas
+    // (tools/probe/AssistantTaskCreationProbe.kt) — «crea/añade/agrega (una)
+    // tarea…», el imperativo explícito de tarea. Hermana de
+    // remindMeCapture: mismo contrato (guía honesta pelada, NUNCA tarea
+    // vacía ni basura). La palabra «tarea» es obligatoria: «crea una
+    // tabla» no es una tarea. Ancla ^: «quiero crear una tarea» queda
+    // fuera (medido en la sonda efímera PRE — anti-overreach, UNA forma
+    // por ciclo). Verbos: crea/crear, añade/añadir, agrega/agregar;
+    // artículo «una» y «:» opcionales; «tareas» admite la «s».
+    private val CREATE_TASK_PREFIX =
+        Regex("(?i)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?(?:\\s*:)?(?:\\s+|$)")
+    private val CREATE_TASK_WITH_CONTENT =
+        Regex("(?i)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?\\s*:?\\s*([^:].*)$")
+
+    private fun createTaskCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!CREATE_TASK_PREFIX.containsMatchIn(trimmed)) return null
+        val content = CREATE_TASK_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        // Conector pelado «de» (doctrina c.988, hermano del «esto» de
+        // takeNoteCapture): «crea una tarea de» no crea basura.
+        if (content.isNullOrEmpty() || content.equals("de", ignoreCase = true)) {
+            // NUNCA tarea vacía (hermana de la nota pelada c.969): guía
+            // honesta de cómo dictarlo, SIN acción.
+            return AssistantAnswer("¿Qué tarea quieres crear? Escríbela tras «crea una tarea: …» y la guardo.")
+        }
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
     }
 
