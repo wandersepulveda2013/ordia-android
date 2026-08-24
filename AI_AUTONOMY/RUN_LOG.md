@@ -9,6 +9,7 @@
 **Sonda POST**: GAPS=0 — 10/10 capturas → CREATE_NOTE con el contenido exacto; 3/3 peladas → guía honesta SIN acción; 8/8 guards byte-idénticos al PRE (NONE); 4/4 controles (c.969/c.972/c.976/c.977) intactos.
 **Tests**: `bash tools/run_domain_tests.sh` → **OK (6842 = 6821 + 21)**, 0 failures; `bash tools/run_domain_checks.sh` → SMOKE-OK 25/25; `bash tools/run_automation_engine_checks.sh` → 9/9. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin SDK).
 **Cambios**: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (TAKE_NOTE_PREFIX + DICTATE_NOTE_WITH_CONTENT += «gu[aá]rdame»; nuevo MELO_NOTE_WITH_CONTENT; comentario c.979), A `app/src/test/java/com/ordia/app/assistant/AssistantEngineGuardameMeloCaptureTest.kt` (21 tests), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sonda efímera `/tmp/probe979/` (NO commiteada).
+**Higiene BACKLOG (mismo ciclo, precedent c.679/c.975 — doc-only, cero código)**: 3 tags ABIERTO obsoletos cerrados tras verificar la fuente — «escribe esto: …» (RESUELTO c.976), fracción canónica contexto (CERRADO c.679; `resolveClockFraction` verificado ~l.4653-4715), nota «último NULL» gasolina (orden inversa c.832 + enclítico c.833, ambos en `ERRAND_FUEL_FLOOR`). Anti-loop: ningún ciclo futuro re-trabajará esas formas.
 **Próxima prioridad**: continuar la auditoría de captura del asistente (nuevas laterales cotidianas SIN MEDIDA: sonda primero) u otra lateral documentada — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
 
 ## Ciclo c.978 (2026-08-24)
