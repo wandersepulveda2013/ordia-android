@@ -1,3 +1,11 @@
+## Ciclo c.956 (2026-08-24) — COLISIÓN de cycle-ID: MISMA lateral («ordinal H2 PREFIJO VACÍO») convergente con el hermano; mi duplicado no-pusheado descartado NO-destructivo — base remota `f4534632` VERIFICADA
+
+- HEAD inicial: `596a3b5` (c.955 docs); sincronía limpia pero el remoto avanzó en paralelo (hermano `31cf3421` = MISMA lateral con `bareBefore = prefix.isBlank()`, re-pin propio incluido).
+- Detección: push rechazado (non-fast-forward, behind 1581) → rebase de MIS 2 commits NO publicados; add/add en `NaturalTaskParserH2SinDeterminanteNarrativoTest.kt` (mismo nombre en ambos) + content en parser y re-pin. Comparación: convergencia TOTAL (mismo seam `ordinalHoraOccurrenceIsContent`, misma evidencia `prefix.isBlank()` aditiva H2, mismo re-pin c.952, misma doctrina/sonda 21-casos, suite idéntica OK 6635).
+- Resolución NO destructiva (precedente c.953 «duplicado propio no pusheado»): `rebase` con resolve `--ours` (remoto) en los 5 ficheros → ambos commits vacíos → drop; NI force push, NI reset --hard, NI file loss. Trabajo del remoto preservado byte-idéntico (probe propio 21/21 OK sobre base convergente; suite OK 6635; smoke 25/25 — mis números propios re-verificados, no asumidos).
+- Estado: **STALE_RUN-convergido (duplicado descartado)**, base `f4534632` VERIFIED (JVM). NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: re-fetch OBLIGATORIO al inicio para evitar re-colisión; laterales registradas («hoy/ayer en la mañana» [c.950 — abierta]; H3 sin determinante bivalente [c.946 — OUT]; pretérito entre frases en BROTHER [park c.952]).
+
 ## Ciclo c.956 (2026-08-24) — fix(parser): narrativa ordinal H2 (genitivo de CONTENIDO tras el match) con prefijo «en blanco» — SIN determinante ni «en» («primera hora de clase me quedé dormido») — lateral medida FUERA en c.950/c.952 (extensión simétrica de la rama H2 c.937/c.951/c.952)
 
 - HEAD inicial: `27ea1f8` (c.953, rama up-to-date con origin tras `pull --ff-only` limpio, working tree limpio; SIN colisión cycle-ID al inicio). Toolchain heredada (JDK Temurin 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`). Base heredada VERIFICADA (no asumida): suite **OK (6578 = c.952/c.953)** antes de tocar nada.

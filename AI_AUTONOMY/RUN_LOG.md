@@ -16295,3 +16295,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Base remota c.955 VERIFICADA independientemente (no asumida): `JAVA_OPTS=-Xmx8g bash tools/run_domain_tests.sh` → **OK (6618 tests)**, exit=0; `run_domain_checks.sh` 25/25.
 - Cambios: solo `AI_AUTONOMY/*` (RUN_LOG + CURRENT_STATE de este registro). SIN cambio de motor/tests. BACKLOG: sin fila nueva (la fila c.955 remota ya registra la lateral como RESUELTO; precedente c.949/c.953).
 - Estado: **VERIFIED (JVM)** la base remota c.955 `596a3b5`. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: (commit docs de este ciclo). Próxima prioridad: laterales registradas (H3 sin determinante bivalente [c.946]; «primera hora de clase» sin determinante [c.952]; conectores conservadores «a la»/«de la» [c.955 pins remoto]) o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
+---
+
+## c.956 (2026-08-24, UTC) — COLISIÓN c.956: convergencia TOTAL con el hermano en la lateral «ordinal H2 prefijo vacío»; duplicado propio descartado (NO destructivo)
+
+- **HEAD inicial:** `596a3b5` (c.955 docs). **HEAD final (docs):** ver HEAD de este push.
+- **Trabajo propio:** el mismo fix era en curso (mi rama no publicada: `2737b56`+`58ed5df`). Push rechazado: el remoto avanzó con el hermano `31cf3421` (MISMA lateral, `bareBefore = prefix.isBlank()` en el mismo seam H2, re-pin c.952 propio, suite 6635 OK). Convergencia TOTAL medida: mismo predicado (evidencia aditiva `prefix.isBlank()` H2), misma doctrina, mismo re-pin, mismo nombre de test (add/add).
+- **Resolución:** rebase + resolve `--ours` (remoto) → mis 2 commits vacíos → drop. Cero force push, cero reset --hard, cero pérdida del trabajo del remoto. Precedente c.953.
+- **Verificación propia sobre la base convergente `f4534632` (NO asumida):** suite FULL `tools/run_domain_tests.sh` → **OK (6635)**; smoke `tools/run_domain_checks.sh` → 25/25; mi sonda efímera `/tmp/probe956/PreProbe.kt` (21 casos) → **21/21 OK** (las 8 candidatas resueltas por la solución del hermano, guards/pines byte-idénticos).
+- **Estado:** STALE_RUN-convergido (duplicado), base `f4534632` VERIFIED (JVM). NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+- **Próxima prioridad:** re-fetch al inicio para no re-colisionar; laterales registradas («hoy/ayer en la mañana» [c.950 — abierta]; H3-bivalente [c.946 — OUT]; pretérito entre frases BROTHER [park c.952]).
+- **Commits:** docs de colisión (este push) sobre `f4534632`.
