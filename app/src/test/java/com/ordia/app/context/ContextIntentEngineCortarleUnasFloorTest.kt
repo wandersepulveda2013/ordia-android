@@ -48,9 +48,11 @@ import org.junit.Test
  * Y la cláusula; el guard c.1009 descarta «no voy a cortarle…»
  * antes del piso (pin); el pasado («le corté las uñas…») no casa
  * el infinitivo literal; el hedge «quizá…» sigue NULL; la forma
- * sin dativo «cortar las uñas del gato» queda FUERA (lateral
- * documentada — los pisos dativos hermanos tampoco cubren la forma
- * posesiva; el quick-capture de mascota se habla en dativo).
+ * sin dativo con genitivo mascota «cortar las uñas del gato» quedó
+ * RESUELTA en c.1024 (extensión in-situ de este piso: dativo
+ * opcional + conector genitivo — re-pin legítimo más abajo); la
+ * forma sin destinatario («cortar las uñas» — uñas propias) sigue
+ * FUERA.
  * Acotado deliberado (UNA forma por ciclo): (d)–(e) quedan FUERA —
  * candidatas documentadas c.1007.
  */
@@ -142,8 +144,16 @@ class ContextIntentEngineCortarleUnasFloorTest {
     }
 
     @Test
-    fun `forma sin dativo fuera lateral documentada`() {
-        assertNull(analyze("cortar las uñas del gato"))
+    fun `forma sin dativo con genitivo captura c1024`() {
+        // Re-pin c.1024 (legitimo, MAS estricto): esta lateral quedo
+        // RESUELTA — el piso se extendio (dativo opcional + conector
+        // genitivo `del|de (art.)`). Conducta byte-identica medida POST:
+        // HOUSEHOLD, titulo limpio, sin cola temporal -> dueAt null.
+        val i = analyze("cortar las uñas del gato")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Cortar las uñas del gato", i.title)
+        assertNull(i.dueAt)
     }
 
     // ---- Regresiones (HIT intactas) ----
