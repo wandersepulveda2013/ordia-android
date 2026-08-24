@@ -8154,11 +8154,20 @@ object NaturalTaskParser {
             // cuando el predicado adyacente es pretérito inequívoco («a
             // primera hora llegó el cartero», «llegué a primera hora») — la
             // nota nacía como tarea vencida hoy 09:00/18:00 con el título
-            // mutilado (doble daño P1, medido c.1008/c.1016). Con artículo
-            // («a la primera hora llegó…») sigue la doctrina ancla vigente
-            // (lateral registrada FUERA, pin byte-idéntico en el test c.1016).
+            // mutilado (doble daño P1, medido c.1008/c.1016).
             if (!Regex("""(?i)^(?:justo\s+)?a\s+las?\s""").containsMatchIn(match.value))
                 return ordinalHoraOccurrenceIsPreteriteNarrative(text, match)
+            // c.1017 (delta UNIÓN sobre H4 c.1016): CON artículo («a la/las»)
+            // vale la MISMA evidencia inequívoca — el pretérito adyacente
+            // ([ordinalHoraOccurrenceIsPreteriteNarrative], sufijo inmediato o
+            // prefijo pretérito SOLO) — para declarar la aparición CONTENIDO
+            // narrativo («a la primera hora vino el técnico», «llegué a la
+            // primera hora»): nacía con fecha FALSA hoy 09:00/18:00 y título
+            // mutilado (doble daño P1, medido c.1017 con sonda efímera sobre
+            // la base c.1016: 4/4 candidatas con-artículo afectadas). Sin esa
+            // evidencia sigue la doctrina ancla/genitivo vigente
+            // byte-idéntica (guards y pines FUERA en el test c.1017).
+            if (ordinalHoraOccurrenceIsPreteriteNarrative(text, match)) return true
             if (ordinalHoraCanonicalSuffix.containsMatchIn(match.value)) return false
             val suffixA = text.substring(match.range.last + 1)
             val genitiveA = ordinalHoraContentGenitive.find(suffixA) ?: return false
@@ -8311,12 +8320,13 @@ object NaturalTaskParser {
      *      primera hora», «me desperté a primera hora», «ya salí a última
      *      hora») — ver [ordinalHoraPreteriteNarrativeLonePrefix].
      * FUERA a propósito (laterales medidas, pins byte-idénticos en
-     * NaturalTaskParserOrdinalHoraPreteritoNarrativoTest): artículo tras «a»
-     * («a la primera hora llegó…» — otra rama del guard), weekday genitivo
+     * NaturalTaskParserOrdinalHoraPreteritoNarrativoTest): weekday genitivo
      * («a primera hora del lunes llegó…» — doctrina ancla vigente), pretérito
      * con complemento antes del ancla («me quedé dormido a primera hora»,
      * «sonó la alarma a primera hora») y formas ambiguas pretérito/presente
-     * («salimos/comimos a primera hora», excluidas por doctrina c.950).
+     * («salimos/comimos a primera hora», excluidas por doctrina c.950). El
+     * artículo tras «a» («a la primera hora llegó…») quedó cubierto por el
+     * delta c.1017 (misma evidencia en la rama con-artículo del guard).
      * Usado por [ordinalHoraOccurrenceIsContent], así que la resolución
      * (fecha), el borrado del título ([eraseOrdinalHoraToken]) y la
      * protección de la parte del día gobernada comparten el mismo predicado:

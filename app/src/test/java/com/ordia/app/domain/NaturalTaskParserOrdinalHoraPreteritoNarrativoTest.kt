@@ -35,10 +35,12 @@ import org.junit.Test
  * («de la mañana») comparten el mismo predicado: fecha y título NUNCA
  * divergen (doctrina c.930/c.950).
  * FUERA (laterales registradas, byte-idénticas — pins de alcance abajo):
- *  «a LA primera hora llegó…» (artículo tras «a»: otra rama del guard),
  *  «a primera hora del lunes llegó…» (weekday genitivo: doctrina ancla
  *  vigente c.950), «me quedé dormido a primera hora» y «sonó la alarma a
  *  primera hora» (prefijo pretérito + complemento: no es predicado SOLO).
+ *  La lateral «a LA primera hora llegó…» (artículo tras «a») quedó RESUELTA
+ *  por el delta c.1017 (re-pin abajo; su clase propia cubre la familia
+ *  con-artículo: NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserOrdinalHoraPreteritoNarrativoTest {
@@ -126,8 +128,13 @@ class NaturalTaskParserOrdinalHoraPreteritoNarrativoTest {
 
     // ---- Pines FUERA (laterales registradas en el KDoc, byte-idénticos) ----
 
-    @Test fun aLaPrimeraHoraLlego_lateralArticuloTrasConectorFuera() =
-        assertDueAt("a la primera hora llegó el cartero", LocalDate.of(2026, 8, 23), 9, "llegó el cartero")
+    @Test fun aLaPrimeraHoraLlego_resueltaC1017RePinNarrativa() {
+        // Re-pin legítimo MÁS estricto (precedente c.957/c.965): este pin FUERA
+        // (ancla 09:00 + título mutilado) quedó RESUELTO por el delta c.1017 —
+        // el artículo tras «a» ya no exime de la evidencia de pretérito
+        // adyacente; ahora narrativa intacta (due=null, título íntegro).
+        assertNarrativeIntact("a la primera hora llegó el cartero")
+    }
 
     @Test fun aPrimeraHoraDelLunesLlego_lateralWeekdayGenitivoFuera() =
         assertDueAt("a primera hora del lunes llegó el paquete", LocalDate.of(2026, 8, 24), 9, "llegó el paquete")
