@@ -72,6 +72,8 @@ object AssistantEngine {
         // c.807: interrogativa con contenido cualificado → payload afirmativo
         // equivalente (ver rama de contenido cualificado al final del when).
         val contentQualifiedInterrogativePayload = contentQualifiedInterrogativePayload(clean)
+        // c.969: captura «tomar nota» (calculada una vez, fuera del when).
+        val takeNoteCapture = takeNoteCapture(clean)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -456,6 +458,14 @@ object AssistantEngine {
                 if (content.isBlank()) AssistantAnswer("Añade el contenido después de dos puntos para crear la nota.")
                 else AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
             }
+            // c.969: «tomar nota» / «toma nota» — la forma cotidiana de pedir
+            // captura de nota (hermana de «guardar como nota»; descubrimiento
+            // de la sonda de paridad c.967, sonda PRE c.969: 8/8 GAP al menú
+            // genérico). Con contenido («tomar nota: X» / «tomar nota de X»)
+            // crea la nota con ese contenido; pelada responde la guía honesta
+            // de cómo dictarlo, SIN acción: la UI crea «Nota sin título» si
+            // CREATE_NOTE llega sin payload — NUNCA nota vacía.
+            takeNoteCapture != null -> takeNoteCapture
             // (v) sonda c.779: "notas fijadas" — el asistente no recibe notas, así la
             // ÚNICA ruta honesta hacia ellas es la vista de búsqueda (SearchKind.NOTE
             // + wantsPinned). Antes caía al menú genérico: mentira por omisión
@@ -1074,6 +1084,24 @@ object AssistantEngine {
         return pinned && interrogativa
     }
 
+    // c.969: captura «tomar nota» / «toma nota» (plural incluido). El prefijo
+    // exige inicio de frase para no secuestrar contenido («quiero tomar nota»
+    // no es forma directa). El contenido puede venir tras «:» (hermano de
+    // «guardar como nota: X») o tras «de» («tomar nota de la reunión»).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^toma(?:r)?\\s+notas?\\b")
+    private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
+
+    private fun takeNoteCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!TAKE_NOTE_PREFIX.containsMatchIn(trimmed)) return null
+        val content = TAKE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        return if (content.isNullOrEmpty()) {
+            AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
+        } else {
+            AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
+        }
+    }
+
     private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")
     private val CONTENT_LEAD_ARTICLES = setOf("las", "los")
     private val CONTENT_CONNECTOR_ARTICLES = setOf("la", "las", "los", "el")
@@ -1087,7 +1115,12 @@ object AssistantEngine {
      * Sin calificador tras el conector no rutea.
      */
     private val NOTE_SUBJECTS = setOf("nota", "notas")
-    private val NOTE_LEAD_ARTICLES = setOf("las", "mis")
+    // c.969: «la» entra como artículo cabecera — «la nota de la reunión»
+    // (nota concreta por contenido, descubrimiento de la sonda c.967) caía
+    // al menú genérico mientras «las notas de física» ya ruteaba. La pelada
+    // «la nota» NO se ve afectada: sin conector+calificador el guard la deja
+    // pasar al listado (ENTITY_LISTING_FORMS, c.967).
+    private val NOTE_LEAD_ARTICLES = setOf("las", "mis", "la")
 
     /**
      * Interrogativa con contenido cualificado (c.807): «qué notas tengo de
