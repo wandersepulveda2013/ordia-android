@@ -4849,7 +4849,10 @@ object NaturalTaskParser {
             // o, combinadas con hora ("ayer a las 4"), resolvían a HOY — fecha errónea.
             // Se mantiene en el pasado (honesto: la tarea es vencida, aparece en What Now).
             // "antier" = variante coloquial hispanoamericana de "anteayer".
-            Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
+            // c.957: EXCEPTO cuando la cadena es narrativa en pretérito con parte
+            // del día («anteayer por la noche sonó la alarma») — no anclar.
+            Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) && !dayPreteriteNarrative ->
+                base.toLocalDate().minusDays(2)
             // c.954: si «hoy/ayer» introduce una cadena narrativa en pretérito
             // con parte del día («ayer en la mañana llegó el paquete»), no hay
             // ancla de fecha: la narrativa queda sin dueAt y el título íntegro.
@@ -8348,7 +8351,8 @@ object NaturalTaskParser {
     // parte del día?
     private fun dayPreteriteNarrativeGuard(text: String, match: MatchResult): Boolean {
         val mv = match.value.trim().lowercase()
-        if (mv != "hoy" && mv != "ayer") return false
+        // c.957: «anteayer/antier» también protegidas (superset conservador).
+        if (mv != "hoy" && mv != "ayer" && mv != "anteayer" && mv != "antier") return false
         val sm = standalonePartOfDayPattern.find(text, match.range.first) ?: return false
         return dayPreteriteNarrativeOccurrence(text, sm)
     }
@@ -8546,8 +8550,11 @@ object NaturalTaskParser {
         if (mv.contains("siguiente")) return false
         if (Regex("""(?i)\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier)\b""")
                 .containsMatchIn(mv)) return false
+        // c.957: «anteayer/antier» también encabeza la cadena narrativa (superset
+        // conservador medido FUERA del remoto c.955: nacía con fecha falsa y
+        // título mutilado — doble daño 2/2). Mismo dominio «en/por la X».
         val prefix = text.substring(0, match.range.first).trim().lowercase()
-        if (prefix != "hoy" && prefix != "ayer") return false
+        if (prefix != "hoy" && prefix != "ayer" && prefix != "anteayer" && prefix != "antier") return false
         val suffix = text.substring(match.range.last + 1)
         return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
     }

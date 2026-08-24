@@ -67,6 +67,14 @@ class NaturalTaskParserHoyAyerParteDiaPreteritoNarrativoTest {
     @Test fun ayerPorLaMananaMeQuedeDormido_pronominalEsContenidoNarrativo() =
         assertNarrativeIntact("ayer por la mañana me quedé dormido")
 
+    // ---- c.957: superset conservador «anteayer/antier» (FUERA del remoto c.955) ----
+
+    @Test fun anteayerEnLaMananaLlegoElPaquete_esContenidoNarrativo() =
+        assertNarrativeIntact("anteayer en la mañana llegó el paquete")
+
+    @Test fun antierPorLaNocheSonoLaAlarma_esContenidoNarrativo() =
+        assertNarrativeIntact("antier por la noche sonó la alarma")
+
     // ---- Guards de ancla (comando/presente/fragmento: comportamiento vigente) ----
 
     @Test fun hoyEnLaMananaTengoReunion_presenteSigueAncla() =
