@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -79,6 +79,7 @@ object AssistantEngine {
         val avisaMeCapture = avisaMeCapture(clean)
         val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
         val remindMeLoGuide = remindMeLoGuide(clean)
+        val markDoneCapture = markDoneCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -496,6 +497,9 @@ object AssistantEngine {
             // c.996: lateral (d) de la sonda persistente — «recuérdamelo»
             // deíctico: guía honesta (NUNCA tarea basura «lo»).
             remindMeLoGuide != null -> remindMeLoGuide
+            // c.997: sonda DiscoveryProbe — «marca como hecha …» con
+            // coincidencia única → COMPLETE_TASK (el botón confirma).
+            markDoneCapture != null -> markDoneCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1353,6 +1357,51 @@ object AssistantEngine {
         if (!REMIND_ME_LO.matches(clean.trim())) return null
         // Guía honesta SIN acción: NUNCA tarea basura «lo» (doctrina c.969).
         return AssistantAnswer("No sé a qué se refiere «lo». Escríbeme qué quieres que te recuerde — por ejemplo «recuérdame llamar al banco» — y lo guardo como tarea.")
+    }
+
+    // c.997: sonda de descubrimiento DiscoveryProbe — «marca como
+    // hecha/completada <tarea>» caía al menú genérico (mentira por omisión).
+    // Coincidencia EXACTAMENTE única sobre tareas pendientes (tokens
+    // significativos del contenido ⊆ tokens del título, plegado con
+    // foldForSearch): cero → guía honesta; varias → lista honesta SIN
+    // acción; única → COMPLETE_TASK con el id en payload y el botón
+    // confirma (NADA se completa en silencio). El ancla ^ con «marca(r)»
+    // imperativo hace disjuntas la negación («no marques…») y el pasado
+    // («ya la marqué…»). Completadas/archivadas NUNCA se ofrecen.
+    private val MARK_DONE_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])(?:\\s|:|$)")
+    private val MARK_DONE_WITH_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])\\s*:?\\s*([^:].*)$")
+    private val MARK_DONE_STOPWORDS = setOf(
+        "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
+        "al", "en", "y", "o", "a", "con", "por", "para", "mi", "mis",
+        "tu", "tus", "su", "sus", "que"
+    )
+
+    private fun markDoneTokens(s: String): Set<String> =
+        s.foldForSearch().split(' ').filter { it.isNotBlank() && it !in MARK_DONE_STOPWORDS }.toSet()
+
+    private fun markDoneCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!MARK_DONE_PREFIX.containsMatchIn(trimmed)) return null
+        val content = MARK_DONE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
+        if (content.isNullOrEmpty()) {
+            // NUNCA completar a ciegas: guía honesta SIN acción.
+            return AssistantAnswer("¿Qué tarea marco como completada? Escríbela tras «marca como hecha …» y la preparo.")
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val matches = if (wanted.isEmpty()) emptyList() else tasks.filter { task ->
+            !task.completed && !task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea pendiente que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas pendientes que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                AssistantAnswer("¿Marco «${task.title}» como completada?", AssistantAction.COMPLETE_TASK, task.id.toString(), listOf(task.id))
+            }
+        }
     }
 
     // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la

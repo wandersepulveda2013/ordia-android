@@ -125,6 +125,9 @@ fun AssistantScreen(
                                     // c.986: «recuérdame …» — misma captura rápida
                                     // (NaturalTaskParser extrae fecha y señales).
                                     AssistantAction.CREATE_TASK -> vm.addSmartTask(answer.actionPayload)
+                                    // c.997: «marca como hecha …» — el payload es el id de la
+                                    // tarea candidata única; el botón confirma (anti-overreach).
+                                    AssistantAction.COMPLETE_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::toggleTask)
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -146,6 +149,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.RUN_REPLAN -> stringResource(R.string.assistant_action_replan)
     AssistantAction.CREATE_NOTE -> stringResource(R.string.assistant_action_note)
     AssistantAction.CREATE_TASK -> stringResource(R.string.assistant_action_task)
+    AssistantAction.COMPLETE_TASK -> stringResource(R.string.assistant_action_complete)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }

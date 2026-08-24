@@ -82,7 +82,12 @@ fun main() {
     //      en REMIND_ME_WITH_CONTENT. Resuelta con extractor ([^:].*);
     //      pin en guards (exit 1 si reaparece).
     val openLaterals = listOf<String>()
-    // (sin laterales abiertas tras c.995; descubrir nuevas con auditoría)
+    // (sin laterales abiertas tras c.995; descubrir nuevas con auditoría.
+    //  c.997 abrió una NUEVA familia transversal vía sonda DiscoveryProbe:
+    //  «marca como hecha/completada <tarea>» → COMPLETE_TASK confirmable;
+    //  pins en guards. Laterales documentadas en BACKLOG: «borra/elimina
+    //  la tarea…» (destructiva, diseño cuidadoso), «completé/terminé…»
+    //  (pasado declarativo), «aplaza…» (paridad con «pospón»).)
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
     val guards = listOf(
@@ -102,7 +107,10 @@ fun main() {
         "recuérdamelo", // deíctico — c.996: guía honesta, NUNCA tarea basura «lo»
         "recuérdamelo mañana", // deíctico con temporal — c.996: guía honesta
         "no me lo recuerdes", // negación — c.996: NUNCA capturar
-        "me lo recordó ayer" // pasado/otra persona — c.996: NUNCA capturar
+        "me lo recordó ayer", // pasado/otra persona — c.996: NUNCA capturar
+        "marca como hecha llamar al banco", // c.997: COMPLETE_TASK con confirmación, NUNCA CREATE_TASK duplicada
+        "no marques nada como hecha", // negación — c.997: NUNCA capturar
+        "ya la marqué como hecha" // pasado — c.997: NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
