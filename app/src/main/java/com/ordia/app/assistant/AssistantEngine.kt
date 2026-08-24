@@ -1115,18 +1115,18 @@ object AssistantEngine {
     // «esto/eso» OBLIGATORIO, así «escríbeme un poema»/«escríbeme mañana»
     // nunca se secuestran; el ancla ^ mantiene «quiero que me escribas esto»
     // fuera.
-    // c.979: (a) enclítico de «guarda» «guárdame/guardame + esto/eso» y
-    // (b) deíctico fundido «-melo» («escríbemelo», «apúntemelo/apúntamelo»,
-    // «anótemelo/anótamelo» ± tilde) — lateral BACKLOG descubierta c.977
-    // (sonda PRE 13/13 GAP al menú). Mismo guard: «esto/eso» + «:» (a) o
-    // «melo» + «:» (b) OBLIGATORIOS — «guárdame el archivo», «escríbemelo
-    // mañana», «apúntemelo en la lista» NUNCA son captura.
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o)\\b|(?:escr[ií]bemelo|escribemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)\\s*:)")
+    // c.980: (a) enclítico de «guarda» — «guárdame/guardame + esto/eso»
+    // (simétrico del c.977; «esto/eso» sigue OBLIGATORIO: «guárdame el
+    // archivo»/«guardame los cambios» NUNCA son captura); (b) deíctico fundido
+    // «-melo» — «escríbemelo:/apúntemelo:/anótamelo: …» EXIGE «:» (el prefijo
+    // usa lookahead «:» o fin de frase: «escríbemelo mañana»/«apúntemelo en la
+    // lista» ni siquiera entran en la rama — quedan en el menú, no secuestran).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]bemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)(?=\\s*:|\\s*$))\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
     private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
     private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
-    private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]bemelo|escribemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)\\s*:\\s*(.+)$")
+    private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]bemelo|ap[uú]nt[ae]melo|an[oó]t[ae]melo)\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
