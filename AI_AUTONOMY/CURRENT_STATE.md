@@ -1,3 +1,11 @@
+## Ciclo c.961 (2026-08-24) — test(infra): heap estable para kotlinc en run_domain_tests.sh + auditoría a11y estática limpia
+
+- HEAD inicial: `980bb01`/c.958 remoto con avances hermano a `305e7df` (c.959/c.960); integración NO destructiva vía stash (`c959-infra-work-in-progress`) → `git pull --ff-only` (ff 980bb01→305e7df, regiones DISJUNTAS: él context/AI_AUTONOMY, yo tools/run_domain_tests.sh) → pop; re-verificación suite **OK (6668)** post-integración; NO STALE_RUN destructivo, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`.
+- Unidad 1 (infra, commit `26e15e2`): `tools/run_domain_tests.sh` añade fallback `JAVA_OPTS=-Xmx4g` pre-flight con comentario — elimina OOM intermitente del compilador en la pasada única ~330 fuentes (JVM por defecto 1/4 RAM; máquina 15 GiB). Conductor efecto: intermitentemente el OOM de kotlinc abortaba el gate completo; la medida era para el supervisor. +6 líneas, cero cambio de dominio/test. Suite FINAL **OK (6668)**; smoke 25/25; NO VERIFICADO: gradle/lint/assemble/Android (sin SDK).
+- Unidad 2 (auditoría a11y, HALLAZGOS CERO): barrido estático sobre los 35 `IconButton` del árbol `app/src/main` — todos con `contentDescription` (per Kotlin positional o nombrado, cero falsos negativos tras validar «`Icons.*` único-arg» + `null`); decorativos dentro de `DropdownMenuItem.leadingIcon`/etiquetas de botón con `Text` cumplen Material (nulidad explícita). Audit escrito en `BACKLOG.md` §Auditorías estáticas. CERO cambios de producto.
+- Cambios: M `tools/run_domain_tests.sh`, M `AI_AUTONOMY/BACKLOG.md` (+1 fila auditoría), M `AI_AUTONOMY/CURRENT_STATE.md`, M `AI_AUTONOMY/RUN_LOG.md`. HEAD final: (commit docs de este ciclo).
+- Próxima prioridad: laterales documentadas c.959/c.960 («para la» suite-canónica/medida fuera), familia «madrugada» (decisión doctrinal medida fuera), pins parser FUERA (genitivos c.950, «primera hora de clase») — UNA por ciclo; re-fetch OBLIGATORIO pre-push por doctrina anti-colisión.
+
 ## Ciclo c.960 (2026-08-25 acumulativo) — fix(context): residuo «en la» tras franja blanda — «Avisar en la» (familia «en» hermana de «por» c.688)
 
 - HEAD inicial: `361dfb5` (c.959 committed+pushed). Descubrimiento inmediato en el mismo run con sonda de barrido de conectores.

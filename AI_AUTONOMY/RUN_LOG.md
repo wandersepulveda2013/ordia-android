@@ -1,3 +1,16 @@
+## Ciclo c.961 (2026-08-24)
+**Título**: test(infra): heap estable para el gate JVM `run_domain_tests.sh` + auditoría a11y estática (HALLAZGOS CERO). Segunda unidad por doctrina «continúa con más unidades mientras quede capacidad segura».
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `980bb01` (c.958 docs). En vuelo el remoto avanzó a `305e7df` (c.959+c.960 del hermano); integración NO destructiva stash (`c959-infra-work-in-progress`, infra base limpia) → `git pull --ff-only` (980bb01→305e7df, regiones DISJUNTAS: él ContextIntentEngine+AI_AUTONOMY; yo tools/run_domain_tests.sh) → pop → re-verificación suite **OK (6668)** post-integración. NO STALE_RUN destructivo, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. **HEAD final**: commit docs de este ciclo.
+**Unidad 1 — Infra de gate (commit `26e15e2` fix/test)**:
+- **Problema (P1 de productividad de supervisor)**: el gate JVM abortaba a veces con OOM de kotlinc en la pasada única (~330 fuentes, ~ste 6668 tests) en máquina de 15 GiB con heap por defecto de la JVM — «lo peor que un gate puede decir es juzgar negativo porque el heap se agotó y mentir». El fallo era de herramienta, no del dominio.
+- **Solución**: `tools/run_domain_tests.sh` añade `JAVA_OPTS="${JAVA_OPTS:--Xmx4g}"` pre-flight con comentario (opt-out vía env). +6 líneas, cero cambio de dominio/test.
+- **Tests**: suite FINAL **OK (6668)** — claim c.959+c.960 del hermano confirmado tras integración, no asumido. `run_domain_checks.sh` 25/25. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK).
+**Unidad 2 — Auditoría estática a11y (HALLAZGOS CERO)**:
+- **Alcance**: los 35 `IconButton` del árbol `app/src/main` (TalkBack). Script Python propio analiza `IconButton(` y verifica `contentDescription` positional (Kotlin flag: parámetro opcional `contentDescription: String? = null`) o nombrado. Validación cruzada con `Icons.*` único-arg y `null` unigram (0 falsos negativos). Decorativos en `DropdownMenuItem.leadingIcon` + `Icon` dentro de `Button` con `Text` cumplen Material (`null` explícito cuando el texto ya anuncia).
+- **Resultado**: 35/35 etiquetados. Escrito en `BACKLOG.md` §Auditorías estáticas. Cero cambios de producto. NO VERIFICADO: TalkBack de dispositivo (requiere APK; a11y estática SÍ verificada en este entorno).
+**Cambios**: M `tools/run_domain_tests.sh` (infra), M `AI_AUTONOMY/BACKLOG.md` (+1 fila auditoría), M `AI_AUTONOMY/CURRENT_STATE.md`, M `AI_AUTONOMY/RUN_LOG.md`.
+**Próxima prioridad**: laterales documentadas (c.959/c.960: «para la» suite-canónica; familia «madrugada»/doctrina); pins parser FUERA (genitivos c.950, «primera hora de clase») — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.960 (2026-08-25 acumulativo c.959)
 **Título**: fix(context): residuo de conector huérfano «en la » tras despojar franja blanda — «Avisar en la» (familia «en», hermana del «por» c.688).
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `361dfb5` (c.959 committed). **HEAD final**: (commit de este ciclo). Ciclo acumulativo — descubrimiento con sonda de barrido en el mismo run, después de cerrar c.959.
