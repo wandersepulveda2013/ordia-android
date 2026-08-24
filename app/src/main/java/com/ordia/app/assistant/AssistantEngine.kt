@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -84,6 +84,10 @@ object AssistantEngine {
         // de la consulta de posposición («qué puedo posponer»): «pospón la
         // compra…» caía ahí y respondía una candidata sin mover la tarea nombrada.
         val postponeCapture = postponeCapture(clean, tasks)
+        // c.1000: captura «borra/elimina/quita la tarea …» (DESTRUCTIVA).
+        // Hermana de markDoneCapture/postponeCapture: NADA se borra en
+        // silencio — el botón confirma vía vm.deleteTask (capacidad real).
+        val deleteCapture = deleteCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -507,6 +511,9 @@ object AssistantEngine {
             // c.999: «pospón/aplaza <tarea>» con coincidencia única →
             // POSTPONE_TASK (el botón confirma; NADA se pospone en silencio).
             postponeCapture != null -> postponeCapture
+            // c.1000: «borra/elimina/quita la tarea …» con coincidencia única →
+            // DELETE_TASK (el botón confirma; NUNCA borrado a ciegas ni masivo).
+            deleteCapture != null -> deleteCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1471,6 +1478,45 @@ object AssistantEngine {
                 } else {
                     AssistantAnswer("¿Pospongo «${task.title}» a mañana?", AssistantAction.POSTPONE_TASK, task.id.toString(), listOf(task.id))
                 }
+            }
+        }
+    }
+
+
+    // c.1000: «borra/elimina/quita la tarea <nombre>» — acción DESTRUCTIVA de
+    // eliminar la tarea NOMBRADA. PRE medido (/tmp/probe1000/DeleteProbe.kt):
+    // las 5 variantes caían al menú genérico — mentira por omisión: la
+    // capacidad ya existía (OrdiaViewModel.deleteTask, 6 pantallas). Doctrina
+    // anti-borrado-a-ciegas: NADA se borra en silencio (el botón confirma);
+    // varias coincidencias → lista honesta SIN acción; archivadas NUNCA se
+    // ofrecen (ya están retiradas); NUNCA borrado masivo (la palabra «tarea»
+    // es obligatoria, paridad c.990: «borra todo» no captura). El ancla ^ en
+    // imperativo/infinitivo disjunta negación («no borres…») y pasado («ya
+    // borré…»).
+    private val DELETE_PREFIX = Regex("(?i)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val DELETE_WITH_CONTENT = Regex("(?i)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+
+    private fun deleteCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!DELETE_PREFIX.containsMatchIn(trimmed)) return null
+        val content = DELETE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA borrar a ciegas: guía honesta SIN acción.
+            return AssistantAnswer("¿Qué tarea elimino? Escríbela tras «borra la tarea …» y te la muestro para confirmar.")
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val matches = if (wanted.isEmpty()) emptyList() else tasks.filter { task ->
+            !task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                AssistantAnswer("¿Elimino «${task.title}»? Se borrará de forma definitiva.", AssistantAction.DELETE_TASK, task.id.toString(), listOf(task.id))
             }
         }
     }

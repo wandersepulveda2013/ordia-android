@@ -16877,3 +16877,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits:** `501d448` (fix) + docs-close (este). **HEAD final:** docs-close c.999. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Próxima prioridad:** lateral ABIERTA de la familia de acción sobre datos (UNA por ciclo, medida previa): «borra/elimina la tarea…» (P1 DESTRUCTIVA — diseño con confirmación explícita); re-fetch OBLIGATORIO pre-push; colisión cycle-ID frecuente (hermano activo — numerar tras re-fetch).
 
+
+## c.1000 — 2026-08-24 — feat(assistant): DELETE_TASK confirmable
+- HEAD inicial `61544ad` (sync limpio). P1 ABIERTA c.997: «borra/elimina/quita la tarea <nombre>» caía al menú (PRE `/tmp/probe1000/DeleteProbe.kt`: 5/5). Fix: rama `deleteCapture` (regex ancla ^ + «tarea» obligatoria + tokens ⊆ título plegado, SOLO NO archivadas; única coincidencia → DELETE_TASK confirmable vía `vm.deleteTask`; varias/pelada/sin-match → honestas SIN acción; «borra todo» NUNCA masivo; negación/pasado NONE). Wiring lockstep UI + string. TDD: 14 tests — RED real (compile fail → 7062 run, EXACTAMENTE 10 fallos) → GREEN **OK (7076)**; smoke 25/25; POST 15/15; persistente +5 pins exit 0. NO VERIFICADO Android/SDK. HEAD final: docs-close c.1000.
