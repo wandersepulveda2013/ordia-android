@@ -128,6 +128,10 @@ fun AssistantScreen(
                                     // c.997: «marca como hecha …» — el payload es el id de la
                                     // tarea candidata única; el botón confirma (anti-overreach).
                                     AssistantAction.COMPLETE_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::toggleTask)
+                                    // c.999: «pospón/aplaza …» — payload = id de la tarea
+                                    // candidata única; el botón confirma (anti-overreach).
+                                    // Misma fuente que la sugerencia de posposición de Hoy.
+                                    AssistantAction.POSTPONE_TASK -> answer.actionPayload.toLongOrNull()?.let(vm::deferTaskToTomorrow)
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -150,6 +154,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.CREATE_NOTE -> stringResource(R.string.assistant_action_note)
     AssistantAction.CREATE_TASK -> stringResource(R.string.assistant_action_task)
     AssistantAction.COMPLETE_TASK -> stringResource(R.string.assistant_action_complete)
+    AssistantAction.POSTPONE_TASK -> stringResource(R.string.assistant_action_postpone)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }

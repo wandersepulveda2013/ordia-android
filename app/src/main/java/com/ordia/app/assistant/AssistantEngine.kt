@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -80,6 +80,10 @@ object AssistantEngine {
         val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
         val remindMeLoGuide = remindMeLoGuide(clean)
         val markDoneCapture = markDoneCapture(clean, tasks)
+        // c.999: captura «pospón/aplaza <tarea>» (acción). Debe evaluarse ANTES
+        // de la consulta de posposición («qué puedo posponer»): «pospón la
+        // compra…» caía ahí y respondía una candidata sin mover la tarea nombrada.
+        val postponeCapture = postponeCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -500,6 +504,9 @@ object AssistantEngine {
             // c.997: sonda DiscoveryProbe — «marca como hecha …» con
             // coincidencia única → COMPLETE_TASK (el botón confirma).
             markDoneCapture != null -> markDoneCapture
+            // c.999: «pospón/aplaza <tarea>» con coincidencia única →
+            // POSTPONE_TASK (el botón confirma; NADA se pospone en silencio).
+            postponeCapture != null -> postponeCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1416,6 +1423,58 @@ object AssistantEngine {
             }
         }
     }
+
+    // c.999: «pospón/aplaza <tarea> (para mañana)» — acción de posponer la
+    // tarea NOMBRADA. PRE medido (/tmp/probe999/DeferProbe.kt): «aplaza …» caía
+    // al menú genérico y «pospón <tarea>» caía en la CONSULTA «qué puedo
+    // posponer» (respondía una candidata; NUNCA movía la tarea nombrada).
+    // El ancla ^ en imperativo/infinitivo disjunta la negación («no
+    // pospongas…») y la consulta («qué puedo posponer», rama intacta). Solo se
+    // pospone A MAÑANA (fuente única: OrdiaViewModel.deferTaskToTomorrow →
+    // TaskRules.deferToNextDay, que exige dueAt); otro temporal → limitación
+    // honesta. NADA se pospone en silencio: el botón confirma.
+    private val POSTPONE_PREFIX = Regex("(?i)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)(?:\\s|:|$)")
+    private val POSTPONE_WITH_CONTENT = Regex("(?i)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)\\s*:?\\s*(.+?)(?:\\s+para\\s+(.+?))?\\s*[.!?]?$")
+    private val POSTPONE_MANANA = Regex("(?i)^(?:a\\s+|hasta\\s+)?mañana$")
+    private val POSTPONE_TRAILING_MANANA = Regex("(?i)\\s+(?:a|hasta)\\s+mañana$")
+
+    private fun postponeCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!POSTPONE_PREFIX.containsMatchIn(trimmed)) return null
+        val m = POSTPONE_WITH_CONTENT.matchEntire(trimmed)
+        val rawContent = m?.groupValues?.get(1)?.trim()
+        if (rawContent.isNullOrEmpty()) {
+            // NUNCA posponer a ciegas: guía honesta SIN acción.
+            return AssistantAnswer("¿Qué tarea pospongo a mañana? Escríbela tras «pospón …» y la preparo.")
+        }
+        val tail = m.groupValues.getOrNull(2)?.trim()?.trimEnd('.', '!', '?')
+        if (!tail.isNullOrEmpty() && !POSTPONE_MANANA.matches(tail)) {
+            return AssistantAnswer("Por ahora solo sé posponer a mañana; para otra fecha («$tail») edítala desde su ficha.")
+        }
+        val content = rawContent.replace(POSTPONE_TRAILING_MANANA, "").trim()
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val matches = if (wanted.isEmpty()) emptyList() else tasks.filter { task ->
+            !task.completed && !task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea pendiente que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas pendientes que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                if (task.dueAt == null) {
+                    // TaskRules.deferToNextDay exige fecha; sin ella no podemos
+                    // posponer y fingirlo sería una función falsa.
+                    AssistantAnswer("«${task.title}» no tiene fecha todavía; ponle una desde su ficha y podré posponerla.")
+                } else {
+                    AssistantAnswer("¿Pospongo «${task.title}» a mañana?", AssistantAction.POSTPONE_TASK, task.id.toString(), listOf(task.id))
+                }
+            }
+        }
+    }
+
 
     // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la
     // sonda persistente AssistantTaskCreationProbe. El ancla ^ con «pon(me)»

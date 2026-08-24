@@ -85,9 +85,10 @@ fun main() {
     // (sin laterales abiertas tras c.995; descubrir nuevas con auditoría.
     //  c.997 abrió una NUEVA familia transversal vía sonda DiscoveryProbe:
     //  «marca como hecha/completada <tarea>» → COMPLETE_TASK confirmable;
-    //  pins en guards. Laterales documentadas en BACKLOG: «borra/elimina
-    //  la tarea…» (destructiva, diseño cuidadoso), «completé/terminé…»
-    //  (pasado declarativo), «aplaza…» (paridad con «pospón»).)
+    //  pins en guards. c.998 cerró «completé/terminé…» (pasado declarativo).
+    //  c.999 cerró «pospón/aplaza <tarea> (para mañana)» → POSTPONE_TASK
+    //  confirmable (pins en guards/regresiones). Lateral documentada en
+    //  BACKLOG: «borra/elimina la tarea…» (destructiva, diseño cuidadoso).)
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
     val guards = listOf(
@@ -113,7 +114,10 @@ fun main() {
         "ya la marqué como hecha", // pasado — c.997: NUNCA capturar
         "completé el informe", // c.998: COMPLETE_TASK con confirmación, NUNCA CREATE_TASK duplicada
         "no completé el informe", // negación — c.998: NUNCA capturar
-        "casi termino la presentación" // presente — c.998: NUNCA capturar
+        "casi termino la presentación", // presente — c.998: NUNCA capturar
+        "pospón el informe", // c.999: POSTPONE_TASK guía honesta (fixture vacío), NUNCA CREATE_TASK
+        "aplaza", // pelada — c.999: guía honesta, NUNCA acción
+        "no pospongas el informe" // negación — c.999: NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
@@ -123,7 +127,8 @@ fun main() {
         "toma nota: comprar pan",
         "qué recordatorios tengo",
         "qué tengo hoy",
-        "qué hago ahora"
+        "qué hago ahora",
+        "qué puedo posponer" // consulta de posposición intacta (c.999 no la roba)
     )
 
     fun isMenu(text: String) =

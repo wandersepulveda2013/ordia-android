@@ -23,6 +23,7 @@
     <string name="assistant_action_note">Guardar nota</string>
     <string name="assistant_action_task">Guardar tarea</string>
     <string name="assistant_action_complete">Marcar completada</string>
+    <string name="assistant_action_postpone">Posponer a mañana</string>
     <string name="assistant_action_search">Abrir búsqueda</string>
     <string name="search_kind_conversation">CONVERSACIÓN</string>
     <string name="search_kind_commitment">COMPROMISO</string>
