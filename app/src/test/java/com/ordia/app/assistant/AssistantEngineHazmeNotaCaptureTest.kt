@@ -15,6 +15,17 @@ import org.junit.Test
 // una nota») intactos. Fix esperado mínimo (2 puntos, MISMAS regex):
 // TAKE_NOTE_PREFIX y WRITE_NOTE_WITH_CONTENT admiten «hazme» junto a «haz»
 // (misma doctrina de enclíticos c.972…c.987).
+// c.989: COLISIÓN cycle-ID c.988/c.988 CONVERGENTE TOTAL con el hermano — él
+// publicó la MISMA unidad (`4b65465`, producción funcionalmente idéntica:
+// «haz|hazme» ≡ «haz(?:me)?»; su guard extra: conector pelado «de»).
+// Integración NO-destructiva (doctrina duplicados c.980/c.985): producción
+// propia descartada (`git checkout --` — jamás se pisó el remoto), base suya
+// integrada `pull --ff-only` (8c8e091→0604ebb), re-numeración c.988→c.989.
+// Delta conservado (UNIÓN 11+6=17): 6 pins que sus 11 no ejercen — forma
+// directa sin «:»/«de», mayúsculas (?i), perífrasis (ancla ^) y los 3 del
+// modismo «nota mental» (mi guard extra en `takeNoteCapture`: «mental» a
+// secas NUNCA es nota — medido en mi sonda como nota BASURA preexistente
+// c.974: CREATE_NOTE payload «mental»).
 class AssistantEngineHazmeNotaCaptureTest {
 
     private fun ask(q: String) = AssistantEngine.answer(q, emptyList(), emptyList(), emptyList())
@@ -93,5 +104,46 @@ class AssistantEngineHazmeNotaCaptureTest {
         val answer = ask("crea una nota: revisar el informe")
         assertEquals(AssistantAction.CREATE_NOTE, answer.action)
         assertEquals("revisar el informe", answer.actionPayload)
+    }
+
+    // ---------- delta c.989 (UNIÓN tras la colisión c.988/c.988): pins que
+    // los 11 del hermano no ejercen ----------
+
+    @Test fun hazmeUnaNotaDirecta_creaNota() {
+        val answer = ask("hazme una nota comprar leche")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("comprar leche", answer.actionPayload)
+    }
+
+    @Test fun hazmeUnaNotaMayusculas_creaNota() {
+        val answer = ask("Hazme una nota: pagar la luz")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("pagar la luz", answer.actionPayload)
+    }
+
+    @Test fun perifrasis_noCaptura() {
+        val answer = ask("quiero que me hagas una nota: comprar leche")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
+    }
+
+    // ---------- modismo «nota mental»: NUNCA nota basura (guard c.989) ----------
+
+    @Test fun hazmeUnaNotaMental_noCreaNotaBasura() {
+        val answer = ask("hazme una nota mental")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
+    }
+
+    @Test fun hazUnaNotaMental_noCreaNotaBasura() {
+        val answer = ask("haz una nota mental")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
+    }
+
+    @Test fun escribeUnaNotaMental_noCreaNotaBasura() {
+        val answer = ask("escribe una nota mental")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
     }
 }

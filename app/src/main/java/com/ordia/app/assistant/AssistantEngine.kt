@@ -1167,7 +1167,17 @@ object AssistantEngine {
                 // «esto» es la pelada de dictado; «de» es el conector pelado
                 // («hazme una nota de»): ambos deben caer a la guía honesta,
                 // nunca crear una nota literal «esto»/«de».
-                ?.takeUnless { it.equals("esto", ignoreCase = true) || it.equals("de", ignoreCase = true) }
+                // c.989 (delta de la COLISIÓN c.988/c.988): «mental» a secas
+                // es el modismo «haz(se) una nota mental» (= recuérdalo tú),
+                // NUNCA nota basura «mental» — sanea también las hermanas
+                // «haz/escribe una nota mental» de c.974 (medido en la sonda
+                // /tmp/probe988/HazmeNotaProbe.kt: CREATE_NOTE payload
+                // «mental» preexistente).
+                ?.takeUnless {
+                    it.equals("esto", ignoreCase = true) ||
+                        it.equals("de", ignoreCase = true) ||
+                        it.equals("mental", ignoreCase = true)
+                }
             ?: DICTATE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: MELO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: LO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
