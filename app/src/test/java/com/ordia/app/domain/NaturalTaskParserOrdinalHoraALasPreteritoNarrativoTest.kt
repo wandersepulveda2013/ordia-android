@@ -8,7 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.1017 (delta UNIÓN sobre H4 c.1016 — colisión convergente: este run tenía
+ * c.1018 [renumerado c.1017→c.1018: colisión cycle-ID con SU c.1017 «desparasitar al perro» contexto `d8a815e`+`f339c4a` llegada en el re-fetch pre-push] (delta UNIÓN sobre H4 c.1016 — colisión convergente: este run tenía
  * implementada la lateral MADRE «a primera hora + pretérito» completa cuando
  * el hermano publicó su c.1016 con el subconjunto SIN artículo; precedente de
  * integración delta c.1014-hermano): el CON-ARTÍCULO («a la/las primeras?/
@@ -29,14 +29,14 @@ import org.junit.Test
  * mismo predicado, fecha y título NUNCA divergen (doctrina c.930/c.950).
  * Re-pin legítimo MÁS estricto (precedente c.957/c.965): el pin FUERA de SU
  * c.1016 «a la primera hora llegó el cartero» pasa de ancla a narrativa con
- * comentario c.1017.
+ * comentario c.1018.
  * FUERA a propósito (byte-idénticos — pins abajo): weekday genitivo tras
  * artículo («a la primera hora del lunes llegó…» — doctrina ancla vigente),
  * pretérito con complemento antes del ancla («me quedé dormido a la primera
  * hora», «sonó la alarma a la primera hora» — no es predicado SOLO, doctrina
  * c.1016) y formas ambiguas pretérito/presente («salimos a la primera hora»,
  * doctrina c.950). La lateral «ya <pretérito>» (regla de inmediatez «ya» que
- * ancla a AHORA narrativas sin marca temporal — medida c.1017 en
+ * ancla a AHORA narrativas sin marca temporal — medida c.1018 en
  * `/tmp/probe1014/Probe3.kt`: «ya sonó/pagué/llegó…» → now) es INDEPENDIENTE
  * y sigue ABIERTA registrada en BACKLOG.
  * Determinista (regex), cero random, cero IA fingida, cero UI.
@@ -87,7 +87,7 @@ class NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest {
         // íntegro, sin 09:00), pero la regla de inmediatez «ya» (intencional
         // para comandos: «avisar ya» → ahora) sigue anclando «ya <pretérito>»
         // a AHORA — lateral narrativa INDEPENDIENTE registrada ABIERTA en
-        // BACKLOG (medida c.1017 `/tmp/probe1014/Probe3.kt` sobre la base
+        // BACKLOG (medida c.1018 `/tmp/probe1014/Probe3.kt` sobre la base
         // c.1016 + delta: «ya sonó/pagué/llegó…» → now, byte-idéntica PRE/POST
         // de este ciclo).
         assertAnchor("a la primera hora ya sonó la alarma", LocalDate.of(2026, 8, 23), 12, "a la primera hora sonó la alarma")

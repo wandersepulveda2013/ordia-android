@@ -39,7 +39,7 @@ import org.junit.Test
  *  vigente c.950), «me quedé dormido a primera hora» y «sonó la alarma a
  *  primera hora» (prefijo pretérito + complemento: no es predicado SOLO).
  *  La lateral «a LA primera hora llegó…» (artículo tras «a») quedó RESUELTA
- *  por el delta c.1017 (re-pin abajo; su clase propia cubre la familia
+ *  por el delta c.1018 (re-pin abajo; su clase propia cubre la familia
  *  con-artículo: NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
@@ -128,9 +128,9 @@ class NaturalTaskParserOrdinalHoraPreteritoNarrativoTest {
 
     // ---- Pines FUERA (laterales registradas en el KDoc, byte-idénticos) ----
 
-    @Test fun aLaPrimeraHoraLlego_resueltaC1017RePinNarrativa() {
+    @Test fun aLaPrimeraHoraLlego_resueltaC1018RePinNarrativa() {
         // Re-pin legítimo MÁS estricto (precedente c.957/c.965): este pin FUERA
-        // (ancla 09:00 + título mutilado) quedó RESUELTO por el delta c.1017 —
+        // (ancla 09:00 + título mutilado) quedó RESUELTO por el delta c.1018 —
         // el artículo tras «a» ya no exime de la evidencia de pretérito
         // adyacente; ahora narrativa intacta (due=null, título íntegro).
         assertNarrativeIntact("a la primera hora llegó el cartero")
