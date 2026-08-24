@@ -110,7 +110,10 @@ fun main() {
         "me lo recordó ayer", // pasado/otra persona — c.996: NUNCA capturar
         "marca como hecha llamar al banco", // c.997: COMPLETE_TASK con confirmación, NUNCA CREATE_TASK duplicada
         "no marques nada como hecha", // negación — c.997: NUNCA capturar
-        "ya la marqué como hecha" // pasado — c.997: NUNCA capturar
+        "ya la marqué como hecha", // pasado — c.997: NUNCA capturar
+        "completé el informe", // c.998: COMPLETE_TASK con confirmación, NUNCA CREATE_TASK duplicada
+        "no completé el informe", // negación — c.998: NUNCA capturar
+        "casi termino la presentación" // presente — c.998: NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +

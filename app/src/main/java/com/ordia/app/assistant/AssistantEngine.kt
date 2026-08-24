@@ -1376,16 +1376,29 @@ object AssistantEngine {
         "tu", "tus", "su", "sus", "que"
     )
 
+    // c.998: «completé/terminé/acabé <tarea>» — pasado declarativo, hermano de
+    // «marca como hecha…» (c.997). La persona declara que ya hizo algo; se
+    // localiza la tarea pendiente y se ofrece marcarla (el botón confirma; NADA
+    // se completa en silencio). El ancla ^ con el pretérito en primera persona
+    // hace disjuntas la negación («no completé…»), el presente («casi
+    // termino…») y la segunda persona («¿completaste…?»). El «ya» enfático y
+    // el conector «de» («terminé de …») se despojan antes del extractor.
+    private val COMPLETE_PAST_PREFIX = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?(?:\\s|:|$)")
+    private val COMPLETE_PAST_WITH_CONTENT = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?\\s*:?\\s*([^:].*)$")
+
     private fun markDoneTokens(s: String): Set<String> =
         s.foldForSearch().split(' ').filter { it.isNotBlank() && it !in MARK_DONE_STOPWORDS }.toSet()
 
     private fun markDoneCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
-        if (!MARK_DONE_PREFIX.containsMatchIn(trimmed)) return null
-        val content = MARK_DONE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
+        val past = COMPLETE_PAST_PREFIX.containsMatchIn(trimmed)
+        if (!MARK_DONE_PREFIX.containsMatchIn(trimmed) && !past) return null
+        val content = (MARK_DONE_WITH_CONTENT.matchEntire(trimmed)
+            ?: COMPLETE_PAST_WITH_CONTENT.matchEntire(trimmed))?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
         if (content.isNullOrEmpty()) {
             // NUNCA completar a ciegas: guía honesta SIN acción.
-            return AssistantAnswer("¿Qué tarea marco como completada? Escríbela tras «marca como hecha …» y la preparo.")
+            return AssistantAnswer(if (past) "¿Qué tarea completaste? Escríbela y la marco como completada."
+                else "¿Qué tarea marco como completada? Escríbela tras «marca como hecha …» y la preparo.")
         }
         if (content.lowercase().startsWith("no ")) return null
         val wanted = markDoneTokens(content)
