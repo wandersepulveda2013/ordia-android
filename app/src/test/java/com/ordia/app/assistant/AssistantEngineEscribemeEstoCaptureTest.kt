@@ -87,4 +87,11 @@ class AssistantEngineEscribemeEstoCaptureTest {
         val answer = ask("escríbeme mañana")
         assertTrue(answer.action != AssistantAction.CREATE_NOTE)
     }
+
+    // c.978: delta conservado tras COLISIÓN c.977/c.977 convergente TOTAL (mi
+    // pin que sus 11 tests no ejercen; precedente c.970/c.973 duplicados).
+    @Test fun escribemeLaCarta_noEsCaptura() {
+        val answer = ask("escríbeme la carta")
+        assertTrue(answer.action != AssistantAction.CREATE_NOTE)
+    }
 }

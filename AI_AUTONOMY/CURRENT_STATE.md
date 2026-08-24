@@ -1,3 +1,10 @@
+## Ciclo c.978 (2026-08-24) — test(assistant): pin «escríbeme la carta» tras COLISIÓN cycle-ID c.977/c.977 convergente TOTAL con el hermano (duplicado propio descartado NO-destructivo)
+- **Estado:** `openhands/autonomous-ordia` en `277add9` (c.977 del hermano — MISMA lateral «escríbeme esto: …» que este run tenía lista: producción funcionalmente idéntica, sus 11 tests superconjunto en guards). Mi duplicado descartado (stash→`pull --ff-only`→drop; NO force, NO reset --hard, NO clean, NO `main`); re-numeración c.977→c.978.
+- **Verificación independiente de su base:** sonda efímera `/tmp/probe977/EscribemeEstoProbe.kt` re-ejecutada sobre `277add9` → GAPS=0 (4/4 capturas + 2/2 peladas → guía honesta + 6/6 guards + 4/4 controles); suite **OK (6821 = 6820 + 1 pin)**; smoke 25/25.
+- **Delta conservado (test-only, P2):** 1 pin `escribemeLaCarta_noEsCaptura` en `AssistantEngineEscribemeEstoCaptureTest.kt` (su versión como base) — guard que sus 11 tests no ejercen.
+- **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad:** laterales medidas FUERA registradas por el hermano en BACKLOG («guárdame/guardame esto: X», «escríbemelo: X», «apúntemelo: X» — sonda PRE 4/4 GAP) u otra lateral documentada — UNA por ciclo con sonda propia; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.977 (2026-08-24) — fix(assistant): dictado enclítico «escríbeme/escribeme esto: …» (± «eso») → CREATE_NOTE (lateral que c.976 dejó documentada FUERA)
 
 - HEAD inicial: `1bb4329` (c.976), sync inicial limpio `pull --ff-only` (sin divergencia; NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain reconstruida en /tmp (entorno nuevo: Temurin JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, 8 jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline verificada: suite **OK (6809)**, smoke 25/25.
