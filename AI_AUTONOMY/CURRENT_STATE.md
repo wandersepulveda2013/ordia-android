@@ -14895,6 +14895,48 @@ AGOTADA (S/a/b/c/d/e RESUELTAS): próxima auditoría de descubrimiento =
 clase UNDÉCIMA (nueva sonda persistida, convención c.822/c.1007).
 NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 
+### Último ciclo: c.1020 (2026-08-24)
+DELTA UNIÓN sobre c.1018 del hermano (colisión convergente: este run
+implementó en paralelo la MISMA candidata (e) «pasear al perro» como
+extensión in-situ del piso c.740 — funcionalmente equivalente a su piso
+nuevo `HOUSEHOLD_WALK_DOG_FLOOR`; comportamiento medido byte-equivalente
+con sonda PRE/POST propia: 6/6 HIT, 7/7 guards NULL, 4/4 regresiones HIT,
+envolvente TASK). Duplicado propio descartado NO-destructivo (stash drop,
+precedente c.1014); su producción conservada íntegra. Delta DISJUNTO
+unido: +3 pins en SU clase `ContextIntentEnginePasearPerroFloorTest.kt`
+(acuse coloquial «vale, pasear al perro esta noche» HIT; duda con
+indicativo «quizá pasear al perro esta tarde» NULL; envolvente
+«recuérdame pasear al perro el lunes» gobierna TASK seam c.613).
+Suite UNIÓN FINAL OK (7372 = 7369 + 3); smoke 25/25. Fila DÉCIMA AGOTADA
+(S/a/b/c/d/e). Próxima prioridad: auditoría de descubrimiento clase
+UNDÉCIMA (nueva sonda persistida `tools/probe/`, convención
+c.822/c.834/c.845/c.857/c.890/c.1007); laterales ABIERTAS registradas en
+BACKLOG. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+
+### Último ciclo: c.1021 (2026-08-24)
+Lateral assistant ABIERTA cerrada: «archiva/archivar la tarea <nombre>»
+→ ARCHIVE_TASK confirmable (espejo honesto de RECUPERAR c.1004: el ciclo
+de vida archivar ↔ recuperar queda cerrado por voz/texto; la capacidad
+ya existía — vm.deleteTask archiva el subárbol y cancela TODOS los
+recordatorios, c.225). PRE medido 6/6 al menú genérico (sonda efímera
+/tmp/probe1019/ArchiveProbe.kt, motor real, base 171e448). Hermana de
+deleteCapture/restoreCapture: palabra «tarea» obligatoria
+(anti-overreach «archiva mi cuenta» NUNCA entra), SOLO no-archivadas
+(paridad deleteCapture), confirmación que nombra la tarea y la
+consecuencia honesta (recuperable desde Archivo), varias → lista honesta
+SIN acción, ancla ^ disjunta negación/pasado/2ª persona, «desarchiva…»
+sigue yendo a RESTORE (pin cruzado). Renumerado c.1019→c.1021 (doble
+colisión cycle-ID en el re-fetch pre-push: SU c.1019 parser + SU c.1020
+delta «pasear»; integración NO-destructiva stash→pull --ff-only→pop,
+regiones disjuntas). TDD: RED exacto 10 fallos (6 capturas + 4
+respuestas honestas; guards/pines/regresiones verdes desde RED) → GREEN
+18/18; suite UNIÓN FINAL OK (7408 = 7390 + 18); smoke 25/25; automation
+9/9. Sonda POST sobre la UNIÓN: 6/6 HIT, 5/5 guards NONE, pin cruzado +
+3 regresiones intactas. Laterales ABIERTAS: auditoría clase UNDÉCIMA
+(sonda persistida, convención c.822/c.1007); alinear el texto de «borra»
+con la conducta real (advierte borrado definitivo pero el flujo archiva
+— advertencia conservadora heredada c.1001). NO VERIFICADO
+Android/gradle/lint/assemble/UI/Room (sin SDK).
 ### Último ciclo: c.1022 (2026-08-24)
 test(parser): delta de COBERTURA tras COLISIÓN CONVERGENTE con SU c.1019
 (misma lateral «a la/las» + pretérito implementada en paralelo; su
