@@ -1,3 +1,10 @@
+## Ciclo c.949 (2026-08-23) — docs(ai_autonomy): COLISIÓN cycle-ID c.948 (dos runs resolvieron el mismo lateral weekday «en»+indefinido en paralelo, CONVERGENCIA FUNCIONAL TOTAL) → base remota `b905e56` verificada independientemente — SIN cambio de motor (doctrina duplicados c.916/c.934/c.940/c.945)
+
+- HEAD inicial: `1b24074` (c.947). Trabajo propio completado (misma doctrina, mismos 3 puntos, re-pin del pin c.947, sonda efímera `/tmp/probe948/` PRE→POST exacta, RED exacto 7 fallos → GREEN 17/17, suite 6517 + smoke 25/25, commit local `032e1de`). Pre-push: remoto en `b905e56` — colisión c.948 CONVERGENTE (mismo fix, mismas laterales, suite 6517). Commit propio DESCARTADO (duplicado funcional; reflog local; alineación vía `checkout -B`, NO force/reset --hard/rebase).
+- Base heredada VERIFICADA (no asumida): suite **OK (6517)**, smoke 25/25 sobre la implementación remota.
+- Cambios: solo `AI_AUTONOMY/*`. SIN cambio de motor/tests.
+- Estado: **VERIFIED (JVM)** la base remota c.948. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK). HEAD final: (commit docs de este ciclo). Próxima prioridad: laterales registradas (H2 con «en»+indefinido; H2 con indefinido sin «en») o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.948 (2026-08-23) — fix(parser): narrativa ordinal con «en» + ARTÍCULO INDEFINIDO al inicio + weekday genitivo (directo o interior) + predicado («en una primera hora del lunes fue rara») — lateral medida FUERA en c.947 (hueco entre c.943 [indefinido sin «en»] y c.946 [«en» sin artículo])
 
 - HEAD inicial: `1b24074` (c.947 propio, pusheado y verde — misma sesión; rama up-to-date con origin; SIN colisión cycle-ID). Toolchain heredada del propio run (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`).
