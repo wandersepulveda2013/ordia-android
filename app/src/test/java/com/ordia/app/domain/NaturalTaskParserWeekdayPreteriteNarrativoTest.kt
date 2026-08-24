@@ -8,7 +8,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 /**
- * c.949 — narrativa con «el <weekday>» + predicado en PRETÉRITO inequívoco:
+ * c.950 — narrativa con «el <weekday>» + predicado en PRETÉRITO inequívoco:
  * la cadena es un enunciado narrativo (algo que YA pasó ese día), no un
  * compromiso agendable. Doctrina simétrica al clúster ordinal narrativo
  * (c.936…c.948): sin este guard el parser anclaba el weekday a su PRÓXIMA
@@ -81,7 +81,7 @@ class NaturalTaskParserWeekdayPreteriteNarrativoTest {
     @Test fun elLunes_fragmentoSinPredicadoSigueAncla() =
         assertAnchor("el lunes", LocalDate.of(2026, 8, 24), 9, "el lunes")
 
-    // ---- Pines byte-idénticos de laterales FUERA (medidos PRE c.949) ----
+    // ---- Pines byte-idénticos de laterales FUERA (medidos PRE c.950) ----
 
     @Test fun elLunesQueVieneLlegoElPaquete_modificadorFuturoExplicitoSigueAnclaPin() =
         assertAnchor(

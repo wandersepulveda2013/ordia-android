@@ -4703,7 +4703,7 @@ object NaturalTaskParser {
         // ancla de fecha: pertenece al sujeto narrativo.
         val ordinalNarrativeWeekdayRanges = ordinalHoraNarrativeWeekdayRanges(working)
         val weekdayFirstMatch = weekdayPattern.find(working)
-        // c.949: la captura ES narrativa en pretérito (decidido sobre el texto
+        // c.950: la captura ES narrativa en pretérito (decidido sobre el texto
         // original); el flag se propaga a [eraseWeekdayToken] para que el
         // título conserve el weekday exactamente cuando la fecha lo descartó.
         val weekdayPreteriteNarrative = weekdayFirstMatch != null &&
@@ -8249,7 +8249,7 @@ object NaturalTaskParser {
      * narrativo, no es token de fecha. Opera por rangos (no replace global)
      * para no tocar las apariciones protegidas, como [eraseOrdinalHoraToken]/
      * [eraseStandalonePartOfDayToken].
-     * c.949: conserva igualmente el weekday inicial de una cadena narrativa en
+     * c.950: conserva igualmente el weekday inicial de una cadena narrativa en
      * pretérito («el lunes llegó el paquete»), pero SÓLO cuando
      * [forcePreteriteNarrativeAnchor] lo indica: la decisión se tomó en
      * [parse] sobre el texto original; aquí el título ya pudo perder tokens
@@ -8280,7 +8280,7 @@ object NaturalTaskParser {
     }
 
     /**
-     * c.949: predicado en PRETÉRITO inequívoco tras un weekday — evidencia de
+     * c.950: predicado en PRETÉRITO inequívoco tras un weekday — evidencia de
      * cadena narrativa («el lunes llegó el paquete» = algo que YA ocurrió, no
      * un compromiso). Lista cerrada de pretéritos perfectos simples y
      * copulativos pretéritos frecuentes (un comando jamás abre su predicado en
@@ -8329,7 +8329,7 @@ object NaturalTaskParser {
     )
 
     /**
-     * c.949: ¿es esta aparición de weekday el inicio de una CADENA NARRATIVA en
+     * c.950: ¿es esta aparición de weekday el inicio de una CADENA NARRATIVA en
      * pretérito («el lunes llegó el paquete») y no un ancla de fecha? Sólo con
      * evidencia gramatical inequívoca:
      *  (N1) artículo «el»/demostrativo «este» al frente (los genitivos
