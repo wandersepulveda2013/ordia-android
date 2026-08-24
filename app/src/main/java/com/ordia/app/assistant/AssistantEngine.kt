@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -88,6 +88,11 @@ object AssistantEngine {
         // Hermana de markDoneCapture/postponeCapture: NADA se borra en
         // silencio — el botón confirma vía vm.deleteTask (capacidad real).
         val deleteCapture = deleteCapture(clean, tasks)
+        // c.1002: captura «descarta/cancela la tarea …» — hermana de
+        // deleteCapture pero NO destructiva: descartar conserva el registro
+        // (status=CANCELLED) y no cuenta como logro (capacidad real:
+        // vm.cancelTask, c.426). El botón confirma.
+        val cancelCapture = cancelCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -514,6 +519,9 @@ object AssistantEngine {
             // c.1001: «borra/elimina/quita la tarea …» con coincidencia única →
             // DELETE_TASK (el botón confirma; NUNCA borrado a ciegas ni masivo).
             deleteCapture != null -> deleteCapture
+            // c.1002: «descarta/cancela la tarea …» con coincidencia única →
+            // CANCEL_TASK (el botón confirma; NUNCA descarte en silencio).
+            cancelCapture != null -> cancelCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1528,6 +1536,48 @@ object AssistantEngine {
             else -> {
                 val task = matches.first()
                 AssistantAnswer("¿Elimino «${task.title}»? Se borrará de forma definitiva.", AssistantAction.DELETE_TASK, task.id.toString(), listOf(task.id))
+            }
+        }
+    }
+
+    // c.1002: «descarta/cancela la tarea <nombre>» — tercer cierre honesto de
+    // una tarea (c.426): ni completar (falsearía logros) ni borrar (perdería
+    // el registro). PRE medido (/tmp/probe1002/DiscoveryProbe.kt): las 3
+    // variantes caían al menú genérico — mentira por omisión: la capacidad
+    // ya existía (OrdiaViewModel.cancelTask). Hermana de deleteCapture pero
+    // NO destructiva: status=CANCELLED conserva el registro y no cuenta
+    // como logro. NADA se descarta en silencio (el botón confirma vía
+    // vm.cancelTask); SOLO pendientes (TaskRules.isActive: completadas,
+    // archivadas y ya-descartadas NUNCA se ofrecen — paridad con el botón
+    // «Descartar» del detalle); varias coincidencias → lista honesta SIN
+    // acción; la palabra «tarea» es obligatoria («cancela el recordatorio»
+    // NUNCA entra). El ancla ^ en imperativo/infinitivo disjunta negación
+    // («no descartes…») y pasado («ya descarté…»).
+    private val CANCEL_PREFIX = Regex("(?i)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val CANCEL_WITH_CONTENT = Regex("(?i)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+
+    private fun cancelCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!CANCEL_PREFIX.containsMatchIn(trimmed)) return null
+        val content = CANCEL_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA descartar a ciegas: guía honesta SIN acción.
+            return AssistantAnswer("¿Qué tarea descarto? Escríbela tras «descarta la tarea …» y te la muestro para confirmar.")
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val matches = if (wanted.isEmpty()) emptyList() else tasks.filter { task ->
+            !task.completed && !task.archived && task.status != TaskStatus.CANCELLED &&
+                markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea pendiente que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas pendientes que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                AssistantAnswer("¿Descarto «${task.title}»? No contará como completada, pero no se borrará.", AssistantAction.CANCEL_TASK, task.id.toString(), listOf(task.id))
             }
         }
     }

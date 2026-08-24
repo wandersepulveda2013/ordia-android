@@ -92,8 +92,11 @@ fun main() {
     //  pins terminé/no terminé/terminaré. Lateral documentada en
     //  confirmable. c.1001 cerró «borra/elimina/quita la tarea <nombre>» →
     //  DELETE_TASK confirmable (DESTRUCTIVA: NUNCA a ciegas ni masivo; pins
-    //  en guards/regresiones). Lateral documentada en
-    //  BACKLOG: «borra/elimina la tarea…» (destructiva, diseño cuidadoso).)
+    //  en guards/regresiones). c.1002 cerró «descarta/cancela la tarea
+    //  <nombre>» → CANCEL_TASK confirmable (NO destructiva: status=CANCELLED;
+    //  pins en guards). Laterales documentadas en BACKLOG: «reabre la
+    //  tarea…» y «marca <tarea> como importante» (esta última sin capacidad
+    //  de mutación de prioridad en el VM hoy).)
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
     val guards = listOf(
@@ -130,7 +133,12 @@ fun main() {
         "borra la tarea", // pelada — c.1001: guía honesta, NUNCA acción
         "no borres la tarea del informe", // negación — c.1001: NUNCA capturar
         "ya borré la tarea del informe", // pasado — c.1001: NUNCA capturar
-        "borra todo" // c.1001: NUNCA borrado masivo
+        "borra todo", // c.1001: NUNCA borrado masivo
+        "descarta la tarea del informe", // c.1002: CANCEL_TASK guía honesta (fixture vacío), NUNCA CREATE_TASK
+        "descarta la tarea", // pelada — c.1002: guía honesta, NUNCA acción
+        "no descartes la tarea del informe", // negación — c.1002: NUNCA capturar
+        "ya descarté la tarea del informe", // pasado — c.1002: NUNCA capturar
+        "cancela el recordatorio" // c.1002: la palabra «tarea» es obligatoria; NUNCA roba recordatorios
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
