@@ -290,6 +290,16 @@ object ContextIntentEngine {
     // `\b` final sin derrame nominal; guard de negación heredado (?<!no ).
     private val HOUSEHOLD_VACCINE_FLOOR =
         Regex("""\b(?<!no )vacunar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+    // Piso mascota transitivo "desparasitar al perro/gato" (c.1017 —
+    // candidata (d) de la fila clase DÉCIMA c.1007, sonda
+    // `TenthClassPetProbe.kt`): verbo monosemántico de salud de la mascota
+    // (antiparasitario — tan cotidiano como la vacuna) sin piso alguno:
+    // caía a NULL (olvido silencioso, medido PRE 6/6) mientras la hermana
+    // "vacunar" ya captura (c.757). Acotado al objeto mascota
+    // `(?:perr[oa]s?|gat[oa]s?)` (familia c.757) — la desparasitación es
+    // veterinaria; el destinatario humano queda FUERA (anti-overreach).
+    private val HOUSEHOLD_DEWORM_FLOOR =
+        Regex("""\b(?<!no )desparasitar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
     // Piso mascota DATIVO "ponerle/ponerles la(s) vacuna(s) al perro/gato"
     // (c.1011 — candidata (a) de la fila clase DÉCIMA c.1007, sonda
     // `TenthClassPetProbe.kt`): la forma transitiva "vacunar" ya captura
@@ -430,7 +440,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -4176,6 +4186,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchVacunarMascota != null) {
                     return "${capitalizeFirst(matchVacunarMascota.groupValues[1])} ${matchVacunarMascota.groupValues[2]}"
+                }
+                // Piso "desparasitar al perro/gato" (c.1017 — candidata (d)
+                // de la fila clase DÉCIMA c.1007): titular lo acotado al
+                // objeto mascota (alineado con [HOUSEHOLD_DEWORM_FLOOR];
+                // hermano estructural de [HOUSEHOLD_VACCINE_FLOOR] c.757).
+                val matchDesparasitarMascota = Regex(
+                    """\b(desparasitar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDesparasitarMascota != null) {
+                    return "${capitalizeFirst(matchDesparasitarMascota.groupValues[1])} ${matchDesparasitarMascota.groupValues[2]}"
                 }
                 // Piso DATIVO "ponerle la(s) vacuna(s) al perro/gato"
                 // (c.1011): titular la forma completa, pronombre dativo
