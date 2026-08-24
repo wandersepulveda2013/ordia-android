@@ -46,6 +46,18 @@ class AssistantEngineDeleteCaptureTest {
     @Test fun delete_quita() = assertCaptures("quita la tarea de pasear al perro", "5")
     @Test fun delete_sinLa() = assertCaptures("eliminar tarea del informe", "1")
 
+    // c.1022 — pin de honestidad: deleteTask ARCHIVA (recuperable; el nombre
+    // canónico de la app es «Archivar», string task_detail_archive; el borrado
+    // definitivo es otra acción explícita en la pantalla Archivo). La
+    // confirmación debe decir la consecuencia real, nunca «definitiva».
+    @Test
+    fun delete_confirmacionHonestaNuncaDefinitiva() {
+        val ans = ask("borra la tarea del informe")
+        assertEquals(AssistantAction.DELETE_TASK, ans.action)
+        assertTrue("consecuencia honesta (recuperable): ${ans.text}", "recuperarla desde Archivo" in ans.text)
+        assertTrue("NUNCA promete borrado definitivo: ${ans.text}", "definitiva" !in ans.text)
+    }
+
     @Test
     fun delete_tareaCompletadaTambienBorrable() {
         val ans = ask("borra la tarea de enviar el presupuesto")
