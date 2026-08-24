@@ -1,3 +1,11 @@
+## Ciclo c.963 (2026-08-24) — fix(search): «automatizaciones»/«reglas» ya listan las automatizaciones en la búsqueda universal
+
+- HEAD inicial: `b4f5d2d` (c.962), sync remoto limpio `pull --ff-only` (sin divergencia; NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain heredada en /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`).
+- Cola de laterales parser/context agotada/pineada → nueva auditoría funcional (doctrina). Rutinas/recurrencia sin hallazgos; la sonda de routing del asistente (`/tmp/probes/notes_listing.kt`) destapó la familia automatizaciones.
+- Unidad 1 (P1 — mentira por omisión del buscador): la familia AUTOMATION era la ÚNICA listable sin términos semánticos; «automatizaciones»/«reglas» devolvían vacío (medido 0/4 formas PRE con 2 reglas fixture). FIX mínimo: `AUTOMATION_TERMS = setOf("automatiz", "regla")` + `semanticMatches` hermano en el filtro (misma clase que c.795 hábitos/rutinas/proyectos). TDD: 4 tests nuevos — RED exacto (6680 run, EXACTAMENTE 4 fallos) → GREEN. Suite FINAL **OK (6680 = 6676+4)**; SMOKE-OK 25/25; sonda POST 4/4 formas listan 2/2, contenido «gym» intacto 1/1. NO VERIFICADO: gradle/lint/assemble/Android (sin SDK).
+- Descubrimientos registrados en BACKLOG (UNA por ciclo): asistente sin forms de listing para automatizaciones (ruta OPEN_SEARCH ahora honesta); notas singular/interrogativas sin paridad con `entityListingPayload`.
+- **Próxima prioridad:** laterales (a) listing de automatizaciones en el asistente, (b) paridad de notas singular/interrogativas — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
+
 ## Ciclo c.962 (2026-08-24) — fix(context): títulos limpian la franja «para la/las mañana/tarde/noche» en ContextIntentEngine
 
 - HEAD inicial: `ae4b3a1` (c.961), sync remoto limpio `pull --ff-only` (sin divergencia; NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain reconstruida en /tmp (Temurin JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs` — apt bloqueado sin root, downloads directos). Baseline verificada: suite OK (6668), SMOKE-OK, AUTO-OK.

@@ -409,7 +409,16 @@ object SearchEngine {
                     (!(PENDIENTE_INTENT_TOKENS.any { it in words }) || it.reviewStatus == CommitmentReviewStatus.PENDING) &&
                     (overdueRecovery || matches(it.action, it.actor, it.location) || semanticMatches(COMMITMENT_TERMS, it.action, it.actor, it.location))
             }.forEach { add(Ranked(SearchResult(SearchKind.COMMITMENT, it.id, it.action, it.actor.take(90)))) }
-            automations.filter { (!typed || wantsAutomations) && !pureDateScope && matches(it.name, it.instruction, it.explanation) }
+            // c.963: la familia de automatizaciones era la ÚNICA listable sin
+            // términos semánticos — matches() solo exigía la palabra
+            // «automatizaciones»/«reglas» en el nombre, así que el listado
+            // cotidiano volvía vacío (mentira por omisión, igual que hábitos/
+            // rutinas/proyectos antes de c.795). wantsAutomations ya liberaba
+            // el guard typed; faltaba el semanticMatches hermano.
+            automations.filter {
+                (!typed || wantsAutomations) && !pureDateScope &&
+                    (matches(it.name, it.instruction, it.explanation) || semanticMatches(AUTOMATION_TERMS, it.name, it.instruction, it.explanation))
+            }
                 .forEach { add(Ranked(SearchResult(SearchKind.AUTOMATION, it.id, it.name, it.explanation.take(90)))) }
         }.sortedWith(
             compareBy<Ranked> { if (it.result.title.foldForSearch().startsWith(normalized)) 0 else 1 }
@@ -546,6 +555,10 @@ object SearchEngine {
     private val HABIT_TERMS = setOf("habito", "habitos")
     private val ROUTINE_TERMS = setOf("rutina", "rutinas")
     private val PROJECT_TERMS = setOf("proyecto", "proyectos")
+    // Raíces idénticas a la detección de `wantsAutomations` (subcadena
+    // «automatiz»/«regla»): lo que dispara el intent es lo que se ignora como
+    // palabra de contenido, simétrico al resto de familias.
+    private val AUTOMATION_TERMS = setOf("automatiz", "regla")
     // Calificador «activo» («activo/activa/activos/activas») sobre las familias
     // listables (hábito/rutina/proyecto): se ignora en `semanticMatches`
     // igual que el término de familia, porque para estas la semántica honesta

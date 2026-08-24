@@ -1,5 +1,9 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.AutomationAction
+import com.ordia.app.data.local.AutomationCondition
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationTrigger
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
@@ -161,6 +165,66 @@ class SearchEngineTest {
         )
         assertEquals(listOf(1L), results.map { it.id })
         assertEquals(setOf(SearchKind.PROJECT), results.map { it.kind }.toSet())
+    }
+
+    // c.963 — la familia de automatizaciones era la ÚNICA listable del buscador
+    // sin términos semánticos: el filtro usaba sólo matches() (contención
+    // literal), así que «automatizaciones»/«reglas» («mis» es stop word)
+    // devolvían vacío aunque el usuario tuviera varias — la misma mentira por
+    // omisión que c.795 corrigió para hábitos/rutinas/proyectos. wantsAutomations
+    // ya existía (typed quedaba liberado); faltaba el semanticMatches hermano.
+    private fun automation(id: Long, name: String, instruction: String = "", explanation: String = "") =
+        AutomationRuleEntity(
+            id = id, name = name, instruction = instruction,
+            trigger = AutomationTrigger.DAILY_MORNING, condition = AutomationCondition.ALWAYS,
+            action = AutomationAction.PLAN_DAY, explanation = explanation, definitionHash = "h$id"
+        )
+
+    @Test fun automatizacionesBaresListanTodasLasAutomatizaciones() {
+        val results = SearchEngine.search(
+            "automatizaciones",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            automations = listOf(
+                automation(1, "Aviso de gym"),
+                automation(2, "Resumen nocturno")
+            )
+        )
+        assertEquals(setOf(1L, 2L), results.map { it.id }.toSet())
+        assertEquals(setOf(SearchKind.AUTOMATION), results.map { it.kind }.toSet())
+    }
+
+    @Test fun misAutomatizacionesListaLasAutomatizaciones() {
+        val results = SearchEngine.search(
+            "mis automatizaciones",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            automations = listOf(automation(1, "Aviso de gym"))
+        )
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun reglasBaresListanLasAutomatizaciones() {
+        // «reglas» es la forma cotidiana hermana (wantsAutomations la detecta por
+        // subcadena «regla»); sin término semántico exigía «reglas» en el nombre.
+        val results = SearchEngine.search(
+            "reglas",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            automations = listOf(automation(1, "Aviso de gym"))
+        )
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun automatizacionesCalificadasFiltranPorContenido() {
+        // «automatizaciones gym» conserva sólo la que coincide con «gym»; el
+        // token de familia no exige presencia en nombre/instrucción/explicación.
+        val results = SearchEngine.search(
+            "automatizaciones gym",
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            automations = listOf(
+                automation(1, "Aviso de gym"),
+                automation(2, "Resumen nocturno")
+            )
+        )
+        assertEquals(listOf(1L), results.map { it.id })
     }
 
     @Test fun entityListing_guard_substringNoDisparaElIntent() {
