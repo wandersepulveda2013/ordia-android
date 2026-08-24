@@ -4702,8 +4702,17 @@ object NaturalTaskParser {
         // («las primeras horas de la mañana del lunes son tranquilas») NO es
         // ancla de fecha: pertenece al sujeto narrativo.
         val ordinalNarrativeWeekdayRanges = ordinalHoraNarrativeWeekdayRanges(working)
-        val weekdayMatch = weekdayPattern.find(working)
-            ?.takeUnless { wm -> ordinalNarrativeWeekdayRanges.any { it.containsRange(wm.range) } }
+        val weekdayFirstMatch = weekdayPattern.find(working)
+        // c.949: la captura ES narrativa en pretérito (decidido sobre el texto
+        // original); el flag se propaga a [eraseWeekdayToken] para que el
+        // título conserve el weekday exactamente cuando la fecha lo descartó.
+        val weekdayPreteriteNarrative = weekdayFirstMatch != null &&
+            weekdayOccurrenceIsPreteriteNarrative(working, weekdayFirstMatch)
+        val weekdayMatch = weekdayFirstMatch
+            ?.takeUnless { wm ->
+                ordinalNarrativeWeekdayRanges.any { it.containsRange(wm.range) } ||
+                    weekdayOccurrenceIsPreteriteNarrative(working, wm)
+            }
         val weekendMatch = weekendEarlyMatch
         val numericDateMatch = numericDatePattern.find(working)
         // find() devolvía solo el PRIMER match; si su mes era inválido ("9 de la" → "la"),
@@ -5690,7 +5699,12 @@ object NaturalTaskParser {
             // weekday genitivo de una cadena narrativa H3 protegida («las
             // primeras horas de la mañana del lunes son tranquilas») se
             // conserva íntegro; ver ordinalHoraNarrativeWeekdayRanges.
-            .let { value -> eraseWeekdayToken(value, primeraHoraMatch != null, ultimaHoraMatch != null) }
+            .let { value ->
+                eraseWeekdayToken(
+                    value, primeraHoraMatch != null, ultimaHoraMatch != null,
+                    forcePreteriteNarrativeAnchor = weekdayPreteriteNarrative
+                )
+            }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
             // semana, día de la semana) se consume pero la frase modificadora no.
@@ -8235,18 +8249,27 @@ object NaturalTaskParser {
      * narrativo, no es token de fecha. Opera por rangos (no replace global)
      * para no tocar las apariciones protegidas, como [eraseOrdinalHoraToken]/
      * [eraseStandalonePartOfDayToken].
+     * c.949: conserva igualmente el weekday inicial de una cadena narrativa en
+     * pretérito («el lunes llegó el paquete»), pero SÓLO cuando
+     * [forcePreteriteNarrativeAnchor] lo indica: la decisión se tomó en
+     * [parse] sobre el texto original; aquí el título ya pudo perder tokens
+     * intermedios («el lunes en la mañana llegó…» → «el lunes llegó…»), y sin
+     * el flag esa forma reducida sería indistinguible de la captura pura —
+     * fecha y título divergirían (la fecha ancla, el título conservaría).
      */
     private fun eraseWeekdayToken(
         title: String,
         forcePrimeraHoraAnchor: Boolean = false,
-        forceUltimaHoraAnchor: Boolean = false
+        forceUltimaHoraAnchor: Boolean = false,
+        forcePreteriteNarrativeAnchor: Boolean = false
     ): String {
         var result = title
         var idx = 0
         while (true) {
             val m = weekdayPattern.find(result, idx) ?: return result
             if (ordinalHoraNarrativeWeekdayRanges(result, forcePrimeraHoraAnchor, forceUltimaHoraAnchor)
-                    .any { it.containsRange(m.range) }
+                    .any { it.containsRange(m.range) } ||
+                (forcePreteriteNarrativeAnchor && weekdayOccurrenceIsPreteriteNarrative(result, m))
             ) {
                 idx = m.range.last + 1
                 continue
@@ -8254,6 +8277,85 @@ object NaturalTaskParser {
             result = result.removeRange(m.range.first, m.range.last + 1)
             idx = m.range.first
         }
+    }
+
+    /**
+     * c.949: predicado en PRETÉRITO inequívoco tras un weekday — evidencia de
+     * cadena narrativa («el lunes llegó el paquete» = algo que YA ocurrió, no
+     * un compromiso). Lista cerrada de pretéritos perfectos simples y
+     * copulativos pretéritos frecuentes (un comando jamás abre su predicado en
+     * pretérito); admite adverbio «ya» y un pronombre reflexivo/ácito («me
+     * quedé…», «se rompió…»). Se EXCLUYEN a propósito las formas ambiguas
+     * pretérito/presente (1ª plural «salimos», «comimos»…) y los imperfectos
+     * descriptivos/habituales («trabajaba»: también describe rutina), salvo el
+     * copulativo «era/eran», inequívoco como arranque narrativo.
+     * Cierre con lookahead de separador en lugar de \b: en java.util.regex \b
+     * no trata las vocales con tilde como word-char (salvo flag explícito de
+     * Pattern, que el flag embebido (?iu) no propaga), así que «llegó\b»
+     * jamás casaría; el lookahead exige separador real y bloquea prefijos
+     * («vio» ≠ «violento», «fue» ≠ «fuera»).
+     */
+    private val weekdayPreteriteNarrativeSuffix = Regex(
+        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:""" +
+            "llegó|llegué|llegaste|llegaron|fue|fui|fuiste|fueron|era|eran|" +
+            "estuvo|estuve|estuviste|estuvieron|vino|vine|viniste|vinieron|" +
+            "pasó|pasé|pasaste|pasaron|ocurrió|ocurrieron|sucedió|sucedieron|" +
+            "sonó|sonaste|sonaron|llamó|llamé|llamaste|llamaron|" +
+            "escribió|escribí|escribiste|escribieron|compró|compré|compraste|compraron|" +
+            "pagó|pagué|pagaste|pagaron|envió|envié|enviaste|enviaron|" +
+            "recibió|recibí|recibiste|recibieron|volvió|volví|volviste|volvieron|" +
+            "regresó|regresé|regresaste|regresaron|terminó|terminé|terminaste|terminaron|" +
+            "empezó|empecé|empezaste|empezaron|comenzó|comencé|comenzaste|comenzaron|" +
+            "acabó|acabé|acabaste|acabaron|cerró|cerré|cerraste|cerraron|" +
+            "abrió|abrí|abriste|abrieron|salió|salí|saliste|salieron|" +
+            "entró|entré|entraste|entraron|subió|subí|subiste|subieron|" +
+            "bajó|bajé|bajaste|bajaron|ganó|gané|ganaste|ganaron|" +
+            "perdió|perdí|perdiste|perdieron|llovió|nevó|tembló|" +
+            "nació|nacieron|murió|murieron|dijo|dije|dijiste|dijeron|" +
+            "hizo|hice|hiciste|hicieron|trajo|traje|trajiste|trajeron|" +
+            "puso|puse|pusiste|pusieron|vio|vi|viste|vieron|" +
+            "dio|di|diste|dieron|supo|supe|supiste|supieron|" +
+            "pudo|pude|pudiste|pudieron|tuvo|tuve|tuviste|tuvieron|" +
+            "duró|duraste|duraron|quedó|quedé|quedaste|quedaron|" +
+            "funcionó|funcionaron|falló|fallaron|rompió|rompieron|" +
+            "apareció|aparecieron|desapareció|desaparecieron|" +
+            "comí|comió|comiste|comieron|cené|cenó|cenaste|cenaron|" +
+            "dormí|durmió|dormiste|durmieron|desperté|despertó|despertaste|despertaron|" +
+            "levanté|levantó|levantaste|levantaron|trabajé|trabajó|trabajaste|trabajaron|" +
+            "estudié|estudió|estudiaste|estudiaron|hablé|habló|hablaste|hablaron|" +
+            "encontré|encontró|encontraste|encontraron|dejé|dejó|dejaste|dejaron|" +
+            "tomé|tomó|tomaste|tomaron|leí|leyó|leyeron|sentí|sintió|sintieron" +
+            ")(?=\\s|$|[,.;:!?)])"
+    )
+
+    /**
+     * c.949: ¿es esta aparición de weekday el inicio de una CADENA NARRATIVA en
+     * pretérito («el lunes llegó el paquete») y no un ancla de fecha? Sólo con
+     * evidencia gramatical inequívoca:
+     *  (N1) artículo «el»/demostrativo «este» al frente (los genitivos
+     *       «del/de <weekday>» —«la reunión del lunes»— quedan FUERA: su
+     *       weekday modifica al sustantivo y la doctrina vigente los ancla);
+     *  (N2) SIN modificador de dirección futura («que viene», «próximo»,
+     *       «siguiente», «posterior»): si el usuario pidió futuro explícito,
+     *       el modificador gana aunque el enunciado sea contradictorio;
+     *  (N3) el predicado abre con pretérito inequívoco
+     *       ([weekdayPreteriteNarrativeSuffix]): un encargo real jamás
+     *       empieza en pretérito («el lunes llega/tengo/hay…» siguen ancla).
+     * Antes, «el lunes llegó el paquete» se agendaba al PRÓXIMO lunes y el
+     * título perdía el weekday (doble daño: compromiso futuro falso +
+     * contenido mutilado). FUERA a propósito (laterales medidas): weekday +
+     * parte del día intercalada («el lunes en la mañana llegó…»), «ayer/hoy/
+     * anoche/esta mañana» + pretérito, y formas verbales ambiguas. Usado por
+     * [parse] (fecha) y [eraseWeekdayToken] (título) para que nunca diverjan.
+     */
+    private fun weekdayOccurrenceIsPreteriteNarrative(text: String, match: MatchResult): Boolean {
+        val mv = match.value.trimStart().lowercase()
+        if (!mv.startsWith("el ") && !mv.startsWith("este ")) return false
+        if (mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
+            mv.contains("siguiente") || mv.contains("posterior")
+        ) return false
+        val suffix = text.substring(match.range.last + 1)
+        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
     }
 
     private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
