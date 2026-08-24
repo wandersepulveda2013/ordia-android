@@ -1,12 +1,12 @@
-## Ciclo c.1018 (2026-08-24) — fix(parser): delta UNIÓN sobre H4 c.1016 — «a la/las primeras?/últimas? horas?» + pretérito inequívoco → narrativa intacta
-- HEAD inicial: `9920a22` (fix c.1016 del hermano), sync limpio tras COLISIÓN convergente: este run tenía la lateral MADRE completa implementada (sin commitear) cuando el hermano publicó SUS c.1014/c.1015/c.1016; integración NO-destructiva (`checkout --` del parser + `pull --ff-only` + delta re-aplicado). Renumeración c.1014→c.1017→c.1018 (SEGUNDA colisión cycle-ID: SU c.1017 «desparasitar al perro/gato» contexto `d8a815e`+`f339c4a` llegó en el re-fetch pre-push; regiones DISJUNTAS parser/context). NO force, NO reset --hard, NO `main`. Toolchain heredada /tmp.
+## Ciclo c.1019 (2026-08-24) — fix(parser): delta UNIÓN sobre H4 c.1016 — «a la/las primeras?/últimas? horas?» + pretérito inequívoco → narrativa intacta
+- HEAD inicial: `9920a22` (fix c.1016 del hermano), sync limpio tras COLISIÓN convergente: este run tenía la lateral MADRE completa implementada (sin commitear) cuando el hermano publicó SUS c.1014/c.1015/c.1016; integración NO-destructiva (`checkout --` del parser + `pull --ff-only` + delta re-aplicado). Renumeración c.1014→c.1017→c.1018→c.1019 (TERCERA colisión cycle-ID del run: SU c.1017 «desparasitar al perro/gato» `d8a815e`+`f339c4a` y SU c.1018 «pasear al perro» `23b2761`+`171e448`, ambos contexto, llegaron en los re-fetch pre-push; regiones DISJUNTAS parser/context; fila DÉCIMA AGOTADA por el hermano). NO force, NO reset --hard, NO `main`. Toolchain heredada /tmp.
 - Unidad (P1, lateral FUERA de SU c.1016): «a la primera hora vino el técnico» / «a las primeras horas empezó la reunión» / «llegué a la primera hora» nacían con fecha FALSA ya PASADA (hoy 09:00/18:00) Y título MUTILADO — doble daño P1 (4/4 PRE, sonda efímera `/tmp/probe1014/Probe4.kt` sobre `9920a22`).
 - Fix mínimo (1 punto): rama «a» CON artículo de `ordinalHoraOccurrenceIsContent` — la MISMA evidencia H4 (`ordinalHoraOccurrenceIsPreteriteNarrative`: pretérito inequívoco adyacente, lista cerrada c.950) declara la aparición CONTENIDO narrativo. Fecha y título fluyen del mismo predicado (nunca divergen).
-- TDD estricto: 18 tests nuevos `NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest.kt` — RED exacto (18 run, EXACTAMENTE 7 fallos = capturas; guards/pines/regresiones verdes desde RED; pin lateral «ya» ajustado a la conducta medida) → GREEN 18/18 + 24/24 hermano (incl. re-pin legítimo de SU pin FUERA con-artículo, comentario c.1018, precedente c.957/c.965).
-- Verificación FINAL: suite **OK (7356 = 7338 base c.1016 + 18 míos)**; smoke 25/25. Sonda POST: 4/4 capturas protegidas, 4/4 guards + 3/3 regresiones + 6/6 pines BYTE-IDÉNTICOS. Determinista, cero random, cero IA fingida, cero UI.
+- TDD estricto: 18 tests nuevos `NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest.kt` — RED exacto (18 run, EXACTAMENTE 7 fallos = capturas; guards/pines/regresiones verdes desde RED; pin lateral «ya» ajustado a la conducta medida) → GREEN 18/18 + 24/24 hermano (incl. re-pin legítimo de SU pin FUERA con-artículo, comentario c.1019, precedente c.957/c.965).
+- Verificación FINAL: suite **OK (7387 = 7369 UNIÓN del hermano [7350+19] + 18 míos — aritmética exacta)** sobre la UNIÓN total; smoke 25/25. Sonda POST: 4/4 capturas protegidas, 4/4 guards + 3/3 regresiones + 6/6 pines BYTE-IDÉNTICOS. Determinista, cero random, cero IA fingida, cero UI.
 - **Archivos:** `NaturalTaskParser.kt` (1 check + comentarios), `NaturalTaskParserOrdinalHoraALasPreteritoNarrativoTest.kt` (nuevo), `NaturalTaskParserOrdinalHoraPreteritoNarrativoTest.kt` (re-pin + KDoc), docs AI_AUTONOMY. Eliminados: sondas efímeras `/tmp/probe1014`.
 - **Estado: VERIFIED (JVM).** **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
-- **Próxima prioridad:** lateral «ya <pretérito>» narrativa (regla de inmediatez «ya» ancla a AHORA: «ya sonó la alarma» → now; medida c.1018, pin en el test); genitivos «desde/hasta/de ayer» (c.957); candidata DÉCIMA (e) «pasear al perro» si el hermano no la toma [(d) la tomó SU c.1017]; plural «los pelos» (c.842). Re-fetch OBLIGATORIO pre-implementación y pre-push (el hermano publicó TRES veces durante este run).
+- **Próxima prioridad:** lateral «ya <pretérito>» narrativa (regla de inmediatez «ya» ancla a AHORA: «ya sonó la alarma» → now; medida c.1019, pin en el test); genitivos «desde/hasta/de ayer» (c.957); fila DÉCIMA AGOTADA por el hermano [(d) SU c.1017, (e) SU c.1018] → próxima: auditoría clase UNDÉCIMA; plural «los pelos» (c.842). Re-fetch OBLIGATORIO pre-implementación y pre-push (el hermano publicó TRES veces durante este run).
 ## Ciclo c.1017 [renumerado c.1016->c.1017 por colisión cycle-ID con SU c.1016 parser (`9920a22`, ordinal «a primera hora»); regiones DISJUNTAS context/parser, precedentes c.1000/c.1004/c.1008/c.1011/c.1015; doctrina: numerar tras re-fetch] (2026-08-24) — feat(context): candidata (d) fila DÉCIMA — piso transitivo «desparasitar al perro/gato» (salud de la mascota) captura como HOUSEHOLD
 - HEAD inicial: `5cceb76e` (docs-close c.1015 propio), sync limpio. Re-fetch pre-push: el hermano había publicado `9920a22` (SU c.1016 parser, ordinal de hora) — integración NO-destructiva `stash`→`pull --ff-only`→`pop` (SIN conflictos: él tocó `NaturalTaskParser.kt`, yo `ContextIntentEngine.kt`, disjunto). NO force, NO reset --hard, NO `main`. Toolchain /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`). Baseline UNIÓN **OK (7338)**, smoke 25/25.
 - Unidad (P1 — evitar olvidos; candidata (d) de la fila clase DÉCIMA [mascotas] c.1007, UNA por ciclo): la forma transitiva «desparasitar al perro/gato» (antiparasitario — cuidado veterinario tan cotidiano como la vacuna) caía a NULL (olvido silencioso, medido PRE 6/6) mientras la hermana «vacunar al perro» ya captura HOUSEHOLD (c.757).
@@ -14867,3 +14867,22 @@ byte-idénticos; persistente: cerradas 13, laterales 0 (+5 pins). Smoke
 «marca <tarea> como importante» (requiere capacidad de mutación de
 prioridad en el VM antes de la captura). Próxima prioridad: UNA lateral
 por ciclo con medida previa.
+
+### Último ciclo: c.1018 (2026-08-24)
+Candidata (e) — ÚLTIMA de la fila clase DÉCIMA mascotas c.1007: piso
+sinónimo «pasear al perro» HOUSEHOLD (hermano de «sacar al perro» c.740,
+con la alternancia de artículo directo c.756 heredada: «pasear la perra»).
+NULL PRE medido 6/6 (sonda efímera /tmp/probe1017/Probe.kt sobre HEAD
+9920a22). Lockstep 3 puntos (piso + cláusula de negación dedicada +
+plantilla de título; CERO keywords nuevas — «pasear» es bivalente y NO se
+añade como keyword). TDD: RED exacto 7 fallos (7 capturas) → GREEN 19/19;
+suite UNIÓN OK (7369 = 7350 suyo + 19 míos); smoke 25/25. Sonda POST:
+6/6 capturas HIT (títulos limpios, dueAt correcto), 8/8 guards NULL
+(negación ×2, pasado, duda, nominalización, bebé, «salir a pasear», gato),
+8/8 regresiones HIT byte-idénticas. Laterales ABIERTAS: «pasear al gato»
+FUERA pineado; cola relativa «después de cenar» queda en el título
+(byte-idéntico al hermano c.740 — depuración de colas relativas es
+lateral de TODA la familia de pisos, no de esta unidad). Fila DÉCIMA
+AGOTADA (S/a/b/c/d/e RESUELTAS): próxima auditoría de descubrimiento =
+clase UNDÉCIMA (nueva sonda persistida, convención c.822/c.1007).
+NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).

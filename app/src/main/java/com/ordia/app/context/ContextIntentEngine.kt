@@ -235,6 +235,28 @@ object ContextIntentEngine {
     // guard de negación explícito heredado de la familia (?<!no ).
     private val HOUSEHOLD_PET_FLOOR =
         Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
+    // Piso mascota "pasear al perro" (c.1018, renumerada c.1017->c.1018
+    // por colisión de cycle-ID con SU c.1017 «desparasitar» — candidata (e) de la fila
+    // clase DÉCIMA mascotas c.1007, sonda fuente `TenthClassPetProbe.kt`;
+    // NULL PRE medido 6/6 en sonda efímera `/tmp/probe1017/Probe.kt` sobre
+    // HEAD 9920a22): sinónimo dicho-como-se-habla de [HOUSEHOLD_PET_FLOOR]
+    // c.740 ("sacar al perro"), con la MISMA alternancia de artículo
+    // directo c.756 ("pasear la perra"). "pasear" suelto es bivalente
+    // (salir a pasear uno mismo / pasear al bebé / pasear la mirada), así
+    // se ACOTA al objeto mascota `perr[oa]s?` (idéntico acotamiento del
+    // hermano c.740: perro-only, "pasear al gato" queda FUERA — lateral
+    // documentada). CERO keywords nuevas: la keyword-mascota "perro/perra"
+    // ya existe (c.740) y el piso basta (la keyword sola queda bajo el
+    // umbral — medido PRE); "pasear" NO se añade como keyword (bivalente:
+    // "salir a pasear" quedaría a un bono temporal del umbral — pin NULL).
+    // Lockstep 3 puntos (lección c.616/c.751): piso + cláusula de negación
+    // dedicada en [imperativeIsNegated] (cinturón y tirantes, precedente
+    // c.740) + plantilla de título dedicada en [extractTitle] (doctrina
+    // c.653). Verbos disjuntos sacar/pasear — sin solape.
+    // `\b` final: "perrito(s)" (diminutivo) no casa; guard de negación
+    // explícito heredado de la familia (?<!no ).
+    private val HOUSEHOLD_WALK_DOG_FLOOR =
+        Regex("""\b(?<!no )pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
     // Piso faena doméstica "pasar la aspiradora" (c.742, forma 5/7 de la
     // CUARTA clase cotidiana — sonda `FourthClassChoreProbe.kt` c.734;
     // renumerada c.740→c.742 por colisión de cycle-ID con la mascota):
@@ -440,7 +462,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -3006,6 +3028,16 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.HOUSEHOLD &&
             Regex("""\bno\s+sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""").containsMatchIn(lower)
         ) return true
+        // "pasear al perro" (HOUSEHOLD, piso acotado c.1018 — sinónimo del
+        // hermano "sacar al perro" c.740) es imperativo multi-palabra: la
+        // keyword-mascota "perro" (lockstep c.740) + el bono temporal
+        // podrían elevar el score sin pasar por el piso (cuyo lookbehind
+        // sí la bloquea), así la negación se bloquea también aquí
+        // (cinturón y tirantes, precedente c.740/c.748). Alternancia de
+        // artículo directo c.756 en lockstep con [HOUSEHOLD_WALK_DOG_FLOOR].
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""").containsMatchIn(lower)
+        ) return true
         // "podar el jardín" (HOUSEHOLD, piso acotado c.748) es imperativo
         // multi-palabra: la keyword-verbo "podar" (lockstep c.748) + la
         // keyword-objeto "jardín" + el bono temporal elevan el score al
@@ -4135,6 +4167,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSacarPerro != null) {
                     return "${capitalizeFirst(matchSacarPerro.groupValues[1])} ${matchSacarPerro.groupValues[2]}"
+                }
+                // Piso "pasear al perro" (c.1018; artículo directo c.756
+                // heredado): titular lo acotado al objeto mascota, hermano
+                // del "sacar al perro" de arriba (alineado con
+                // [HOUSEHOLD_WALK_DOG_FLOOR]).
+                val matchPasearPerro = Regex(
+                    """\b(pasear) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) perr[oa]s?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPasearPerro != null) {
+                    return "${capitalizeFirst(matchPasearPerro.groupValues[1])} ${matchPasearPerro.groupValues[2]}"
                 }
                 // Piso "pintar la casa" (c.758): titular lo acotado al
                 // objeto casa (alineado con [HOUSEHOLD_PAINT_HOUSE_FLOOR]).
