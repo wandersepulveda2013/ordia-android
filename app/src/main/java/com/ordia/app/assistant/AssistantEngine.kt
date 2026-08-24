@@ -1214,10 +1214,20 @@ object AssistantEngine {
     // simetría con el extractor c.990 de createTaskCapture).
     private val REMIND_ME_WITH_CONTENT = Regex("(?i)^recu[ée]rdame\\s*:?\\s*([^:].*)$")
 
+    // c.993: «que» subordinado inicial («recuérdame que tengo que…») —
+    // conector, NO contenido (medido: residuo en el título). Despoje
+    // ANTES de los checks: la pelada-con-«que» («recuérdame que») cae a
+    // la guía honesta (NUNCA tarea basura «que», doctrina c.988) y la
+    // negación tras «que» («…que no llame…») llega al check anti-overreach
+    // (NUNCA capturar lo contrario de la intención). «quedarme» (sin
+    // espacio) y «qué» (con tilde) NUNCA casan.
+    private val LEADING_QUE = Regex("(?i)^que(?:\\s+|$)")
+
     private fun remindMeCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
         if (!REMIND_ME_PREFIX.containsMatchIn(trimmed)) return null
-        val content = REMIND_ME_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        val raw = REMIND_ME_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        val content = raw?.let { LEADING_QUE.replace(it, "") }?.trim()
         if (content.isNullOrEmpty()) {
             // NUNCA tarea vacía (hermana de la nota pelada c.969): guía
             // honesta de cómo dictarlo, SIN acción.

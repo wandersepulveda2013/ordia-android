@@ -40,14 +40,21 @@ fun main() {
         "agrega una tarea llamar al dentista",
         // CERRADAS c.991 (lateral (e)): «ponme un recordatorio…» — ya no la
         // roba la consulta c.808.
-        "ponme un recordatorio para mañana llamar al banco"
+        "ponme un recordatorio para mañana llamar al banco",
+        // CERRADAS c.993 (lateral (c)): «recuérdame que…» — despoje del
+        // «que» subordinado (título sin residuo).
+        "recuérdame que tengo que llamar al banco"
     )
 
     // LATERALES ABIERTAS (documentadas, toleradas hasta su ciclo — doctrina
     // anti-overreach UNA forma por ciclo):
     //  (a) CERRADA c.990: «crea/añade/agrega (una) tarea…» → CREATE_TASK;
     //  (b) «avísame…» / «quiero que me recuerdes…» — recordatorio declarativo;
-    //  (c) «recuérdame que…» — subordinada (el «que» quedaría en el título);
+    //  (c) CERRADA c.993: «recuérdame que…» — el «que» subordinado quedaba
+    //      en el título; la pelada-con-«que» creaba tarea BASURA «que» y la
+    //      negación tras «que» capturaba lo contrario. Resuelta con despoje
+    //      LEADING_QUE ANTES de los checks; pin en guards (exit 1 si
+    //      reaparece la tarea basura o la captura de la negación);
     //  (d) «recuérdamelo» — deíctico sin contenido explícito;
     //  (e) CERRADA c.991: «ponme un recordatorio…» — el ROBO DE RAMA por la
     //      consulta de recordatorios c.808 («No tienes recordatorios
@@ -59,8 +66,7 @@ fun main() {
     //      pin en guards (exit 1 si reaparece).
     val openLaterals = listOf(
         "avísame mañana de llamar al banco",
-        "quiero que me recuerdes pagar la luz",
-        "recuérdame que tengo que llamar al banco"
+        "quiero que me recuerdes pagar la luz"
     )
 
     // GUARDS: no son imperativos de creación; NO deben capturar CREATE_TASK.
@@ -69,7 +75,9 @@ fun main() {
         "recuerdo la tarea de ayer", // afirmación en pasado
         "el recuerdo llegó ayer", // sustantivo
         "recuérdame no llamar al banco", // contenido negado (anti-overreach)
-        "recuérdame:" // pelada CON «:» — c.992: NUNCA tarea basura «:»
+        "recuérdame:", // pelada CON «:» — c.992: NUNCA tarea basura «:»
+        "recuérdame que", // pelada-con-«que» — c.993: NUNCA tarea basura «que»
+        "recuérdame que no llame a ana" // negación tras «que» — c.993: NUNCA capturar lo contrario
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
