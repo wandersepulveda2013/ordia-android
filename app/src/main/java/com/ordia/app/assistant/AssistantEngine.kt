@@ -76,6 +76,7 @@ object AssistantEngine {
         val takeNoteCapture = takeNoteCapture(clean)
         val remindMeCapture = remindMeCapture(clean)
         val createTaskCapture = createTaskCapture(clean)
+        val avisaMeCapture = avisaMeCapture(clean)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -484,6 +485,9 @@ object AssistantEngine {
             // c.990: lateral (a) de la sonda persistente — «crea/añade/agrega
             // (una) tarea…», hermana de remindMeCapture (mismo contrato).
             createTaskCapture != null -> createTaskCapture
+            // c.994: lateral (b1) de la sonda persistente — «avísame…»,
+            // hermana de remindMeCapture (mismo contrato).
+            avisaMeCapture != null -> avisaMeCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1266,6 +1270,38 @@ object AssistantEngine {
             return AssistantAnswer("¿Qué tarea quieres crear? Escríbela tras «crea una tarea: …» y la guardo.")
         }
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
+
+    // c.994: lateral (b1) de la sonda persistente — «avísame…», el
+    // recordatorio declarativo. Hermana de remindMeCapture (mismo
+    // contrato: guía honesta pelada, NUNCA tarea vacía; negación → menú
+    // honesto). El «de» preposicional se despoja y el temporal
+    // intercalado («avísame MAÑANA DE llamar…») se reordena al final
+    // del payload para que NaturalTaskParser ancle la fecha con título
+    // limpio (medido PRE: payload «mañana de llamar…» dejaba residuo).
+    private val AVISA_ME_PREFIX = Regex("(?i)^av[íi]same(?:\\s*:)?(?:\\s+|$)")
+    private val AVISA_ME_WITH_CONTENT =
+        Regex("(?i)^av[íi]same\\s*:?\\s*(?:(pasado mañana|mañana|hoy)\\s+)?(?:de\\s+)?([^:].*)$")
+
+    private fun avisaMeCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!AVISA_ME_PREFIX.containsMatchIn(trimmed)) return null
+        val match = AVISA_ME_WITH_CONTENT.matchEntire(trimmed)
+        val temporal = match?.groupValues?.get(1)?.trim().orEmpty()
+        val content = match?.groupValues?.get(2)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA tarea vacía (doctrina c.969): guía honesta SIN acción.
+            return AssistantAnswer("¿Sobre qué quieres que te avise? Escríbelo tras «avísame …» y lo guardo como tarea.")
+        }
+        // Anti-overreach: la negación tras «de» («avísame de NO llamar…»)
+        // pide no hacerlo; crear la tarea capturaría lo contrario de la
+        // intención (hermana de c.986/c.993). Menú honesto.
+        if (content.startsWith("no ", ignoreCase = true)) return null
+        // Anti-overreach: «avísame CUANDO llegue Ana» condiciona el aviso
+        // a un evento que no podemos programar honestamente → menú.
+        if (content.startsWith("cuando ", ignoreCase = true)) return null
+        val payload = if (temporal.isEmpty()) content else "$content $temporal"
+        return AssistantAnswer("La tarea está lista para guardarse: “${payload.take(120)}”.", AssistantAction.CREATE_TASK, payload)
     }
 
     // c.991: «ponme un recordatorio …» — hermana de c.986, lateral (e) de la

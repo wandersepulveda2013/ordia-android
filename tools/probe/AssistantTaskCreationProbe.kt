@@ -43,13 +43,21 @@ fun main() {
         "ponme un recordatorio para mañana llamar al banco",
         // CERRADAS c.993 (lateral (c)): «recuérdame que…» — despoje del
         // «que» subordinado (título sin residuo).
-        "recuérdame que tengo que llamar al banco"
+        "recuérdame que tengo que llamar al banco",
+        // CERRADA c.994 (lateral (b1)): «avísame…» — recordatorio
+        // declarativo (temporal intercalado reordenado al payload).
+        "avísame mañana de llamar al banco"
     )
 
     // LATERALES ABIERTAS (documentadas, toleradas hasta su ciclo — doctrina
     // anti-overreach UNA forma por ciclo):
     //  (a) CERRADA c.990: «crea/añade/agrega (una) tarea…» → CREATE_TASK;
-    //  (b) «avísame…» / «quiero que me recuerdes…» — recordatorio declarativo;
+    //  (b) CERRADA c.994 (b1): «avísame…» — recordatorio declarativo al
+    //      menú genérico (mentira por omisión). Resuelta con rama
+    //      avisaMeCapture hermana de remindMeCapture (despoje del «de»,
+    //      temporal intercalado reordenado al payload); pins en guards
+    //      (pelada, negación tras «de», evento «cuando»). ABIERTA (b2):
+    //      «quiero que me recuerdes…» — recordatorio envuelto;
     //  (c) CERRADA c.993: «recuérdame que…» — el «que» subordinado quedaba
     //      en el título; la pelada-con-«que» creaba tarea BASURA «que» y la
     //      negación tras «que» capturaba lo contrario. Resuelta con despoje
@@ -65,7 +73,6 @@ fun main() {
     //      en REMIND_ME_WITH_CONTENT. Resuelta con extractor ([^:].*);
     //      pin en guards (exit 1 si reaparece).
     val openLaterals = listOf(
-        "avísame mañana de llamar al banco",
         "quiero que me recuerdes pagar la luz"
     )
 
@@ -77,7 +84,10 @@ fun main() {
         "recuérdame no llamar al banco", // contenido negado (anti-overreach)
         "recuérdame:", // pelada CON «:» — c.992: NUNCA tarea basura «:»
         "recuérdame que", // pelada-con-«que» — c.993: NUNCA tarea basura «que»
-        "recuérdame que no llame a ana" // negación tras «que» — c.993: NUNCA capturar lo contrario
+        "recuérdame que no llame a ana", // negación tras «que» — c.993: NUNCA capturar lo contrario
+        "avísame", // pelada — c.994: guía honesta, NUNCA tarea vacía
+        "avísame de no llamar al banco", // negación tras «de» — c.994: NUNCA capturar lo contrario
+        "avísame cuando llegue Ana" // evento condicional — c.994: no programable, NUNCA capturar
     )
 
     // REGRESIONES hermanas: notas c.969…c.985 + recordatorios c.808 +
