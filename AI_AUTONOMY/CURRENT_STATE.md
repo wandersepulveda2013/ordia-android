@@ -1,3 +1,10 @@
+## Ciclo c.996 (2026-08-24) — fix(assistant): lateral (d) «recuérdamelo» deíctico → guía honesta SIN acción (NUNCA tarea basura «lo»)
+- HEAD inicial: `de4a39d` (c.995 docs-close), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano (parent real `de4a39d` — NO STALE_RUN). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7016)**, smoke 25/25.
+- Unidad (P1, lateral (d) de la sonda persistente `AssistantTaskCreationProbe.kt` — ÚLTIMA abierta; UNA por ciclo): «recuérdamelo» deíctico (± tilde, con temporal, con mayúscula) caía al menú genérico (4/4 medido PRE con sonda efímera `/tmp/probe996`) — mentira por omisión. Causa raíz: `remindMeCapture` exige contenido explícito tras «recuérdame »; «lo» pegado al imperativo no entraba en ninguna rama, y el motor no tiene contexto conversacional para resolverlo. Fix mínimo: `REMIND_ME_LO` + `remindMeLoGuide` → guía honesta SIN acción (NUNCA tarea basura «lo», doctrina c.969); ancla ^ disjunta negación y pasado.
+- TDD estricto: 9 tests nuevos `AssistantEngineRecuerdameloDeicticoTest.kt` — RED exacto (7025 run, EXACTAMENTE 4 fallos = 4 deícticos; 2 guards + 3 regresiones c.986/c.995 verdes desde RED) → GREEN **OK (7025 = 7016 + 9)**. Smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Sonda persistente: (d) → CERRADA (cerradas 13, laterales 0, inesperados 0, exit 0) — CERO laterales abiertas en la familia de creación de tareas. POST efímera: 4/4 guía honesta, guards NONE, controles byte-idénticos.
+- **Commits:** `1bf92bc` (fix) + docs-close (ver hash en RUN_LOG). **HEAD final:** docs-close c.996. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+
 ## Ciclo c.995 (2026-08-24) — fix(assistant): lateral (b2) «quiero que me recuerdes…» recordatorio envuelto → CREATE_TASK (rama quieroQueRecuerdesCapture hermana de remindMeCapture)
 - HEAD inicial: `d952d77` (c.994 docs-close), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano (parent real `d952d77` — NO STALE_RUN). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7006)**, smoke 25/25.
 - Unidad (P1, lateral (b2) de la sonda persistente `AssistantTaskCreationProbe.kt` — UNA por ciclo, doctrina anti-overreach): el recordatorio envuelto «quiero que me recuerdes pagar la luz» (± mayúscula inicial, con «:», con temporal al final) caía al menú genérico (4/4 medido PRE con sonda efímera `/tmp/probe995`) — mentira por omisión. Causa raíz: ninguna rama reconocía la forma envuelta (el verbo «recuerdes» es subjuntivo, no el imperativo «recuérdame»). Fix mínimo: `quieroQueRecuerdesCapture` hermana de `remindMeCapture` — extractor `([^:].*)` simétrico a c.992 (NUNCA tarea basura «:»); pelada → guía honesta SIN acción (doctrina c.969); anti-overreach: negación previa («no quiero que…», ancla ^), contenido negado («…me recuerdes NO llamar…») y pasado/otra persona («quería que me recordaras…») → menú honesto.
@@ -14634,10 +14641,11 @@ antes del "y", así que no casaba. Resultado:
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
 
-### Último ciclo: c.995 (2026-08-24)
-Lateral (b2) CERRADA: captura «quiero que me recuerdes…» (recordatorio
-envuelto) → CREATE_TASK (rama quieroQueRecuerdesCapture hermana de
-remindMeCapture; extractor ([^:].*) simétrico a c.992). PRE medido: 4/4
-capturas al menú genérico. Tests 10/10 (RED exacto 5 fallos; suite 7016
-OK). Sonda persistente: cerradas 13, laterales 0, inesperados 0. Smoke
-25/25. Commit 0ed82f3. Laterales abiertas restantes: (d) «recuérdamelo».
+### Último ciclo: c.996 (2026-08-24)
+Lateral (d) CERRADA: «recuérdamelo» deíctico → guía honesta SIN acción
+(NUNCA tarea basura «lo»; el motor no tiene contexto para resolver «lo»
+y lo honesto es pedir el contenido explícito). PRE medido: 4/4 deícticos
+al menú genérico. Tests 9/9 (RED exacto 4 fallos; suite 7025 OK). Sonda
+persistente: cerradas 13, laterales 0, inesperados 0 — CERO laterales
+abiertas en la familia de creación de tareas. Smoke 25/25. Commit 1bf92bc.
+Próxima prioridad: nueva ronda de descubrimiento continuo u otro P1/P2.
