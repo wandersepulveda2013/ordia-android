@@ -76,6 +76,40 @@ class NaturalTaskParserPastPeriodBoundaryTest {
         assertEquals(LocalDate.of(2026, 7, 20), date("revisar las facturas a principios de la semana pasada"))
     }
 
+    // c.983: variantes de conector/posición medidas en sonda (follow-up (iii) c.646
+    // VERIFICADO YA RESUELTO por esta clase) — sin «a», «para», prefija, «fin»
+    // singular y sinónimo «anterior» anclan igual al domingo de la semana pasada.
+
+    @Test fun finalesDeLaSemanaPasadaSinConectorAnclaDomingoAnterior() {
+        val r = NaturalTaskParser.parse("revisar las facturas finales de la semana pasada", now, zone)
+        assertEquals("revisar las facturas", r.title)
+        assertEquals(LocalDate.of(2026, 7, 26), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeLaSemanaPasadaConParaAnclaDomingoAnterior() {
+        val r = NaturalTaskParser.parse("revisar las facturas para finales de la semana pasada", now, zone)
+        assertEquals("revisar las facturas", r.title)
+        assertEquals(LocalDate.of(2026, 7, 26), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeLaSemanaPasadaPrefijaAnclaDomingoAnterior() {
+        val r = NaturalTaskParser.parse("finales de la semana pasada revisar las facturas", now, zone)
+        assertEquals("revisar las facturas", r.title)
+        assertEquals(LocalDate.of(2026, 7, 26), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun finSingularDeLaSemanaPasadaAnclaDomingoAnterior() {
+        val r = NaturalTaskParser.parse("revisar las facturas a fin de la semana pasada", now, zone)
+        assertEquals("revisar las facturas", r.title)
+        assertEquals(LocalDate.of(2026, 7, 26), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeLaSemanaAnteriorSinonimoAnclaDomingoAnterior() {
+        val r = NaturalTaskParser.parse("revisar las facturas a finales de la semana anterior", now, zone)
+        assertEquals("revisar las facturas", r.title)
+        assertEquals(LocalDate.of(2026, 7, 26), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
     // --- año pasado ---
 
     @Test fun finalesDelAnoPasadoAncla31DiciembreAnterior() {
