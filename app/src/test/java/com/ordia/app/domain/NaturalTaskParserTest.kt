@@ -9874,6 +9874,48 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // c.975 — Pin de cobertura (delta sobre c.672): el intensificador POST-puesto
+    // «este mes mismo» también debe limpiarse dentro de las CUATRO palabras de límite
+    // mensual (finales/mediados/principios/último día hábil) — c.672 pinó «a fin de
+    // este mes mismo» y la forma autónoma, pero no las demás. Sonda fuente real
+    // (/tmp/probe975) sobre HEAD: 4/4 ya resolvían (la cláusula (?:\s+mism[oa])? vive
+    // en las 4 regex); son pins, no fix. now = 2026-07-29 (miércoles): mediados de
+    // julio ya pasó → rueda a 2026-08-15; principios → 2026-08-01 (mismo criterio
+    // documentado en la sonda c.646).
+
+    @Test fun finalesDeEsteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta a finales de este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeEsteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta a mediados de este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeEsteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta a principios de este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaHabilDeEsteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta el último día hábil de este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mismoComoPronombreNoHijackedPorIntensificador() {
+        // Guard c.975: «mismo» como pronombre/determinante ordinario («el mismo
+        // médico») NO es intensificador de período — no debe consumirse ni alterar
+        // el título ni inventar una fecha (medido byte-idéntico en la sonda).
+        val result = NaturalTaskParser.parse("llamar al mismo médico de siempre", now, zone)
+        assertEquals("llamar al mismo médico de siempre", result.title)
+        assertNull(result.dueAt)
+    }
+
     // c.488: variantes "finales de la semana" / "al final de la semana" (sin "que viene")
     // antes caían a dueAt=null + frase íntegra como residuo en el título → vencimiento
     // olvidado (P1). Ahora resuelven al domingo de esta semana (próximo domingo).
