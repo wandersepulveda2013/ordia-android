@@ -1235,12 +1235,24 @@ object AssistantEngine {
         "cuales son las automatizaciones" to "automatizaciones",
         "que reglas tengo" to "automatizaciones",
         "cuales son mis reglas" to "automatizaciones",
-        "cuales son las reglas" to "automatizaciones"
+        "cuales son las reglas" to "automatizaciones",
+        // c.967: paridad de notas singular/interrogativa/imperativa (P2
+        // BACKLOG abierto desde c.963, sonda PRE 8/8 GAP). Las formas
+        // plurales cotidianas («mis notas», «todas las notas») ya rutean por
+        // la rama c.793 (NOTES_LISTING_FORMS, anterior en el despacho); aquí
+        // se cubren las formas que allí faltan. Las muletillas sin artículo
+        // («ensename mis notas», «quiero ver todas mis notas») rutean por la
+        // vía de tokens; las que llevan artículo («la nota», «muestrame las
+        // notas») necesitan forma explícita porque «el/la/las» no es ruido.
+        "nota" to "notas", "la nota" to "notas", "mi nota" to "notas",
+        "cuales son mis notas" to "notas", "cuales son las notas" to "notas",
+        "muestrame las notas" to "notas", "ensename las notas" to "notas"
     )
     private val ENTITY_LISTING_LABELS = mapOf(
         "habitos" to "los hábitos", "rutinas" to "las rutinas",
         "proyectos" to "los proyectos", "tareas" to "las tareas",
-        "automatizaciones" to "las automatizaciones"
+        "automatizaciones" to "las automatizaciones",
+        "notas" to "las notas"
     )
     // Tokens de familia listable tolerados por el calificador «activo» y las
     // muletillas interrogativas («qué», «tengo», «hay»): «habitos activos» o
@@ -1268,7 +1280,13 @@ object AssistantEngine {
         // calificador/muletillas — «automatizaciones activas», «que reglas
         // tengo»); «regla(s)» pliega a la misma familia (AUTOMATION_TERMS).
         "automatizacion" to "automatizaciones", "automatizaciones" to "automatizaciones",
-        "regla" to "automatizaciones", "reglas" to "automatizaciones"
+        "regla" to "automatizaciones", "reglas" to "automatizaciones",
+        // c.967: notas en la vía de tokens (muletillas sin artículo —
+        // «ensename mis notas», «quiero ver todas mis notas», «notas
+        // activas»). Anti-colisión: el contenido («notas de física») y la
+        // nota concreta («la nota de la reunión») dejan palabras fuera de
+        // ruido/calificador/token → no rutean al bundle.
+        "nota" to "notas", "notas" to "notas"
     )
     private fun entityListingPayload(query: String): String? {
         ENTITY_LISTING_FORMS[query.trim()]?.let { return it }

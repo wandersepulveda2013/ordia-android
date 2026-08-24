@@ -5755,6 +5755,95 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.CREATE_NOTE, answer.action)
     }
 
+    // c.967 — paridad de notas singular/interrogativa/imperativa (P2 BACKLOG
+    // abierto desde c.963, sonda PRE 8/8 GAP): «nota», «la nota», «mi nota»,
+    // «cuáles son mis notas», «enséñame mis notas», «muéstrame las notas»,
+    // «quiero ver todas mis notas» caían al menú genérico mientras
+    // hábitos/rutinas/proyectos/tareas/automatizaciones ya cubrían esas
+    // formas (c.795/c.798/c.966). Misma ruta honesta: OPEN_SEARCH «notas».
+    @Test fun notesListing_notaSingular_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("nota", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_laNota_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("la nota", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_miNota_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mi nota", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_interrogativeCualesSonMisNotas() {
+        val answer = AssistantEngine.answer("¿cuáles son mis notas?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_interrogativeCualesSonLasNotas() {
+        val answer = AssistantEngine.answer("¿cuáles son las notas?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_ensenameMisNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("enséñame mis notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_muestrameLasNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("muéstrame las notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_quieroVerTodasMisNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver todas mis notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_singularLabelMencionaFamilia() {
+        val answer = AssistantEngine.answer("la nota", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertTrue("la respuesta nombra la familia", answer.text.contains("las notas"))
+    }
+
+    @Test fun notesListing_guard_laNotaDeLaReunionNoRuteaAlListado() {
+        // «la nota de la reunión» pide UNA nota concreta, no el listado de la
+        // familia: nunca el payload canónico «notas».
+        val answer = AssistantEngine.answer("la nota de la reunión", emptyList(), emptyList(), emptyList())
+        assertFalse(
+            "no secuestra al listado canónico",
+            answer.action == AssistantAction.OPEN_SEARCH && answer.actionPayload == "notas"
+        )
+    }
+
+    @Test fun notesListing_guard_tomarNotaNoRuteaAlListado() {
+        // «tomar nota» es captura, no listado.
+        val answer = AssistantEngine.answer("tomar nota", emptyList(), emptyList(), emptyList())
+        assertFalse(
+            "no secuestra al listado canónico",
+            answer.action == AssistantAction.OPEN_SEARCH && answer.actionPayload == "notas"
+        )
+    }
+
+    @Test fun notesListing_guard_notasActivasDeFisicaKeepsContent() {
+        // Cualificador + contenido: sigue la ruta de contenido (c.794), nunca
+        // el payload canónico «notas».
+        val answer = AssistantEngine.answer("notas activas de física", emptyList(), emptyList(), emptyList())
+        assertFalse(
+            "no secuestra al listado canónico",
+            answer.action == AssistantAction.OPEN_SEARCH && answer.actionPayload == "notas"
+        )
+    }
+
     // c.795 — sonda de entidades: listados de hábitos/rutinas/proyectos. El
     // asistente no las recibe (igual que notas, c.793), así que la única ruta
     // honesta es OPEN_SEARCH; antes, «hábitos»/«mis rutinas»/«proyectos» caían
