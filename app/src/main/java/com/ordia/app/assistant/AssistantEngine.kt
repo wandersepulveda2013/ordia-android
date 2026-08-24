@@ -1105,10 +1105,16 @@ object AssistantEngine {
     // fuera. El contenido puede venir tras «:», tras «esto:», tras «de»
     // (hermano de «tomar nota de X» c.969) o directo; «esto» a secas sigue
     // siendo pelada (lección c.972).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?)\\b")
+    // c.976: dictado «escribe esto: …» / «guarda esto: …» (± «eso») — la lateral
+    // que c.974 dejó documentada FUERA (descubrimiento c.972, BACKLOG). EXIGE
+    // «esto/eso» como sujeto inequívoco de dictado: el verbo desnudo («escribe
+    // un correo a juan», «guarda el archivo», «escríbeme un poema») NUNCA es
+    // captura de nota (5/5 guards medidos en la sonda PRE 3/3 GAP).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|escribe\\s+es(?:t)?o|guarda\\s+es(?:t)?o)\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
     private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
+    private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|guarda)\\s+es(?:t)?o\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1118,6 +1124,7 @@ object AssistantEngine {
                 ?.takeUnless { it.equals("esto", ignoreCase = true) }
             ?: WRITE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
                 ?.takeUnless { it.equals("esto", ignoreCase = true) }
+            ?: DICTATE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
         return if (content.isNullOrEmpty()) {
             AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
         } else {
