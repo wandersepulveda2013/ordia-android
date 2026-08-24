@@ -1,3 +1,10 @@
+## Ciclo c.1002 (2026-08-24) — feat(assistant): «descarta/cancela la tarea <nombre>» → AssistantAction.CANCEL_TASK confirmable (NO destructiva: status=CANCELLED, tercer cierre honesto)
+- HEAD inicial: `6698b63` (c.1001 remoto), sync limpio `pull --ff-only`. NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7094)**, smoke 25/25.
+- Unidad (P1, descubrimiento continuo — nueva ronda de transiciones de estado tras cerrar la familia de acción sobre datos): «descarta/cancela la tarea <nombre>» (doctrina c.426: ni completar [falsearía logros] ni borrar [perdería el registro]) caía al menú genérico — PRE `/tmp/probe1002/DiscoveryProbe.kt`: 3/3 variantes al menú. Mentira por omisión: `vm.cancelTask` ya existía. Fix mínimo: rama `cancelCapture` hermana de `deleteCapture` — regex ancla ^ + «tarea» obligatoria + tokens ⊆ título SOLO pendientes (`!completed && !archived && status != CANCELLED`); única coincidencia → `AssistantAction.CANCEL_TASK` con id + botón «Descartar tarea» que CONFIRMA (`vm.cancelTask`); varias/pelada/negación/pasado sin acción.
+- TDD estricto: 15 tests nuevos `AssistantEngineCancelCaptureTest.kt` — RED real (enum sin CANCEL_TASK → compile fail; +constante → 7109 run, EXACTAMENTE 6 fallos; pelada y guards verdes desde RED; el test de varias se corrigió al contrato real medido: solo pendientes casan → fixture +1 pendiente «Enviar la factura») → GREEN **OK (7109 = 7094 + 15)**. Smoke 25/25. Sonda POST (misma DiscoveryProbe): 2/2 capturas con id correcto; infinitivo sobre archivada → guía honesta; negación NONE; 5/5 controles hermanos byte-idénticos. Sonda persistente: +5 pins → cerradas 13, laterales 0, inesperados 0.
+- Wiring lockstep `AssistantScreen.kt` (case CANCEL_TASK: `state::task` + `vm::cancelTask` + label) + string `assistant_action_cancel`. Determinista, cero random, cero IA fingida.
+- **Commits:** fix + docs-close (este). **HEAD final:** docs-close c.1002. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad:** laterales ABIERTAS medidas en la MISMA sonda (UNA por ciclo): «reabre/vuelve a abrir la tarea…» (reapertura de completada → NONE hoy), «marca <tarea> como importante» (robada por la consulta de importantes + sin capacidad confirmable de mutación de prioridad — requiere capacidad nueva en el VM antes de la captura); re-fetch OBLIGATORIO pre-push; colisión cycle-ID frecuente (hermano activo — numerar tras re-fetch).
 ## Ciclo c.1001 (2026-08-24) — feat(assistant): «borra/elimina/quita la tarea <nombre>» → AssistantAction.DELETE_TASK confirmable (DESTRUCTIVA, hermana de COMPLETE_TASK/POSTPONE_TASK)
 - HEAD inicial: `61544ad` (c.999 remoto), sync limpio `pull --ff-only`. NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7062)**, smoke 25/25.
 - Unidad (P1 BACKLOG ABIERTA desde c.997 — ÚLTIMA lateral de la familia de acción sobre datos, UNA por ciclo): «borra la tarea del informe» (la forma cotidiana de ELIMINAR por texto) caía al menú genérico (medido PRE c.997/c.1001: 5/5 variantes) — mentira por omisión: `vm.deleteTask` ya existía (6 pantallas). DESTRUCTIVA → doctrina anti-borrado-a-ciegas: NADA se borra en silencio (el botón confirma); varias coincidencias → lista honesta SIN acción; archivadas NUNCA ofrecidas; la palabra «tarea» obligatoria (paridad c.990) → «borra todo» NUNCA borrado masivo. Fix mínimo: rama `deleteCapture` hermana de `postponeCapture` — regex `^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\s+(?:la\s+)?tarea(?:\s|:|$)` + extractor; matching de tokens significativos ⊆ título plegado SOLO NO archivadas (completadas SÍ borrables); única coincidencia → NUEVO `AssistantAction.DELETE_TASK` con id en payload + botón «Eliminar tarea» que CONFIRMA (`vm.deleteTask`); ancla ^ disjunta negación («no borres…») y pasado («ya borré…»).
@@ -14675,14 +14682,14 @@ antes del "y", así que no casaba. Resultado:
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
 
-### Último ciclo: c.998 (2026-08-24)
-Lateral (a) de la familia de acción sobre datos CERRADA: «completé/
-terminé/acabé <tarea>» (pasado declarativo) → COMPLETE_TASK confirmable
-(hermano de c.997; reutiliza markDoneTokens + foldForSearch; ancla ^
-disjunta negación/presente/2ª persona; NADA se completa en silencio).
-PRE medido: 5/5 al menú genérico. Tests 11/11 (RED exacto 7 fallos;
-suite 7048 OK). Sonda POST 13/13; persistente: cerradas 13, laterales 0,
-inesperados 0 (+3 pins). Smoke 25/25. Laterales ABIERTAS restantes:
-«borra/elimina la tarea…» (P1 destructiva — diseño con confirmación
-explícita), «aplaza…» (P2 paridad con «pospón»). Próxima prioridad:
-UNA lateral por ciclo con medida previa.
+### Último ciclo: c.1002 (2026-08-24)
+Nueva ronda de transiciones de estado: «descarta/cancela la tarea <nombre>»
+(tercer cierre honesto c.426: ni completar ni borrar) → CANCEL_TASK
+confirmable (status=CANCELLED conserva registro; SOLO pendientes; NADA en
+silencio). PRE medido: 3/3 al menú genérico. Tests 15/15 (RED exacto 6
+fallos; suite 7109 OK). Sonda POST: capturas id correcto, controles
+byte-idénticos; persistente: cerradas 13, laterales 0 (+5 pins). Smoke
+25/25. Laterales ABIERTAS: «reabre la tarea…» (reapertura de completada),
+«marca <tarea> como importante» (requiere capacidad de mutación de
+prioridad en el VM antes de la captura). Próxima prioridad: UNA lateral
+por ciclo con medida previa.
