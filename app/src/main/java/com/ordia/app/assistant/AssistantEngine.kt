@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, REOPEN_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -93,6 +93,10 @@ object AssistantEngine {
         // (status=CANCELLED) y no cuenta como logro (capacidad real:
         // vm.cancelTask, c.426). El botón confirma.
         val cancelCapture = cancelCapture(clean, tasks)
+        // c.1003: captura «reabre/reactiva/desmarca la tarea …» (hermana de
+        // markDoneCapture: reabrir una completada por error; el botón
+        // confirma vía vm.toggleTask, capacidad real).
+        val reopenCapture = reopenCapture(clean, tasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -522,6 +526,10 @@ object AssistantEngine {
             // c.1002: «descarta/cancela la tarea …» con coincidencia única →
             // CANCEL_TASK (el botón confirma; NUNCA descarte en silencio).
             cancelCapture != null -> cancelCapture
+            // c.1003: «reabre/reactiva/desmarca la tarea …» con coincidencia
+            // única → REOPEN_TASK (el botón confirma; NADA se reabre en
+            // silencio). Después de deleteCapture: prefijos disjuntos.
+            reopenCapture != null -> reopenCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1446,6 +1454,60 @@ object AssistantEngine {
             else -> {
                 val task = matches.first()
                 AssistantAnswer("¿Marco «${task.title}» como completada?", AssistantAction.COMPLETE_TASK, task.id.toString(), listOf(task.id))
+            }
+        }
+    }
+
+    // c.1003: «reabre/reactiva/desmarca la tarea <nombre>» — hermana de c.997
+    // (reabrir una completada por error; la capacidad YA existía:
+    // vm.toggleTask sobre una completada la reabre, con reversión de la
+    // ocurrencia recurrente generada, c.260). PRE medido con la sonda
+    // efímera /tmp/probe1002/StateTransitionProbe.kt: las 6 variantes caían
+    // al menú genérico (mentira por omisión). Matching hermano de c.997
+    // (tokens significativos del contenido ⊆ tokens del título, mismas
+    // stopwords) pero sobre tareas COMPLETADAS no archivadas: una pendiente
+    // ya está abierta y una archivada nunca se reabre a ciegas. Cero → guía
+    // honesta; varias → lista honesta SIN acción; única → REOPEN_TASK con
+    // el id en payload y el botón confirma (NADA se reabre en silencio). El
+    // ancla ^ con imperativo/infinitivo hace disjuntas la negación («no
+    // reabras…»), el pasado («ya reabrí…») y la 2ª persona («¿reabriste…?»).
+    // NUNCA reapertura masiva: «reactiva todo» no coincide con ningún
+    // título → guía honesta. Cubre también la forma «marca(r) … como
+    // pendiente», espejo exacto de «marca como hecha …» (c.997), en posición
+    // prefija («marca como pendiente X») y sufija («marca X como pendiente»).
+    private val REOPEN_MARK_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente(?:\\s|:|$)")
+    private val REOPEN_MARK_WITH_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente\\s*:?\\s*([^:].*)$")
+    private val REOPEN_MARK_SUFFIX = Regex("(?i)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+pendiente\\s*[.!?]?$")
+    private val REOPEN_VERB_PREFIX = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s|:|$)")
+    private val REOPEN_VERB_WITH_CONTENT = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)\\s*:?\\s*([^:].*)$")
+
+    private fun reopenCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        val guided = AssistantAnswer("¿Qué tarea reabro? Escríbela tras «reabre …» — por ejemplo «reabre la tarea de la presentación» — y la preparo.")
+        val content = (REOPEN_MARK_WITH_CONTENT.matchEntire(trimmed)
+            ?: REOPEN_VERB_WITH_CONTENT.matchEntire(trimmed)
+            ?: REOPEN_MARK_SUFFIX.matchEntire(trimmed))?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
+        if (content.isNullOrEmpty()) {
+            return if (REOPEN_MARK_PREFIX.containsMatchIn(trimmed) || REOPEN_VERB_PREFIX.containsMatchIn(trimmed)) guided else null
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        if (wanted.isEmpty()) {
+            // Contenido de stopwords puros («reabre la tarea»): NUNCA reabrir
+            // a ciegas — guía honesta SIN acción (doctrina c.1000).
+            return guided
+        }
+        val matches = tasks.filter { task ->
+            task.completed && !task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea completada que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas completadas que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                AssistantAnswer("¿Reabro «${task.title}»? Volverá a pendientes.", AssistantAction.REOPEN_TASK, task.id.toString(), listOf(task.id))
             }
         }
     }

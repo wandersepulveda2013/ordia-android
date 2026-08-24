@@ -140,6 +140,11 @@ fun AssistantScreen(
                                     // (status=CANCELLED, conserva registro, no cuenta como
                                     // logro); payload = id candidata única; el botón confirma.
                                     AssistantAction.CANCEL_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::cancelTask)
+                                    // c.1003: «reabre/reactiva/desmarca la tarea …» — payload =
+                                    // id candidata única; el botón confirma. vm.toggleTask
+                                    // sobre una completada la reabre (revierte la ocurrencia
+                                    // recurrente generada, c.260).
+                                    AssistantAction.REOPEN_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::toggleTask)
                                     AssistantAction.OPEN_SEARCH -> onSearch(answer.actionPayload.substringAfter(' ', answer.actionPayload))
                                     AssistantAction.NONE -> Unit
                                 }
@@ -165,6 +170,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.POSTPONE_TASK -> stringResource(R.string.assistant_action_postpone)
     AssistantAction.CANCEL_TASK -> stringResource(R.string.assistant_action_cancel)
     AssistantAction.DELETE_TASK -> stringResource(R.string.assistant_action_delete)
+    AssistantAction.REOPEN_TASK -> stringResource(R.string.assistant_action_reopen)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
 }
