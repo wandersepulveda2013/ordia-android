@@ -210,4 +210,28 @@ class ContextIntentEnginePasearPerroFloorTest {
         assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
         assertEquals("Cortarle las uñas al gato", i.title)
     }
+
+    // ---- Pins disjuntos c.1020 (delta UNIÓN de la colisión convergente
+    // con el hermano — su producción c.1018 se conserva íntegra; estos 3
+    // pins no estaban cubiertos por sus 19 tests) ----
+
+    @Test
+    fun `captura con acuse coloquial vale`() {
+        val i = analyze("vale, pasear al perro esta noche")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Pasear al perro", i.title)
+    }
+
+    @Test
+    fun `duda con indicativo no captura`() {
+        assertNull(analyze("quizá pasear al perro esta tarde"))
+    }
+
+    @Test
+    fun `envolvente recuerdame gobierna TASK seam c613`() {
+        val i = analyze("recuérdame pasear al perro el lunes")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.TASK, i!!.kind)
+    }
 }

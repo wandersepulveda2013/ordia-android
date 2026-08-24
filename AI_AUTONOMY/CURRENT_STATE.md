@@ -14886,3 +14886,21 @@ lateral de TODA la familia de pisos, no de esta unidad). Fila DÉCIMA
 AGOTADA (S/a/b/c/d/e RESUELTAS): próxima auditoría de descubrimiento =
 clase UNDÉCIMA (nueva sonda persistida, convención c.822/c.1007).
 NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+
+### Último ciclo: c.1020 (2026-08-24)
+DELTA UNIÓN sobre c.1018 del hermano (colisión convergente: este run
+implementó en paralelo la MISMA candidata (e) «pasear al perro» como
+extensión in-situ del piso c.740 — funcionalmente equivalente a su piso
+nuevo `HOUSEHOLD_WALK_DOG_FLOOR`; comportamiento medido byte-equivalente
+con sonda PRE/POST propia: 6/6 HIT, 7/7 guards NULL, 4/4 regresiones HIT,
+envolvente TASK). Duplicado propio descartado NO-destructivo (stash drop,
+precedente c.1014); su producción conservada íntegra. Delta DISJUNTO
+unido: +3 pins en SU clase `ContextIntentEnginePasearPerroFloorTest.kt`
+(acuse coloquial «vale, pasear al perro esta noche» HIT; duda con
+indicativo «quizá pasear al perro esta tarde» NULL; envolvente
+«recuérdame pasear al perro el lunes» gobierna TASK seam c.613).
+Suite UNIÓN FINAL OK (7372 = 7369 + 3); smoke 25/25. Fila DÉCIMA AGOTADA
+(S/a/b/c/d/e). Próxima prioridad: auditoría de descubrimiento clase
+UNDÉCIMA (nueva sonda persistida `tools/probe/`, convención
+c.822/c.834/c.845/c.857/c.890/c.1007); laterales ABIERTAS registradas en
+BACKLOG. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
