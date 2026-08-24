@@ -16766,3 +16766,41 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commit fix: eb33b26. Docs-close con hash real: (ver siguiente línea del log).
 - Próxima prioridad: laterales (b) «avísame…» / «quiero que me
   recuerdes…» (recordatorio declarativo) o (d) «recuérdamelo» (deíctico).
+## c.994 — 2026-08-24 — fix(assistant): lateral (b1) «avísame…» recordatorio declarativo
+
+- HEAD inicial: 2f7c94c (c.993 docs-close). Base sin colisión (origin == local; re-fetch pre-commit confirma parent 2f7c94c).
+- Problema (PRE medido con sonda efímera /tmp/probe994/AvisameProbe.kt):
+  4/4 capturas «avísame mañana de llamar al banco» (± tilde, con «:»,
+  «avísame de pagar la luz») caían al menú genérico (action=NONE) —
+  mentira por omisión: el usuario pide que le avisen y el asistente
+  recita el menú. La capacidad de crear la tarea YA existía
+  (CREATE_TASK → vm.addSmartTask → NaturalTaskParser).
+- Causa raíz: ninguna rama reconoce el imperativo declarativo «avísame…»
+  (hermano de «recuérdame» c.986); además el temporal intercalado
+  («avísame MAÑANA DE llamar…») habría dejado residuo en el título si se
+  capturara crudo.
+- Fix mínimo: rama avisaMeCapture hermana de remindMeCapture (mismo
+  contrato). AVISA_ME_PREFIX (^av[íi]same, ± «:») + extractor
+  AVISA_ME_WITH_CONTENT con grupo temporal opcional (pasado mañana|
+  mañana|hoy) intercalado y despoje del «de» preposicional; el temporal
+  se REORDENA al final del payload («llamar al banco mañana») para que
+  NaturalTaskParser ancle la fecha con título limpio. Pelada → guía
+  honesta SIN acción (doctrina c.969). Anti-overreach: negación tras
+  «de» («avísame de no llamar…») → menú honesto; evento condicional
+  («avísame cuando llegue Ana») → menú honesto (no programable).
+- Tests: AssistantEngineAvisameCaptureTest.kt (10 tests: 4 capturas +
+  pelada + 3 guards + 2 regresiones hermanas c.986/c.993). RED exacto:
+  7006 run, EXACTAMENTE 5 fallos (4 capturas + pelada; guards y
+  regresiones verdes desde RED — medido; los asserts de payload usan
+  isEmpty() porque AssistantAnswer.actionPayload defaultea a ""). GREEN:
+  OK (7006 = 6996 + 10). Smoke 25/25.
+- Sonda persistente: lateral (b1) movida a CERRADAS (12), laterales 1
+  (resta (b2) «quiero que me recuerdes…»), guards +3 (pelada, negación
+  tras «de», evento «cuando»), inesperados 0, exit 0.
+- POST (sonda efímera): 4/4 capturas con payload limpio y temporal
+  reordenado; pelada → NONE guía; 3/3 guards NONE; controles
+  c.986/c.993 byte-idénticos.
+- NO VERIFICADO: gradle/lint/assemble/UI/Room (sin Android SDK).
+- Commit fix: 2fec59e. Docs-close con hash real: (ver siguiente línea del log).
+- Próxima prioridad: lateral (b2) «quiero que me recuerdes…»
+  (recordatorio envuelto) o (d) «recuérdamelo» (deíctico).
