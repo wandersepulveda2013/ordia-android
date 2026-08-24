@@ -17140,6 +17140,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: fix + docs-close (este). HEAD final: docs-close c.1023 (este commit — hash tras push). **Estado: VERIFIED (JVM). NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa): «a la primera hora llegó…» (artículo tras «a», pin byte-idéntico c.1016/c.1023), genitivos «desde/hasta/de ayer» narrativos (registrada c.957, medida c.1006). Limitación conservadora conocida (registrada, NO urgente): falsos infinitivos por terminación («ayer», «lugar») dejan narrativas ancladas. Re-fetch OBLIGATORIO pre-push (hermano muy activo — numerar ciclo tras re-fetch).
 
+## Ciclo c.1027 (2026-08-24) — integración NO-destructiva 2ª vuelta (rebase ×2 RUN_LOG) + verificación independiente UNIÓN final OK (7470)
+- Branch: openhands/autonomous-ordia. HEAD inicial: `9922a69f`. Re-fetch pre-push: el hermano publicó c.1026 suyo (sonda UNDÉCIMA `3bd3412f`, 30 casos end-to-end; docs-close `fde9cbfa`, su UNIÓN medida 7485) durante mi rebase.
+- Push rechazado → `pull --rebase` NO destructivo: 2 pasadas de conflictos SOLO en RUN_LOG tail. Resolución UNIÓN (`/tmp/union1026.py` + `/tmp/union1026b.py`): su entrada c.1026-sonda intacta, mi c.1023-H5 y mi c.1026 reaplicados; dedupe de línea duplicada. Cero pérdida; cero marcadores.
+- Rebase OK: `fde9cbfa` → `7e5630a2` (fix c.1023) → `5f5dcddf` (docs c.1023) → `f87c32cf` (docs c.1026) + docs-close c.1027 (este).
+- Verificación INDEPENDIENTE de la UNIÓN final en este entorno: `run_domain_tests.sh` → **OK (7470 = 7419 [SU medida c.1025] + 15 [SU c.1024 uñas genitivo] + 36 [mi c.1023 H5] — aritmética exacta; los 15 de SU c.1026 son sonda aislada, NO suman a la suite dominio)**; smoke 25/25; automation 9/9. Determinista (regex), cero random, cero IA fingida.
+- Lección: los conflictos UU en el tail de RUN_LOG se repiten en CADA vuelta cuando ambos agentes appends al mismo archivo; protocolo UNIÓN establecido (ambos lados, dedupe, nunca descartar) con helpers efímeros /tmp/unionNNNN.py.
+- Archivos: SOLO docs AI_AUTONOMY (cero producción).
+- Commits: `7e5630a2` + `5f5dcddf` + `f87c32cf` + docs-close c.1027 (este). HEAD final: este push.
+- Estado: VERIFIED (JVM, verificación de unión). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push).
+
 ## Ciclo c.1026 (2026-08-24) — integración NO-destructiva (rebase ×2 conflictos docs) + verificación independiente UNIÓN final OK (7470)
 - Branch: openhands/autonomous-ordia. HEAD inicial: `9922a69f` (mi UNIÓN c.1022, post rebase). Re-fetch pre-push: el hermano publicó c.1024 (contexto uñas genitivo `6cf6ce1d`+`baa79a19`+`8af00df1`, 7434) y c.1025 (docs doble colisión convergente `95496e61`, su medida de la UNIÓN: 7419) durante mi docs-close c.1023.
 - Push rechazado → `pull --rebase` no destructivo (protocolo): PASADA 1 (fix c.1023) conflictos UU en BACKLOG/CURRENT_STATE/RUN_LOG → UNIÓN preservando AMBOS lados (`/tmp/union1025.py`: mi fila lateral RESUELTO c.1023 reinsertada, dedupe fila assistant idéntica, heads hermano intactos); PASADA 2 (docs-close) conflictos UU en los 3 mismos → UNIÓN (`/tmp/union1025b.py`: heads hermano + mi entrada final c.1023-H5 reaplicada + mi fragmento RUN_LOG c.1023). Cero pérdida de trabajo de ningún lado; cero marcadores.
