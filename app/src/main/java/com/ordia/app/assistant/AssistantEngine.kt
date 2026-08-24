@@ -1110,11 +1110,16 @@ object AssistantEngine {
     // «esto/eso» como sujeto inequívoco de dictado: el verbo desnudo («escribe
     // un correo a juan», «guarda el archivo», «escríbeme un poema») NUNCA es
     // captura de nota (5/5 guards medidos en la sonda PRE 3/3 GAP).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|escribe\\s+es(?:t)?o|guarda\\s+es(?:t)?o)\\b")
+    // c.977: enclítico «escríbeme/escribeme + esto/eso» (lateral que el propio
+    // c.976 dejó documentada FUERA — sonda PRE 5/5 GAP al menú). Mismo guard:
+    // «esto/eso» OBLIGATORIO, así «escríbeme un poema»/«escríbeme mañana»
+    // nunca se secuestran; el ancla ^ mantiene «quiero que me escribas esto»
+    // fuera.
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda)\\s+es(?:t)?o)\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
     private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
-    private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|guarda)\\s+es(?:t)?o\\s*:\\s*(.+)$")
+    private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda)\\s+es(?:t)?o\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
