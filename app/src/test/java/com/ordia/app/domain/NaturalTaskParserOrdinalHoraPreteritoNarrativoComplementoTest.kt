@@ -125,8 +125,14 @@ class NaturalTaskParserOrdinalHoraPreteritoNarrativoComplementoTest {
     @Test fun guardQuedeConAnaEsCita() =
         assertAncla("quedé con Ana a primera hora", dueAt(domingo, nueve), "quedé con Ana")
 
+    // Convergencia UNIÓN c.1028: mi guard original pedía «ya» consumido del
+    // título («quedé con Ana»); la guard c.1027 del hermano (yaPreteriteNarrativeSuffix)
+    // suprime la ancla «ya» como inmediatez pero CONSERVA el «ya» en el título
+    // (contenido del usuario, doctrina documentada en su KDoc). Re-pin a la
+    // conducta de la UNIÓN (precedente c.1002/c.1003: la versión del hermano
+    // gobierna en convergencia; mi pin era sólo cobertura).
     @Test fun guardYaQuedeConAnaEsCita() =
-        assertAncla("ya quedé con Ana a primera hora", dueAt(domingo, nueve), "quedé con Ana")
+        assertAncla("ya quedé con Ana a primera hora", dueAt(domingo, nueve), "ya quedé con Ana")
 
     @Test fun guardQuedeEnLlamarAlBanco() =
         assertAncla("quedé en llamar al banco a primera hora", dueAt(domingo, nueve), "quedé en llamar al banco")

@@ -2,7 +2,8 @@
 - HEAD inicial: `9922a69f` (mi UNIÓN c.1022). Re-fetch pre-push: el hermano publicó c.1026 suyo (sonda UNDÉCIMA persistida 30 casos `3bd3412f` + docs-close `fde9cbfa`, su UNIÓN medida: 7485 = 7419 + 15 + 36 + 15 sonda) durante mi rebase c.1023→c.1026.
 - Push rechazado → `pull --rebase` NO destructivo: 2 pasadas de conflictos SOLO en RUN_LOG (tail docs). Resolución UNIÓN (`/tmp/union1026.py` + `/tmp/union1026b.py`): su entrada c.1026-sonda intacta, mi c.1023-H5 y mi c.1026 reaplicados; dedupe de línea duplicada. Cero pérdida de ningún lado; cero marcadores.
 - Rebase OK: `fde9cbfa` → `7e5630a2` (fix c.1023) → `5f5dcddf` (docs c.1023) → `f87c32cf` (docs c.1026) + docs-close c.1027 (este).
-- Verificación INDEPENDIENTE de la UNIÓN final en este entorno: `run_domain_tests.sh` → **OK (7470 = 7419 [SU medida c.1025] + 15 [SU c.1024] + 36 [mi c.1023] — aritmética exacta; los 15 de SU c.1026 son sonda aislada, NO suman a la suite dominio)**; smoke 25/25; automation 9/9. Determinista (regex), cero random.
+- Verificación INDEPENDIENTE de la UNIÓN final en este entorno: `run_domain_tests.sh` → **OK (7489 = 7419 [SU medida c.1025] + 15 [SU c.1024] + 36 [mi c.1023] + 20 [SU c.1027 «ya <pretérito>»] — aritmética exacta; los 15 de SU c.1026 son sonda aislada, NO suman a la suite dominio)**; smoke 25/25; automation 9/9. Determinista (regex), cero random.
+- Re-pin convergente c.1028: mi guard «ya quedé con Ana…» pedía título «quedé con Ana»; la guard c.1027 del hermano suprime la ancla «ya» pero CONSERVA el «ya» en el título (contenido del usuario, su KDoc). Re-pin a la UNIÓN (precedente c.1002/c.1003): título «ya quedé con Ana», ancla «a primera hora» intacta. 1 caso.
 - Archivos: SOLO docs AI_AUTONOMY (cero producción).
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push).
