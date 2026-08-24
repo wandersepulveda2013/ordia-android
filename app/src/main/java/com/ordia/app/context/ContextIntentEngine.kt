@@ -576,7 +576,8 @@ object ContextIntentEngine {
     // [ContextIntentKind.ERRAND] (lección c.751) + plantilla de título en
     // [extractTitle] (lección c.616, pronombre conservado, doctrina
     // c.653). Acotado deliberado (una forma por ciclo): plural «los
-    // pelos» y objeto «cabello» quedan FUERA — candidatas documentadas.
+    // pelos» y objeto «cabello» quedan FUERA — candidatas documentadas
+    // (dativo resuelto c.1006; «cabello» resuelto c.1013).
     // c.1006: el enclítico DATIVO «le/les» («cortarle el pelo al niño»
     // — la peluquería del hijo, recado familiar cotidiano) se une al
     // grupo (precedente dativo «llevarle/devolverle» c.854/c.855 y
@@ -587,8 +588,17 @@ object ContextIntentEngine {
     // en [imperativeIsNegated] y la plantilla de título en
     // [extractTitle] (lección c.616); la keyword-OBJETO «pelo» ya
     // existía (c.842), cero cambios en `ContextIntent.kt`.
+    // c.1013: el objeto sinónimo «cabello» («cortarme el cabello el
+    // sábado» — la forma mayoritaria en español latinoamericano) se
+    // une al ancla (candidata documentada c.842, UNA por ciclo); NULL
+    // PRE medido con sonda efímera `/tmp/probe1007/Probe.kt` (6/6
+    // formas NULL — ni siquiera llegaban al análisis: «cabello» no
+    // era keyword). Lockstep CUATRO puntos: piso + cláusula de
+    // negación + plantilla de título + keyword-OBJETO «cabello» en
+    // `ContextIntent.kt` (monosémica, 0.12 sola bajo el umbral).
+    // Acotado deliberado: plural «los pelos» queda FUERA.
     private val ERRAND_HAIRCUT_FLOOR =
-        Regex("""\b(?<!no )cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
+        Regex("""\b(?<!no )cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:pelo|cabello)\b""")
     // Piso analítica de sangre acotado al objeto (c.862, candidata 4/7 de
     // la sonda persistida `EighthClassAdminProbe.kt` c.857 — OCTAVA clase,
     // gestiones de adulto — salud cotidiana; sonda PRE
@@ -2920,8 +2930,9 @@ object ContextIntentEngine {
         // piso (cuyo lookbehind sí la bloquea), así la negación se bloquea
         // también aquí (cinturón y tirantes, precedente c.829).
         // c.1006: dativo «le/les» en lockstep con [ERRAND_HAIRCUT_FLOOR].
+        // c.1013: objeto «cabello» en lockstep con [ERRAND_HAIRCUT_FLOOR].
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""").containsMatchIn(lower)
+            Regex("""\bno\s+cortar(?:me|te|se|nos|le|les)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:pelo|cabello)\b""").containsMatchIn(lower)
         ) return true
         // "llevarle/devolverle <objeto>" (ERRAND, piso dativo enclítico
         // c.854): la keyword-verbo-enclítico "llevarle" (lockstep c.854,
@@ -4143,7 +4154,7 @@ object ContextIntentEngine {
                     return "${capitalizeFirst(matchPonerleVacuna.groupValues[1])} ${matchPonerleVacuna.groupValues[2]}"
                 }
                 // Piso DATIVO "darle la(s) pastilla(s) al perro/gato"
-                // (c.1012): titular la forma completa, pronombre dativo
+                // (c.1013): titular la forma completa, pronombre dativo
                 // conservado (doctrina c.653; hermano del piso c.1011);
                 // el objeto mascota es el ANCLA (no se despoja) y la cola
                 // temporal la depura [sanitizeTitle].
@@ -4286,9 +4297,10 @@ object ContextIntentEngine {
                 // ("…el sábado"/"…esta tarde"). c.1006: dativo «le/les»
                 // en lockstep con [ERRAND_HAIRCUT_FLOOR] («Cortarle el
                 // pelo al niño» — el destinatario es contenido, no
-                // residuo temporal, y no se despoja).
+                // residuo temporal, y no se despoja). c.1013: objeto
+                // «cabello» en lockstep con [ERRAND_HAIRCUT_FLOOR].
                 val matchHaircut = Regex(
-                    """\b(?<!no )(cortar(?:me|te|se|nos|le|les)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b.*)""",
+                    """\b(?<!no )(cortar(?:me|te|se|nos|le|les)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+)?(?:pelo|cabello)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchHaircut != null) {

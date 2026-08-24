@@ -301,6 +301,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // largo" (declarativo) sigue descartado; con bono temporal
         // 0.22 < 0.45.
         "pelo",
+        // c.1013: keyword-OBJETO "cabello" (lockstep con el piso
+        // acotado `ERRAND_HAIRCUT_FLOOR`, sinónimo mayoritario en
+        // español latinoamericano). Monosémica (el cabello es siempre
+        // el de la cabeza). 0.12 sola queda bajo el umbral: "el
+        // cabello está largo" sigue descartado; con bono temporal
+        // 0.22 < 0.45 (misma aritmética que "pelo" c.842).
+        "cabello",
         // c.831: keyword-VERBO "repostar" (lockstep keyword↔piso
         // `ERRAND_VERBS` posición libre, lección c.639/c.751). Monosémico
         // (proveer de combustible), así keyword verbo — a diferencia del
