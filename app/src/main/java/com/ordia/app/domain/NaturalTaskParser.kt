@@ -4769,14 +4769,24 @@ object NaturalTaskParser {
         // de su propio match («las primeras horas de la mañana son las
         // mejores»), la parte del día interior NO es ancla independiente.
         val ordinalNarrativeRanges = ordinalHoraNarrativeRanges(working)
-        // c.954: la parte del día INTERCALADA de una narrativa en pretérito
-        // c.950 («el lunes en la mañana llegó el paquete») tampoco es ancla:
-        // pertenece al enunciado narrativo.
+        // c.954 (remoto): la parte del día INTERCALADA de una narrativa en
+        // pretérito c.950 («el lunes en la mañana llegó el paquete») tampoco
+        // es ancla: pertenece al enunciado narrativo — guard evaluado ANTES.
         val weekdayPreteriteNarrativeIntercalatedRanges =
             weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(working)
-        val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
+        val standalonePartOfDayOccurrence = standalonePartOfDayPattern.find(working)
             ?.takeUnless { sm -> ordinalNarrativeRanges.any { it.containsRange(sm.range) } }
             ?.takeUnless { sm -> weekdayPreteriteNarrativeIntercalatedRanges.any { it.containsRange(sm.range) } }
+        // c.955: «hoy/ayer» + conector + parte del día + predicado en pretérito
+        // («ayer en la mañana llegó el paquete») ES cadena narrativa, hermano
+        // de c.950 weekday: la decisión se toma sobre el texto original y el
+        // flag se propaga a los borradores del título para que fecha y título
+        // nunca diverjan. El guard remoto c.954 va ANTES: el weekday con
+        // parte del día intercalada ya no llega aquí.
+        val dayPreteriteNarrative = standalonePartOfDayOccurrence != null &&
+            dayPreteriteNarrativeOccurrence(working, standalonePartOfDayOccurrence)
+        val standalonePartOfDayMatch = standalonePartOfDayOccurrence
+            ?.takeUnless { dayPreteriteNarrative }
         val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
             (it.groupValues[1].ifBlank { it.groupValues[2] }.ifBlank { it.groupValues[3] }).lowercase().ifEmpty { null }
         }
@@ -4840,7 +4850,11 @@ object NaturalTaskParser {
             // Se mantiene en el pasado (honesto: la tarea es vencida, aparece en What Now).
             // "antier" = variante coloquial hispanoamericana de "anteayer".
             Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
-            Regex("""(?i)\bayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(1)
+            // c.954: si «hoy/ayer» introduce una cadena narrativa en pretérito
+            // con parte del día («ayer en la mañana llegó el paquete»), no hay
+            // ancla de fecha: la narrativa queda sin dueAt y el título íntegro.
+            Regex("""(?i)\bayer\b""").containsMatchIn(working) && !dayPreteriteNarrative ->
+                base.toLocalDate().minusDays(1)
             // "antepasado mañana" = dentro de 3 días (mañana+2). Debe ir ANTES que
             // "pasado mañana" y que "mañana" suelto: la palabra "mañana" dentro de la
             // frase casaba con mananaAsDate → +1 (fecha errónea) y "antepasado" quedaba
@@ -4866,7 +4880,7 @@ object NaturalTaskParser {
             // la forma idiomática post-puesta "este mismo día" debe agendar HOY; antes
             // quedaba dueAt=null con el residuo íntegro en el título (P1: olvidada).
             Regex("""(?i)\beste\s+(?:mismo\s+)?d[ií]a\b""").containsMatchIn(working) -> base.toLocalDate()
-            Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            Regex("""(?i)\bhoy\b""").containsMatchIn(working) && !dayPreteriteNarrative -> base.toLocalDate()
             // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes
             // del mes que viene": ocurrencia ORDINAL de ese weekday en el mes (del mes = mes
             // actual, sin roll; del mes que viene/próximo/entrante = mes siguiente; de <mes> =
@@ -5632,7 +5646,10 @@ object NaturalTaskParser {
             // c.932: borrado por rangos — la parte del día GOBERNADA por un
             // ordinal narrativo (H3, «las primeras horas de la mañana son las
             // mejores») se conserva íntegra; ver eraseStandalonePartOfDayToken.
-            .let { value -> eraseStandalonePartOfDayToken(value) }
+            // c.954: borrado por rangos con flag de narrativa en pretérito —
+            // la parte del día de «hoy/ayer en la mañana llegó…» se conserva
+            // íntegra cuando la fecha no la ancló; ver eraseRelativeDayToken.
+            .let { value -> eraseStandalonePartOfDayToken(value, dayPreteriteNarrative) }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             // c.930: borrado por rangos con guard anti-robo narrativo — las
             // apariciones de ordinal que son CONTENIDO («la primera hora de
@@ -5690,12 +5707,18 @@ object NaturalTaskParser {
             // suelta dejaba el conector como residuo en el título ("llamar de", "reunión desde"
             // en vez de "llamar"/"reunión") — contenido capturado degradado (P1). Se consume el
             // conector junto con el día relativo. El \b impide coincidir dentro de palabras como "desde"→ no aplica.
-            .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
+            // c.954: borrado por rangos con flag de narrativa en pretérito —
+            // el «hoy/ayer» cabeza de «hoy/ayer en la mañana llegó…» se
+            // conserva íntegro cuando la fecha no la ancló; ver
+            // [eraseRelativeDayToken].
+            .let { value -> eraseRelativeDayToken(value, dayPreteriteNarrative) }
             // c.927: el «mañana» suelto se borra con guard anti-robo — las apariciones
             // que son CONTENIDO ("la mañana del accidente", "esa misma mañana") se
             // conservan íntegras (ver [mananaOccurrenceIsContent]); el resto se borra
             // con su conector "de/del/desde" como hacía la alternativa de arriba.
-            .let { value -> eraseMananaDateToken(value) }
+            // c.954: con flag — la «mañana» de la parte del día narrativa en
+            // pretérito («hoy en la mañana llegó…») se conserva íntegra.
+            .let { value -> eraseMananaDateToken(value, dayPreteriteNarrative) }
             // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
             // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
             // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
@@ -7680,14 +7703,22 @@ object NaturalTaskParser {
      * ([mananaOccurrenceIsContent]). Opera por rangos (no replace global) para no
      * tocar las apariciones protegidas.
      */
-    private fun eraseMananaDateToken(title: String): String {
+    private fun eraseMananaDateToken(title: String, forceDayPreteriteNarrative: Boolean = false): String {
         val token = Regex("""(?i)\bma[nñ]ana\b""")
         val connector = Regex("""(?i)\b(?:de|del|desde)\s+$""")
         var result = title
         var idx = 0
         while (true) {
             val m = token.find(result, idx) ?: return result
-            if (mananaOccurrenceIsContent(result, m.range)) {
+            // c.954: el «mañana» que pertenece a la parte del día de una cadena
+            // narrativa «hoy/ayer (en|por|…) la mañana …llegó…» se conserva
+            // íntegro cuando la fecha no la ancló (decisión tomada en [parse];
+            // la cubierta de rangos se recalcula en cada iteración).
+            val protectedStandalone = forceDayPreteriteNarrative &&
+                standalonePartOfDayPattern.findAll(result)
+                    .firstOrNull { m.range.first in it.range }
+                    ?.let { dayPreteriteNarrativeOccurrence(result, it) } == true
+            if (mananaOccurrenceIsContent(result, m.range) || protectedStandalone) {
                 idx = m.range.last + 1
                 continue
             }
@@ -8255,17 +8286,24 @@ object NaturalTaskParser {
      * pertenece al sujeto narrativo, no es ancla. Opera por rangos (no replace
      * global) para no tocar las apariciones protegidas, como
      * [eraseOrdinalHoraToken]/[eraseMananaDateToken].
+     * c.954: conserva igualmente la parte del día de una cadena narrativa en
+     * pretérito «hoy/ayer (en|por|…) la <parte del día> …llegó…», SÓLO cuando
+     * [forceDayPreteriteNarrative] lo indica: la decisión se tomó en [parse]
+     * sobre el texto original, como el flag c.950 de [eraseWeekdayToken].
      */
-    private fun eraseStandalonePartOfDayToken(title: String): String {
+    private fun eraseStandalonePartOfDayToken(
+        title: String,
+        forceDayPreteriteNarrative: Boolean = false
+    ): String {
         var result = title
         var idx = 0
         while (true) {
             val m = standalonePartOfDayPattern.find(result, idx) ?: return result
-            // c.954: la parte del día INTERCALADA de una narrativa en
-            // pretérito c.950 («el lunes en la mañana llegó el paquete») se
-            // conserva íntegra, simétrico al guard ordinal c.932.
+            // c.954 (remoto) + c.955 (narrativa hoy/ayer día-parte en
+            // pretérito): ambas protecciones conmutan, como el guard ordinal.
             if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) } ||
-                weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(result).any { it.containsRange(m.range) }
+                weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(result).any { it.containsRange(m.range) } ||
+                (forceDayPreteriteNarrative && dayPreteriteNarrativeOccurrence(result, m))
             ) {
                 idx = m.range.last + 1
                 continue
@@ -8273,6 +8311,46 @@ object NaturalTaskParser {
             result = result.removeRange(m.range.first, m.range.last + 1)
             idx = m.range.first
         }
+    }
+
+    /**
+     * c.954: borra del título los días relativos con calificador opcional
+     * («de/del/desde hoy», «ayer», «pasado mañana»…) y conserva íntegro el
+     * «hoy/ayer» que INTRODUCE una cadena narrativa en pretérito con parte del
+     * día («hoy en la mañana llegó el paquete»), SÓLO cuando
+     * [forceDayPreteriteNarrative] lo indica (decisión tomada en [parse] sobre
+     * el texto original). Opera por rangos como [eraseWeekdayToken] para que
+     * fecha y título nunca diverjan.
+     */
+    private fun eraseRelativeDayToken(
+        title: String,
+        forceDayPreteriteNarrative: Boolean = false
+    ): String {
+        var result = title
+        var idx = 0
+        while (true) {
+            val m = relativeDayErasePattern.find(result, idx) ?: return result
+            if (forceDayPreteriteNarrative && dayPreteriteNarrativeGuard(result, m)) {
+                idx = m.range.last + 1
+                continue
+            }
+            result = result.removeRange(m.range.first, m.range.last + 1)
+            idx = m.range.first
+        }
+    }
+
+    private val relativeDayErasePattern = Regex(
+        """(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""
+    )
+
+    // c.954: para el borrado genérico de días relativos, ¿es esta aparición de
+    // «hoy/ayer» la cabeza protegida de una cadena narrativa en pretérito con
+    // parte del día?
+    private fun dayPreteriteNarrativeGuard(text: String, match: MatchResult): Boolean {
+        val mv = match.value.trim().lowercase()
+        if (mv != "hoy" && mv != "ayer") return false
+        val sm = standalonePartOfDayPattern.find(text, match.range.first) ?: return false
+        return dayPreteriteNarrativeOccurrence(text, sm)
     }
 
     /**
@@ -8440,6 +8518,38 @@ object NaturalTaskParser {
             }
         }
         return ranges
+    }
+
+    /**
+     * c.954: ¿es esta aparición de parte del día suelta ([standalonePartOfDayPattern])
+     * la cabeza de una CADENA NARRATIVA en pretérito («hoy en la mañana llegó el
+     * paquete», «ayer por la tarde cerró el banco») y no un ancla de hora? Sólo
+     * con evidencia gramatical inequívoca y simétrica a
+     * [weekdayOccurrenceIsPreteriteNarrative]:
+     *  (N1) el prefijo del match es EXACTAMENTE «hoy» o «ayer» (la cadena abre
+     *       con el día; «llamar hoy en la mañana» o cualquier prefijo de
+     *       comando quedan FUERA: conservan su ancla);
+     *  (N2) SIN modificador de dirección futura en el propio match («la mañana
+     *       siguiente») ni calificador de día explícito («la tarde de hoy»):
+     *       ambas convierten la frase en ancla real y ganan;
+     *  (N3) el predicado abre con pretérito inequívoco
+     *       ([weekdayPreteriteNarrativeSuffix]): un encargo real jamás empieza
+     *       en pretérito (presente/comando/fragmento siguen ancla).
+     * Antes, la hora canónica fabricaba un compromiso (hoy a las 09:00 siendo
+     * ya mediodía = falso vencido) y el título quedaba mutilado (doble daño).
+     * Formas ambiguas (1ª plural «salimos») quedan FUERA como en c.950.
+     * Usada por [parse] (fecha), [eraseStandalonePartOfDayToken] y
+     * [eraseRelativeDayToken] (título) para que nunca diverjan.
+     */
+    private fun dayPreteriteNarrativeOccurrence(text: String, match: MatchResult): Boolean {
+        val mv = match.value.lowercase()
+        if (mv.contains("siguiente")) return false
+        if (Regex("""(?i)\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier)\b""")
+                .containsMatchIn(mv)) return false
+        val prefix = text.substring(0, match.range.first).trim().lowercase()
+        if (prefix != "hoy" && prefix != "ayer") return false
+        val suffix = text.substring(match.range.last + 1)
+        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
     }
 
     private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
