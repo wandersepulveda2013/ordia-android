@@ -135,11 +135,12 @@ class NaturalTaskParserH2SinDeterminanteNarrativoTest {
             LocalDate.of(2026, 8, 23), 9, "en llamé al banco"
         )
 
-    @Test fun primeraHoraDeLaMananaLlameAlBanco_h3BareGenitivoAnclaPin() =
-        assertAnchor(
-            "primera hora de la mañana llamé al banco",
-            LocalDate.of(2026, 8, 23), 9, "llamé al banco"
-        )
+    // c.958: H3-bare con pretérito inequívoco resuelta — el pin de c.956 se
+    // re-pinnó de ancla a narrativa (lateral hermana, cubierta con test propio
+    // en NaturalTaskParserH3SinDeterminanteNarrativoTest). El pin original
+    // era legítimo: bivalente con genitivo-ancla, resuelto sólo con pretérito.
+    @Test fun primeraHoraDeLaMananaLlameAlBanco_h3BareRePinnadaAnarrativaC958() =
+        assertNarrativeIntact("primera hora de la mañana llamé al banco")
 
     @Test fun primeraHoraDelLunesMeQuedeDormido_weekdayBareBivalentePin() =
         assertAnchor(

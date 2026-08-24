@@ -8169,10 +8169,29 @@ object NaturalTaskParser {
             // y c.944 («una…» sin «en»); misma evidencia de sujeto narrativo
             // (lateral medida FUERA en c.945, doctrina simétrica a c.944).
             val prefixH3 = text.substring(0, match.range.first)
+            // c.958: también el prefijo «en blanco» (aparición al inicio del
+            // texto, sin determinante) es evidencia para H3 CUANDO el predicado
+            // abre con pretérito inequívoco ([weekdayPreteriteNarrativeSuffix]),
+            // módulo un weekday genitivo DIRECTO opcional
+            // ([ordinalHoraNarrativeWeekdayGenitive]) — lateral medida FUERA en
+            // c.952…c.956 (sonda /tmp/probe957/PreProbe.kt: 6/6 capturas con
+            // doble daño P1, 4/4 guards ancla correctos, 2/2 pines FUERA). Sin
+            // pretérito el fragmento nominal con genitivo-ancla es bivalente y
+            // sigue la doctrina ancla vigente (pin conservador). La supresión
+            // de la parte-del-día gobernada y del weekday genitivo fluye de
+            // [ordinalHoraNarrativeRanges]/[ordinalHoraNarrativeWeekdayRanges],
+            // hermano de los flujos de c.932/c.936.
+            val barePreterite = if (prefixH3.isBlank()) {
+                val suffixH3 = text.substring(match.range.last + 1)
+                val wg = ordinalHoraNarrativeWeekdayGenitive.find(suffixH3)
+                val predSuffix = if (wg != null) suffixH3.substring(wg.range.last + 1) else suffixH3
+                weekdayPreteriteNarrativeSuffix.containsMatchIn(predSuffix)
+            } else false
             if (!ordinalHoraNarrativeDeterminer.containsMatchIn(prefixH3) &&
                 !ordinalHoraNarrativeOpinionPrefix.containsMatchIn(prefixH3) &&
                 !ordinalHoraNarrativeIndefinitePrefix.containsMatchIn(prefixH3) &&
-                !ordinalHoraNarrativeEnIndefinitePrefix.containsMatchIn(prefixH3)
+                !ordinalHoraNarrativeEnIndefinitePrefix.containsMatchIn(prefixH3) &&
+                !barePreterite
             ) return false
             if (text.substring(match.range.last + 1).isBlank()) return false
             return true
@@ -8218,9 +8237,10 @@ object NaturalTaskParser {
             // hora de clase me quedé dormido») — lateral medida FUERA en
             // c.952 (sonda /tmp/probe954/ProbePreFix.kt: 5/5 candidatas con
             // doble daño P1, 4/4 guards ancla correctos, 4/4 pines FUERA).
-            // Laterales FUERA (pins byte-idénticos): H3 sin determinante
-            // («primera/en primera hora de la mañana…») y weekday-bare
-            // («primera hora del lunes…») — genitivos-ancla bivalentes.
+            // Laterales FUERA (pins byte-idénticos): H3 «en» sin determinante
+            // («en primera hora de la mañana…») y weekday-bare («primera hora
+            // del lunes…») — genitivos-ancla bivalentes. c.958: H3 con prefijo
+            // en blanco + pretérito inequívoco ya ES contenido (rama H3).
             if (articleBefore || indefiniteBefore || enIndefiniteBefore || enPrefixBefore || bareBefore) return true
         }
         // c.939 (H1-artículo): artículo AL INICIO del texto + weekday genitivo
