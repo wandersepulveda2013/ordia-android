@@ -1,3 +1,9 @@
+## Ciclo c.998 (2026-08-24) — feat(assistant): «completé/terminé/acabé <tarea>» (pasado declarativo) → AssistantAction.COMPLETE_TASK confirmable (hermano de c.997)
+- HEAD inicial: `d243d2e` (c.997 docs-close, push propio confirmado `e927098..d243d2e`), sync limpio `pull --ff-only`, re-fetch pre-commit sin avance del hermano. NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7037)**, smoke 25/25.
+- Unidad (P2 BACKLOG ABIERTA c.997, lateral (a) de la familia de acción sobre datos — UNA por ciclo): «completé el informe» / «terminé la presentación» / «ya completé la compra del súper» (declarar algo ya hecho = la forma natural de CERRAR tareas tras hacerlas) caía al menú genérico — 5/5 medido PRE con sonda efímera `/tmp/probe998/CompletePastProbe.kt`. Fix mínimo (cero ramas nuevas de matching): `COMPLETE_PAST_PREFIX`/`COMPLETE_PAST_WITH_CONTENT` hermanas de las regex c.997, reutilizando `markDoneTokens`+`foldForSearch`+respuestas c.997; despoja «ya» enfático y conector «de» («terminé de …»); pelada → guía honesta («¿Qué tarea completaste? …») SIN acción; ancla ^ en pretérito 1ª persona disjunta negación («no completé…»), presente («casi termino…») y 2ª persona («¿completaste…?»). NADA se completa en silencio: el botón «Marcar completada» (string c.997) confirma.
+- TDD estricto: 11 tests nuevos `AssistantEngineCompletePastCaptureTest.kt` — RED exacto (7048 run, EXACTAMENTE 7 fallos = 5 capturas + pelada + guía-sin-coincidencia; 3 guards + controles verdes desde RED) → GREEN **OK (7048 = 7037 + 11)**. Smoke 25/25. Sonda POST `/tmp/probe998/PostProbe.kt`: **13/13 POST-OK**. Sonda persistente: +3 pins guards; POST cerradas 13, laterales 0, inesperados 0, exit 0. Determinista (regex + tokens), cero random, cero IA fingida, cero UI nueva.
+- **Commits:** `df221e7` (fix) + docs-close (ver hash en RUN_LOG). **HEAD final:** docs-close c.998. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+
 ## Ciclo c.997 (2026-08-24) — feat(assistant): «marca como hecha/completada <tarea>» → AssistantAction.COMPLETE_TASK confirmable (primera rama de ACCIÓN SOBRE DATOS del asistente) vía sonda DiscoveryProbe
 - HEAD inicial: `e927098` (c.996 docs-close), sync limpio `pull --ff-only` (árbol limpio, HEAD==origin==`e927098` — NO STALE_RUN; re-fetch pre-commit sin avance del hermano). NO force, NO reset --hard, NO clean destructivo, NO `main`. Toolchain heredada /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline **OK (7025)**, smoke 25/25. [La fase RED/wiring se inició en la sesión previa sobre base anterior; la verificación FINAL completa se rehízo sobre `e927098`.]
 - Unidad (P1, descubrimiento continuo tras cerrar la familia de CREACIÓN en c.996 — la sonda persistente quedó con CERO laterales): nueva ronda con sonda efímera `/tmp/probe997/DiscoveryProbe.kt` (motor real, fixture con tarea completada + archivada + pendientes). PRE medido: 5/6 candidatas de ACCIÓN al menú genérico (action=NONE) — mentira por omisión: la capacidad de completar YA existía (`vm.toggleTask`) pero el asistente no la ofrecía; «pospón …» YA funcionaba (rama existente, paridad «aplaza» queda P2). FIX mínimo: rama `markDoneCapture` hermana de `remindMeCapture` (regex `^m[áa]rca(?:r)?(?:la|lo)?\s+como\s+(?:hech[ao]|completad[ao]|terminad[ao])` + extractor `([^:].*)`; matching de tokens significativos del contenido ⊆ tokens del título plegado con `foldForSearch`, SOLO sobre tareas PENDIENTES) → NUEVO `AssistantAction.COMPLETE_TASK` con el id en payload y botón «Marcar completada» (CONFIRMA — NADA se completa en silencio); cero coincidencias → guía honesta; varias → lista honesta SIN acción (NUNCA completar a ciegas); completadas/archivadas NUNCA se ofrecen; ancla ^ disjunta negación («no marques…») y pasado («ya la marqué…»). Wiring lockstep `AssistantScreen` (`state::task` + `vm::toggleTask`) + string `assistant_action_complete`.
@@ -14648,13 +14654,14 @@ antes del "y", así que no casaba. Resultado:
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
 
-### Último ciclo: c.997 (2026-08-24)
-NUEVA familia ABIERTA (acción sobre datos): «marca como hecha/completada
-<tarea>» → AssistantAction.COMPLETE_TASK confirmable (el botón confirma;
-NADA se completa en silencio; única coincidencia sobre tareas pendientes).
-PRE medido: 5/6 candidatas de acción al menú genérico. Tests 12/12
-(RED exacto 8 fallos; suite 7037 OK). Sonda persistente: cerradas 13,
-laterales 0, inesperados 0 (+3 pins). Smoke 25/25. Laterales ABIERTAS
-nuevas: «completé/terminé…» (pasado declarativo), «borra/elimina la
-tarea…» (destructiva — diseño con confirmación), «aplaza…» (paridad P2).
-Próxima prioridad: UNA lateral por ciclo con medida previa.
+### Último ciclo: c.998 (2026-08-24)
+Lateral (a) de la familia de acción sobre datos CERRADA: «completé/
+terminé/acabé <tarea>» (pasado declarativo) → COMPLETE_TASK confirmable
+(hermano de c.997; reutiliza markDoneTokens + foldForSearch; ancla ^
+disjunta negación/presente/2ª persona; NADA se completa en silencio).
+PRE medido: 5/5 al menú genérico. Tests 11/11 (RED exacto 7 fallos;
+suite 7048 OK). Sonda POST 13/13; persistente: cerradas 13, laterales 0,
+inesperados 0 (+3 pins). Smoke 25/25. Laterales ABIERTAS restantes:
+«borra/elimina la tarea…» (P1 destructiva — diseño con confirmación
+explícita), «aplaza…» (P2 paridad con «pospón»). Próxima prioridad:
+UNA lateral por ciclo con medida previa.
