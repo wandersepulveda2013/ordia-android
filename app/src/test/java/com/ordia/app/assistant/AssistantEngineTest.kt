@@ -5883,6 +5883,93 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
+    // c.966 — listing de la familia AUTOMATIZACIONES (GAP medido por la sonda
+    // c.963 `/tmp/probes/notes_listing.kt`, hermano de c.795 hábitos/rutinas/
+    // proyectos y c.798 tareas): el buscador ya las lista desde c.964
+    // (`wantsAutomations` + `AUTOMATION_TERMS`), pero el asistente no tenía
+    // formas de listing — «automatizaciones»/«reglas» caían al menú genérico
+    // (sonda PRE 11/11 GAP): mentira por omisión cruzada. Ruta honesta:
+    // OPEN_SEARCH con payload canónico «automatizaciones».
+    @Test fun entityListing_automatizaciones_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("automatizaciones", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_misAutomatizaciones_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis automatizaciones", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_verAutomatizaciones_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("ver automatizaciones", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_laAutomatizacionSingular_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("la automatización", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_reglas_routesToOpenSearch() {
+        // «reglas» es el nombre cotidiano de las automatizaciones (raíz de
+        // `AUTOMATION_TERMS` del buscador, c.964): misma familia, mismo payload.
+        val answer = AssistantEngine.answer("reglas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_misReglas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis reglas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_interrogativeQueAutomatizacionesTengo() {
+        val answer = AssistantEngine.answer("¿qué automatizaciones tengo?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_interrogativeCualesSonMisReglas() {
+        val answer = AssistantEngine.answer("¿cuáles son mis reglas?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_automatizacionesActivas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("automatizaciones activas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_quieroVerTodasMisReglas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver todas mis reglas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("automatizaciones", answer.actionPayload)
+    }
+
+    @Test fun entityListing_automatizaciones_labelMencionaFamilia() {
+        val answer = AssistantEngine.answer("automatizaciones", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertTrue("la respuesta nombra la familia", answer.text.contains("las automatizaciones"))
+    }
+
+    @Test fun entityListing_guard_reglasDeLaCasaNoRutea() {
+        // «reglas de la casa» es contenido, no el listado de la familia: sigue
+        // al menú; nunca inventa el payload canónico.
+        val answer = AssistantEngine.answer("reglas de la casa", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun entityListing_guard_automatizacionDeGastosNoRutea() {
+        val answer = AssistantEngine.answer("automatización de gastos", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
     // c.794 — calificador de contenido sobre la superficie de notas («notas
     // de/del/de la <X>»), hermano de c.792 (tareas): el guard c.793
     // `notesListing_guard_contentQueryDoesNotRoute` se actualiza a bloquear la

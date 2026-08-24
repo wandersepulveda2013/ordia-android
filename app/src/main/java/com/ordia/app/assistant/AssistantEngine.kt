@@ -1213,11 +1213,34 @@ object AssistantEngine {
         "todas las tareas" to "tareas", "todas mis tareas" to "tareas",
         "tarea" to "tareas", "la tarea" to "tareas", "mi tarea" to "tareas",
         "que tareas tengo" to "tareas", "cuales son mis tareas" to "tareas",
-        "cuales son las tareas" to "tareas"
+        "cuales son las tareas" to "tareas",
+        // c.966: familia automatizaciones (GAP medido por la sonda c.963 — el
+        // buscador ya las lista desde c.964 con `wantsAutomations` +
+        // `AUTOMATION_TERMS`; aquí faltaba el routing). «reglas» es el nombre
+        // cotidiano de la misma familia (raíz de AUTOMATION_TERMS).
+        "automatizaciones" to "automatizaciones", "mis automatizaciones" to "automatizaciones",
+        "las automatizaciones" to "automatizaciones",
+        "ver automatizaciones" to "automatizaciones", "ver las automatizaciones" to "automatizaciones",
+        "todas las automatizaciones" to "automatizaciones", "todas mis automatizaciones" to "automatizaciones",
+        "automatizacion" to "automatizaciones", "la automatizacion" to "automatizaciones",
+        "mi automatizacion" to "automatizaciones",
+        "reglas" to "automatizaciones", "mis reglas" to "automatizaciones",
+        "las reglas" to "automatizaciones",
+        "ver reglas" to "automatizaciones", "ver las reglas" to "automatizaciones",
+        "todas las reglas" to "automatizaciones", "todas mis reglas" to "automatizaciones",
+        "regla" to "automatizaciones", "la regla" to "automatizaciones",
+        "mi regla" to "automatizaciones",
+        "que automatizaciones tengo" to "automatizaciones",
+        "cuales son mis automatizaciones" to "automatizaciones",
+        "cuales son las automatizaciones" to "automatizaciones",
+        "que reglas tengo" to "automatizaciones",
+        "cuales son mis reglas" to "automatizaciones",
+        "cuales son las reglas" to "automatizaciones"
     )
     private val ENTITY_LISTING_LABELS = mapOf(
         "habitos" to "los hábitos", "rutinas" to "las rutinas",
-        "proyectos" to "los proyectos", "tareas" to "las tareas"
+        "proyectos" to "los proyectos", "tareas" to "las tareas",
+        "automatizaciones" to "las automatizaciones"
     )
     // Tokens de familia listable tolerados por el calificador «activo» y las
     // muletillas interrogativas («qué», «tengo», «hay»): «habitos activos» o
@@ -1240,7 +1263,12 @@ object AssistantEngine {
         "habito" to "habitos", "habitos" to "habitos",
         "rutina" to "rutinas", "rutinas" to "rutinas",
         "proyecto" to "proyectos", "proyectos" to "proyectos",
-        "tarea" to "tareas", "tareas" to "tareas"
+        "tarea" to "tareas", "tareas" to "tareas",
+        // c.966: familia automatizaciones (tokens para la ruta por
+        // calificador/muletillas — «automatizaciones activas», «que reglas
+        // tengo»); «regla(s)» pliega a la misma familia (AUTOMATION_TERMS).
+        "automatizacion" to "automatizaciones", "automatizaciones" to "automatizaciones",
+        "regla" to "automatizaciones", "reglas" to "automatizaciones"
     )
     private fun entityListingPayload(query: String): String? {
         ENTITY_LISTING_FORMS[query.trim()]?.let { return it }
