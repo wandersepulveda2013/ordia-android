@@ -36,7 +36,7 @@ import org.junit.Test
  * Con verbo/nombre/cláusula precedente («avisar en una…») el prefijo no
  * empieza en «en» y la forma sigue la doctrina ancla (byte-idéntica). El
  * genitivo de CONTENIDO H2 («en una primera hora de clase…») se resolvió en
- * c.950 (doctrina simétrica a c.937; re-pin estricto en este mismo archivo).
+ * c.951 (doctrina simétrica a c.937; re-pin estricto en este mismo archivo).
  * Determinista (regex), cero random, cero IA fingida, cero UI.
  */
 class NaturalTaskParserWeekdayEnIndefinidoNarrativoTest {
@@ -128,14 +128,14 @@ class NaturalTaskParserWeekdayEnIndefinidoNarrativoTest {
 
     // ---- Pines byte-idénticos de laterales FUERA (medidos PRE) ----
 
-    // c.950: la lateral H2 con «en»+indefinido (y su hermana sin «en») quedó
+    // c.951: la lateral H2 con «en»+indefinido (y su hermana sin «en») quedó
     // RESUELTA (doctrina simétrica a la rama H2 c.937 con el indefinido de
     // c.943/c.948). Re-pin legítimo MÁS estricto de ambos pines c.948
     // (precedente c.925…c.948): ahora asertan contenido narrativo íntegro.
     // Cobertura canónica en NaturalTaskParserH2IndefinidoNarrativoTest.
-    @Test fun enUnaPrimeraHoraDeClase_h2EnIndefinidoLateralResueltaC950() =
+    @Test fun enUnaPrimeraHoraDeClase_h2EnIndefinidoLateralResueltaC951() =
         assertNarrativeIntact("en una primera hora de clase me quedé dormido")
 
-    @Test fun unaPrimeraHoraDeClase_h2IndefinidoLateralResueltaC950() =
+    @Test fun unaPrimeraHoraDeClase_h2IndefinidoLateralResueltaC951() =
         assertNarrativeIntact("una primera hora de clase fue genial")
 }

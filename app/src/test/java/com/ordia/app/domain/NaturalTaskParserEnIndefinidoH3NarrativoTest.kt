@@ -123,11 +123,11 @@ class NaturalTaskParserEnIndefinidoH3NarrativoTest {
     @Test fun enUnaPrimeraHoraDelLunes_weekdayEnIndefinidoLateralResueltaC948() =
         assertNarrativeIntact("en una primera hora del lunes fue rara")
 
-    // c.950: la lateral H2 con «en»+indefinido quedó RESUELTA (doctrina
+    // c.951: la lateral H2 con «en»+indefinido quedó RESUELTA (doctrina
     // simétrica a la rama H2 c.937 con el «en»+indefinido de c.948). Re-pin
     // legítimo MÁS estricto (precedente c.925…c.948): ahora aserta contenido
     // narrativo íntegro. Cobertura canónica en
     // NaturalTaskParserH2IndefinidoNarrativoTest.
-    @Test fun enUnaPrimeraHoraDeClase_h2EnIndefinidoLateralResueltaC950() =
+    @Test fun enUnaPrimeraHoraDeClase_h2EnIndefinidoLateralResueltaC951() =
         assertNarrativeIntact("en una primera hora de clase me quedé dormido")
 }

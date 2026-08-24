@@ -8,14 +8,14 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.950: narrativa ordinal H2 (genitivo de CONTENIDO tras el match: «de
+ * c.951: narrativa ordinal H2 (genitivo de CONTENIDO tras el match: «de
  * clase», «del partido», «de la película») con ARTÍCULO INDEFINIDO al inicio
  * del texto («una primera hora de clase fue genial») o «en» + indefinido al
  * inicio («en una primera hora de clase me quedé dormido») — lateral medida
  * FUERA en c.943/c.944/c.945/c.947/c.948 (pins byte-idénticos
  * [NaturalTaskParserIndefinidoH3NarrativoTest.unaPrimeraHoraDeClase_h2IndefinidoLateralFueraPin]
  * y hermanos — re-pin legítimo MÁS estricto en este ciclo, precedente
- * c.925…c.948) y verificada con sonda efímera `/tmp/probe950/PreProbe.kt`
+ * c.925…c.948) y verificada con sonda efímera `/tmp/probe951/PreProbe.kt`
  * (motor real vía `tools/run_probe.sh`, now=domingo 2026-08-23 12:00
  * America/Santo_Domingo, base c.949 `27c0c5e`): PRE — 9/9 candidatas con
  * DOBLE daño P1 (fecha FALSA [hoy 09:00/18:00, y lun 2026-08-24 09:00 en las
