@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, REOPEN_TASK, OPEN_SEARCH }
+enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, CREATE_TASK, COMPLETE_TASK, POSTPONE_TASK, DELETE_TASK, CANCEL_TASK, REOPEN_TASK, RESTORE_TASK, OPEN_SEARCH }
 
 data class AssistantAnswer(
     val text: String,
@@ -48,7 +48,8 @@ object AssistantEngine {
         zone: ZoneId = ZoneId.systemDefault(),
         profile: LearningProfile? = null,
         focusSessions: List<FocusSessionEntity> = emptyList(),
-        routines: List<RoutineEntity> = emptyList()
+        routines: List<RoutineEntity> = emptyList(),
+        archivedTasks: List<TaskEntity> = emptyList()
     ): AssistantAnswer {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
@@ -97,6 +98,12 @@ object AssistantEngine {
         // markDoneCapture: reabrir una completada por error; el botón
         // confirma vía vm.toggleTask, capacidad real).
         val reopenCapture = reopenCapture(clean, tasks)
+        // c.1004: captura «recupera/desarchiva/restaura la tarea …» — espejo
+        // honesto de archivar (la capacidad vm.restoreArchived ya existía,
+        // c.225, y REARMA los recordatorios del subárbol). El DAO sirve las
+        // activas con archived = 0, así que las archivadas llegan por su
+        // propio parámetro; el botón confirma.
+        val restoreCapture = restoreCapture(clean, archivedTasks)
         // c.991: captura «ponme un recordatorio …» (lateral (e) de la sonda
         // AssistantTaskCreationProbe). Debe evaluarse ANTES de la consulta
         // c.808: «recordatorio» en la query la robaba y respondía la mentira
@@ -530,6 +537,10 @@ object AssistantEngine {
             // única → REOPEN_TASK (el botón confirma; NADA se reabre en
             // silencio). Después de deleteCapture: prefijos disjuntos.
             reopenCapture != null -> reopenCapture
+            // c.1004: «recupera/desarchiva/restaura la tarea …» con
+            // coincidencia única entre las ARCHIVADAS → RESTORE_TASK (el
+            // botón confirma; NADA se recupera en silencio).
+            restoreCapture != null -> restoreCapture
             // c.991: el imperativo de creación gana a la consulta c.808
             // (robo de rama medido: 5/5 capturas respondían «No tienes
             // recordatorios programados.» — mentira a una orden de crear).
@@ -1508,6 +1519,49 @@ object AssistantEngine {
             else -> {
                 val task = matches.first()
                 AssistantAnswer("¿Reabro «${task.title}»? Volverá a pendientes.", AssistantAction.REOPEN_TASK, task.id.toString(), listOf(task.id))
+            }
+        }
+    }
+
+    // c.1004: «recupera/desarchiva/restaura la tarea <nombre>» — espejo del
+    // cierre honesto de ARCHIVAR: si el asistente retira una tarea de la
+    // vista, también debe poder traerla de vuelta. PRE medido
+    // (/tmp/probe1004/RestoreProbe.kt): las 6 variantes caían al menú
+    // genérico — mentira por omisión: la capacidad ya existía
+    // (OrdiaViewModel.restoreArchived restaura y REARMA recordatorios del
+    // subárbol, c.225) pero el asistente ni siquiera RECIBÍA las archivadas
+    // (el DAO sirve las activas con archived = 0). Hermana de reopenCapture
+    // pero sobre las ARCHIVADAS: NADA se recupera en silencio (el botón
+    // confirma vía vm.restoreArchived); SOLO archivadas (una pendiente o una
+    // completada no-archivada no necesita recuperarse); varias coincidencias
+    // → lista honesta SIN acción; la palabra «tarea» es obligatoria
+    // (anti-overreach: «recupera mi cuenta» NUNCA entra). El ancla ^ en
+    // imperativo/infinitivo disjunta negación («no recuperes…»), pasado
+    // («ya recuperé…») y 2ª persona («¿recuperaste…?»).
+    private val RESTORE_PREFIX = Regex("(?i)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val RESTORE_WITH_CONTENT = Regex("(?i)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+
+    private fun restoreCapture(clean: String, archivedTasks: List<TaskEntity>): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!RESTORE_PREFIX.containsMatchIn(trimmed)) return null
+        val content = RESTORE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        if (content.isNullOrEmpty()) {
+            // NUNCA recuperar a ciegas: guía honesta SIN acción.
+            return AssistantAnswer("¿Qué tarea recupero? Escríbela tras «recupera la tarea …» y te la muestro para confirmar.")
+        }
+        if (content.lowercase().startsWith("no ")) return null
+        val wanted = markDoneTokens(content)
+        val matches = if (wanted.isEmpty()) emptyList() else archivedTasks.filter { task ->
+            task.archived && markDoneTokens(task.title).containsAll(wanted)
+        }
+        return when {
+            matches.isEmpty() -> AssistantAnswer("No encuentro ninguna tarea archivada que coincida con «${content.take(80)}».")
+            matches.size > 1 -> AssistantAnswer(
+                "Hay varias tareas archivadas que coinciden: ${matches.take(3).joinToString { "«${it.title}»" }}. Sé más específico.",
+                relatedTaskIds = matches.map { it.id })
+            else -> {
+                val task = matches.first()
+                AssistantAnswer("¿Recupero «${task.title}»? Volverá a tu vista principal.", AssistantAction.RESTORE_TASK, task.id.toString(), listOf(task.id))
             }
         }
     }
