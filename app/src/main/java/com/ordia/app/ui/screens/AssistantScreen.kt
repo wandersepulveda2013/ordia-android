@@ -152,6 +152,12 @@ fun AssistantScreen(
                                     // se restaura por id directo: vm.restoreArchived la
                                     // devuelve y REARMA sus recordatorios (c.225).
                                     AssistantAction.RESTORE_TASK -> answer.actionPayload.toLongOrNull()?.let { vm.restoreArchived("task", it) }
+                                    // c.1021: «archiva la tarea …» — la candidata es NO
+                                    // archivada (está en state.tasks); vm.deleteTask es el
+                                    // flujo de archivo real (archiva el subárbol y cancela
+                                    // TODOS los recordatorios, c.225). El botón confirma;
+                                    // NADA se archiva en silencio. Recuperable vía c.1004.
+                                    AssistantAction.ARCHIVE_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::deleteTask)
                                     // c.1006: «marca/pon la tarea … como importante» — payload
                                     // «<id>:<NIVEL>»; el botón confirma (NUNCA marcado en
                                     // silencio). vm.setTaskPriority persiste y refresca el widget.
@@ -188,6 +194,7 @@ private fun AssistantAction.label(): String = when (this) {
     AssistantAction.DELETE_TASK -> stringResource(R.string.assistant_action_delete)
     AssistantAction.REOPEN_TASK -> stringResource(R.string.assistant_action_reopen)
     AssistantAction.RESTORE_TASK -> stringResource(R.string.assistant_action_restore)
+    AssistantAction.ARCHIVE_TASK -> stringResource(R.string.assistant_action_archive)
     AssistantAction.SET_PRIORITY -> stringResource(R.string.assistant_action_priority)
     AssistantAction.OPEN_SEARCH -> stringResource(R.string.assistant_action_search)
     AssistantAction.NONE -> ""
