@@ -152,4 +152,24 @@ class AssistantEngineApuntameCaptureTest {
         assertEquals(AssistantAction.NONE, answer.action)
         assertTrue(answer.actionPayload.isEmpty())
     }
+    // ---------- c.972 (delta del hermano de este lado tras colisión c.972/c.972):
+    // peladas ENCLÍTICAS a secas y la perífrasis «quiero que me apuntes» no las
+    // ejercen sus 20 tests ----------
+
+    @Test fun apuntamePelada_guiaHonestaSinAccion() {
+        val answer = ask("apúntame")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
+    }
+
+    @Test fun anotameSinTildePelada_guiaHonestaSinAccion() {
+        val answer = ask("anotame")
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.actionPayload.isEmpty())
+    }
+
+    @Test fun quieroQueMeApuntes_noSecuestra() {
+        val answer = ask("quiero que me apuntes la lista de la compra")
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
 }
