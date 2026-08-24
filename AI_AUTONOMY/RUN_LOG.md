@@ -16264,5 +16264,5 @@ a un permiso persistente frágil y silencioso ante fallos.
   precedente c.925..c.954 renumeración de colisión — aquí c.954 es del hermano; el mío
   queda c.955). Lección de entorno: suite completa requirió `JAVA_OPTS=-Xmx4g -Xms256m`
   (OOM FixStackAnalyzer con el default 512M del wrapper).
-- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: (commit de este ciclo). Próxima prioridad: laterales registradas («primera hora de clase» sin determinante [c.952]; H3 sin determinante bivalente [c.946]; weekday + parte del día intercalada + pretérito [c.950, verificada FUERA]) o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
+- Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: `1cc6615` (pusheado OK; `${github_token}` lowercase en este entorno). Próxima prioridad: laterales registradas («primera hora de clase» sin determinante [c.952]; H3 sin determinante bivalente [c.946]; weekday + parte del día intercalada + pretérito [c.950, verificada FUERA]) o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
