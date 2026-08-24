@@ -4971,7 +4971,15 @@ object ContextIntentEngine {
         val unit = """(?:d[ií]as?|semanas?|quincenas?|bimestres?|trimestres?|semestres?|mes(?:es)?|a[nñ]os?)"""
         val meridiem = """(?:a\.?\s*m\.?|p\.?\s*m\.?|am|pm|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+d[ií]a)"""
         val fraction = """(?:\s*(?:y\s+(?:media|treinta|cuarto|tres\s+cuartos|cuarenta\s+y\s+cinco|veinticinco|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2})))?"""
-        val time = """(?:(?:a|para)\s+(?:las?|la)\s+\d{1,2}(?::\d{2})?$fraction(?:\s*(?:$meridiem))?(?:\s*(?:horas?|hs|h))?(?:\s+en\s+punto)?|\d{1,2}:\d{2}(?:\s*(?:$meridiem))?|medianoche|mediod[ií]a|mediodia)"""
+        // Palabra canónica suelta («medianoche»/«mediodía»): el conector de
+        // hora canónica («al » / «a la ») se consume junto a la palabra, como
+        // hace la prefija «a las » de la rama numérica; de lo contrario queda
+        // un «al » huérfano en el título («Recoger el paquete al») — P2 medido
+        // con probe (c.959). La alternativa con conector va primero para que
+        // «al mediodía» se despoje entera; la forma desnuda («entrega
+        // medianoche») sigue cubierta por la rama sin conector.
+        val canonicalTime = """(?:al|a)\s+(?:la\s+)?(?:medianoche|mediod[ií]a|mediodia)"""
+        val time = """(?:(?:a|para)\s+(?:las?|la)\s+\d{1,2}(?::\d{2})?$fraction(?:\s*(?:$meridiem))?(?:\s*(?:horas?|hs|h))?(?:\s+en\s+punto)?|\d{1,2}:\d{2}(?:\s*(?:$meridiem))?|$canonicalTime|medianoche|mediod[ií]a|mediodia)"""
         // Anclajes de fecha con seña explícita (no palabras desnudas solas):
         // weekday (con conector opcional "el "/"este "/"del ": "el viernes"/
         // "concierto del viernes". c.690: sin "del" listado, el "el" interior
