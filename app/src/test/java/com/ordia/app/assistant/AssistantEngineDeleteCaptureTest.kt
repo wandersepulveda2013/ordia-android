@@ -7,9 +7,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * c.1000 — «borra/elimina/quita la tarea <nombre>» → AssistantAction.DELETE_TASK confirmable.
+ * c.1001 — «borra/elimina/quita la tarea <nombre>» → AssistantAction.DELETE_TASK confirmable.
  *
- * PRE medido con sonda efímera /tmp/probe1000/DeleteProbe.kt (base 61544ad):
+ * PRE medido con sonda efímera /tmp/probe1001/DeleteProbe.kt (base 61544ad):
  * las 5 variantes de borrado caían al menú genérico — mentira por omisión:
  * la capacidad de borrar YA existía (OrdiaViewModel.deleteTask, usada en 6
  * pantallas) pero el asistente no la ofrecía. DESTRUCTIVA: doctrina

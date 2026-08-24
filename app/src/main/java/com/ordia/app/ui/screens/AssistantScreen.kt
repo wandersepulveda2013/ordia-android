@@ -132,7 +132,7 @@ fun AssistantScreen(
                                     // candidata única; el botón confirma (anti-overreach).
                                     // Misma fuente que la sugerencia de posposición de Hoy.
                                     AssistantAction.POSTPONE_TASK -> answer.actionPayload.toLongOrNull()?.let(vm::deferTaskToTomorrow)
-                                    // c.1000: «borra/elimina/quita la tarea …» — DESTRUCTIVA:
+                                    // c.1001: «borra/elimina/quita la tarea …» — DESTRUCTIVA:
                                     // payload = id candidata única; el botón confirma
                                     // (NUNCA borrado a ciegas ni en silencio).
                                     AssistantAction.DELETE_TASK -> answer.actionPayload.toLongOrNull()?.let(state::task)?.let(vm::deleteTask)
