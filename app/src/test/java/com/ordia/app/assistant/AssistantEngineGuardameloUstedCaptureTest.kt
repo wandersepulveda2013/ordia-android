@@ -5,9 +5,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // c.984: lateral ABIERTA del backlog (descubierta c.981 — «laterales medidas
-// FUERA» de la unidad «guárdame/-melo»). Sonda efímera
-// `/tmp/probe984/GuardameloUstedProbe.kt` (motor real vía tools/run_probe.sh,
-// base 5d325b0):
+// FUERA» de la unidad «guárdame/-melo») + COLISIÓN cycle-ID c.984/c.984
+// CONVERGENTE TOTAL con el hermano (c.985): ambos resolvimos la misma fila
+// (mismo nombre de clase y de sonda efímera). Comparación de versiones
+// (doctrina duplicados c.980): la producción es FUNCIONALMENTE IDÉNTICA
+// (mismas 2 regex, mismos cambios `escr[ií]b[ae]melo` + `gu[aá]rd[ae]melo`)
+// → producción conservada: la del hermano (publicada); esta clase es la
+// UNIÓN de ambas baterías (16 del hermano + 7 únicos del c.985 — sección
+// final). Sonda efímera `/tmp/probe984/GuardameloUstedProbe.kt` (motor real
+// vía tools/run_probe.sh, base 5d325b0):
 //  PRE — 6/6 GAP (todas las capturas → menú genérico, action=NONE); 4/4
 //        peladas → menú en vez de la guía honesta; 6/6 guards en NONE;
 //        4/4 controles de captura existentes (c.980) intactos.
@@ -122,5 +128,48 @@ class AssistantEngineGuardameloUstedCaptureTest {
     @Test fun guardameElArchivo_noEsCaptura() {
         val answer = ask("guárdame el archivo")
         assertTrue(answer.action != AssistantAction.CREATE_NOTE)
+    }
+
+    // ---------- c.985: pins únicos del run convergente (UNIÓN — no cubiertos por los 16) ----------
+
+    @Test fun guardemeloEnLaLista_noEsCaptura() {
+        val answer = ask("guárdemelo en la lista")
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    @Test fun escribameloManana_noEsCaptura() {
+        val answer = ask("escríbamelo mañana")
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    // ---------- c.985: controles de no-regresión de la familia c.980/c.981 ----------
+
+    @Test fun controlEscribemelo_sigueCapturando() {
+        val answer = ask("escríbemelo: la wifi es 1234")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("la wifi es 1234", answer.actionPayload)
+    }
+
+    @Test fun controlApuntemeloUsted_yaCapturaba() {
+        val answer = ask("apúntemelo: renovar la licencia")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("renovar la licencia", answer.actionPayload)
+    }
+
+    @Test fun controlAnotemeloUsted_yaCapturaba() {
+        val answer = ask("anótemelo: recoger el paquete")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("recoger el paquete", answer.actionPayload)
+    }
+
+    @Test fun controlGuardameEsto_sigueCapturando() {
+        val answer = ask("guárdame esto: el codigo es 4321")
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+        assertEquals("el codigo es 4321", answer.actionPayload)
+    }
+
+    @Test fun controlEscribemeUnPoema_sigueSiendoGuard() {
+        val answer = ask("escríbeme un poema")
+        assertEquals(AssistantAction.NONE, answer.action)
     }
 }
