@@ -16738,3 +16738,31 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Verificación FINAL post-merge (base `432b205`):** `bash tools/run_domain_tests.sh` → **OK (6986 = 6977 hermano + 9)**; `bash tools/run_domain_checks.sh` → 25/25; sonda persistente exit 0 (cerradas 10, laterales 3, inesperados 0; pin guard «recuérdame:» añadido en la UNIÓN). Pre-colisión: OK (6973 = 6964 + 9). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Cambios:** M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (extractor `([^:].*)` + comentario c.992), A `app/src/test/java/com/ordia/app/assistant/AssistantEngineRecuerdameDosPuntosPeladaTest.kt` (9 tests), M `tools/probe/AssistantTaskCreationProbe.kt` (pin guard + lateral (f) CERRADA c.992), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. **Commits:** `a232c75` (feat, ID pre-colisión en el mensaje) + `46e7758` (merge UNIÓN). **HEAD final:** `46e7758` (merge UNIÓN pusheado `432b205..46e7758`).
 - **Próxima prioridad:** laterales de la sonda persistente (UNA por ciclo con medida): (b) «avísame…»/«quiero que me recuerdes…», (c) despoje del «que» en «recuérdame que…», (d) «recuérdamelo»; re-fetch OBLIGATORIO pre-push; colisión cycle-ID frecuente (hermano activo — numerar tras re-fetch).
+
+## c.993 — 2026-08-24 — fix(assistant): lateral (c) despoje del «que» subordinado
+
+- HEAD inicial: 94b24f0. Base sin colisión (origin == local).
+- Problema (PRE medido con sonda efímera /tmp/probe993/RecuerdameQueProbe.kt):
+  4/4 capturas «recuérdame que…» con residuo «que » en el título de la
+  tarea; la pelada-con-«que» («recuérdame que») creaba tarea BASURA «que»
+  (conector pelado, doctrina c.988); la negación tras «que» («recuérdame
+  que no llame a ana») creaba la tarea «que no llame a ana» — capturaba
+  lo CONTRARIO de la intención (el check anti-overreach «no » se aplicaba
+  al contenido crudo que empezaba por «que»).
+- Causa raíz: REMIND_ME_WITH_CONTENT captura el contenido tras
+  «recuérdame[:]» sin despojar el «que» subordinado, y los checks
+  (pelada / negación) operan sobre ese contenido crudo.
+- Fix mínimo: LEADING_QUE = Regex("(?i)^que(?:\\s+|$)") despoja el «que»
+  subordinado ANTES de los checks en remindMeCapture. Pelada-con-«que» →
+  guía honesta SIN acción; negación tras «que» → menú honesto. Guards:
+  «quedarme» (sin espacio) y «qué» (tilde) NUNCA casan.
+- Tests: AssistantEngineRecuerdameQueStripTest.kt (10 tests: 4 capturas +
+  pelada-que + negación + 2 guards + 2 regresiones). RED exacto: 6996 run,
+  EXACTAMENTE 6 fallos (los esperados). GREEN: OK (6996 = 6986 + 10).
+- Sonda persistente: lateral (c) movida a CERRADAS (11), laterales 2,
+  guards +2 (pelada-que, negación), inesperados 0, exit 0. Smoke 25/25.
+- POST (sonda efímera): 4/4 capturas peladas; pelada-que → NONE guía;
+  negación → NONE; guards y controles byte-idénticos.
+- Commit fix: eb33b26. Docs-close con hash real: (ver siguiente línea del log).
+- Próxima prioridad: laterales (b) «avísame…» / «quiero que me
+  recuerdes…» (recordatorio declarativo) o (d) «recuérdamelo» (deíctico).

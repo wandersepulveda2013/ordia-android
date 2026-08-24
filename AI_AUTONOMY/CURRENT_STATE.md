@@ -14617,3 +14617,12 @@ antes del "y", así que no casaba. Resultado:
 - **Hallazgos secundarios**: (i) patrón recurrente "el parámetro existe pero se silencia" — `zone` ya estaba en `answer(...)` desde hace ciclos pero nunca se threaded; conviene auditar otros consumidores de `WhatNowEngine` (`AutomationActionPlanner`, widgets, Workers) por el mismo defecto latente; (ii) el bug es **timezone-dependent** — sólo se manifesta donde la zona del dispositivo difiere de la del usuario; en un dispositivo con la zona correcta era invisible (latente), lo que explica por qué pasó inadvertido; (iii) `TaskRules.isDueToday/timeRank` (con `zone`) vs `isOverdue/isMissedStart` (epochs) confirma que el defecto era estrictamente de threading, no de lógica — fix de superficie, no rediseño.
 
 - **Próxima prioridad**: (i) auditar OTROS consumidores de `WhatNowEngine.ordered/suggest` (`AutomationActionPlanner`, `CommitmentEngine`, widgets, Workers) por el mismo defecto de `zone` silenciada; (ii) `ContextIntentEngine` funciones NO-auditadas (`classify`, `extractTitle`, `isCasualChat`); (iii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iv) accesibilidad — celdas/elementos accionables sin `contentDescription`; (v) detección de vencidas importantes / replanificación automática; (vi) "a las N" sin meridiano → 03:00 (P2 OPEN — decisión de diseño, NO forzar). Re-fetch OBLIGATORIO antes de implementar.
+
+### Último ciclo: c.993 (2026-08-24)
+Lateral (c) CERRADA: despoje del «que» subordinado en «recuérdame que…»
+(LEADING_QUE antes de los checks). PRE medido: residuo en título 4/4,
+tarea basura «que» en pelada, negación tras «que» capturaba lo contrario.
+Tests 10/10 (RED exacto 6 fallos; suite 6996 OK). Sonda persistente:
+cerradas 11, laterales 2, inesperados 0. Smoke 25/25. Commit eb33b26.
+Laterales abiertas restantes: (b) «avísame…»/«quiero que me recuerdes…»,
+(d) «recuérdamelo».
