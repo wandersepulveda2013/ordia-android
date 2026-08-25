@@ -142,12 +142,18 @@ class ContextIntentEngineLlevarRopaRecambioGuarderiaFloorTest {
     }
 
     @Test
-    fun `objeto proyecto de ciencias sigue fuera`() {
-        // Lateral (a-quinquies): UNA forma por ciclo.
+    fun `objeto proyecto de ciencias ahora captura c1144`() {
+        // RE-PIN legítimo c.1144 (lateral a-quinquies resuelta, precedente
+        // c.1035/c.1041/c.1094): el objeto «el proyecto de ciencias» entró
+        // en el piso y en la plantilla (lockstep c.616). Regresión completa
+        // en ContextIntentEngineLlevarProyectoCienciasColeFloorTest.
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar el proyecto de ciencias al cole mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar el proyecto de ciencias al cole", intent.title)
+        assertNotNull(intent.dueAt)
     }
 
     @Test

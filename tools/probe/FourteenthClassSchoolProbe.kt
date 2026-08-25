@@ -83,6 +83,17 @@ import com.ordia.app.context.ContextIntentEngine
  *   (C8) — mismo patrón heredado que la regresión R3 «el día 5»,
  *   consistente.
  *
+ * ACTUALIZACIÓN c.1144 (este lado): familia (a) «llevar <objeto>
+ * al colegio» AGOTADA — C17 «llevar el proyecto de ciencias al
+ * colegio el viernes» NULL→HIT ERRAND 0.45 (título limpio, dueAt
+ * anclado) tras el fix lockstep piso↔plantilla (alternativa
+ * «el proyecto de ciencias» en `ERRAND_SCHOOL_RUN_FLOOR` +
+ * `matchSchoolRun`, lección c.616). C11 merienda c.1128, C18
+ * almuerzo c.1129, C15 dinero-excursión c.1133, C16 ropa-recambio
+ * c.1141 quedaron resueltos en sus ciclos. 5/5 laterales (a)
+ * cerradas; regresiones R-intactas medidas en la sonda POST del
+ * ciclo (niños c.773, niña-médico c.776, hermanas de la familia).
+ *
  * ACTUALIZACIÓN c.1130 (este lado): familia (c) «ayudar a <hijo>
  * con los deberes» — C26-C29 persistidos aquí tras medirse con
  * sonda efímera (motor real, PRE sobre `d20f6ae`: 4/4 NULL;

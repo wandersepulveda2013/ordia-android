@@ -116,7 +116,13 @@ object ContextIntentEngine {
     // la negación y al guard de envolvente (lección c.648). Lockstep
     // c.616/c.751: keyword «campamento» en ContextIntent.EXERCISE (alimenta
     // TRIGGER_WORDS; sin ella la notificación ni llega al análisis).
-    private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas|campamento"
+    // c.1146: «extraescolar(es)?» (lateral (b-bis) de c.1135) entra en la
+    // fuente única — fluye al piso de posición libre, a la negación y al
+    // guard de envolvente (lección c.648). Lockstep: keyword en
+    // ContextIntent.EXERCISE + extensión del guard declarativo c.1145
+    // (sin ella «las extraescolares empiezan en septiembre» sería FP nuevo).
+    private val EXERCISE_VERBS =
+        "correr|entrenar|nataci[oó]n|pesas|campamento|extraescolar(es)?"
     // c.831: "repostar" (P1 olvido silencioso; monosémico — proveer de
     // combustible —, así posición libre como c.727 "tender"/c.828 "vaciar",
     // sin acotamiento al objeto; a diferencia del bivalente "echar" c.829).
@@ -588,10 +594,12 @@ object ContextIntentEngine {
     // c.1133: lateral (a-ter) «el dinero de la excursión» (NULL PRE medido
     // sonda c.1127 C19, re-pin legítimo del pin c.1129); c.1141: lateral
     // (a-quater) «la ropa de recambio» (NULL PRE medido sonda c.1127 C16,
-    // re-pin legítimo del pin c.1133); resta la lateral (a-quinquies)
-    // «proyecto de ciencias».
+    // re-pin legítimo del pin c.1133); c.1144: lateral (a-quinquies) «el
+    // proyecto de ciencias» (NULL PRE medido sonda c.1127 C17, re-pin
+    // legítimo del pin c.1141) — con este objeto la familia (a) queda
+    // AGOTADA (5/5 laterales cerrados).
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -1341,6 +1349,32 @@ object ContextIntentEngine {
         """\b(?:no\s+)?(?:fu(?:i|e|imos|isteis|eron|iste)|estuv(?:e|o|imos|iste|ieron|isteis)|asist(?:[íi]|i[óo]|imos|iste|ieron|isteis))(?!\p{L})\s+(?:a|al|en)\b"""
     )
 
+    // Copulativa pretérito POSPUESTA al match MEETING (c.1142, lateral
+    // documentada del guard c.1138): «la reunión de padres fue ayer». El
+    // pretérito va DESPUÉS del sustantivo, así el patrón narrativo c.1138
+    // (que exige pretérito+preposición PRECEDIENDO) no la alcanzaba y el
+    // hecho ya celebrado se persistía como compromiso futuro (medido PRE
+    // 8/8 HIT MEETING 0.45 con dueAt, sonda efímera /tmp/probe1142). La
+    // exigencia de marcador de pasado INMEDIATO (ayer|anteayer|anoche)
+    // tras la cópula mantiene fuera «la reunión fue pospuesta» (NULL
+    // heredado) y «la reunión de ayer fue productiva» (HIT heredado,
+    // hermana de la doctrina c.5369 — lateral documentada). La
+    // posicionalidad de cláusula la fija [pastMeetingCopulativeGoverns]
+    // (sin corte [.!?,;:] entre match y cópula: «la reunión es mañana; la
+    // del curso fue ayer» sigue capturando la futura).
+    private val PAST_MEETING_COPULA_AFTER_PATTERN = Regex(
+        """\b(?:fue|era)\s+(?:ayer|anteayer|anoche)(?!\p{L})"""
+    )
+    // Copulativa pretérito ANTEPUESTA al match MEETING (c.1142): «ayer fue
+    // la reunión de padres». La lista cerrada de artículos/poseedores y la
+    // ADYACENCIA estricta hasta el inicio del match (verificada en
+    // [pastMeetingCopulativeGoverns]) blindan el anti-overreach: «ayer fue
+    // un día largo, la reunión de padres es mañana» NO gobierna (la cópula
+    // pertenece a otra oración) y sigue capturando.
+    private val PAST_MEETING_COPULA_BEFORE_PATTERN = Regex(
+        """\b(?:ayer|anteayer|anoche)\s+(?:fue|era)(?!\p{L})(?:\s+(?:el|la|los|las|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|vuestr[oa]s?)(?!\p{L}))*"""
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -1653,6 +1687,15 @@ object ContextIntentEngine {
         // candidato MEETING gobernado por el pretérito; si era el único, la
         // frase cae a NULL (un hecho cumplido no es un compromiso).
         if (pastMeetingNarrativeGoverns(lower, kind)) return 0f
+
+        // Guard de copulativa PASADA de reunión (c.1142 anti-overreach,
+        // lateral documentada del guard c.1138). Ver
+        // [PAST_MEETING_COPULA_AFTER_PATTERN]/[PAST_MEETING_COPULA_BEFORE_PATTERN]:
+        // «la reunión de padres fue ayer» / «ayer fue la reunión de
+        // padres» activaban el piso MEETING por sustantivo y persistían
+        // el hecho ya celebrado como compromiso futuro. Mismo cierre que
+        // su hermano: se descarta sólo el candidato MEETING.
+        if (pastMeetingCopulativeGoverns(lower, kind)) return 0f
 
         // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
         // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
@@ -3372,7 +3415,56 @@ object ContextIntentEngine {
             // a Dios/a la vida/al cielo» (bivalencia medida c.904).
             // Lockstep: keyword-frase «darle gracias» (lección c.751) y
             // plantilla en [extractTitle] (lección c.616).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower) ||
+            // c.1149: «cubrir el turno» (candidata (b) de la clase
+            // DECIMOSÉPTIMA vida laboral, medida NULL 1/1 en la sonda
+            // persistida c.1147 C7 y re-medida PRE sobre HEAD 48c3ee6:
+            // 7/7 capturas NULL, 2/2 envolventes TASK por c.613, 8/8
+            // guards NULL, 4/4 regresiones HIT intactas). El turno
+            // descubierto deja colgado al compañero/equipo y la ventana
+            // para avisar es corta. Verbo bivalente acotado por objeto
+            // EXIGIDO «turno» (hermano EXACTO de c.1117 «sacar
+            // (cita|turno|hora)»): «cubrir la mesa/los gastos» quedan
+            // FUERA (bivalentes NULL deliberados, medidos PRE). Determinantes/
+            // posesivos/indefinidos/plural casan («mi turno», «un turno»,
+            // «turnos»). La negada la cubre el lookbehind `(?<!no )`
+            // (keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace falta
+            // cláusula dedicada en [imperativeIsNegated], mismo argumento
+            // que c.895b/c.895c); el pasado «cubrí» y el futuro «cubriré»
+            // no casan (forma EXACTA). Kind TASK (gestión laboral sin
+            // desplazamiento, hermana de «cambiar el turno» TASK medido
+            // en la sonda c.1147; doctrina ERRAND c.842/c.862 gobierna
+            // solo el desplazamiento). Lockstep: keyword-VERB «cubrir»
+            // (lección c.751) y plantilla matchCubrirTurno en
+            // [extractTitle] (lección c.616). Alcance: SOLO infinitivo;
+            // 1ª persona «cubro el turno» queda lateral (UNA forma por
+            // ciclo, doctrina anti-overreach).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+(?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?\b""").containsMatchIn(lower) ||
+            // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
+            // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
+            // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
+            // re-medida PRE sobre HEAD c24b146: 5/5 candidatas NULL,
+            // 11/11 guards NULL, 7/7 regresiones HIT intactas). El
+            // check-in perdido tiene coste directo (recargo, asiento
+            // perdido) y ventana corta (24-48 h). Verbo bivalente
+            // acotado por objeto EXIGIDO «vuelo» (hermano EXACTO de
+            // c.865 «reclamar la factura»): «facturar el proyecto/la
+            // maleta» (mercantil/equipaje) y «hacer el check-in del
+            // hotel» quedan FUERA (laterales medidas NULL, UNA forma
+            // por ciclo). La grafía «checkin»/«check in» sin guion casa
+            // y se preserva en el título (doctrina c.653). Kind TASK
+            // (gestión previa al viaje, hermana de «reservar» c.709 /
+            // «confirmar» c.700 / «imprimir las tarjetas» c.708 /
+            // «preparar la maleta» c.715); CERO keywords nuevas
+            // («vuelo» ya es keyword TRAVEL y «hacer» keyword TASK —
+            // gate c.751 satisfecho, medido PRE: TRAVEL 0.22 < umbral
+            // sin piso). La negada la cubre el lookbehind `(?<!no )`
+            // (la keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace
+            // falta cláusula dedicada en [imperativeIsNegated], mismo
+            // argumento que c.895b/c.895c); el pasado «facturé/hice» y
+            // el subjuntivo «facture» no casan (forma EXACTA).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+el\s+vuelo\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -3669,6 +3761,48 @@ object ContextIntentEngine {
     }
 
     /**
+     * Detecta si el match MEETING está GOBERNADO por una copulativa en
+     * pretérito (c.1142 anti-overreach — lateral documentada del guard
+     * c.1138, ver [PAST_MEETING_COPULA_AFTER_PATTERN] y
+     * [PAST_MEETING_COPULA_BEFORE_PATTERN]). Dos formas, ambas con
+     * posicionalidad estricta:
+     *  - POSPUESTA («la reunión de padres fue ayer»): la cópula
+     *    «(fue|era) (ayer|anteayer|anoche)» aparece DESPUÉS del match y
+     *    en la MISMA cláusula — sin corte [.!?,;:] entre el fin del
+     *    match y la cópula, así «la reunión de padres es mañana; fui a
+     *    la del curso pasado» sigue capturando (pin posicional c.1138)
+     *    y una segunda cláusula en pasado no contamina la primera.
+     *  - ANTEPUESTA («ayer fue la reunión de padres»): el marcador debe
+     *    llegar JUSTO hasta el inicio del match consumiendo sólo
+     *    artículos/poseedores — «ayer fue un día largo, la reunión de
+     *    padres es mañana» NO gobierna (anti-overreach) y sigue
+     *    capturando.
+     * Sólo gobierna el kind MEETING: la envolvente presente legítima
+     * («recuérdame que la reunión fue ayer» → TASK, candado c.613)
+     * sobrevive al descarte del candidato MEETING. Laterales NO
+     * resueltas (una forma por ciclo): «fue ayer la reunión de padres»
+     * (cópula+fecha antepuestas sin marcador inicial), «la reunión de
+     * ayer fue productiva» (cópula pospuesta sin marcador de pasado tras
+     * ella — hermana de la doctrina c.5369) y las compuestas («ha sido
+     * ayer»).
+     */
+    private fun pastMeetingCopulativeGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.MEETING) return false
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val match = patterns.mapNotNull { it.find(lower) }.minByOrNull { it.range.first } ?: return false
+        val before = PAST_MEETING_COPULA_BEFORE_PATTERN.findAll(lower).any { m ->
+            var idx = m.range.last + 1
+            while (idx < lower.length && lower[idx] == ' ') idx++
+            idx == match.range.first
+        }
+        if (before) return true
+        return PAST_MEETING_COPULA_AFTER_PATTERN.findAll(lower).any { m ->
+            m.range.first > match.range.last &&
+                lower.substring(match.range.last + 1, m.range.first).none { it in ".!?,;:" }
+        }
+    }
+
+    /**
      * Enunciado declarativo ANCLADO al inicio cuyo sujeto es una actividad
      * EXERCISE medida (campamento/natación/pesas) gobernada por
      * «empieza/empiezan/comienza/comienzan»: «el campamento de los niños
@@ -3678,7 +3812,11 @@ object ContextIntentEngine {
      * P1 que el pretérito+MEETING c.1138, pero por bono, no por piso).
      */
     private val DECLARATIVE_ACTIVITY_START_PATTERN = Regex(
-        """^(?:¿\s*)?(?:(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus)\s+)?(?:[a-záéíóúñü]+\s+){0,3}?(?:campamento|nataci[oó]n|pesas)\b(?:\s+(?:de|del|al|a)\s+[a-záéíóúñü]+(?:\s+[a-záéíóúñü]+){0,2})?\s+(?:empieza|empiezan|comienza|comienzan)\b"""
+        // c.1146: «extraescolar(es)?» añadido a la lista (lockstep con su
+        // entrada en EXERCISE_VERBS — sin esta extensión «las extraescolares
+        // empiezan en septiembre» sería un falso positivo NUEVO creado por
+        // el propio c.1146; pineado en ContextIntentEngineExtraescolaresFloorTest).
+        """^(?:¿\s*)?(?:(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus)\s+)?(?:[a-záéíóúñü]+\s+){0,3}?(?:campamento|nataci[oó]n|pesas|extraescolar(es)?)\b(?:\s+(?:de|del|al|a)\s+[a-záéíóúñü]+(?:\s+[a-záéíóúñü]+){0,2})?\s+(?:empieza|empiezan|comienza|comienzan)\b"""
     )
 
     /**
@@ -4381,7 +4519,7 @@ object ContextIntentEngine {
 
                 // "echar el currículum X" → "Echar el currículum X"
                 // (c.1148): lockstep con el piso acotado «echar (el)?
-                // curr[ií]culum» — hermana de matchSellarParo (mismo
+                // curr[ií]cul[ou]m?» — hermana de matchSellarParo (mismo
                 // ancla/guard, doctrina c.653: verbo preservado, solo
                 // capitalización inicial; el residuo temporal de cola lo
                 // depura [sanitizeTitle]). El piso exige el objeto
@@ -4390,6 +4528,16 @@ object ContextIntentEngine {
                 // menos/la carta/agua» ni llegan a la rama TASK).
                 val matchEcharCurriculum = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )echar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEcharCurriculum != null) return "Echar ${matchEcharCurriculum.groupValues[1]}"
+
+                // "cubrir el turno del sábado" → "Cubrir el turno del
+                // sábado" (c.1149): lockstep con el piso acotado
+                // «cubrir (el|la|mi|tu|su|un|una)? turnos?» — el verbo
+                // gobernante es fijo («cubrir») y el objeto se captura
+                // con grafía preservada (doctrina c.653); el residuo
+                // temporal de cola lo depura [sanitizeTitle]. Mismo
+                // ancla/guard que el piso (lección c.616/c.751).
+                val matchCubrirTurno = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+((?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCubrirTurno != null) return "Cubrir ${matchCubrirTurno.groupValues[1]}"
 
                 // "dar las gracias a X" → "Dar las gracias a X" (c.901):
                 // lockstep con el piso acotado «dar las gracias a <persona>»
@@ -4906,6 +5054,18 @@ object ContextIntentEngine {
                 // (misma alternancia que el piso).
                 val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReclamarFactura != null) return "Reclamar ${matchReclamarFactura.groupValues[2]}"
+                // c.1140: plantillas hermanas del piso (lección c.616: el
+                // match arranca en el verbo, así acuse/prefijo temporal se
+                // despojan; el residuo temporal de cola lo depura
+                // [sanitizeTitle]). Objeto EXIGIDO «vuelo» (misma ancla
+                // que el piso); los bivalentes («facturar el proyecto»,
+                // «check-in del hotel») nunca llegan aquí porque el piso
+                // no los captura. La grafía del usuario se preserva
+                // («checkin» sin guion, doctrina c.653).
+                val matchFacturarVuelo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(facturar)\s+(el\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFacturarVuelo != null) return "Facturar ${matchFacturarVuelo.groupValues[2]}"
+                val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerCheckIn != null) return "Hacer ${matchHacerCheckIn.groupValues[2]}"
 
                 null
             }
@@ -5370,13 +5530,15 @@ object ContextIntentEngine {
                 // colegio", lateral «el dinero de la excursión» c.1133 →
                 // "Llevar el dinero de la excursión al colegio", lateral «la
                 // ropa de recambio» c.1141 → "Llevar la ropa de recambio a
-                // la guardería", lockstep con [ERRAND_SCHOOL_RUN_FLOOR]):
+                // la guardería", lateral «el proyecto de ciencias» c.1144 →
+                // "Llevar el proyecto de ciencias al colegio", lockstep con
+                // [ERRAND_SCHOOL_RUN_FLOOR]):
                 // verbo preservado con su persona (doctrina c.653), residuo
                 // temporal de cola depurado por [sanitizeTitle]; el match
                 // arranca en el verbo, así el acuse/prefijo temporal no
                 // ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {

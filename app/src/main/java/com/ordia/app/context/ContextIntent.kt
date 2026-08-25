@@ -298,6 +298,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // (lección c.751). Olvido silencioso P1: la oferta de empleo
         // tiene plazo — el olvido cuesta la oportunidad entera.
         "currículum", "curriculo",
+        // c.1149: keyword-VERB «cubrir» (lockstep con el piso acotado
+        // «cubrir (el|la|mi|tu|su|un|una)? turnos?», candidata (b) de la
+        // clase DECIMOSÉPTIMA; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Bivalente («cubrir la mesa/los gastos»): 0.12 sola inerte <
+        // umbral (gate c.751, medido PRE); el piso exige el objeto «turno».
+        "cubrir",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
@@ -551,7 +557,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // «inscribir al niño en el campamento en julio» era NULL aunque las
         // hermanas con keyword como «natación» capturaban). Lockstep con el
         // bono EXERCISE de ContextIntentEngine.scoreKind.
-        "campamento")),
+        "campamento",
+        // c.1146: «extraescolar» (lateral (b-bis) de c.1135 — «inscribir al
+        // niño en las extraescolares en septiembre» era NULL medido por
+        // sonda efímera). Lockstep con EXERCISE_VERBS del engine y con la
+        // extensión coherente del guard declarativo c.1145.
+        "extraescolar")),
     HABIT("Hábito", listOf("hábito", "rutina", "diario", "todos los días",
         "cada día", "semanal", "mañana", "lectura")),
     REMINDER("Recordatorio", listOf("recordatorio", "avísame", "notifícame",
