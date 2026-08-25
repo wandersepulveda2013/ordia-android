@@ -8712,6 +8712,12 @@ object NaturalTaskParser {
         if (mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
             mv.contains("siguiente") || mv.contains("posterior")
         ) return false
+        // c.1041 (lateral ABIERTA tras c.1039): weekday AL FINAL de una
+        // cadena narrativa inequívoca que ABRE el enunciado («ya me lo
+        // pagó el lunes», «ahora me lo dijo el martes»): el weekday
+        // cierra el relato de un hecho cumplido; jamás es ancla.
+        val prefix = text.substring(0, match.range.first)
+        if (weekdayPreteriteNarrativePrefix(prefix)) return true
         val suffix = text.substring(match.range.last + 1)
         if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
         // c.954 entre el weekday y el
@@ -8725,6 +8731,25 @@ object NaturalTaskParser {
         if (!withArticle) return false
         val intercalated = weekdayPreteriteNarrativeIntercalatedPartOfDay.find(suffix) ?: return false
         return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix.substring(intercalated.range.last + 1))
+    }
+
+    /**
+     * c.1041: ¿el PREFIJO (todo lo que precede al weekday) abre con una
+     * cadena narrativa inequívoca «ya/ahora/ahorita <clíticos> <pretérito>»?
+     * Conservador: sólo cuando la marca narrativa abre el enunciado
+     * (un prefijo «por favor ya…» sigue anclando, igual que antes de
+     * c.1041); los genitivos y la dirección futura ya quedaron fuera en
+     * [weekdayOccurrenceIsPreteriteNarrative] (N1/N2) antes de llamar.
+     */
+    private fun weekdayPreteriteNarrativePrefix(prefix: String): Boolean {
+        val s = prefix.trim().lowercase()
+        val sub = when {
+            s.startsWith("ya ") -> s.substring(3)
+            s.startsWith("ahora ") -> s.substring(6)
+            s.startsWith("ahorita ") -> s.substring(8)
+            else -> return false
+        }
+        return yaPreteriteNarrativeSuffix.containsMatchIn(sub)
     }
 
     /**

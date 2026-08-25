@@ -84,16 +84,11 @@ class NaturalTaskParserYaPreteritoNarrativoCliticosMultiplesDeltaTest {
         // PRE (UNIÓN 3e036371): due=lunes 09:00 falso + título sin «el lunes».
         assertNarrativeIntact("el lunes ya me lo pagó")
 
-    @Test fun yaMeLoPagoElLunes_weekdayFinalLateralFueraPin() =
-        // Weekday AL FINAL con narrativa en prefijo: FUERA (otra ruta de
-        // guard); lateral registrada ABIERTA en BACKLOG (pin byte-idéntico).
-        parse("ya me lo pagó el lunes").let { r ->
-            assertEquals(
-                DateRules.toEpochMillis(LocalDate.of(2026, 8, 24), LocalTime.of(9, 0), zone),
-                r.dueAt
-            )
-            assertEquals("ya me lo pagó", r.title)
-        }
+    @Test fun yaMeLoPagoElLunes_weekdayFinalLateralResueltaC1041() =
+        // Weekday AL FINAL tras cadena narrativa «ya <clíticos> <pretérito>»:
+        // FUERA pinada en c.1039 como lateral ABIERTA; RESUELTA en c.1041
+        // (weekdayPreteriteNarrativePrefix: guard del prefijo narrativo).
+        assertNarrativeIntact("ya me lo pagó el lunes")
 
     // ---- Guards ancla (byte-idénticos): presente/futuro/comando ----
 

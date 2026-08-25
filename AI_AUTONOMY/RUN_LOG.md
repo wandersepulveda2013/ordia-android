@@ -17283,3 +17283,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: ver abajo. HEAD final: el de este push.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): weekday-final narrativa (pin FUERA c.1039); «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2).
+
+## Ciclo c.1041 [renumerado c.1040→c.1041 por colisión cycle-ID con SU c.1040 (docs «subir de peso» `c45b9bbe`), fijada en re-fetch pre-push] (2026-08-24, este lado, DISJUNTO parser) — fix(parser): weekday final tras cadena narrativa «ya/ahora/ahorita <clíticos> <pretérito>» ya no ancla (lateral ABIERTA c.1039 RESUELTA)
+- HEAD inicial: `5723d4e9` (re-fetch limpio, remoto sincronizado).
+- Cambios: `NaturalTaskParser.kt` — nueva rama de prefijo en `weekdayOccurrenceIsPreteriteNarrative` + helper `weekdayPreteriteNarrativePrefix` (la marca narrativa debe ABRIR el enunciado; genitivos/futuro/presente siguen anclando byte-idénticos).
+- Bugs: «ya me lo pagó el lunes» / «ahora me lo dijo el martes» / «ahorita llegó el paquete el sábado» anclaban weekday 09:00 FALSO + título mutilado sin el weekday (compromiso falso en What Now). Causa raíz: el guard sólo evaluaba sufijo/intercalada; con weekday al final el prefijo narrativo nunca se evaluaba.
+- Features: ninguna (fix de lateral registrada).
+- Tests: RED exacto — 7 tests nuevos (`NaturalTaskParserYaPreteritoNarrativoWeekdayFinalDeltaTest.kt`), 7633 run, EXACTAMENTE 4 fallos (las 4 capturas); guards verdes desde RED. GREEN: **OK (7633 = 7626 + 7)**; smoke 25/25; automation 9/9. Re-pin legítimo c.1039 «ya me lo pagó el lunes» → RESUELTA (renombrado, no borrado).
+- Commits: 1 commit fix+docs (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» vía `nowPattern` (P2, vertiente sin weekday sigue ABIERTA si la medida la confirma); «subir de peso» bounded guard (P2 precisión UNDÉCIMA).
+- COMPLETADO
