@@ -2226,8 +2226,19 @@ object ContextIntentEngine {
             // cuya segunda lectura NO es un deber personal: «la tarjeta»
             // (recarga/pago), «el archivo» (acción informática). Acotado
             // deliberado (una forma por ciclo): «cargar el carro»
-            // (diagonal dialectal LatAm) queda como candidata propia.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b""").containsMatchIn(lower)
+            // (diagonal dialectal LatAm) quedaba como candidata propia,
+            // resuelta en c.1084: el objeto admite `carros?` (candidata
+            // (b) de la sonda persistida c.1079; NULL PRE re-medido en
+            // este ciclo con sonda efímera — 4/5 capturas NULL, la
+            // quinta «tengo que cargar…» ya casaba por el piso modal;
+            // 5/5 guards NULL, 3/3 regresiones HIT). «carro» es LA
+            // forma LatAm de «coche» (hermana de «cole» c.850); la
+            // bivalencia se hereda de c.853 (las dos lecturas son
+            // deberes genuinos; el título preserva las palabras del
+            // usuario). Lockstep keyword-OBJETO "carro" (lección c.751;
+            // la subcadena de «carrocería»/«carrito» suma 0.12 inerte
+            // < umbral, mismo argumento que «cochera»/«automóvil»).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?|carros?)\b""").containsMatchIn(lower)
             // c.1082: «poner las ruedas de invierno/verano» — candidata
             // (a) de la clase DUODÉCIMA (vida con vehículo), medida NULL
             // por la sonda persistida `tools/probe/TwelfthClassVehicleProbe.kt`
@@ -4081,8 +4092,10 @@ object ContextIntentEngine {
                 // grafía del usuario: "Cargar el móvil" / "Cargar el movil").
                 // c.853: el objeto admite «coche» (lockstep con el piso;
                 // bivalencia deliberada — el título preserva las palabras
-                // del usuario: "Cargar el coche antes del viaje").
-                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // del usuario: "Cargar el coche antes del viaje"). c.1084:
+                // el objeto admite «carro» (lockstep con el piso; la
+                // grafía del usuario se preserva: "Cargar mi carro").
+                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?|carros?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
 
                 // c.1082: misma plantilla para "poner" ACOTADA al objeto

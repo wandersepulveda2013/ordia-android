@@ -55,6 +55,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // que "automóvil" c.851): "la cochera está cerrada" sigue
         // descartado.
         "coche",
+        // c.1084: keyword-OBJETO "carro" (lockstep con la extensión del
+        // piso "cargar el coche" a la diagonal LatAm, lección c.751).
+        // La subcadena de "carrocería"/"carrito" suma 0.12 inerte <
+        // umbral (mismo argumento que "cochera"/"automóvil"):
+        // "el carrito de la compra" sigue descartado.
+        "carro",
         // c.1082: keyword-OBJETO "ruedas" (lockstep con el piso acotado
         // "poner las ruedas de invierno/verano", lección c.713/c.751/
         // c.765: sin ella la notificación sin palabra gatillo ni llega al
