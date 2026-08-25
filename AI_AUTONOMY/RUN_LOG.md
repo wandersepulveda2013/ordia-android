@@ -18947,6 +18947,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ---
 
+## Run c.1144 [este lado] — 2026-08-25 — CIERRE: COLISIÓN DUPLICADO + VERIFICACIÓN CRUZADA
+
+- HEAD inicial: `ab717b0`. HEAD final: `41d738fd` (remoto; mi trabajo duplicado descartado, 0 commits netos).
+- Trabajo realizado y DESCARTADO (duplicado del hermano `97ab3ac2`): lateral (a-quinquies) «llevar el proyecto de ciencias al cole» — NULL PRE (sonda c.1127 C17, exit 1 exacto), RED floor 16/16 fallos, fix lockstep piso+plantilla, GREEN 9090 (9074+16), smokes 25/25 y 9/9. Commits abandonados (solo locales, en reflog): feat `59c200c8`→`9699d73d`, docs `8308a5f`, `01ae2d76`.
+- Secuencia de colisiones de rama durante el push: remoto avanzó `5a39f45`→`67610a4`→`ce87703`→`41d738fd`; en el último fetch se detectó que el hermano había cerrado LA MISMA lateral (su c.1144) + c.1146/c.1149/c.1150.
+- Resolución doctrinal: NO sobrescribir trabajo válido del hermano; NO commitear cobertura duplicada (su floor-test ya existe). Verificación cruzada independiente: mis 16 tests efímeros contra SU motor → OK 9237 (9221+16), smokes 25/25 y 9/9 — la lateral queda VERIFICADA por dos implementaciones de test independientes.
+- Limitaciones: gradle/lint/assemble/Room NO VERIFICADO (sin Android SDK en este entorno).
+- Lección: con dos agentes tomando laterales de la MISMA familia/cola sin lease de candidata, el duplicado es inevitable; el marcador EN CURSO lo fijé ANTES de implementar pero el hermano ya lo tenía fijado para la misma candidata (su marcador llegó primero al remoto). Recomendación: antes de implementar, además del marcador local, re-fetch inmediato pre-implementación para confirmar que la candidata sigue libre.
+- Próxima prioridad: la indicada por el hermano (clase DECIMOSEXTA resto de laterales sonda c.1137, p. ej. «llevar las maletas al coche») — con re-fetch obligatorio pre-implementación.
 ## Run c.1146-colisión — 2026-08-25 (este lado) — lateral (b-bis) «inscribir en (las)? extraescolares» — IMPLEMENTACIÓN PROPIA RETIRADA (duplicado en carrera; se conserva la del hermano)
 
 - HEAD inicial: `72dcc77` (mi marcador EN CURSO c.1146, fijado en remoto el run previo). Durante mi ciclo TDD el hermano implementó y empujó el MISMO c.1146 (`5560ccb1`, suite OK 9176) pese al marcador — carrera de implementación, no solo de marcador.
