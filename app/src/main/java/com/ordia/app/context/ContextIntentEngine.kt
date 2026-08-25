@@ -604,9 +604,13 @@ object ContextIntentEngine {
     // lista propia; «dermatólog[oa]» ya era keyword/listas APPOINTMENT
     // desde c.1110 para la forma propia). Lockstep piso↔plantilla
     // matchMedicalRun (lección c.616); CERO keywords nuevas. UNA forma
-    // por ciclo: psicólogo/ginecólogo como destinos quedan laterales.
+    // por ciclo: c.1120: destino «psicólog[oa]» (lateral abierta de
+    // c.1118 — misma causa raíz; «psicólog[oa]» ya era keyword/listas
+    // APPOINTMENT de larga data para la forma propia). Lockstep
+    // piso↔plantilla matchMedicalRun (lección c.616); CERO keywords
+    // nuevas. UNA forma por ciclo: ginecólogo como destino queda lateral.
     private val ERRAND_MEDICAL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa])\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa])\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -4975,7 +4979,7 @@ object ContextIntentEngine {
                 // residuo temporal de cola depurado por [sanitizeTitle]; el
                 // match arranca en el verbo (lección c.616).
                 val matchMedicalRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa])).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa])).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchMedicalRun != null) {
