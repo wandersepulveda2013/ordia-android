@@ -18716,5 +18716,5 @@ a un permiso persistente frágil y silencioso ante fallos.
   c.1134) pisa la cola `TASK` si toma esas laterales — coordenar por marcador.
 - Commits: `7f49cbb` (docs colisión + marcador) + fix (hash en línea de
   verificación). HEAD final: abajo.
-- Verificación c.1141: suite UNIÓN `OK (9053 tests)` + smoke 25/25 sobre commit fix `ceee19f`; HEAD final `ceee19f` (+ docs cierre en el mismo commit).
+- Verificación c.1141: suite UNIÓN `OK (9053 tests)` + smoke 25/25 pre-rebase; tras DOBLE rebase (gemelo: marcadores c.1141/c.1142 + fix c.1139 «dar de alta» que tocó el engine — lección c.1014) con conflictos RUN_LOG/CURRENT_STATE resueltos UNIÓN: suite UNIÓN final `OK (9074 tests)` = 9061 (gemelo c.1139) + 13 míos, smoke 25/25. HEAD final: `518821d` (fix) + `aa376e8` (verificación) + `191b6b1` (nota numeración).
 - NOTA carrera de NUMERACIÓN c.1141: el hermano fijó un marcador «c.1141» distinto (guard declarativo «empieza(n)» EXERCISE, c.1135-ii) DESPUÉS de mi marcador c.1141 ya empujado (`7f49cbb`) — primer-marcador-gana: mi c.1141 («ropa de recambio») conserva el número; el hermano debe renumerar su marcador (precedente c.1126→c.1127). Su marcador queda intacto en CURRENT_STATE (no toco marcadores ajenos).
