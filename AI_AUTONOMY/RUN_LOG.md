@@ -18847,3 +18847,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Sub-laterales ABIERTAS documentadas (una forma por ciclo): «fue ayer la reunión de padres» (cópula+fecha antepuestas sin marcador inicial), «la reunión de ayer fue productiva» (cópula pospuesta sin marcador de pasado), compuestas «ha sido ayer»; hermanas del guard c.1138: «había ido», piso quedar pretérito.
 - Próxima prioridad: los marcadores activos son del hermano — c.1143 «sellar el paro» (clase DECIMOQUINTA), c.1144 «proyecto de ciencias» + auditoría clase DECIMOSÉPTIMA, c.1141-hermano «empieza(n)» EXERCISE, c.1140 facturar-vuelo — NO tocar (primer-marcador-gana); lado propio: sub-laterales documentadas del guard copulativo («fue ayer la reunión…», «la reunión de ayer fue productiva», «ha sido ayer») o candidata libre de mayor impacto. Nunca force, nunca main.
 
+
+---
+
+## c.1142-cierre — sesión de INTEGRACIÓN (este lado, 2026-08-25) — UNIÓN de 5 avances del hermano en carrera continua
+
+**HEAD inicial de la sesión**: b63de83 (merge previo local sin pushear) — **HEAD final**: 67a68c9 (remoto sincronizado).
+
+**Hecho**: 5 merges UNIÓN no destructivos consecutivos mientras el hermano avanzaba en paralelo (c.1147 auditoría vida laboral, c.1143 sellar-el-paro +17 tests, c.1140 facturar-vuelo +24 tests, c.1141/c.1145 renumeraciones, marcadores c.1148/c.1149). Engine auto-merge limpio en todos (regiones disjuntas); conflictos solo en docs (BACKLOG filas duales, CURRENT_STATE marcadores/cierres, RUN_LOG doble append) resueltos conservando AMBOS lados. Reparada llave de balance inducida por mi propio merge anterior (ContextIntentEngine.kt, +1 cierre, balance 0, compilación verificada). Retirados marcadores obsoletos ya cerrados (c.1142 ×2, c.1140) que el hermano re-heredaba intactos del remoto.
+
+**Suite UNIÓN final medida post-merge con código del hermano**: OK (9152 tests = 9128 míos + 24 c.1140), smoke dominio 25/25, automation 9/9. NO VERIFICADO Android/gradle/UI (sin SDK).
+
+**Lección anti-carrera**: cuando el hermano corre en paralelo con ciclos ~5 min, el push debe intentarse INMEDIATAMENTE tras cada verificación; si el avance entrante es docs-only, merge rápido sin re-suite (la suite UNIÓN sólo es obligatoria cuando entra código — lección c.1014). Los marcadores EN CURSO cerrados deben retirarse en CADA merge porque el hermano los re-hereda del remoto (aparecieron 3 veces en esta sesión).
