@@ -37,13 +37,17 @@ import org.junit.Test
  * des…» (no casa la alternancia), destinatario humano «al niño»,
  * forma sin objeto, hedge «quizá…», sintagma nominal «la pastilla
  * del perro», «dale» bivalente idiomático («dale duro al equipo» —
- * sin ancla de objeto no casa). Acotado deliberado (UNA por ciclo):
- * la forma con artículo INDEFINIDO «dale una pastilla al perro»
- * queda FUERA (pin G8 — lateral hermana ABIERTA; el piso dativo
- * hermano c.1012 tampoco admite indefinido, a diferencia del piso
- * de vacuna c.1011+c.1014). Re-pin legítimo (precedente
- * c.1019/c.1024/c.1046): el pin FUERA de c.1012 pasa a captura
- * RESUELTA en su clase de origen.
+ * sin ancla de objeto no casa). La forma con artículo INDEFINIDO
+ * «dale una pastilla al perro» quedó RESUELTA en c.1059 (paridad
+ * con el piso de vacuna c.1011+c.1014): el pin G8 de esta clase
+ * pasa a captura en [ContextIntentEngineDaleUnaPastillaIndefinidoDeltaTest]
+ * y se reubica legítimamente al FUERA estructural «dale una
+ * pastilla al niño» (destinatario humano indefinido — la
+ * alternancia admite indefinido pero el destinatario sigue
+ * acotado a mascota; precedente de re-pin
+ * c.1019/c.1024/c.1046/c.1052/c.1054/c.1056/c.1057). Re-pin
+ * legítimo (precedente c.1019/c.1024/c.1046): el pin FUERA de
+ * c.1012 pasa a captura RESUELTA en su clase de origen.
  */
 class ContextIntentEngineDalePastillaImperativeFloorTest {
 
@@ -142,8 +146,8 @@ class ContextIntentEngineDalePastillaImperativeFloorTest {
     }
 
     @Test
-    fun `indefinido dale una pastilla fuera lateral documentada`() {
-        assertNull(analyze("dale una pastilla al perro"))
+    fun `destinatario humano indefinido fuera reubicado c1059`() {
+        assertNull(analyze("dale una pastilla al niño"))
     }
 
     // ---- Regresiones (HIT intactas) ----
