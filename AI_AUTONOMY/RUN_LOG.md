@@ -7146,7 +7146,6 @@ ESPAÑOLAS EXTREMADAMENTE COMUNES que el parser interpretaba en horario totalmen
 - Continuar auditoría del parser (casos límite), luego UX: Onboarding responsive,
   NoteEditor `rememberSaveable`, atomicidad de `saveRoutine`. Ver BACKLOG.
 ---
----
 ## CICLO 7 — Parser: "a las 24" / "24:00" = medianoche
 - **Fecha (UTC)**: 2026-08-11
 - **HEAD inicial**: 4f43c0b (ciclo 6, en origin)
@@ -8024,7 +8023,6 @@ preserva el patrón `primeraHoraPattern`).
 - Continuar auditoría del parser: "pasado mañana por la tarde", "el fin de semana"
   (dueAt=null, sin soporte de fin de semana), "mañana a primera hora". Validar
   combinaciones con recurrencia. Buscar P1 datos/recordatorios en workers/backup.
----
 ---
 ## 2026-08-11 — Continuous Delivery + Self-Update + Supervisor v2 (OpenHands)
 ### Objetivo
@@ -18615,3 +18613,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Marcadores del hermano INTACTOS (c.1130 deberes STUDY, c.1132 auditoría DECIMOQUINTA, c.1133 dinero excursión ERRAND) — NO tocados.
 - ⚠️ CLOBBER HERMANO RESTAURADO (P1, datos/tests): el marcador `c21723a` (c.1135) llevaba un árbol obsoleto y revirtió silenciosamente el piso c.1130 «ayudar a los niños con los deberes» + la alternativa c.1133 «dinero de la excursión» en el engine, borró 2 archivos de tests (AyudarDeberes 17, DineroExcursion 13), pins en LlevarAlmuerzo y 2 sondas (Fifteenth completa, 20 líneas de Fourteenth). Detección: cuenta de suite 8967→8950 (canario = cuenta total). Restauración íntegra desde `d5dc04b` en commit `0592ed4`: suite UNIÓN final OK (8980), smokes 25/25 y 9/9, mi rodilla intacta (17 ocurrencias).
 - Próxima prioridad: candidatas DECIMOTERCERA restantes UNA por ciclo — (k) «empaste»; laterales (m-bis) otros objetos corporales («cadera» NULL pineada…), (n-bis) «empezar el régimen». Nunca force, nunca main.
+---
+
+## 2026-08-25 — Run c.1134 (este lado) — guard pretérito+piso MEETING FIXED VERIFIED
+
+- **HEAD inicial**: `17277ce` (post c.1127-bis; luego rebase limpio sobre `96a82eb` del hermano).
+- **Problema (P1, FALSO POSITIVO medido 5/5 en c.1127-bis)**: relato en pretérito de reunión YA celebrada («fui a la reunión de padres ayer», «fuimos a…», «estuve en…», «asistí a…», y el caso más grave «no fui a la reunión…») capturaba como MEETING 0.45 con dueAt — hecho cumplido persistido como compromiso futuro (los pisos MEETING c.647 son por SUSTANTIVO, sin guard de pretérito; «tenía/tuve reunión» ya NULL vía PAST_OBLIGATION c.1240).
+- **Causa raíz**: ningún guard de tiempo pasado alcanzaba el piso MEETING por sustantivo (PAST_OBLIGATION c.824 sólo cubre tener/haber/deber).
+- **Solución**: `PAST_MEETING_NARRATIVE_PATTERN` (pretérito ir/estar/asistir, «no » opcional, + preposición a|al|en, cierre `(?!\p{L})` lección c.826) + `pastMeetingNarrativeGoverns` (hermano posicional de `pastObligationGoverns`: marcador ABARCA al match MEETING) llamado en `scoreKind` tras `pastObligationGoverns` → descarta el candidato MEETING (score 0); la envolvente TASK (candado c.613) sobrevive. CERO keywords nuevas; CERO cambios en ContextIntent.kt.
+- **Renumeración**: c.1129→c.1134 (primer-marcador-gana: c.1129=almuerzo del hermano `d20f6ae` 19:49:01 < mi marcador `17277ce` 19:53:33; c.1132/c.1133 tomados por hermanos — colisión documentada por el hermano en `b1f7180`; marcadores ajenos INTACTOS).
+- **TDD**: RED EXACTO 9 fallos (targets) → GREEN 22/22 (`ContextIntentEnginePastMeetingNarrativeGuardTest.kt` NUEVO: 9 NULL targets + 10 pines HIT byte-idénticos + 3 guards NULL). Pines clave: nominal vencida «reunión de padres ayer» HIT (doctrina c.5369), posicionalidad «…es mañana; fui a la del curso pasado» HIT, quedar «quedamos con ana ayer» 0.54 NO tocado (lateral), envolvente TASK 0.45, PAST_OBLIGATION intacto.
+- **Tests**: `tools/run_domain_tests.sh` OK (**8960 = 8938 [unión hermano post-c.1130-deberes] + 22 [míos]** — aritmética medida sobre HEAD final `c31d5e6`); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK en este entorno).
+- **Commits**: `c31d5e6` (fix c.1134) + docs (este push).
+- **HEAD final**: ver push.
+- **Próxima prioridad**: laterales ABIERTAS del guard (copulativas «la reunión de padres fue ayer», compuestas «hemos ido/había ido» — UNA por ciclo) o laterales (a-quater)/(a-quinquies) del acarreo escolar si quedan libres; auditoría DECIMOQUINTA del hermano en curso (no duplicar).
