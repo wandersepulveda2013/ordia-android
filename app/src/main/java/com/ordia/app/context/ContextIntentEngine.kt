@@ -1306,6 +1306,26 @@ object ContextIntentEngine {
     // persona) se reutiliza sin tocar. FUERA (laterales hermanas,
     // medidas): modal plural «no sabemos si deberíamos…» (CALL 0.57)
     // y futuro plural «no sabemos si llamaremos…» (NULL estable).
+    // c.1080: lateral abierta c.1078 (1/2) — duda «no sabemos si +
+    // MODAL 3ª PERSONA PLURAL + infinitivo» («no sabemos si deberían
+    // llamar a mamá» → CALL 0.57 firme, «no sabemos si deberían ir al
+    // médico» → APPOINTMENT 0.67 con título corrupto, «no sabemos si
+    // podrían sacar al perro» → HOUSEHOLD 0.45, «no sabemos si
+    // tendrían que pagar la luz» → TASK 0.45; 7 capturas medidas PRE
+    // con sonda efímera, espejo exacto de c.1078 — aquí la acción
+    // dudosa es de TERCEROS, no del usuario). El conjunto modal
+    // (c.1070 singular, c.1078 1ª plural «…mos») no admitía la 3ª
+    // plural «…n». Se admite ahora («deberían (que)», «podrían»,
+    // «tendrían que», «habrían que»). Anti-overreach medido:
+    // coma-cierra «no sabemos si deberían, llamar a mamá» sigue fiel
+    // CALL 0.57; el modal 3ª plural SIN duda intacto; la 2ª persona
+    // plural («no sabéis si deberíais…») NO casa (el marcador no
+    // admite «sabéis»; lateral hermana 2/2, medida CALL 0.57).
+    // Volteo aceptado (consistente con c.1070/c.1078): «no sabemos si
+    // deberían haber llamado a mamá» (arrepentimiento pasado) TASK
+    // 0.45 → descartado. Residual aceptado (doctrina de la familia):
+    // «no sabemos si deberían ir al médico mañana a las 9»
+    // 0.85−0.3=0.55 ≥ umbral.
     // c.1078: lateral abierta c.1076 — duda «no sabemos si + MODAL
     // PLURAL + infinitivo» («no sabemos si deberíamos llamar a mamá» →
     // CALL 0.57 firme, «no sabemos si deberíamos ir al médico» →
@@ -1326,7 +1346,7 @@ object ContextIntentEngine {
     // aceptado (doctrina de la familia): «no sabemos si deberíamos ir
     // al médico mañana a las 9» 0.85−0.3=0.55 ≥ umbral.
     private val HEDGE_PATTERN = Regex(
-        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+(?:s[ée]|sabemos)\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:(?:deber[ií]a(?:mos)?(?:\s+que)?|podr[ií]a(?:mos)?|tendr[ií]a(?:mos)?\s+que|habr[ií]a(?:mos)?\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}|[a-záéíóúñü]+ré)(?!\p{L})))(?!\p{L})"""
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+(?:s[ée]|sabemos)\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:(?:deber[ií]a(?:mos|n)?(?:\s+que)?|podr[ií]a(?:mos|n)?|tendr[ií]a(?:mos|n)?\s+que|habr[ií]a(?:mos|n)?\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}|[a-záéíóúñü]+ré)(?!\p{L})))(?!\p{L})"""
     )
 
     // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto

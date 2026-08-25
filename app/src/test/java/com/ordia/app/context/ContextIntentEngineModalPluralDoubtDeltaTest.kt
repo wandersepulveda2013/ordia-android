@@ -55,7 +55,9 @@ import org.junit.Test
  *    «deberíamos llamar a mamá» (modal plural SIN duda) → CALL 0.57
  *    intactos.
  *  - «no sabemos si deberían llamar a mamá» (3ª persona plural) →
- *    CALL 0.57 intacto (FUERA — lateral ABIERTA siguiente, medida).
+ *    CALL 0.57 intacto EN ESTE CICLO (FUERA — lateral ABIERTA
+ *    siguiente, medida; RESUELTA en c.1080: el pin abajo volteó a
+ *    NULL, documentado).
  *  - «no sabemos si podemos llamar a mamá» (presente plural) → NULL
  *    estable PRE/POST (medido).
  *  - Pins de la familia intactos (c.1070 modal singular, c.1076
@@ -70,7 +72,8 @@ import org.junit.Test
  *
  * Laterales ABIERTAS registradas (UNA por ciclo, medidas PRE):
  *  - 3ª persona plural modal «no sabemos si deberían llamar a mamá»
- *    → CALL 0.57 firme.
+ *    → CALL 0.57 firme. → RESUELTA en c.1080 (este pin volteó a
+ *    NULL con documentación).
  *  - 2ª persona plural «no sabéis si deberíais llamar a mamá» → CALL
  *    0.57 firme (el marcador no admite «sabéis»).
  *
@@ -156,9 +159,12 @@ class ContextIntentEngineModalPluralDoubtDeltaTest {
     fun `deberiamos llamar a mama sin duda persiste`() =
         assertKind("deberíamos llamar a mamá", ContextIntentKind.CALL)
 
+    // Pin VOLTEADO por c.1080: era «persiste» (comportamiento PRE del
+    // lateral ABIERTA que c.1080 resolvió). La resolución está cubierta
+    // además por ContextIntentEngineThirdPluralModalDoubtDeltaTest.
     @Test
-    fun `no sabemos si deberian llamar a mama tercera plural persiste`() =
-        assertKind("no sabemos si deberían llamar a mamá", ContextIntentKind.CALL)
+    fun `no sabemos si deberian llamar a mama tercera plural se descarta c1080`() =
+        assertNullIntent("no sabemos si deberían llamar a mamá")
 
     @Test
     fun `no sabemos si podemos llamar a mama presente plural NULL estable`() =
