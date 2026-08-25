@@ -56,9 +56,12 @@ import org.junit.Test
  *
  * Conservador (UNA lateral por ciclo, doctrina anti-overreach c.615):
  * laterales FUERA pineadas byte-idénticas abajo — una sola coma (apertura
- * o cierre), las formas con comas de «ahora/ahorita» (pins c.1077),
- * «siguiente»/«de hoy», presente/infinitivo/ambigua, y verbos fuera de la
- * lista cerrada c.950 («acosté»).
+ * o cierre, c.1094), «siguiente»/«de hoy», presente/infinitivo/ambigua, y
+ * verbos fuera de la lista cerrada c.950 («acosté»). c.1095: las formas con
+ * DOS comas de «ahora/ahorita» (antes pins FUERA c.1077, mismo daño medido
+ * 5/5 en /tmp/probe1095/Probe.kt) se resolvieron con la extensión N1 del
+ * guard c.1077 a la familia uniforme de marcas — re-pin legítimo abajo
+ * (precedente c.1035/c.1041/c.1083/c.1094).
  */
 class NaturalTaskParserYaSinComaParteDiaNarrativaTest {
 
@@ -212,13 +215,15 @@ class NaturalTaskParserYaSinComaParteDiaNarrativaTest {
     fun yaComaSoloCierre_resueltaC1094() =
         assertNarrativeIntact("ya por la mañana, me tomé la pastilla")
 
+    // c.1095: re-pin legítimo (precedente hermana c.1035/c.1041/c.1083/
+    // c.1094) — estas DOS formas eran pins FUERA duplicados de c.1077
+    // (15:00/09:00 falso + coma residual); la extensión N1 del guard c.1077
+    // a la familia uniforme de marcas las resolvió.
     @Test
-    fun ahoraComaPorLaTardeLlegoElPaquete_lateralFueraPinC1077() =
-        assertPin("ahora, por la tarde, llegó el paquete",
-            LocalDateTime.of(2026, 8, 22, 15, 0), "ahora, , llegó el paquete")
+    fun ahoraComaPorLaTardeLlegoElPaquete_resueltaC1095() =
+        assertNarrativeIntact("ahora, por la tarde, llegó el paquete")
 
     @Test
-    fun ahoritaComaPorLaMananaMeLlamoMama_lateralFueraPinC1077() =
-        assertPin("ahorita, por la mañana, me llamó mamá",
-            LocalDateTime.of(2026, 8, 22, 9, 0), "ahorita, , me llamó mamá")
+    fun ahoritaComaPorLaMananaMeLlamoMama_resueltaC1095() =
+        assertNarrativeIntact("ahorita, por la mañana, me llamó mamá")
 }

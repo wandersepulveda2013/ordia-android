@@ -9015,10 +9015,13 @@ object NaturalTaskParser {
      * seguía anclando (hoy a la hora canónica) y mutilando el título con una
      * coma residual («ya, , me tomé…») — doble daño P1, simétrico a
      * c.954/c.955. Evidencia gramatical inequívoca (doctrina c.950):
-     *  (N1) el prefijo del match es EXACTAMENTE «ya,» (la cadena abre con la
-     *       marca narrativa y su coma; las variantes «ahora,»/«ahorita,» y
-     *       las formas con una sola coma o sin comas quedan FUERA — laterales
-     *       registradas y pineadas byte-idénticas);
+     *  (N1) el prefijo del match es EXACTAMENTE la marca narrativa con su
+     *       coma («ya,», «ahora,» o «ahorita,» — la familia c.1027/c.1037
+     *       trata las tres uniformemente; c.1095 resolvió la lateral FUERA
+     *       «ahora,»/«ahorita,» pineada byte-idéntica: mismo doble daño
+     *       medido 5/5 con sonda /tmp/probe1095/Probe.kt); las formas con
+     *       una sola coma (c.1094) o sin comas (c.1083) tienen guard
+     *       hermano propio — paridad disjunta;
      *  (N2) el match no lleva el sufijo «siguiente»; y un calificador de día
      *       explícito («por la mañana de hoy», «…de mañana», «…ayer») queda
      *       FUERA: como [standalonePartOfDayPattern] incluye la forma genitiva
@@ -9038,7 +9041,7 @@ object NaturalTaskParser {
         if (match.value.lowercase().contains("siguiente")) return false
         if (Regex("""(?i)\bde\s+(?:hoy|ma[nñ]ana|ayer)\b""").containsMatchIn(match.value)) return false
         val prefix = text.substring(0, match.range.first).trim().lowercase()
-        if (!Regex("""^ya\s*,$""").matches(prefix)) return false
+        if (!Regex("""^(?:ya|ahora|ahorita)\s*,$""").matches(prefix)) return false
         val suffix = text.substring(match.range.last + 1)
         // La coma de cierre debe ser INMEDIATA (sin \s*): un resto « , …» del
         // título ya parcialmente borrado no puede simular la coma intercalada

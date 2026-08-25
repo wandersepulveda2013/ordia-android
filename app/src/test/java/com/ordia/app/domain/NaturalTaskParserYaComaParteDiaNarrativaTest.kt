@@ -32,10 +32,14 @@ import org.junit.Test
  * [mananaOccurrenceIsContent] (G5'): nunca divergen.
  *
  * Conservador (UNA lateral por ciclo, doctrina anti-overreach c.615):
- * laterales FUERA pineadas byte-idénticas abajo — prefijos «ahora/ahorita»
- * con el mismo daño medido, variantes con una sola coma, forma sin comas,
- * «siguiente»/«de hoy» (exclusiones doctrina c.955) y ambiguas
- * pretérito/presente («salimos»).
+ * laterales FUERA pineadas byte-idénticas abajo — variantes con una sola
+ * coma (c.1094), forma sin comas (c.1083), «siguiente»/«de hoy»
+ * (exclusiones doctrina c.955) y ambiguas pretérito/presente («salimos»).
+ * c.1095: los prefijos «ahora/ahorita» con el mismo daño medido (5/5, sonda
+ * /tmp/probe1095/Probe.kt) dejaron de ser lateral FUERA — extensión de N1
+ * del guard a la familia de marcas (familia uniforme c.1027/c.1037), re-pin
+ * legítimo abajo (precedente c.1035/c.1041/c.1083/c.1094); los verbos fuera
+ * de la lista cerrada c.950 («recogieron») siguen pineados byte-idénticos.
  */
 class NaturalTaskParserYaComaParteDiaNarrativaTest {
 
@@ -142,15 +146,18 @@ class NaturalTaskParserYaComaParteDiaNarrativaTest {
 
     // ---------- laterales FUERA pineadas byte-idénticas (registradas en BACKLOG) ----------
 
+    // c.1095: re-pin legítimo (precedente c.1035/c.1041/c.1083/c.1094) — los
+    // prefijos «ahora,»/«ahorita,» eran lateral FUERA pineada byte-idéntica
+    // (15:00/09:00 falso + título con coma residual, mismo daño medido 5/5
+    // en /tmp/probe1095/Probe.kt); la familia c.1027/c.1037 trata las tres
+    // marcas uniformemente, así que N1 del guard se extendió a las tres.
     @Test
-    fun ahoraComaPorLaTardeLlegoElPaquete_lateralFueraPin() =
-        assertPin("ahora, por la tarde, llegó el paquete",
-            LocalDateTime.of(2026, 8, 22, 15, 0), "ahora, , llegó el paquete")
+    fun ahoraComaPorLaTardeLlegoElPaquete_resueltaC1095() =
+        assertNarrativeIntact("ahora, por la tarde, llegó el paquete")
 
     @Test
-    fun ahoritaComaPorLaMananaMeLlamoMama_lateralFueraPin() =
-        assertPin("ahorita, por la mañana, me llamó mamá",
-            LocalDateTime.of(2026, 8, 22, 9, 0), "ahorita, , me llamó mamá")
+    fun ahoritaComaPorLaMananaMeLlamoMama_resueltaC1095() =
+        assertNarrativeIntact("ahorita, por la mañana, me llamó mamá")
 
     // c.1083: re-pin legítimo (precedente c.1035/c.1041) — la forma SIN
     // comas era lateral FUERA pineada byte-idéntica (09:00 falso + título
@@ -163,7 +170,7 @@ class NaturalTaskParserYaComaParteDiaNarrativaTest {
     // /tmp/probe1094/Probe.kt: 9/9 con ancla falsa + título mutilado) y
     // c.1094 las resolvió (cuarta alternativa de [yaPreteriteNarrativeSuffix]
     // + guard hermano una-sola-coma). Las de «ahora/ahorita» con DOS comas
-    // SIGUEN FUERA pineadas byte-idénticas abajo.
+    // quedaron resueltas en c.1095 (re-pin legítimo arriba).
     @Test
     fun yaSinComasPorLaManana_resueltaC1083() =
         assertNarrativeIntact("ya por la mañana me tomé la pastilla")

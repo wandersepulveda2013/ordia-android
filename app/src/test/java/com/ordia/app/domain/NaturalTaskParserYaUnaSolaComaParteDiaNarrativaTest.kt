@@ -36,8 +36,9 @@ import org.junit.Test
  *  (N3) el predicado abre con pretérito inequívoco
  *       ([weekdayPreteriteNarrativeSuffix]) y la paridad de comas es XOR
  *       (una sola): 0 comas → c.1083, 2 comas → c.1077 (para «ya»; las de
- *       «ahora/ahorita» con dos comas SIGUEN FUERA pineadas byte-idénticas
- *       en esos tests), las ambiguas «salimos» quedan FUERA como en c.950.
+ *       «ahora/ahorita» con dos comas quedaron FUERA en este ciclo —
+ *       resueltas en c.1095 con la extensión N1 del guard c.1077), las
+ *       ambiguas «salimos» quedan FUERA como en c.950.
  *
  * Fix en DOS puntos (misma doctrina c.1077/c.1083 — decisión sobre el texto
  * ORIGINAL en [parse] + flag propagado):
@@ -56,9 +57,9 @@ import org.junit.Test
  *
  * Conservador (UNA lateral por ciclo, doctrina anti-overreach c.615):
  * laterales FUERA pineadas byte-idénticas en los tests de las hermanas —
- * las de «ahora/ahorita» con DOS comas (pins c.1077), «siguiente»/«de
- * hoy», presente/imperativo/infinitivo/ambigua, y verbos fuera de la lista
- * cerrada c.950 («acosté»).
+ * «siguiente»/«de hoy», presente/imperativo/infinitivo/ambigua, y verbos
+ * fuera de la lista cerrada c.950 («acosté»). Las de «ahora/ahorita» con
+ * DOS comas (antes pins FUERA c.1077) se resolvieron en c.1095.
  */
 class NaturalTaskParserYaUnaSolaComaParteDiaNarrativaTest {
 
