@@ -586,10 +586,12 @@ object ContextIntentEngine {
     // c.1129: lateral (a-bis) «el almuerzo» (NULL PRE medido sonda c.1127
     // C18, re-pin legítimo del pin c.1128, precedente c.1035/c.1041/c.1094);
     // c.1133: lateral (a-ter) «el dinero de la excursión» (NULL PRE medido
-    // sonda c.1127 C19, re-pin legítimo del pin c.1129); restan laterales
-    // (a-quater) «ropa de recambio», (a-quinquies) «proyecto de ciencias».
+    // sonda c.1127 C19, re-pin legítimo del pin c.1129); c.1141: lateral
+    // (a-quater) «la ropa de recambio» (NULL PRE medido sonda c.1127 C16,
+    // re-pin legítimo del pin c.1133); resta la lateral (a-quinquies)
+    // «proyecto de ciencias».
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -5265,13 +5267,15 @@ object ContextIntentEngine {
                 // merienda» c.1128 → "Llevar la merienda al colegio",
                 // lateral «el almuerzo» c.1129 → "Llevar el almuerzo al
                 // colegio", lateral «el dinero de la excursión» c.1133 →
-                // "Llevar el dinero de la excursión al colegio", lockstep
-                // con [ERRAND_SCHOOL_RUN_FLOOR]): verbo preservado con su
-                // persona (doctrina c.653), residuo temporal de cola depurado
-                // por [sanitizeTitle]; el match arranca en el verbo, así el
-                // acuse/prefijo temporal no ensucia el título (lección c.616).
+                // "Llevar el dinero de la excursión al colegio", lateral «la
+                // ropa de recambio» c.1141 → "Llevar la ropa de recambio a
+                // la guardería", lockstep con [ERRAND_SCHOOL_RUN_FLOOR]):
+                // verbo preservado con su persona (doctrina c.653), residuo
+                // temporal de cola depurado por [sanitizeTitle]; el match
+                // arranca en el verbo, así el acuse/prefijo temporal no
+                // ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {
