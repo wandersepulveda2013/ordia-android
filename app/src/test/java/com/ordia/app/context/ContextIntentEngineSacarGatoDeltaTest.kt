@@ -32,7 +32,7 @@ import org.junit.Test
  * cláusula, «no voy a…» por el guard c.1009, pasado/hedge no casan el
  * infinitivo literal, sintagma nominal NULL. Acotado deliberado (UNA por
  * ciclo): el diminutivo «sacar al gatito» sigue FUERA (`\b` final —
- * hermano simétrico del pin «perrito» c.740, lateral documentada).
+ * hermano simétrico del pin «perrito» c.740, lateral documentada, RESUELTA en c.1054).
  */
 class ContextIntentEngineSacarGatoDeltaTest {
 
@@ -144,7 +144,9 @@ class ContextIntentEngineSacarGatoDeltaTest {
     // ---- Pin FUERA byte-idéntico (lateral documentada, UNA por ciclo) ----
 
     @Test
-    fun `sacar al gatito fuera lateral documentada diminutivo hermano perrito c740`() {
-        assertNull(analyze("sacar al gatito mañana"))
+    fun `sacar al perrito fuera lateral documentada diminutivo hermano c740`() {
+        // c.1054 resolvió «sacar al gatito» (pin anterior); el nuevo FUERA
+        // es el diminutivo perro, hermano simétrico (\b final lo descarta).
+        assertNull(analyze("sacar al perrito mañana"))
     }
 }
