@@ -770,7 +770,7 @@ object ContextIntentEngine {
     // TASK «hacer» por subcadena (hermana de c.860/c.862). Sin cláusula
     // dedicada en [imperativeIsNegated] (aritmética c.859/c.860/c.862).
     private val ERRAND_BLOOD_TEST_FLOOR =
-        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido)\b""")
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?)\b""")
             // c.881: objeto «tatuaje» en la familia «hacerse» (lateral medida
             // NULL c.862, hermana de análisis/prueba-de-sangre; gestión
             // personal acotada al objeto, anti-overreach).
@@ -784,6 +784,15 @@ object ContextIntentEngine {
             // registrada en el test c.876 convertida a captura, precedente
             // c.843). Soundcheck del músico/técnico/evento con desplazamiento;
             // el ancla `de sonido` excluye el bivalente «prueba del coche».
+            // c.1115: objeto «analítica(s)» — candidata (a) de la clase
+            // DECIMOTERCERA (sonda persistida c.1102, caso C2): LA forma
+            // coloquial femenina de la analítica de sangre («hacerme las
+            // analíticas en ayunas»), medida NULL con sonda efímera
+            // /tmp/probe1115/Probe.kt (8/8 candidatas NULL, 7/7 pines NULL,
+            // envolvente «recuérdame…» TASK 0.54 intacta vía candado c.613,
+            // 8/8 regresiones HIT). Con/sin tilde (anal[ií]); el enclítico
+            // reflexivo sigue EXIGIDO (doctrina c.862: la forma desnuda
+            // «hacer la analítica (de datos)» es bivalente y queda FUERA).
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -5057,9 +5066,10 @@ object ContextIntentEngine {
                 // ("…el lunes"). Objeto extendido al sinónimo «prueba(s)
                 // de sangre» (c.876, lockstep con el piso), al tatuaje
                 // (c.881), a «prueba(s) de embarazo» (c.882) y a
-                // «prueba(s) de sonido» (c.889).
+                // «prueba(s) de sonido» (c.889) y a «analítica(s)»
+                // (c.1115, lockstep con el piso).
                 val matchBloodTest = Regex(
-                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido)\b.*)""",
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBloodTest != null) {

@@ -103,6 +103,8 @@ fun main() {
 
     // --- CANDIDATAS (salud/autocuidado: compromisos cotidianos plausibles) ---
     show("C1",  "pedir hora al dentista mañana")
+    // c.1115: C2 RESUELTA → ERRAND 0.45 «Hacerme las analíticas en ayunas»,
+    // dueAt=true (objeto «analítica(s)» en ERRAND_BLOOD_TEST_FLOOR c.862).
     show("C2",  "hacerme las analíticas en ayunas la semana que viene")
     show("C3",  "renovar las gafas este mes")
     show("C4",  "recoger los resultados del análisis el jueves")
