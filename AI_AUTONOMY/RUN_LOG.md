@@ -1,3 +1,13 @@
+## 2026-08-25 — run c.1111 (este lado, renumerado c.1110→c.1111 por carrera de marcador con el hermano 2d1392be — primer-marcador-gana): colisión duplicada c.1105 resuelta NO-destructiva + complemento (pin camión)
+
+- HEAD inicial (sync): `1ea434e9` (tras push rechazado de mi fix propio c.1105 `2e8105ff`: el hermano había pusheado primero `644b2c55` — MISMA unidad «inflar las ruedas del coche», rama estrictamente más amplia `(?:del|de mi/tu/su) (coche|carro|auto)` + archivo de tests propio de 15 tests).
+- Resolución (precedente c.1092/c.1094/c.1096/c.1102, primer-push-gana): `git rebase --abort` + adopción del HEAD remoto; mi commit duplicado descartado sin tocar historial remoto (queda en reflog local). Marcadores y líneas ajenos intactos.
+- Verificación INDEPENDIENTE de la unión adoptada: suite del dominio **OK (8634 tests)** + smoke dominio 25/25 + smoke automation 9/9 en mi entorno.
+- Complemento real (lo único que mi versión tenía ausente en la del hermano): pin EJECUTABLE de alcance «inflar las ruedas del camión» sigue FUERA (`pin camion sigue fuera` en ContextIntentEngineInflarRuedasCocheFloorTest; assertNull — girar a captura si un ciclo futuro la adopta). Suite final **OK (8635 = 8634 + 1)**; smokes 25/25 y 9/9.
+- Candidata restante (UNA por ciclo, pin en BACKLOG): (e) «inflar las ruedas del camión». Cero código de producción tocado en este ciclo (solo test pin + docs).
+- Determinista, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: candidatas P1 del BACKLOG (lateral c.1098 recurrencias de parte del día; pediatra si el hermano c.1106 la abandona; clase DECIMOTERCERA restantes según sonda c.1102).
+
 ## 2026-08-25 — run c.1102-complemento (este lado, colisión con el hermano sobre la MISMA unidad resuelta NO-destructiva; complemento persistido)
 
 - HEAD inicial: `22741a2` (mi marcador EN CURSO c.1102 pushed). HEAD final: `dece72de` + commit propio del complemento. (Verificación JVM re-medida sobre `dece72de`: c.1103 parser FIXED +16 tests es región DISJUNTA; sonda byte-idéntica en las 5 bases.)
@@ -18230,3 +18240,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Colisión de marcador documentada: mi marcador local c.1105 rechazado (el hermano fijó c.1105 primero, `cea218b`) → descartado con `reset --soft` SOLO sobre mi commit NO publicado + rebase abortado limpio; renumerado c.1106 (primer-marcador-gana, precedente c.1094/c.1096/c.1102).
 - Commits: `0e1c11e` marcador EN CURSO c.1106 → fix+tests+docs a continuación. Nunca force, nunca main.
 - Próxima prioridad: candidata restante de la clase DECIMOTERCERA ((a) «hacerme las analíticas», (c) «sacar cita», (d) «fisioterapia», (e) «revisión de la vista», (f) «limpieza dental», (g) «ecografía» — UNA por ciclo) o la residual «llevar al niño al pediatra» (región FLOORS, tras cierre de c.1105), respetando marcadores hermanos activos (OH2 c.1106 parser-caps lista de días, SU c.1105 floors coche, OH c.1105 CommitmentEngine (?iu), OH c.1104 — NO TOCAR).
+
+### Run OH — ciclo c.1107 (2026-08-25) — candidata (h) DECIMOTERCERA: guard anti-AVERSIÓN «odio/detesto/aborrezco + infinitivo»
+
+- HEAD inicial: `85ddffa` (mi marcador EN CURSO c.1107, publicado al inicio del run).
+- **Problema**: P1/P2 precisión — la AVERSIÓN con infinitivo («odio ir al dentista») capturaba como compromiso FIRME (APPOINTMENT 0.67…0.77 con fecha, CALL 0.57, SHOPPING/HOUSEHOLD 0.45, EXERCISE 0.59): la captura pasiva persistía exactamente lo contrario de la actitud del usuario, contaminando What Now. Hermano del guard de plan negado c.1009/c.1044/c.1091 (misma clase de falso compromiso).
+- **Sonda PRE efímera** `/tmp/probe1107/Probe.kt` (motor real vía `tools/run_probe.sh`, base `85ddffa`): 12 capturas como falso compromiso medidas; pines «no odio…»/«odiaría…»/«mi madre odia…» HIT (laterales registradas); «odio los lunes»/«odio pagar la luz»/«qué odio tiene el dentista»/«odio cuando suena la alarma» NULL estructural; regresiones 8/8 HIT.
+- **TDD estricto**: 27 tests nuevos `ContextIntentAversionGuardTest` — RED exacto EXACTAMENTE 12 fallos (los 12 GAPs medidos; pines y regresiones verdes desde RED) → GREEN 27/27 en 1 iteración (cero ajustes).
+- **Fix** (lockstep 2 puntos): llamada `if (aversionGoverns(lower)) return 0f` en la cadena de guards de `scoreKind` (tras `planWrapperIsNegated`) + función privada `aversionGoverns` junto a `planWrapperIsNegated` (regex inline hermana `\b(?<!no )(?:odio|detesto|aborrezco)\s+infinitivo`; descarta TODA la clasificación, todos los kinds).
+- **Anti-overreach**: `(?<!no )` («no odio…» pin byte-idéntico HIT); infinitivo inmediato exigido (sustantivos NULL estructural); acotado a presente de indicativo 1ª persona («odiaría…»/«mi madre odia…» laterales registradas, pineadas byte-idénticas HIT).
+- **Sonda POST** (mismas frases): 12/12 NULL; pines laterales HIT intactos; regresiones 8/8 HIT idénticas.
+- **Pruebas**: `bash tools/run_filtered_test.sh ContextIntentAversionGuardTest` → OK (27); `bash tools/run_domain_tests.sh` → OK (8628) pre-integración; smokes dominio 25/25 y automation 9/9.
+- **Integración NO-destructiva (colisión documentada)**: remoto avanzó `85ddffa`→`7eb7122` durante mi verificación (hermano OH5 c.1106 pediatra fijado `734a86a` + marcadores EN CURSO c.1109 assistant / c.1110 dermatólogo). Commit local → `pull --rebase` LIMPIO (regiones DISJUNTAS: mis guards vs APPOINTMENT/assistant; cero conflictos, cero force, cero trabajo ajeno tocado).
+- **Suite UNIÓN FINAL medida post-rebase**: **OK (8671 = 8644 remoto + 27 míos — aritmética exacta)**, 0 fallos; smokes 25/25 y 9/9.
+- **Commits**: `0569382` (local) → rebasado `51ace4e` (fix+tests); docs a continuación. Nunca force, nunca main.
+- **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Próxima prioridad**: candidatas restantes de la clase DECIMOTERCERA — (a) «hacerme las analíticas», (c) «sacar cita para el oftalmólogo», (d) «ir a fisioterapia», (e) «revisión de la vista», (f) «limpieza dental», (g) «ecografía», (j) «sacar la muela», (k) «empaste», (l) «revisión ginecológica», (m) «operar la rodilla», (n) «empezar la dieta» ((b) pediatra RESUELTA c.1106, (h) aversión RESUELTA aquí, (i) dermatólogo EN CURSO hermano c.1110) — UNA por ciclo, respetando marcadores activos.

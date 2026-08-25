@@ -171,6 +171,18 @@ class ContextIntentEngineInflarRuedasCocheFloorTest {
     }
 
     @Test
+    fun `pin camion sigue fuera`() {
+        // c.1111 (complemento): pin de alcance — «inflar las ruedas del
+        // camión» queda FUERA de la rama c.1105 (doctrina UNA forma por
+        // ciclo). Si un ciclo futuro la captura, este pin se gira a
+        // captura (precedente: pin c.1097 girado en c.1105).
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "inflar las ruedas del camión", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
     fun `decoy objeto precio descartado`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "inflar el precio del coche", 1000)
