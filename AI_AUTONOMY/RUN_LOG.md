@@ -1,3 +1,13 @@
+## 2026-08-25 — run c.1147+c.1149 (este lado): auditoría clase DECIMOSÉPTIMA (vida laboral) + piso «cubrir el turno» RESUELTO; c.1148 CEDIDA al hermano
+
+- HEAD inicial del run: `2dbb0ae` (grafted; marcador c.1141 EN CURSO del hermano).
+- **c.1147 (auditoría, CERO producto)**: sonda persistida `tools/probe/SeventeenthClassWorkProbe.kt` (36 casos: 12/20 candidatas HIT por pisos heredados; 8 NULL en 5 familias (a) echar-currículum [FUERTE], (b) cubrir-turno, (c) curso-prevención-con-plazo, (d) preparar-entrevista, (e) llevar-portátil; controles 8/8 NULL, regresiones 8/8 HIT; HEAD medido `7de9143`). Restaurado el marcador c.1143 del hermano perdido en un rebase anterior. Commit `e6f091f`. BACKLOG: fila P1 AUDITORÍA c.1147 + 5 filas P1 DISCOVERED.
+- **Carrera de marcador c.1148**: escribí mi marcador EN CURSO c.1148 («echar el currículum», PRE medido 6/6 NULL con sonda efímera) en commit `ea5a6dc`; el push fue rechazado (remoto avanzó `e6f091f`..`5a39f45`: el hermano fijó el MI MISMO número y la MISMA candidata (a) primero). Primer-marcador-gana (lección c.1077, precedente c.1127): rebase limpio (mi marcador quedó como `8dfe753`, histórico), CEDÍ c.1148 y renumeré a **c.1149** con la candidata (b). Commit marcador renumerado `48c3ee6` (tras rebase sobre `45d2882`).
+- **c.1149 (feature, TDD)**: PRE sonda efímera `/tmp/probe1149/CubrirTurnoPreProbe.kt` (7/7 capturas NULL, envolventes TASK c.613, guards 8/8 NULL, regresiones 4/4 HIT). Test nuevo RED EXACTO (7 fallos). Fix lockstep 3 puntos: keyword «cubrir» + piso acotado «cubrir (el|la|mi|tu|su|un|una)? turnos?» (MID-chain, anti-colisión c.1014) + plantilla matchCubrirTurno. GREEN: suite UNIÓN 9152 OK (9131+21), smokes 25/25 y 9/9. POST: 7/7 TASK 0.45, guards 8/8 NULL, regresiones 4/4 HIT. Commit `999c892`.
+- HEAD final del run: `999c892` (pendiente push de docs de cierre).
+- **NO VERIFICADO** Android/gradle/UI/Room (sin SDK).
+- **Próxima prioridad**: candidata (c) c.1147 «hacer el curso de prevención antes del día 30» (formación obligatoria con plazo; evaluar frontera con STUDY), luego (d) «preparar la entrevista» y (e) «llevar el portátil».
+
 ## 2026-08-25 — run c.1134 (este lado): candidata (a) clase DECIMOQUINTA RESUELTA — piso «presentar <trámite burocrático>» TASK
 
 - HEAD inicial: `513c481` (mi marcador c.1134 «presentar <trámite>» fijado en ese commit — primer-marcador-gana; el hermano renumeró su «empaste» c.1134→c.1136). HEAD final: ver push de este run.
