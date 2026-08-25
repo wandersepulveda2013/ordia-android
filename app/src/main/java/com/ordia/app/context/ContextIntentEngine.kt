@@ -3438,7 +3438,26 @@ object ContextIntentEngine {
             // argumento que c.895b/c.895c); el pasado «facturé/hice» y
             // el subjuntivo «facture» no casan (forma EXACTA).
             Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+el\s+vuelo\b""").containsMatchIn(lower) ||
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower) ||
+            // c.1150: candidata (b) clase DECIMOSEXTA — «salir para el
+            // aeropuerto a las 5 del lunes» / «salir para la estación
+            // mañana» (medida NULL 1/1 en la sonda c.1137 C9 y re-medida
+            // PRE sobre ce87703: 5/5 candidatas NULL — ni «salir» ni
+            // «aeropuerto»/«estación» eran keywords, gate c.751). La
+            // logística previa al viaje: si no sales a tiempo, lo
+            // pierdes todo (vuelo/tren perdido, el olvido con mayor
+            // coste de la clase). Objeto EXIGIDO «el aeropuerto» | «la
+            // estación» (anti-overreach: los bivalentes «salir para el
+            // trabajo/la oficina» quedan FUERA; «salir» es extremadamente
+            // polivalente — de fiesta/con alguien/del trabajo). Hermano
+            // EXACTO de «sellar el paro» c.1143. Lockstep keywords-frase
+            // en ContextIntent.TASK + plantilla en extractTitle (lección
+            // c.616). La negada la cubre el lookbehind `(?<!no )` (mismo
+            // argumento que c.1140/c.895c); el pasado «salí» y el
+            // presente declarativo «salgo» no casan (forma EXACTA
+            // infinitivo). Kind TASK (partida con hora crítica, hermana
+            // de «preparar la maleta» c.715 y «facturar el vuelo» c.1140).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )salir\s+para\s+(?:el\s+aeropuerto|la\s+estaci[oó]n)\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -5028,6 +5047,15 @@ object ContextIntentEngine {
                 if (matchFacturarVuelo != null) return "Facturar ${matchFacturarVuelo.groupValues[2]}"
                 val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCheckIn != null) return "Hacer ${matchHacerCheckIn.groupValues[2]}"
+                // c.1150: plantilla hermana del piso «salir para (el
+                // aeropuerto|la estación)» (ancla/guard idénticos; lección
+                // c.616: el match arranca en el verbo, así acuse/prefijo
+                // temporal se despojan; el residuo temporal de cola lo
+                // depura [sanitizeTitle]; el objeto extendido —«de tren»—
+                // se conserva). Los bivalentes («salir para el trabajo»)
+                // nunca llegan aquí porque el piso no los captura.
+                val matchSalirAeropuerto = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(salir)\s+(para\s+(?:el\s+aeropuerto|la\s+estaci[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchSalirAeropuerto != null) return "Salir ${matchSalirAeropuerto.groupValues[2]}"
 
                 null
             }

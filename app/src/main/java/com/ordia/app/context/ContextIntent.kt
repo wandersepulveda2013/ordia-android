@@ -290,6 +290,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // Bivalente («cubrir la mesa/los gastos»): 0.12 sola inerte <
         // umbral (gate c.751, medido PRE); el piso exige el objeto «turno».
         "cubrir",
+        // c.1150: keywords-frase «salir para el aeropuerto» / «salir para
+        // la estación» (lockstep con el piso acotado «salir para (el
+        // aeropuerto|la estación)», candidata (b) de la clase DECIMOSEXTA,
+        // NULL medida c.1137 C9; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Monosemánticas: partida al transporte. «salir» solo NO se añade
+        // (extremadamente polivalente: de fiesta/con alguien/del trabajo);
+        // «aeropuerto»/«estación» solos tampoco (sustantivos declarativos:
+        // «el aeropuerto cierra a las 10» sigue NULL deliberado). Sin la
+        // keyword la notificación ni llega al análisis (gate c.751).
+        "salir para el aeropuerto",
+        "salir para la estación",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
