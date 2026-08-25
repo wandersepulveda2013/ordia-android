@@ -22,12 +22,17 @@ import org.junit.Test
  * por otras vías («no voy a tomar la medicación», «no quiero comprar
  * leche», «no cuento con ir a la reunión»); 7/7 afirmativas HIT
  * (regresión); 2ª persona «no vas a llamar a mamá» HIT CALL 0.57
- * (FUERA de alcance documentado — lateral registrada). Fix mínimo
+ * (FUERA de alcance documentado — lateral registrada; RESUELTA en
+ * c.1044: medida PRE 7/7 falsos compromisos, guard extendido a 2ª
+ * persona singular — ver ContextIntentEngineNoVasSegundaPersonaGuardTest).
+ * Fix mínimo
  * (hermano de c.681/c.835): nuevo guard [planWrapperIsNegated] en
  * [scoreKind] que descarta TODA la clasificación (la frase entera
  * niega el plan, no un kind concreto). Determinista (regex), sin IA
- * fingida. Anti-overreach: 2ª persona («no vas a…») y presente simple
- * («no voy al super») NO se tocan — comportamiento pineado.
+ * fingida. Anti-overreach: 2ª persona SINGULAR («no vas a…») resuelta
+ * en c.1044 (era la contradicción medida); 2ª persona PLURAL («no vais/
+ * van a…») y presente simple («no voy al super») NO se tocan —
+ * comportamiento pineado.
  */
 class ContextIntentEnginePlanWrapperNegatedTest {
 
@@ -173,10 +178,12 @@ class ContextIntentEnginePlanWrapperNegatedTest {
     // ---- FUERA de alcance (pin de comportamiento actual) ----
 
     @Test
-    fun `segunda persona no vas a llamar no se toca`() {
-        val i = analyze("no vas a llamar a mamá")
-        assertNotNull(i)
-        assertEquals(ContextIntentKind.CALL, i!!.kind)
+    fun `segunda persona no vas a llamar resuelta c1041 ahora descarta`() {
+        // Pin original (HIT CALL 0.57) era la contradicción medida —
+        // lateral c.1007 resuelta en c.1044: falso compromiso igual que
+        // la 1ª persona. Cobertura completa en
+        // ContextIntentEngineNoVasSegundaPersonaGuardTest.
+        assertNull(analyze("no vas a llamar a mamá"))
     }
 
     @Test

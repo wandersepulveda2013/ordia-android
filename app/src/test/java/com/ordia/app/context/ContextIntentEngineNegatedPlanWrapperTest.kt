@@ -32,9 +32,13 @@ import org.junit.Test
  * «(ya )no pienso/pensamos/planeo/planeamos/quiero/queremos +
  * infinitivo», «(ya )no cuento/contamos con + infinitivo».
  * Anti-overreach (alcance fijado por los guards de esta clase):
- * (1) 2ª persona «no vas a …» FUERA (lateral documentada c.1007 —
- * en captura pasiva de notificaciones la 2ª persona suele ser OTRO
- * hablante; no se toca en esta unidad); (2) la coma «no, voy a …»
+ * (1) 2ª persona SINGULAR «no vas a …» — lateral documentada c.1007
+ * RESUELTA en c.1044 (medida PRE: 7/7 candidatas capturaban como
+ * falso compromiso; el contenido de la notificación niega el plan
+ * sea cual sea el sujeto — ver
+ * [ContextIntentEngineNoVasSegundaPersonaGuardTest]); 2ª persona
+ * PLURAL «no vais/van a …» sigue FUERA (pineada HIT, no medida);
+ * (2) la coma «no, voy a …»
  * (respuesta + plan afirmativo) NO casa (`no\s+` exige espacio);
  * (3) inversión «sin»: «no quiero irme SIN pagar la luz» — lo que
  * sigue a «sin» SÍ es compromiso real («pagar la luz»), así el
@@ -161,10 +165,12 @@ class ContextIntentEngineNegatedPlanWrapperTest {
     }
 
     @Test
-    fun `segunda persona no vas a queda fuera del guard`() {
-        val i = analyze("no vas a llamar a mamá esta noche")
-        assertNotNull(i)
-        assertEquals(ContextIntentKind.CALL, i!!.kind)
+    fun `segunda persona no vas a resuelta c1041 ahora descarta`() {
+        // Lateral c.1007 resuelta en c.1044: el pin original (HIT CALL)
+        // era la contradicción medida — «no vas a …» es falso compromiso
+        // igual que la 1ª persona. Cobertura completa en
+        // ContextIntentEngineNoVasSegundaPersonaGuardTest.
+        assertNull(analyze("no vas a llamar a mamá esta noche"))
     }
 
     @Test
