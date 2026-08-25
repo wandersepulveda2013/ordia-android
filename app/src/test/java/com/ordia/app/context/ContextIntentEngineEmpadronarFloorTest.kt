@@ -10,7 +10,7 @@ import org.junit.Test
  * burocracia/administración; sonda persistida
  * `tools/probe/FifteenthClassAdminProbe.kt` C2/K3/K5/K6) —
  * «empadronarme en el nuevo piso este mes» medida NULL 4/4 en PRE con
- * sonda efímera sobre HEAD a1d8a643 (verbo reflexivo monosemántico sin
+ * sonda efímera sobre HEAD 16795c7e (verbo reflexivo monosemántico sin
  * keyword: la notificación ni llegaba al análisis, gate c.751).
  * El padrón municipal tiene plazo: olvidarlo cuesta multas/recargos y
  * la pérdida de ayudas (vivienda, escuela). Olvido silencioso P1.

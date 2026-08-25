@@ -1,3 +1,20 @@
+## 2026-08-25 — run c.1156 (este lado): CIERRE «empadronarme en el nuevo piso» (lateral (d) clase DECIMOQUINTA) — FIXED VERIFIED (JVM)
+
+- **HEAD inicial del run**: `a1d8a643` local → sincronizado ff-only a `16795c7e` antes de medir (el hermano había pusheado su marcador c.1165 durante mi cierre c.1155).
+- **Problema (P1)**: «empadronarme en el nuevo piso este mes» — medida NULL en la auditoría c.1132 (sonda persistida `tools/probe/FifteenthClassAdminProbe.kt` C2). Verbo reflexivo monosemántico SIN keyword: la notificación ni llegaba al análisis (gate c.751). El padrón municipal tiene plazo: olvidarlo cuesta multas/recargos y la pérdida de ayudas (vivienda, escuela). Olvido silencioso en captura pasiva.
+- **PRE re-medido** (sonda efímera `/tmp/probe1156`, motor real vía `tools/run_probe.sh`, HEAD `16795c7e`): 4/4 candidatas NULL («este mes», «el lunes», plural «empadronarnos», desnuda «empadronarme»), 7/7 guards NULL, 6/6 regresiones HIT (incluye envolventes «recuérdame empadronarme…» y «tengo que empadronarme…» ya HIT 0.45 por camino genérico — pines de regresión, no candidatas).
+- **TDD RED**: test NUEVO `ContextIntentEngineEmpadronarFloorTest.kt` (16 tests) → RED EXACTO 4 fallos (solo las capturas; guards y regresiones verdes desde RED). Suite RED: 9351 run / 4 failures.
+- **Fix lockstep 3 puntos** (hermano EXACTO del piso «cubrir el turno» c.1149 con morfología reflexiva c.1044/c.1115):
+  1. keyword-VERB «empadronar» en `ContextIntent.kt` (0.12 sola inerte < umbral; «empadronamiento» NO casa por subcadena: rompe -a- vs -ar);
+  2. piso reflexivo acotado «empadronar(me|te|se|nos|os)» en `hasStrongTaskImperative` tras «sellar el paro» c.1143 — misma ancla ^|acuse|temporal y guard `(?<!no )`; kind TASK (trámite SIN desplazamiento explícito, hermana de «sellar el paro» c.1143; doctrina ERRAND c.842/c.862 solo gobierna el desplazamiento);
+  3. plantilla `matchEmpadronar` en `extractTitle` tras `matchSellarParo` — pronombre enclítico preservado (doctrina c.653, hermana de «apuntarse» c.856); residuo temporal de cola lo depura `sanitizeTitle`.
+- **GREEN + POST**: suite OK (9351 = 9335 + 16); sonda POST: 4/4 HIT TASK 0.45 con títulos exactos («Empadronarme en el nuevo piso» con dueAt=true para «el lunes»; «este mes»/«esta semana» cola conservada sin dueAt — familia conocida de colas medida C9/R1/R2 c.1132), 7/7 guards NULL intactos (negada, pretérito «ya me empadroné», subjuntivo-duda «quizá me empadronen», nominal «el certificado de empadronamiento», declarativa, no-reflexiva «empadronar al niño» lateral deliberada, «hacer la mudanza» C20 lateral separada), 6/6 regresiones byte-idénticas. Smokes: dominio 25/25, automation 9/9.
+- **Colisión**: push rechazado (el hermano integró `9c44ab21` fix c.1154 «inscribí…ayer» EXERCISE +14 y `03ef53fb` auditoría-sonda c.1165 DECIMOCTAVA docs-only) → rebase NO destructivo limpio (regiones disjuntas, auto-fusión) → push OK. **Suite UNIÓN FINAL re-medida post-rebase (lección c.1014): OK (9365 = 9349 remoto + 16 míos, aritmética EXACTA)**, smokes 25/25 y 9/9.
+- **Commits**: feat `40019780` → (rebase) → `935e4b20`; docs cierre (este) siguiente.
+- **HEAD final**: ver commit de docs.
+- **Próxima prioridad**: gap FUERTE «felicitar a <persona>» (auditoría c.1165, clase DECIMOCTAVA; DISJUNTA de c.1157/c.1158 activos del hermano); laterales XV libres: «hacer la mudanza» (C20), «empadronar al niño».
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/Room/UI (sin SDK, nunca fingido). Nunca force, nunca main.
+
 ## 2026-08-25 — run c.1165 (este lado): AUDITORÍA de descubrimiento clase DECIMOCTAVA (vida social y eventos) — sonda persistida, CERO producto
 
 - **HEAD inicial del run**: `45ee3515` (mi c.1162 «dar de alta/baja el seguro» ya

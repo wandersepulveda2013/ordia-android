@@ -3423,7 +3423,7 @@ object ContextIntentEngine {
             // nuevo piso este mes"), lateral (d) de la clase DECIMOQUINTA
             // burocracia (sonda persistida c.1132
             // `tools/probe/FifteenthClassAdminProbe.kt` C2; NULL PRE
-            // re-medido sobre a1d8a643 con sonda efímera: 4/4 candidatas
+            // re-medido sobre 16795c7e con sonda efímera: 4/4 candidatas
             // NULL, 7/7 guards NULL, 6/6 regresiones HIT). Hermano
             // EXACTO del piso «cubrir el turno» c.1149 con la
             // morfología reflexiva de c.1044/c.1115: kind TASK (trámite
