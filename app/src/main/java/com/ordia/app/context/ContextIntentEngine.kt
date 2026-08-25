@@ -675,6 +675,31 @@ object ContextIntentEngine {
     // caía a NULL (defecto medido con sonda RegexCheck en c.1158).
     private val ERRAND_STATION_RUN_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+|\s+)?(niñ[oa]s?|hij[oa]s?|padres?|abuel[oa]s?|herman[oa]s?|familia|mam[áa]|pap[áa]|madre|padre|mujer|marido|suegr[oa]s?)\s+a(?:l| la)\s+(aeropuerto|estaci[oó]n)\b""")
+    // Piso transportativo de DISPOSITIVO DE TRABAJO (c.1157, candidata (e)
+    // de la auditoría c.1147, clase DECIMOSÉPTIMA — sonda persistida
+    // `tools/probe/SeventeenthClassWorkProbe.kt` C20 medida 1/1 NULL;
+    // re-medida PRE con sonda efímera: 6/6 capturas NULL, 9/9 guards
+    // NULL): «llevar el portátil al trabajo mañana» se DESCARTABA porque
+    // los pisos «llevar» tienen listas de objetos CERRADAS sin
+    // «portátil/ordenador» (niños/cole c.773 y sus objetos escolares
+    // c.1128/c.1129/c.1133/c.1141/c.1144, coche/taller c.684, niña/médico
+    // c.776, dativo enclítico c.854). Olvido silencioso P1: olvidar el
+    // portátil en casa cuesta el día de trabajo. «llevar» sigue bivalente,
+    // así el piso se ACOTA a objeto-dispositivo (`port[áa]til` —admite la
+    // grafía sin tilde, hermana `m[ée]dico` c.776— u `ordenador`, con
+    // determinante opcional el/la/mi/tu/su: «la portátil» es la forma
+    // femenina latinoamericana) + destino laboral EXIGIDO «al trabajo»
+    // (anti-overreach: «a la playa»/«al salón»/sin destino quedan FUERA —
+    // UNA forma por ciclo; «a la oficina»/«al curro» y el plural «los
+    // portátiles» son laterales ABIERTAS). Interop: objetos y destinos
+    // disjuntos del resto de pisos «llevar» — sin solape. Kind deliberado:
+    // ERRAND (acarreo físico, doctrina de la familia c.1144). Lockstep
+    // con la plantilla matchWorkDeviceRun de [extractTitle] (lección
+    // c.616); CERO keywords nuevas («llevar» ya es keyword TASK histórica
+    // → gate c.751 satisfecho; 0.12 + bono temporal 0.1 = 0.22 < umbral
+    // sin el piso, así la negación/declarativo siguen descartados).
+    private val ERRAND_WORK_DEVICE_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+al\s+trabajo\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -1079,6 +1104,7 @@ object ContextIntentEngine {
         ERRAND_SCHOOL_RUN_FLOOR,
         ERRAND_MEDICAL_RUN_FLOOR,
         ERRAND_STATION_RUN_FLOOR,
+        ERRAND_WORK_DEVICE_FLOOR,
         ERRAND_FUEL_FLOOR,
         ERRAND_HAIRCUT_FLOOR,
         ERRAND_BLOOD_TEST_FLOOR,
@@ -5824,6 +5850,21 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchStationRun != null) {
                     return "${capitalizeFirst(matchStationRun.groupValues[1])} ${matchStationRun.groupValues[2]}"
+                }
+                // "llevar el portátil al trabajo" → "Llevar el portátil al
+                // trabajo" (c.1157, lockstep con [ERRAND_WORK_DEVICE_FLOOR]):
+                // verbo preservado con su persona (doctrina c.653; "Llevo el
+                // portátil…"), grafía del usuario intacta ("portatil" sin
+                // tilde se conserva), residuo temporal de cola depurado por
+                // [sanitizeTitle]; el match arranca en el verbo, así el
+                // acuse ("vale, …") y el prefijo temporal ("mañana …") no
+                // ensucian el título (lección c.616).
+                val matchWorkDeviceRun = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+al\s+trabajo).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchWorkDeviceRun != null) {
+                    return "${capitalizeFirst(matchWorkDeviceRun.groupValues[1])} ${matchWorkDeviceRun.groupValues[2]}"
                 }
                 // "echar gasolina" → "Echar gasolina" (c.829, lockstep con
                 // [ERRAND_FUEL_FLOOR]): verbo preservado (alineación
