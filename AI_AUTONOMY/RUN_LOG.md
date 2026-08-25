@@ -17294,3 +17294,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» vía `nowPattern` (P2, vertiente sin weekday sigue ABIERTA si la medida la confirma); «subir de peso» bounded guard (P2 precisión UNDÉCIMA).
 - COMPLETADO
+
+## Ciclo c.1042 [renumerado c.1041→c.1042 por colisión cycle-ID con SU c.1041 (parser weekday-final narrativa `e66b419`), fijada en re-fetch pre-push; regiones DISJUNTAS context vs parser; integración NO-destructiva `reset --soft` + stash + `pull --ff-only` + resolución conservando AMBOS lados; precedentes c.1000…c.1041] (2026-08-25, este lado, DISJUNTO context) — fix(context): ancla banda horaria con conector en captura pasiva (lateral medida C6/R8 de `EleventhClassDigitalProbe` c.1026 RESUELTA)
+- HEAD inicial: `c45b9bb` docs-close c.1040 del hermano. Base final tras integración: `e66b419` (SU c.1041, DISJUNTA parser).
+- Cambios: `ContextIntentEngine.kt` (fallback banda en `extractDateTime`, UN punto: `targetTime == null` → hora canónica mañana→09:00, tarde→15:00, noche→21:00, madrugada→04:00 — paridad `NaturalTaskParser.standalonePartOfDayPattern`; la fecha se sigue resolviendo por sus reglas; la hora numérica explícita gana), `ContextIntentEnginePorLaBandaTest.kt` (NUEVO, 12 tests), `tools/probe/EleventhClassDigitalProbe.kt` (KDoc lateral → RESUELTA), docs AI_AUTONOMY.
+- Bugs: captura pasiva con banda horaria («por la tarde/noche/mañana/madrugada» con conector) nacía SIN dueAt (P1 evitar olvidos; paridad perdida vs captura manual — el parser manual SÍ ancla desde c.2522).
+- Features: ninguna (fix de lateral registrada).
+- Tests: TDD estricto — RED exacto (7638 run sobre base `c45b9bb`, EXACTAMENTE 9 fallos = las 9 capturas; 3 guards verdes desde RED) → GREEN. Sonda efímera PRE `/tmp/probe1041/BandProbe.kt`: B1/B2/B3 dueAt=false → POST dueAt=true a hora canónica (15:00/21:00/09:00); guards intactos. Re-medición persistida `EleventhClassDigitalProbe`: C6/R8 dueAt=true, regresiones 8/8, controles 8/8. Suite UNIÓN FINAL (`e66b419` + mío): **OK (7645 = 7633 [SU c.1041] + 12 — aritmética exacta)**; smoke 25/25; automation 9/9. Determinista (regex), cero random.
+- Descubierto FUERA: «el día 5» tampoco ancla dueAt (R3 medido dueAt=false — lateral ABIERTA registrada); «numeric+banda» («cena a las 8 por la noche») sigue resolviendo AM por `timePattern` (documentado, no tocado — acotado a lo medido).
+- Commits: 1 commit fix+docs (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): parser «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2); context: 2ª persona «no vas a…» c.1009, «ponerme la vacuna» c.1011, «dale la pastilla…» c.1012, «pasear al gato» c.1018, plural «los pelos» c.842, «el día N» (R3 medida).
+- COMPLETADO
+

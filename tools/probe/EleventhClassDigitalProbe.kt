@@ -75,9 +75,12 @@ import com.ordia.app.context.ContextIntentEngine
  *   → RESUELTA c.1038 (guard anti-figurado en el piso c.724;
  *   G7 NULL, controles 8/8 correctos).
  *   OBSERVACIONES laterales (parser, NO de esta clase): «por la
- *   tarde/noche» no ancla dueAt (C6/R8 dueAt=false); «este mes»
- *   tampoco (ya registrado c.845/c.852) y queda en el título
- *   (C8 — lateral de colas ABIERTA de la familia de pisos).
+ *   tarde/noche» no ancla dueAt (C6/R8 dueAt=false)
+ *   → RESUELTA c.1042 (fallback de banda horaria con conector en
+ *   `ContextIntentEngine.extractDateTime`, paridad con
+ *   `NaturalTaskParser.standalonePartOfDayPattern`; C6/R8 dueAt=true
+ *   POST; «este mes» tampoco (ya registrado c.845/c.852) y queda en
+ *   el título (C8 — lateral de colas ABIERTA de la familia de pisos).
  */
 fun main() {
     fun a(t: String) = ContextIntentEngine.analyze(

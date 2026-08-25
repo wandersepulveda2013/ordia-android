@@ -5022,6 +5022,33 @@ object ContextIntentEngine {
             }
         }
 
+        // Banda horaria con conector ("a la / de la / por la / en la" + tarde|
+        // noche|mañana|madrugada) sin hora numérica explícita → hora canónica
+        // (c.1041, paridad con NaturalTaskParser.standalonePartOfDayPattern,
+        // l.2522 — mismas canónicas). Medido en la sonda c.1026 (C6/R8
+        // dueAt=false): "reiniciar el router por la tarde" capturaba el
+        // compromiso pero nacía SIN dueAt → sin recordatorio ni What Now (P1
+        // evitar olvidos). Sólo fallback: una hora numérica explícita ("a las
+        // 4 de la tarde") siempre gana (más específica). La fecha se sigue
+        // resolviendo por sus reglas propias ("mañana por la tarde" → mañana
+        // 15:00; "por la tarde" → hoy 15:00); la colisión "mañana" fecha vs.
+        // banda ya la gestiona mananaSuffix arriba.
+        if (targetTime == null) {
+            val bandMatch = Regex(
+                """\b(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|mañana|manana|madrugada)\b""",
+                RegexOption.IGNORE_CASE
+            ).find(lower)
+            if (bandMatch != null) {
+                targetTime = when (bandMatch.groupValues[1].lowercase()) {
+                    "mañana", "manana" -> LocalTime.of(9, 0)
+                    "tarde" -> LocalTime.of(15, 0)
+                    "noche" -> LocalTime.of(21, 0)
+                    "madrugada" -> LocalTime.of(4, 0)
+                    else -> null
+                }
+            }
+        }
+
         // Horas canónicas "al mediodía"/"a medianoche"/"a la medianoche" (c.587).
         // Paridad con NaturalTaskParser: esas palabras sueltas resuelven 12:00/00:00
         // (parser l.1532-1554 → explicitTimeData l.4395-4406). El [timePattern]

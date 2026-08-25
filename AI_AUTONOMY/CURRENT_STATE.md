@@ -15177,3 +15177,5 @@ c.1002/c.1003); +10 tests DISJUNTOS en
 «mañana», encargo sufijo, ambigua «comimos», regresiones H3/H2).
 Suite UNIÓN FINAL OK (7419 = 7409 + 10); smoke 25/25; automation 9/9.
 NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+
+- c.1042 (ESTE RUN) [renumerado c.1041→c.1042 por colisión cycle-ID con SU c.1041 parser weekday-final `e66b419`, fijada en re-fetch pre-push; regiones DISJUNTAS context vs parser; integración NO-destructiva conservando AMBOS lados], base inicial `c45b9bb`, base final `e66b419`: fallback de banda horaria con conector («a la / de la / por la / en la» + tarde|noche|mañana|madrugada) en `ContextIntentEngine.extractDateTime` → hora canónica (09:00/15:00/21:00/04:00) — paridad con el parser manual; lateral medida C6/R8 de `EleventhClassDigitalProbe` c.1026 RESUELTA. TDD RED->GREEN 12 tests nuevos. Suite UNIÓN OK (7645 = 7633 + 12), smoke 25/25, automation 9/9. VERIFIED (JVM). NO VERIFICADO Android (sin SDK).
