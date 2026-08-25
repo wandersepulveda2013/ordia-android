@@ -19,7 +19,8 @@ import org.junit.Test
  * notificación niega el plan, sea del usuario o dirigida a él).
  * Anti-overreach (alcance fijado por los guards/pines de esta clase):
  * (1) 2ª persona PLURAL «no vais a…» / «no van a…» FUERA — lateral
- * documentada, pineada HIT (no medida, una forma por ciclo);
+ * documentada, pineada HIT; resuelta c.1091 (este lado) tras medirla
+ * como falso compromiso — ver `ContextIntentEngineNoVaisVanPluralGuardTest`
  * (2) afirmativos de 2ª persona («vas a…») siguen capturando;
  * (3) la coma «no, vas a …» (respuesta + plan afirmativo) no casa;
  * (4) inversión «sin»: «no quieres irte SIN pagar la luz» — lo que
@@ -106,16 +107,16 @@ class ContextIntentEngineNoVasSegundaPersonaGuardTest {
 
     @Test
     fun `pin segunda persona plural vais queda fuera`() {
-        val i = analyze("no vais a llamar a mamá esta noche")
-        assertNotNull(i)
-        assertEquals(ContextIntentKind.CALL, i!!.kind)
+        // Re-pin legítimo c.1091: se descarta TODA (ver
+        // `ContextIntentEngineNoVaisVanPluralGuardTest`)
+        assertNull(analyze("no vais a llamar a mamá esta noche"))
     }
 
     @Test
     fun `pin segunda persona plural van queda fuera`() {
-        val i = analyze("no van a llamar a mamá esta noche")
-        assertNotNull(i)
-        assertEquals(ContextIntentKind.CALL, i!!.kind)
+        // Re-pin legítimo c.1091: se descarta TODA (ver
+        // `ContextIntentEngineNoVaisVanPluralGuardTest`)
+        assertNull(analyze("no van a llamar a mamá esta noche"))
     }
 
     // ---- Regresiones ----

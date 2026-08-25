@@ -17894,3 +17894,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Hallazgo: el guard imperativo «no olvides …» ya capturaba por routing previo (sonda PRE: byte-idéntico correcto).
 - NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
 - Próxima prioridad: auditoría progresiva (C→E: recapitulación honesta del menú; laterales documentadas en sondas).
+
+
+## 2026-08-25 — run c.1091 (este lado, UNA candidata: «no vais/van a…» 2ª persona plural)
+
+- HEAD inicial: `7e9cf18` (pull --ff-only limpio sobre origin/openhands/autonomous-ordia).
+- Re-fetch pre-push: SIN adelantos remotos durante el ciclo; aritmética exacta 8388 + 14 = 8402.
+- Problema: el guard `planWrapperIsNegated` cubría 1ª/2ª singular; «no vais/van a…» (forma cotidiana plural de negar planes) seguía HIT como falso compromiso (7 candidatas medidas: HOUSEHOLD 0.45 / CALL 0.67 / APPOINTMENT 0.77 / PAYMENT 0.52 / SHOPPING 0.47 — era la lateral pineada ABIERTA (1) de SU c.1044 `f052636`).
+- Prioridad: P1 (precisión / mejor decisión automática; evitar persistir lo opuesto de lo dicho en context).
+- Fix (UN punto): alternancia `voy|vamos|vas|vais|van` en el tronco voy-a del guard; KDoc documentado (números corregidos). Cero keywords nuevas; inversión «sin», coma «no, vais a…» y canario «quizá…» conservados; 1ª plural «no vamos a…» sigue FUERA pineada.
+- Re-pin legítimo: 2 pines HIT→NULL de c.1044 (precedente c.1019/c.1024/c.1046/c.1055) + corrección docstring anti-overreach (2).
+- TDD: 14 tests nuevos `ContextIntentEngineNoVaisVanPluralGuardTest` — RED exacto EXACTAMENTE 8 fallos (7 candidatas + inversion) → GREEN 14/14 tras 1 ajuste de frase («no van a ir sin pagar…» desnuda era NULL en afirmativo también — medido — no del guard; pineada con la forma SU «irlo»).
+- Sonda persistida POST `tools/probe/NoVaisVanPluralPostProbe.kt`: 7/7 NULL, regresiones inegativas NULL, afirmativos HIT, coma/inversión NULL.
+- Verificación: suite `bash tools/run_domain_tests.sh` **OK (8402 tests)**; `bash tools/run_domain_checks.sh` 25/25. NO VERIFICADO (sin SDK): gradle/lint/assemble/UI/Room.
+- Cum: HEAD final (este mensaje + tests + docs + sonde): FIX: EXTENSIÓN guard plan negado a plural — commit pendiente en el mismo empujón.
+- Próxima prioridad: candidatas intactas de la clase DUODÉCIMA — (c) «inflar las ruedas de la bici» (UNA por ciclo) o auditorías de precisión colindantes; SU c.1086 context sigue INTACTA por este lado.

@@ -3553,10 +3553,16 @@ object ContextIntentEngine {
      * APPOINTMENT/SHOPPING/ERRAND): en captura pasiva el contenido de la
      * notificación niega el plan sea cual sea el sujeto (misma clase P1
      * que c.681/c.835/c.1009).
-     * Anti-overreach: (1) 2ª persona PLURAL «no vais a …» / «no van a …»
-     * FUERA (lateral documentada, pineada HIT — no medida, una forma por
-     * ciclo); (2) la coma «no, voy a …» (respuesta + plan afirmativo) no
-     * casa (`no\s+` exige espacio tras «no»); (3) inversión «sin»: «no
+     * c.1091 (este lado): extendido a PLURAL «no vais a…» / «no van a…» /
+     * «no piensan/quieren + infinitivo» / «no cuentan con + infinitivo» —
+     * lateral ABIERTA (1) de c.1007/c.1009/c.1044 resuelta tras medir PRE
+     * con sonda efímera `/tmp/probe1091/Probe.kt` (5/5 candidatas
+     * capturaban como falso compromiso HOUSEHOLD/CALL/APPOINTMENT/
+     * PAYMENT/SHOPPING). Re-pin legítimo MÁS estricto (pines FUERA
+     * c.1044): precedente c.1019/c.1024/c.1041/c.1046.
+     * Anti-overreach: (1) la coma «no, van a…» (respuesta + plan
+     * afirmativo) no
+     * casa (`no\s+` exige espacio tras «no»); (2) inversión «sin»: «no
      * quiero irme SIN pagar la luz» — negar la volición principal fuerza
      * la subordinada («pagar la luz» SÍ es compromiso), así que si hay
      * infinitivo tras «sin» posterior al envolvente el guard NO dispara.
@@ -3564,7 +3570,7 @@ object ContextIntentEngine {
      */
     private fun planWrapperIsNegated(lower: String): Boolean {
         val m = Regex(
-            """\b(?:ya\s+)?no\s+(?:(?:voy|vamos|vas)\s+a\b|(?:pienso|pensamos|piensas|planeo|planeamos|planeas|quiero|queremos|quieres)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b|(?:cuento|contamos|cuentas)\s+con\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b)"""
+            """\b(?:ya\s+)?no\s+(?:(?:voy|vamos|vas|vais|van)\s+a\b|(?:pienso|pensamos|piensas|planeo|planeamos|planeas|quiero|queremos|quieres|piensan|quieren)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b|(?:cuento|contamos|cuentas|cuentan)\s+con\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b)"""
         ).find(lower) ?: return false
         return Regex(
             """\bsin\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b"""
