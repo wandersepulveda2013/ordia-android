@@ -61,6 +61,11 @@ object ContextIntentEngine {
     // específico eleva el score por encima del umbral SIN pasar por el piso).
     private val SHOPPING_VERBS = "comprar"
     private val PAYMENT_VERBS = "pagar"
+    // Verbos de CALL para el guard de negación (c.1063): alineados con
+    // [CALL_SPECIFIC] (llamar/hablar + futuros declarativos c.656) y la
+    // keyword «telefonear». Sin cláusula, CALL era el único kind de bono
+    // sin protección: «mañana no llamar a mamá» persistía el OPUESTO.
+    private val CALL_VERBS = "llamar|hablar|llamaré|hablaré|telefonear"
     // Prefijos de acuse (c.651): una confirmación corta ("sí/vale/ok/...")
     // seguida de un imperativo de compra/pago indica que el usuario ACEPTÓ la
     // acción; el piso fuerte debe capturarla aunque el verbo no esté al inicio.
@@ -1436,7 +1441,9 @@ object ContextIntentEngine {
         // de amenaza", "hay que limpiar la pistola de agua"). El contenido dañino
         // genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el
         // paso 3 (insultos), por lo que llegar aquí es contenido permitido.
-        if (kind == ContextIntentKind.TASK && hasStrongTaskImperative(lower)) {
+        if (kind == ContextIntentKind.TASK && hasStrongTaskImperative(lower) &&
+            !wrapperNegationLacksInfinitive(lower)
+        ) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
@@ -1448,7 +1455,9 @@ object ContextIntentEngine {
         // asimetría con "recuérdame" (capturado como TASK). Un imperativo de aviso +
         // verbo es un recordatorio claro con independencia de pistas temporales. El
         // guard `\s+\w` exige verbo real, así "avísame" aislado (muletilla) no activa.
-        if (kind == ContextIntentKind.REMINDER && hasStrongReminderImperative(lower)) {
+        if (kind == ContextIntentKind.REMINDER && hasStrongReminderImperative(lower) &&
+            !wrapperNegationLacksInfinitive(lower)
+        ) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
@@ -1651,6 +1660,37 @@ object ContextIntentEngine {
         }
 
         return score.coerceIn(0f, 1f)
+    }
+
+    // c.1064: junk de «envolvente + no + NO-infinitivo». El piso de
+    // envolvente (c.613/c.619/c.835) sólo exige `\s+\w` tras el wrapper,
+    // así la palabra «no» MISMA lo satisface y el resto se persistía como
+    // tarea basura: «tengo que no sé qué hacer» → TASK «No sé qué hacer»,
+    // «tengo que no mañana» → TASK «No mañana» con dueAt, «avísame no sé
+    // qué» → REMINDER. Doctrina: wrapper + «no» + INFINITIVO es captura
+    // FIEL (recordatorio de prohibición, «No darle la pastilla al perro»)
+    // y se conserva; wrapper + «no» + no-infinitivo es ruido conversacional
+    // y se suprime (NULL conservador). La alternancia de wrappers refleja
+    // los pisos [hasStrongTaskImperative] (c.613 + c.835) y
+    // [hasStrongReminderImperative] (c.619).
+    private val WRAPPER_NEGATION_SPAN = Regex(
+        """\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|cancelar|anular|""" +
+            """avísame|notifícame|acordarme(?:\s+de)?|""" +
+            """(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que|""" +
+            """deber[ií]a(?:s|mos|is|n)?(?:\s+que)?)\s+no(?:\s+([a-záéíóúñü]+))?"""
+    )
+
+    // Infinitivo español con enclíticos opcionales («dar», «ir», «darle»,
+    // «cortarme», «decírselo»). Las formas con enclítico llevan tilde en la
+    // terminación («decírselo», «dárselo», «ponérsela»), así la alternancia
+    // admite ár/ér/ír; el prefijo admite tildes («oír», «reír»).
+    private val INFINITIVE_LIKE =
+        Regex("""[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}""")
+
+    private fun wrapperNegationLacksInfinitive(lower: String): Boolean {
+        val m = WRAPPER_NEGATION_SPAN.find(lower) ?: return false
+        val verb = m.groupValues[1]
+        return verb.isEmpty() || !INFINITIVE_LIKE.matches(verb)
     }
 
     /**
@@ -3034,6 +3074,17 @@ object ContextIntentEngine {
             ContextIntentKind.EXERCISE -> EXERCISE_VERBS
             ContextIntentKind.ERRAND -> ERRAND_VERBS
             ContextIntentKind.STUDY -> STUDY_VERBS
+            // c.1063: CALL era el único kind de bono sin cláusula de
+            // negación (su score crece por patrones [CALL_SPECIFIC] +
+            // bono temporal SIN pasar por piso, vía que c.648 no cubre
+            // para CALL). «habría que no llamar a mamá» → CALL «Llamar
+            // a mamá» y «mañana no llamar a mamá» → CALL con dueAt:
+            // overreach P1 (persiste el OPUESTO, clase c.648/c.681).
+            // La cláusula descarta el kind; las formas con envolvente
+            // caen al piso TASK con la negación en el título («No
+            // llamar a mamá», fiel), las desnudas quedan NULL
+            // (conservador, pin simétrico de «mañana no comprar pan»).
+            ContextIntentKind.CALL -> CALL_VERBS
             else -> return false
         }
         // Negación inmediata del verbo imperativo, en cualquier posición
