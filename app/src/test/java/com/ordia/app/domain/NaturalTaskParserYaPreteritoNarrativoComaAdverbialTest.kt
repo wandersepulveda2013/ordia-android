@@ -27,10 +27,11 @@ import org.junit.Test
  * Mismo conservadurismo c.950: un encargo real jamás abre su predicado en
  * pretérito; las formas ambiguas no se tocan.
  *
- * Residual REGISTRADO (lateral distinta, pre-existente): cuando el
- * adverbial ES una expresión temporal reconocible («por la mañana») el
- * ancla temporal sigue disparando — mismo hueco que la narrativa sin coma
- * «ya me tomé la pastilla a las 8» (medida sonda Probe3). Fuera de alcance.
+ * Residual RESUELTO en c.1077: cuando el adverbial ES una expresión
+ * temporal reconocible («por la mañana») intercalada entre comas, el ancla
+ * temporal ya NO dispara — ver NaturalTaskParserYaComaParteDiaNarrativaTest
+ * (guard `yaCommaPreteriteNarrativeIntercalatedPartOfDay`). El hueco sin
+ * coma de cierre («ya me tomé la pastilla a las 8») sigue registrado.
  */
 class NaturalTaskParserYaPreteritoNarrativoComaAdverbialTest {
 
@@ -96,14 +97,12 @@ class NaturalTaskParserYaPreteritoNarrativoComaAdverbialTest {
     fun yaSalimos_formaAmbiguaSigueAncla() =
         assertAnchored("ya salimos", "salimos")
 
-    // ---------- residual REGISTRADO: adverbial que ES expresión temporal ----------
+    // ---------- residual c.1035 RESUELTO en c.1077: adverbial temporal ----------
 
     @Test
-    fun yaComaPorLaMananaLlegoElCartero_lateralResidualFueraPin() {
-        // «por la mañana» SÍ es ancla temporal reconocible: sigue disparando
-        // (mismo hueco pre-existente que «ya me tomé la pastilla a las 8»).
-        // Pin del comportamiento actual; lateral distinta registrada en BACKLOG.
-        val result = NaturalTaskParser.parse("ya, por la mañana, llegó el cartero", now, zone)
-        assertNotNull(result.dueAt)
-    }
+    fun yaComaPorLaMananaLlegoElCartero_residualResueltoC1077() =
+        // «por la mañana» intercalada entre comas ya NO dispara el ancla
+        // temporal: es relato de hecho cumplido (guard c.1077). Cobertura
+        // completa de variantes en NaturalTaskParserYaComaParteDiaNarrativaTest.
+        assertNarrativeIntact("ya, por la mañana, llegó el cartero")
 }

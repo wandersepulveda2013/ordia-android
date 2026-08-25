@@ -4831,9 +4831,19 @@ object NaturalTaskParser {
         // es ancla: pertenece al enunciado narrativo — guard evaluado ANTES.
         val weekdayPreteriteNarrativeIntercalatedRanges =
             weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(working)
-        val standalonePartOfDayOccurrence = standalonePartOfDayPattern.find(working)
+        // c.1077: la parte del día INTERCALADA entre comas de una narrativa
+        // «ya» en pretérito («ya, por la mañana, me tomé la pastilla»)
+        // tampoco es ancla — residual c.1035, mismo daño medido (ancla falsa
+        // + título con coma residual). La decisión se toma sobre el texto
+        // original y el flag se propaga a los borradores del título (doctrina
+        // c.950/c.955: la protección del título exige flag + re-evaluación).
+        val standalonePartOfDayCandidate = standalonePartOfDayPattern.find(working)
             ?.takeUnless { sm -> ordinalNarrativeRanges.any { it.containsRange(sm.range) } }
             ?.takeUnless { sm -> weekdayPreteriteNarrativeIntercalatedRanges.any { it.containsRange(sm.range) } }
+        val yaCommaPreteriteNarrative = standalonePartOfDayCandidate
+            ?.let { sm -> yaCommaPreteriteNarrativeIntercalatedPartOfDay(working, sm) } == true
+        val standalonePartOfDayOccurrence = standalonePartOfDayCandidate
+            ?.takeUnless { yaCommaPreteriteNarrative }
         // c.955: «hoy/ayer» + conector + parte del día + predicado en pretérito
         // («ayer en la mañana llegó el paquete») ES cadena narrativa, hermano
         // de c.950 weekday: la decisión se toma sobre el texto original y el
@@ -5726,7 +5736,7 @@ object NaturalTaskParser {
             // c.954: borrado por rangos con flag de narrativa en pretérito —
             // la parte del día de «hoy/ayer en la mañana llegó…» se conserva
             // íntegra cuando la fecha no la ancló; ver eraseRelativeDayToken.
-            .let { value -> eraseStandalonePartOfDayToken(value, dayPreteriteNarrative) }
+            .let { value -> eraseStandalonePartOfDayToken(value, dayPreteriteNarrative, yaCommaPreteriteNarrative) }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             // c.930: borrado por rangos con guard anti-robo narrativo — las
             // apariciones de ordinal que son CONTENIDO («la primera hora de
@@ -5795,7 +5805,7 @@ object NaturalTaskParser {
             // con su conector "de/del/desde" como hacía la alternativa de arriba.
             // c.954: con flag — la «mañana» de la parte del día narrativa en
             // pretérito («hoy en la mañana llegó…») se conserva íntegra.
-            .let { value -> eraseMananaDateToken(value, dayPreteriteNarrative) }
+            .let { value -> eraseMananaDateToken(value, dayPreteriteNarrative, yaCommaPreteriteNarrative) }
             // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
             // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
             // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
@@ -7780,7 +7790,11 @@ object NaturalTaskParser {
      * ([mananaOccurrenceIsContent]). Opera por rangos (no replace global) para no
      * tocar las apariciones protegidas.
      */
-    private fun eraseMananaDateToken(title: String, forceDayPreteriteNarrative: Boolean = false): String {
+    private fun eraseMananaDateToken(
+        title: String,
+        forceDayPreteriteNarrative: Boolean = false,
+        forceYaCommaPreteriteNarrative: Boolean = false
+    ): String {
         val token = Regex("""(?i)\bma[nñ]ana\b""")
         val connector = Regex("""(?i)\b(?:de|del|desde)\s+$""")
         var result = title
@@ -7795,7 +7809,13 @@ object NaturalTaskParser {
                 standalonePartOfDayPattern.findAll(result)
                     .firstOrNull { m.range.first in it.range }
                     ?.let { dayPreteriteNarrativeOccurrence(result, it) } == true
-            if (mananaOccurrenceIsContent(result, m.range) || protectedStandalone) {
+            // c.1077 (G5'): ídem el «mañana» de la parte del día intercalada de
+            // la narrativa «ya, …, <pretérito>» — mismo flag tomado en [parse].
+            val protectedYaComma = forceYaCommaPreteriteNarrative &&
+                standalonePartOfDayPattern.findAll(result)
+                    .firstOrNull { m.range.first in it.range }
+                    ?.let { yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, it) } == true
+            if (mananaOccurrenceIsContent(result, m.range) || protectedStandalone || protectedYaComma) {
                 idx = m.range.last + 1
                 continue
             }
@@ -8488,7 +8508,8 @@ object NaturalTaskParser {
      */
     private fun eraseStandalonePartOfDayToken(
         title: String,
-        forceDayPreteriteNarrative: Boolean = false
+        forceDayPreteriteNarrative: Boolean = false,
+        forceYaCommaPreteriteNarrative: Boolean = false
     ): String {
         var result = title
         var idx = 0
@@ -8496,8 +8517,13 @@ object NaturalTaskParser {
             val m = standalonePartOfDayPattern.find(result, idx) ?: return result
             // c.954 (remoto) + c.955 (narrativa hoy/ayer día-parte en
             // pretérito): ambas protecciones conmutan, como el guard ordinal.
+            // c.1077: ídem la parte del día intercalada de la narrativa «ya»
+            // en pretérito, SÓLO bajo flag (la decisión se tomó en [parse]
+            // sobre el texto original; aquí el título ya pudo perder el
+            // calificador «de hoy» que distingue la variante anclada).
             if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) } ||
                 weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(result).any { it.containsRange(m.range) } ||
+                (forceYaCommaPreteriteNarrative && yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, m)) ||
                 (forceDayPreteriteNarrative && dayPreteriteNarrativeOccurrence(result, m))
             ) {
                 idx = m.range.last + 1
@@ -8930,6 +8956,47 @@ object NaturalTaskParser {
         val prefix = text.substring(0, match.range.first).trim().lowercase()
         if (prefix != "hoy" && prefix != "ayer" && prefix != "anteayer" && prefix != "antier") return false
         val suffix = text.substring(match.range.last + 1)
+        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
+    }
+
+    /**
+     * c.1077: ¿es esta aparición de parte del día suelta ([standalonePartOfDayPattern])
+     * el adverbial INTERCALADO entre comas de una narrativa «ya» en pretérito
+     * («ya, por la mañana, me tomé la pastilla»)? Residual medido de c.1035:
+     * la guard [yaPreteriteNarrativeSuffix] ya reconocía la cadena completa
+     * (suprime el ancla AHORA del «ya») pero la parte del día intercalada
+     * seguía anclando (hoy a la hora canónica) y mutilando el título con una
+     * coma residual («ya, , me tomé…») — doble daño P1, simétrico a
+     * c.954/c.955. Evidencia gramatical inequívoca (doctrina c.950):
+     *  (N1) el prefijo del match es EXACTAMENTE «ya,» (la cadena abre con la
+     *       marca narrativa y su coma; las variantes «ahora,»/«ahorita,» y
+     *       las formas con una sola coma o sin comas quedan FUERA — laterales
+     *       registradas y pineadas byte-idénticas);
+     *  (N2) el match no lleva el sufijo «siguiente»; y un calificador de día
+     *       explícito («por la mañana de hoy», «…de mañana», «…ayer») queda
+     *       FUERA: como [standalonePartOfDayPattern] incluye la forma genitiva
+     *       dentro del propio match, el calificador se excluye sobre
+     *       `match.value` (si no, el guard mordería la variante anclada —
+     *       divergencia medida en probes);
+     *  (N3) el predicado abre TRAS la coma de cierre inmediata con pretérito
+     *       inequívoco ([weekdayPreteriteNarrativeSuffix]): un encargo real
+     *       jamás abre su predicado en pretérito (presente/infinitivo/comando
+     *       siguen ancla; las ambiguas «salimos» quedan FUERA como en c.950).
+     * Usada por [parse] (fecha, que fija el flag sobre el texto original) y
+     * por [eraseStandalonePartOfDayToken] / [eraseMananaDateToken] (título,
+     * protección sólo bajo ese flag + re-evaluación — doctrina c.950/c.955)
+     * para que fecha y título nunca diverjan.
+     */
+    private fun yaCommaPreteriteNarrativeIntercalatedPartOfDay(text: String, match: MatchResult): Boolean {
+        if (match.value.lowercase().contains("siguiente")) return false
+        if (Regex("""(?i)\bde\s+(?:hoy|ma[nñ]ana|ayer)\b""").containsMatchIn(match.value)) return false
+        val prefix = text.substring(0, match.range.first).trim().lowercase()
+        if (!Regex("""^ya\s*,$""").matches(prefix)) return false
+        val suffix = text.substring(match.range.last + 1)
+        // La coma de cierre debe ser INMEDIATA (sin \s*): un resto « , …» del
+        // título ya parcialmente borrado no puede simular la coma intercalada
+        // (doble cierre con el chequeo del calificador dentro del match).
+        if (!Regex("""^,""").containsMatchIn(suffix)) return false
         return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
     }
 
