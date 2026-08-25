@@ -87,7 +87,9 @@ class NaturalTaskParserYaPreteritoNarrativoCliticosMultiplesDeltaTest {
     @Test fun yaMeLoPagoElLunes_weekdayFinalLateralResueltaC1041() =
         // Weekday AL FINAL tras cadena narrativa «ya <clíticos> <pretérito>»:
         // FUERA pinada en c.1039 como lateral ABIERTA; RESUELTA en c.1041
-        // (weekdayPreteriteNarrativePrefix: guard del prefijo narrativo).
+        // (UNIÓN de ambas rutas de prefijo — colisión convergente del ciclo:
+        // [weekdayPreteriteNarrativePrefix] marca «ya/ahora/ahorita» +
+        // [ordinalHoraPreteriteNarrativePrefixHead] pretérito desnudo).
         assertNarrativeIntact("ya me lo pagó el lunes")
 
     // ---- Guards ancla (byte-idénticos): presente/futuro/comando ----

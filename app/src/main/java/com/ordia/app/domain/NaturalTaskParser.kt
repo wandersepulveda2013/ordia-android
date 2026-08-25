@@ -8689,7 +8689,10 @@ object NaturalTaskParser {
      *       el modificador gana aunque el enunciado sea contradictorio;
      *  (N3) el predicado abre con pretérito inequívoco
      *       ([weekdayPreteriteNarrativeSuffix]): un encargo real jamás
-     *       empieza en pretérito («el lunes llega/tengo/hay…» siguen ancla).
+     *       empieza en pretérito («el lunes llega/tengo/hay…» siguen ancla);
+     *  (N3 c.1041) o la narrativa pretérito ya viene cerrada en el PREFIJO
+     *       (weekday al final: «ya me lo pagó el lunes»), con los candados
+     *       «quedar con» e infinitivo/«que» de c.1023 aplicados al resto.
      * Antes, «el lunes llegó el paquete» se agendaba al PRÓXIMO lunes y el
      * título perdía el weekday (doble daño: compromiso futuro falso +
      * contenido mutilado). FUERA a propósito (laterales medidas): weekday +
@@ -8720,6 +8723,26 @@ object NaturalTaskParser {
         if (weekdayPreteriteNarrativePrefix(prefix)) return true
         val suffix = text.substring(match.range.last + 1)
         if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
+        // c.1041 (UNIÓN con la rama [weekdayPreteriteNarrativePrefix] del
+        // hermano — colisión convergente sobre la MISMA lateral): weekday AL
+        // FINAL con el predicado pretérito en el PREFIJO SIN marca «ya/ahora/
+        // ahorita» («llegué el miércoles», «pagué la luz el viernes»): la
+        // narrativa viene cerrada antes del weekday, así que su fecha es
+        // relato, no ancla. Re-uso sin duplicación (lección c.1016): cabeza
+        // compartida [ordinalHoraPreteriteNarrativePrefixHead] con los candados
+        // conservadores c.1023 — «quedar con» en prefijo O sufijo ([ordinalHoraQuedarConArrangement])
+        // sigue ancla («quedé con Ana el lunes», «quedé el lunes con Ana») y
+        // un infinitivo/«que» en el resto bloquea el disparo
+        // ([ordinalHoraEmbeddedCommandToken]; pin FUERA «salí a comprar…»).
+        // Mismo conservadurismo c.950: ambiguas pretérito/presente no disparan.
+        val head = ordinalHoraPreteriteNarrativePrefixHead.find(prefix)
+        if (head != null) {
+            val rest = (prefix.substring(head.range.last + 1) + " " + suffix).trimStart()
+            val chain = head.value.trim() + " " + rest
+            if (ordinalHoraQuedarConArrangement.containsMatchIn(chain)) return false
+            if (ordinalHoraEmbeddedCommandToken.containsMatchIn(rest)) return false
+            return true
+        }
         // c.954 entre el weekday y el
         // pretérito («el lunes en la mañana llegó el paquete») — extensión de
         // la lateral que c.950 midió y pinó como FUERA, ahora resuelta: la
