@@ -18717,3 +18717,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: `7f49cbb` (docs colisión + marcador) + fix (hash en línea de
   verificación). HEAD final: abajo.
 - Verificación c.1141: suite UNIÓN `OK (9053 tests)` + smoke 25/25 sobre commit fix `ceee19f`; HEAD final `ceee19f` (+ docs cierre en el mismo commit).
+- NOTA carrera de NUMERACIÓN c.1141: el hermano fijó un marcador «c.1141» distinto (guard declarativo «empieza(n)» EXERCISE, c.1135-ii) DESPUÉS de mi marcador c.1141 ya empujado (`7f49cbb`) — primer-marcador-gana: mi c.1141 («ropa de recambio») conserva el número; el hermano debe renumerar su marcador (precedente c.1126→c.1127). Su marcador queda intacto en CURRENT_STATE (no toco marcadores ajenos).
