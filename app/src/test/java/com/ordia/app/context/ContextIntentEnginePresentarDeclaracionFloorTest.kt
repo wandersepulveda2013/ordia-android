@@ -79,14 +79,26 @@ class ContextIntentEnginePresentarDeclaracionFloorTest {
         assertNull(analyze("presenté la declaración de la renta ayer"))
     }
 
+    // Re-pin legítimo c.1134 (precedente c.1035/c.1041/c.1094): los
+    // objetos «solicitud» y «documentación» seguían fuera del piso
+    // específico c.875 cuando este test se escribió; el piso hermano
+    // acotado c.1134 «presentar <trámite>» los captura ahora de forma
+    // deliberada (misma familia burocrática, kind TASK, título limpio).
     @Test
-    fun `objeto solicitud fuera de este piso`() {
-        assertNull(analyze("presentar la solicitud mañana"))
+    fun `objeto solicitud captura via piso hermano c1134`() {
+        val r = analyze("presentar la solicitud mañana")
+        assertNotNull("captura vía piso c.1134 (era pin NULL de c.875)", r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Presentar la solicitud", r.title)
+        assertNotNull(r.dueAt)
     }
 
     @Test
-    fun `objeto documentación fuera de este piso`() {
-        assertNull(analyze("presentar la documentación de Ana"))
+    fun `objeto documentación captura via piso hermano c1134`() {
+        val r = analyze("presentar la documentación de Ana")
+        assertNotNull("captura vía piso c.1134 (era pin NULL de c.875)", r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Presentar la documentación de Ana", r.title)
     }
 
     // -- Regresiones hermanas (esperado: HIT propio) --

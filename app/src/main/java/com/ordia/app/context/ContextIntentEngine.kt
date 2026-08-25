@@ -2707,6 +2707,32 @@ object ContextIntentEngine {
             // plantilla de [extractTitle]; keyword-VERBO «presentar»
             // añadida a [ContextIntentKind.TASK] (lección c.751).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )presentar\s+la\s+declaraci[oó]n\s+de\s+la\s+renta\b""").containsMatchIn(lower)
+            // c.1134: piso acotado «presentar <trámite burocrático>» —
+            // candidata (a) de la clase DECIMOQUINTA, medida NULL 3/3 en
+            // c.1132 (tools/probe/FifteenthClassAdminProbe.kt) y 9/9 en
+            // la sonda PRE efímera /tmp/PreProbePresentar.kt de este
+            // ciclo (motor real). Consecuencia real del hueco: olvido de
+            // plazos oficiales (recurso de multa caducado, matrícula
+            // fuera de plazo, ayuda del alquiler perdida). Las tres
+            // formas medidas (recurso/matrícula/papeles) más las hermanas
+            // burocráticas del mismo piso (instancia, alegaciones,
+            // solicitud, documentación, escrito — mismo paraguas
+            // monosemántico que «presentar la declaración de la renta»
+            // c.875). Determinante definido/posesivo OBLIGATORIO
+            // (anti-overreach: «presentar solicitudes» sin determinante
+            // queda fuera, igual que «presentar un escrito»). Bivalentes
+            // excluidas por diseño (medidas NULL en la sonda PRE):
+            // «presentar a los invitados» (a + persona no casa el
+            // determinante), «presentar el programa» (objeto fuera de la
+            // lista). La keyword-VERBO «presentar» (c.875) solo pesca la
+            // frase para el análisis (0.12 + temporal 0.1 = 0.22 <
+            // umbral sola): es el piso quien decide. Negación compuesta
+            // «no voy a presentar…» cubierta por [planWrapperIsNegated]
+            // (c.1009, descarta TODA la clasificación antes del piso);
+            // pretérito/duda cubiertos por los guards de
+            // pretérito/condicional (c.824) y subjuntivo. Lockstep con la
+            // plantilla de [extractTitle] (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )presentar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)(?:recursos?|matr[ií]culas?|papeles|instancias?|alegaci[oó]n(?:es)?|solicitud(?:es)?|documentaci[oó]n|escritos?)\b""").containsMatchIn(lower)
             // c.876: piso acotado «declarar la renta» (lateral c.863,
             // objeto fiscal con elipsis de «declaración»; el verbo
             // «declarar» es bivalente —«el amor», «en el juicio»—,
@@ -4667,6 +4693,18 @@ object ContextIntentEngine {
                 // preserva (doctrina c.653).
                 val matchPresentarDeclaracion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(presentar)\s+(la\s+declaraci[oó]n\s+de\s+la\s+renta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPresentarDeclaracion != null) return "Presentar ${matchPresentarDeclaracion.groupValues[2]}"
+                // c.1134: plantilla «presentar <trámite burocrático>»
+                // (ancla/guard/determinante/lista idénticos al piso;
+                // lección c.616: el match arranca en el verbo, así
+                // acuse/prefijo temporal se despojan; el residuo temporal
+                // de cola lo depura [sanitizeTitle]; las bivalentes
+                // «a los invitados»/«el programa» nunca llegan aquí
+                // porque el piso no las captura). Va TRAS la plantilla
+                // específica c.875 (objetos disjuntos, pero la hermana
+                // fiscal conserva su prioridad histórica). La grafía del
+                // usuario se preserva (doctrina c.653).
+                val matchPresentarTramite = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(presentar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)(?:recursos?|matr[ií]culas?|papeles|instancias?|alegaci[oó]n(?:es)?|solicitud(?:es)?|documentaci[oó]n|escritos?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPresentarTramite != null) return "Presentar ${matchPresentarTramite.groupValues[2]}"
                 // c.876: plantilla «declarar la renta» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el
