@@ -8588,7 +8588,7 @@ object NaturalTaskParser {
             "tomé|tomó|tomaste|tomaron|leí|leyó|leyeron|sentí|sintió|sintieron"
 
     private val weekdayPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
@@ -8603,14 +8603,19 @@ object NaturalTaskParser {
      * se evalúa («ya mismo» queda intacto para comandos). c.1029: la cadena
      * proclítica admite hasta DOS clíticos (indirecto + directo: «ya me lo
      * pagó», «ya se lo dije») — la cadena estándar del español no pasa de
-     * dos en proclisis.
+     * dos en proclisis. c.1035: la lista proclítica se completa con los
+     * acusativos plurales («los», «las» — «ya se las di» anclaba AHORA y
+     * mutilaba el título, medida sonda `/tmp/probe1035/Probe.kt`) y el MISMO
+     * grupo se extiende a las otras tres superficies narrativas de la familia
+     * (weekday + ordinal lone/head): «ya se lo dije a última hora» anclaba
+     * 18:00 falso con título mutilado (misma sonda, O1/O2).
      */
     // c.1035: la guard admite UNA cláusula adverbial acotada entre comas
     // («ya, a primera hora, sonó la alarma» — pin FUERA c.1027 resuelto):
     // `[^,.;:!?]{1,60},` salta el adverbial sin tragar puntuación ni desbordar.
     // Mismo conservadurismo: el predicado sigue exigiendo pretérito inequívoco.
     private val yaPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:[^,.;:!?]{1,60},\s*)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?i)^\s*,?\s*(?:[^,.;:!?]{1,60},\s*)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
@@ -8623,7 +8628,7 @@ object NaturalTaskParser {
      * (lateral registrada FUERA en el test del ciclo, pin byte-idéntico).
      */
     private val ordinalHoraPreteriteNarrativeLonePrefix = Regex(
-        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)\s*[,.;:!?]?$"""
+        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)\s*[,.;:!?]?$"""
     )
 
     /**
@@ -8633,7 +8638,7 @@ object NaturalTaskParser {
      * ([ordinalHoraEmbeddedCommandToken], [ordinalHoraQuedarConArrangement]).
      */
     private val ordinalHoraPreteriteNarrativePrefixHead = Regex(
-        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$)"""
+        """(?i)^\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$)"""
     )
 
     /**
