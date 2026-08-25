@@ -1,3 +1,5 @@
+# 🔒 EN CURSO (este lado, 2026-08-25) — ciclo c.1087: lateral ABIERTA (2) de mi auditoría c.1085 — familia recordatorio «no se te olvide <x>»/«no olvides <x>»/«no te olvides <x>» cae al MENÚ (mentira por omisión); ruta CREATE_TASK hermana de remindMeCapture. Región prevista: AssistantEngine (DISJUNTO de SU c.1086 context «inflar las ruedas» y de cualquier parser del hermano). UN marcador.
+
 # Ciclo c.1083 (2026-08-25, este lado) — lateral ABIERTA parser (registrada c.1077) narrativa «ya» SIN comas con parte del día («ya por la mañana me tomé la pastilla» → ancla 09:00 falsa + título borrado) RESUELTA — due=null + título íntegro. SIN TRABAJO ACTIVO al cerrar (los marcadores del hermano [SU c.1085/SU c.1084] siguen activos en sus regiones — NO tocar; su c.1082 [ruedas invierno] cerró entrando con la integración).
 
 - HEAD inicial: `c127027` (mi marcador EN CURSO ya subido). Toolchain heredada /tmp (`JAVA_OPTS=-Xmx6g`). HEAD final: el de este push.
