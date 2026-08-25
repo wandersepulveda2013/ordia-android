@@ -1,3 +1,14 @@
+## 2026-08-25 — run c.1137 (este lado): auditoría de DESCUBRIMIENTO clase DECIMOSEXTA (viajes, reservas y ocio fuera de casa) — sonda persistida, CERO producto
+
+- HEAD inicial: `67b7e7e` (mi c.1136 pusheado). Marcador c.1137 fijado y pusheado primero (`fd4ceee`).
+- Motivación (descubrimiento continuo): las clases III–XV cubrieron verbos/chore/life/enclíticos/errand/admin/dinero/coordinación/mascotas/digital/vehículo/salud/escuela/burocracia; viajes/reservas/ocio era la siguiente área de vida cotidiana sin sondear, con olvido de coste directo (vuelo perdido, reserva caducada, check-in no hecho).
+- Sonda NUEVA persistida `tools/probe/SixteenthClassTravelProbe.kt` (misma metodología que `FifteenthClassAdminProbe.kt` c.1132 del hermano): 20 candidatas + 8 regresiones + 8 controles, motor real vía `tools/run_probe.sh`, resultados documentados en el docblock.
+- Medición: CAPTURAS 15/20 HITs por cobertura heredada de pisos abiertos (reservar/comprar/recoger/cancelar/confirmar/imprimir/preparar/pedir/cambiar/pagar/llevar/quedar). GAPS NULL en cuatro familias: (a) «check-in del vuelo» — hermanas C3 «facturar el vuelo mañana» + C4 «hacer el check-in del vuelo…» (candidata FUERTE: ventana 24-48 h, coste directo); (b) «salir para el aeropuerto a las 5 del lunes» C9 (logística previa); (c) «sacar el visado antes del viaje» C11 (ojo región: piso «sacar» de c.1119); (d) nominal «el vuelo sale el martes a las 6» C15 (consistente-fuera con la familia de sustantivos+fecha, NO gap). REGRESIONES 7/8 HITs; HALLAZGO inesperado R8 «llevar a los niños al aeropuerto mañana» → NULL (el piso «llevar a <personas>» no cubre destino aeropuerto/estación — candidata lateral). CONTROLES 8/8 NULLs correctos (pasado/duda/nominal/declarativo/verbo desnudo; K2 «no voy a coger el avión» NULL — guard c.1009/c.1136 gobernando).
+- Laterales documentadas (NO gaps): colas temporales en el título con dueAt=false (familia conocida c.845/c.852/c.1079/c.1102/c.1127/c.1132, área parser).
+- Suite UNIÓN intacta (cero producto: OK 8940 medida en c.1136); sonda re-ejecutada byte-estable tras documentar el docblock. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Candidatas DECIMOSEXTA registradas en BACKLOG (UNA por ciclo): a) check-in/facturar vuelo; b) «salir para <aeropuerto/estación>»; c) «sacar el visado» (coordinar con c.1119); d) «llevar a <personas> al aeropuerto/estación».
+- Próxima prioridad: candidata (a) DECIMOSEXTA «check-in del vuelo» (P1, ventana corta y coste directo), verificando antes marcadores activos del hermano.
+
 ## 2026-08-25 — run c.1136 (este lado; renumerado c.1134→c.1136 por colisión de marcador: el hermano fijó c.1134 «presentar <trámite>» `513c481` primero — primer-marcador-gana): candidata (k) DECIMOTERCERA «empaste» + hallazgo P1 colateral en el guard de plan negado («no voy AL dentista»)
 
 - HEAD inicial: `c37f62c` (mi c.1130 pusheado); marcador c.1136 fijado y pusheado primero (tras rebase UNIÓN sobre `c21723a`).
