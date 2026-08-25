@@ -68,6 +68,12 @@ import com.ordia.app.context.ContextIntentEngine
  *     e) «hacerme la revisión de la vista este mes» — keyword
  *        «revisión» existe pero el reflexivo «hacerme» no aporta
  *        señal de intención → bajo umbral (0.45). CANDIDATA.
+ *        RESUELTA c.1125 (piso TASK reflexivo «hacer(me|te|se|nos)
+ *        (det)? revisi[oó]n de la vista» en hasStrongTaskImperative
+ *        + plantilla matchHacerseRevisionVista en extractTitle;
+ *        hermano EXACTO de c.1044 «ponerme la vacuna»; enclítico
+ *        reflexivo exigido; CERO keywords nuevas — doctrina c.862;
+ *        ver C9 abajo).
  *     f) «ir a la limpieza dental la semana que viene» — «limpieza
  *        dental» sin keyword; «ir a <sustantivo>» no es piso.
  *        CANDIDATA.
@@ -115,6 +121,12 @@ fun main() {
     show("C6",  "sacar cita para el oftalmólogo mañana")
     show("C7",  "ir a fisioterapia el martes")
     show("C8",  "ponerme la vacuna de la gripe en octubre")
+    // c.1125: C9 RESUELTA → TASK 0.45 «Hacerme la revisión de la
+    // vista este mes», dueAt=false (la cola relativa «este mes» se
+    // conserva en el título — lateral documentada c.845/c.852/c.1079;
+    // piso TASK reflexivo acotado «hacer(me|te|se|nos) (det)?
+    // revisi[oó]n de la vista»; la forma NOMINAL «revisión de la
+    // vista en octubre» sigue NULL — gap separado, no de este piso).
     show("C9",  "hacerme la revisión de la vista este mes")
     show("C10", "recoger la medicación en la farmacia esta tarde")
     show("C11", "comprar los medicamentos mañana")
