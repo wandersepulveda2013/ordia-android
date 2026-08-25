@@ -1,4 +1,11 @@
 # ✅ c.1092 (2026-08-25, este lado, región assistant, FIX guard negada «se me olvidó/pasó» + COLISIÓN-DOCUMENTADA) — el ciclo empezó como documenting-del-collision de la lateral (4) c.1085 (SU c.1090 gana por captura) y cerró el FIX propio y disjunto: guarda negada `missedSlipIsNegated`.
+# ✅ c.1092+1 (2026-08-25, este lado, región assistant, FIX — GAP residual «se olvidó» no-pronominal) — PRE por sonda en head (6 variantes caían al MENÚ); UNA unidad
+- HEAD inicial: `1c7304b` (este lado c.1092). HEAD final: el de este push.
+- Cambios: espejo a SU c.1090 sobre la misma `olvideCapture`: nueva fuga `^se\s+olvid[oó]` (no-pronominal) + guía «¿Qué se olvidó?». Pronominos me/nos excluidos (c.797 vive). `AssistantEngineSeOlvidoCaptureTest.kt` 11 tests + docs.
+- Bugs: ninguno. Features: captura honesta (CREATE_TASK con confirmación UI).
+- Tests: suite OK (8426 = 8415 + 11). Smoke 25/25. POST por sonda efímera: captura/pelada-guía/interrogativa-MENÚ/negado-MENÚ/prono-exclusión.
+- Commits: solamente este push. `1c7304b` (c.1092) permanece; `be4ebeb`+`b26a7fa` (SU / docs-colisión) permanecen.
+- Próxima prioridad: guardas del verb-family (interrogativa & «de»); región assistant.
 
 - HEAD inicial: `4176f94` (mi marcador c.1090 previo doc-only push). HEAD final: el de este push.
 - Cambios: docs-only (CURRENT_STATE + RUN_LOG). Local tenía `93c4568` (fix+tests «olvidé» → RUN_REPLAN, 7 tests) NUNCA publicado → descartado con `git reset --hard origin/openhands/autonomous-ordia` (excepción precedent c.1060: exclusivamente trabajo propio no-publicado).
