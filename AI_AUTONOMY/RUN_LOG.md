@@ -18617,7 +18617,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: candidatas DECIMOTERCERA restantes UNA por ciclo — (k) «empaste»; laterales (m-bis) otros objetos corporales («cadera» NULL pineada…), (n-bis) «empezar el régimen». Nunca force, nunca main.
 ---
 
-## 2026-08-25 — Run c.1137 (este lado) — guard pretérito+piso MEETING FIXED VERIFIED [renumerado c.1134→c.1137: c.1134=DECIMOQUINTA del hermano `513c481`, c.1135=campamento `c21723a`, c.1136=empaste `a1da479`; primer-marcador-gana]
+## 2026-08-25 — Run c.1138 (este lado) — guard pretérito+piso MEETING FIXED VERIFIED [renumerado c.1134→c.1138: c.1134=DECIMOQUINTA del hermano `513c481`, c.1135=campamento `c21723a`, c.1136=empaste `a1da479`; primer-marcador-gana; c.1137=DECIMOSÉPTIMA del hermano `fcd0f0a`]
 
 - **HEAD inicial**: `17277ce` (post c.1127-bis; luego rebase limpio sobre `96a82eb` del hermano).
 - **Problema (P1, FALSO POSITIVO medido 5/5 en c.1127-bis)**: relato en pretérito de reunión YA celebrada («fui a la reunión de padres ayer», «fuimos a…», «estuve en…», «asistí a…», y el caso más grave «no fui a la reunión…») capturaba como MEETING 0.45 con dueAt — hecho cumplido persistido como compromiso futuro (los pisos MEETING c.647 son por SUSTANTIVO, sin guard de pretérito; «tenía/tuve reunión» ya NULL vía PAST_OBLIGATION c.1240).
@@ -18626,6 +18626,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Renumeración**: c.1129→c.1137 (primer-marcador-gana ×2: c.1129=almuerzo del hermano `d20f6ae` 19:49:01 < mi marcador `17277ce` 19:53:33; c.1132/c.1133 tomados por hermanos — colisión documentada por el hermano en `b1f7180`; marcadores ajenos INTACTOS).
 - **TDD**: RED EXACTO 9 fallos (targets) → GREEN 22/22 (`ContextIntentEnginePastMeetingNarrativeGuardTest.kt` NUEVO: 9 NULL targets + 10 pines HIT byte-idénticos + 3 guards NULL). Pines clave: nominal vencida «reunión de padres ayer» HIT (doctrina c.5369), posicionalidad «…es mañana; fui a la del curso pasado» HIT, quedar «quedamos con ana ayer» 0.54 NO tocado (lateral), envolvente TASK 0.45, PAST_OBLIGATION intacto.
 - **Tests**: `tools/run_domain_tests.sh` OK (**8960 = 8938 [unión hermano post-c.1130-deberes] + 22 [míos]** — aritmética medida sobre HEAD final `681901b`); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK en este entorno).
-- **Commits**: `b6ad3a6` (fix c.1137) + `f88a389` (docs FIXED VERIFIED) + `c5e6b3f` (renumeración c.1134→c.1137) + hashes finales (este push); restauración ya cubierta por `0592ed4` del hermano (commit propio redundante descartado en rebase).
+- **Commits**: `b9a073d` (fix c.1138) + `39ef431` (docs FIXED VERIFIED) + `3dcd527` (renumeración c.1134→c.1137) + hashes finales tras 3º rebase: fix `b9a073d`, docs `39ef431`; restauración ya cubierta por `0592ed4` del hermano (commit propio redundante descartado en rebase).
 - **HEAD final**: ver push.
 - **Próxima prioridad**: laterales ABIERTAS del guard (copulativas «la reunión de padres fue ayer», compuestas «hemos ido/había ido» — UNA por ciclo) o laterales (a-quater)/(a-quinquies) del acarreo escolar si quedan libres; auditoría DECIMOQUINTA del hermano en curso (no duplicar).
