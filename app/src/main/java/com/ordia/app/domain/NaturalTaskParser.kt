@@ -1643,6 +1643,21 @@ object NaturalTaskParser {
         return !clockEvidenceAtStart
     }
 
+    /**
+     * c.1043: ¿este match de [timePatterns] cierra una cadena narrativa
+     * inequívoca «ya/ahora/ahorita <clíticos> <pretérito>» que ABRE el
+     * enunciado («ya me llamó a las 8», «ahora llegó el cartero a las 9»)?
+     * La hora pertenece al relato de un hecho cumplido: anclarla la dejaba
+     * en el PASADO hoy (compromiso vencido falso) y borrarla mutilaba el
+     * título (doble daño, hermano del weekday final de c.1041). Usado por
+     * la selección de `timeMatch` (fecha) y por el fold del título para que
+     * nunca diverjan (doctrina c.930). Conservador: sólo prefijo narrativo
+     * ([narrativePreteritePrefix]); el presente con «ya/ahora» («ya te
+     * aviso a las 8») sigue anclando byte-idéntico.
+     */
+    private fun timeMatchIsPreteriteNarrative(match: MatchResult, source: String): Boolean =
+        narrativePreteritePrefix(source.substring(0, match.range.first))
+
     private fun timeMatchIsCountNoun(match: MatchResult, source: String): Boolean {
         val mv = match.value.lowercase()
         val hasClockEvidence = mv.contains(":") || mv.contains("h") ||
@@ -5095,6 +5110,9 @@ object NaturalTaskParser {
         val timeMatch = timePatterns.asSequence()
             .flatMap { pattern -> pattern.findAll(working) }
             .filterNot { timeMatchIsCountNoun(it, working) }
+            // c.1043: la hora que cierra una narrativa en pretérito («ya me
+            // llamó a las 8») no es cita; ver timeMatchIsPreteriteNarrative.
+            .filterNot { timeMatchIsPreteriteNarrative(it, working) }
             .minByOrNull { it.range.first }
         val explicitTimeData = timeMatch?.let { match ->
             val mv = match.value.lowercase()
@@ -5670,7 +5688,9 @@ object NaturalTaskParser {
                 var acc = value
                 for (pattern in timePatterns) {
                     acc = pattern.replace(acc) { m ->
-                        if (timeMatchIsCountNoun(m, acc)) m.value else " "
+                        // c.1043: la hora narrativa (cierre de relato en
+                        // pretérito) se conserva íntegra, como las cuentas.
+                        if (timeMatchIsCountNoun(m, acc) || timeMatchIsPreteriteNarrative(m, acc)) m.value else " "
                     }
                 }
                 acc
@@ -8720,10 +8740,11 @@ object NaturalTaskParser {
         // pagó el lunes», «ahora me lo dijo el martes»): el weekday
         // cierra el relato de un hecho cumplido; jamás es ancla.
         val prefix = text.substring(0, match.range.first)
-        if (weekdayPreteriteNarrativePrefix(prefix)) return true
+        if (narrativePreteritePrefix(prefix)) return true
         val suffix = text.substring(match.range.last + 1)
         if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
-        // c.1041 (UNIÓN con la rama [weekdayPreteriteNarrativePrefix] del
+        // c.1041 (UNIÓN con la rama [narrativePreteritePrefix — ex
+        // `weekdayPreteriteNarrativePrefix`, renombrado c.1043] del
         // hermano — colisión convergente sobre la MISMA lateral): weekday AL
         // FINAL con el predicado pretérito en el PREFIJO SIN marca «ya/ahora/
         // ahorita» («llegué el miércoles», «pagué la luz el viernes»): la
@@ -8757,14 +8778,17 @@ object NaturalTaskParser {
     }
 
     /**
-     * c.1041: ¿el PREFIJO (todo lo que precede al weekday) abre con una
-     * cadena narrativa inequívoca «ya/ahora/ahorita <clíticos> <pretérito>»?
-     * Conservador: sólo cuando la marca narrativa abre el enunciado
-     * (un prefijo «por favor ya…» sigue anclando, igual que antes de
-     * c.1041); los genitivos y la dirección futura ya quedaron fuera en
+     * c.1041: ¿el PREFIJO (todo lo que precede al ancla candidata) abre con
+     * una cadena narrativa inequívoca «ya/ahora/ahorita <clíticos>
+     * <pretérito>»? Conservador: sólo cuando la marca narrativa abre el
+     * enunciado (un prefijo «por favor ya…» sigue anclando, igual que antes
+     * de c.1041); los genitivos y la dirección futura ya quedaron fuera en
      * [weekdayOccurrenceIsPreteriteNarrative] (N1/N2) antes de llamar.
+     * c.1043: reutilizado por [timeMatchIsPreteriteNarrative] para la hora
+     * numérica «a las H» AL FINAL de la misma cadena («ya me llamó a las
+     * 8») — renombrado de `weekdayPreteriteNarrativePrefix` a nombre neutro.
      */
-    private fun weekdayPreteriteNarrativePrefix(prefix: String): Boolean {
+    private fun narrativePreteritePrefix(prefix: String): Boolean {
         val s = prefix.trim().lowercase()
         val sub = when {
             s.startsWith("ya ") -> s.substring(3)
