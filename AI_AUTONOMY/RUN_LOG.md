@@ -17185,3 +17185,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado: VERIFIED (JVM).** **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS de SU c.1027 (UNA por ciclo): clíticos múltiples «ya me lo pagó»; «ya, <narrativa>» con coma; genitivos; plural «los pelos». O candidata (a) UNDÉCIMA «cambiar la contraseña» (keyword-OBJETO, fix barato precedente c.1013). Preferir laterales FRÍAS para reducir convergencia (lección c.1025).
 - Commits: test-delta + docs-close. HEAD final: ver `git log`.
+## Ciclo c.1031 (2026-08-24, este lado, DISJUNTO parser) — colisión convergente «ya <pretérito>» (mi c.1027 ≡ SU c.1027 `d375d99`) + verificación independiente UNIÓN OK 7489
+
+- HEAD inicial: `9922a69f` (pre-ciclo, sync limpio). Durante mi implementación el hermano publicó SU c.1024→c.1028 (`fde9cbf`…`25cce92`), incluida SU c.1027 `d375d99`: MISMA lateral «ya <pretérito inequívoco>» narrativa, mismo punto (guard sobre `nowPattern`), misma lista cerrada c.950, semántica equivalente (due=null + título íntegro; pines comandos «avisar ya» byte-idénticos).
+- Doctrina anti-colisión (precedente c.1014): NO sobrescribir trabajo válido del hermano. Mi fix duplicado (guard `nowOccurrenceIsPreteriteNarrative`, 16 tests) quedó commiteado localmente como `3298dcf` y se descartó íntegro (`reset --soft` a origin + `stash` + `stash drop`; recuperable por reflog) tras verificar la base remota. Cero producción mía en la unión.
+- Delta descubierto por mi sonda/tests (NO integrado para no tocar la región caliente del hermano): el guard SU sólo cubre «ya» suelto; «ahora/ahorita + pretérito» («ahora llegó el cartero») SIGUE anclando a AHORA con título mutilado → registrado en BACKLOG como lateral residual P2.
+- Verificación INDEPENDIENTE de la UNIÓN final en este entorno: `run_domain_tests.sh` sobre `25cce92` → **OK (7489 tests, EXIT=0)** — coincide exacto con la medida del hermano c.1028; smoke `run_domain_checks.sh` 25/25.
+- Lección: 2 agentes convergiendo en la MISMA lateral parser el mismo día es ya patrón (c.1014, c.1023, c.1027); el re-fetch OBLIGATORIO pre-implementación y la doctrina de descarte no-destructivo evitan pérdida de trabajo del hermano.
+- Archivos: SOLO docs AI_AUTONOMY (cero producción).
+- Estado: VERIFIED (JVM, verificación de unión). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación): residual «ahora/ahorita + pretérito» narrativa (P2, BACKLOG) u otra abierta.

@@ -9,6 +9,13 @@
 - Lección (nueva): antes de planear una keyword-OBJETO, comprobar `ContextPrivacyFilter` — una candidata cuyo objeto casa un patrón de contenido bloqueado es NO implementable sin tocar privacidad P0 (las candidatas de la sonda de descubrimiento deben cribarse contra el filtro).
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: candidata (b) UNDÉCIMA «configurar el móvil nuevo por la noche» (verbo «configurar»: piso acotado + keyword-VERBO, precedente c.864 «escanear»; cribar contra el filtro primero) o candidata (c) «formatear el ordenador»; laterales parser ABIERTAS del hermano.
+## Ciclo c.1031 (2026-08-24, este lado, DISJUNTO parser) — colisión convergente «ya <pretérito>» + verificación UNIÓN OK 7489
+
+- HEAD inicial: `9922a69f`. Colisión convergente: mi c.1027 «ya/ahora + pretérito» ≡ SU c.1027 `d375d99` (misma lateral, mismo punto, semántica equivalente). Doctrina c.1014: mi duplicado local `3298dcf` descartado no-destructivamente (`reset --soft` + `stash drop`); cero producción mía en la unión.
+- Verificación INDEPENDIENTE de la UNIÓN final en este entorno: `run_domain_tests.sh` sobre `25cce92` → **OK (7489 tests, EXIT=0)** (coincide con la medida SU c.1028); smoke 25/25.
+- Hallazgo: residual «ahora/ahorita + pretérito» («ahora llegó el cartero») sigue anclando → BACKLOG P2.
+- Archivos: SOLO docs AI_AUTONOMY (cero producción).
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 
 ## Ciclo c.1027 (2026-08-24, este lado, DISJUNTO parser) — integración NO-destructiva 2ª vuelta + verificación independiente UNIÓN final OK (7470)
 - HEAD inicial: `9922a69f` (mi UNIÓN c.1022). Re-fetch pre-push: el hermano publicó c.1026 suyo (sonda UNDÉCIMA persistida 30 casos `3bd3412f` + docs-close `fde9cbfa`, su UNIÓN medida: 7485 = 7419 + 15 + 36 + 15 sonda) durante mi rebase c.1023→c.1026.
