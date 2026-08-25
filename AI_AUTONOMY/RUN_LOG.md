@@ -1,3 +1,13 @@
+# ✅ c.1074 (2026-08-25, este lado) — docs-close: COLISIÓN CONVERGENTE TOTAL sobre la lateral c.1072 «duda «no sé muy bien si + infinitivo»» — el hermano fijó SU c.1072 `fea0f09` (21 tests, 7 capturas, SUPERCONJUNTO) en el re-fetch pre-docs; duplicado propio (19 tests, fix convergente idéntico en fondo, NUNCA commiteado) descartado NO-destructivo; verificación INDEPENDIENTE de la UNIÓN `daa7413`: suite OK (8140), smokes 25/25 y 9/9, sonda POST del hermano 28/28
+
+- HEAD inicial: `753b28b` (marcador EN CURSO c.1072 del hermano, remoto sincronizado). HEAD final: el de este push.
+- Problema seleccionado: P1/P2 — duda intercalada «no sé muy bien si + infinitivo» capturada como compromiso firme (bandeja degradada con items no validados). Medida PRE propia con sonda efímera: 6 capturas confirmadas. Resultado: ya RESUELTA por SU c.1072 durante mi run (colisión convergente total, precedente c.1058/c.1060).
+- Cambios: docs AI_AUTONOMY únicamente. Código propio: cero (descarte NO-destructivo `git checkout origin/… -- .` + borrado de archivos nuevos propios no commiteados; cero force, cero reset --hard, cero sobreescritura).
+- Tests: propios RED exacto EXACTAMENTE 6 fallos → GREEN 19/19 (descartados por duplicados); UNIÓN remota verificada independientemente: **OK (8140)**, `run_domain_checks.sh` 25/25, `run_automation_engine_checks.sh` 9/9, sonda POST del hermano 28/28.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo): context — «no sabemos si…» (plural; futuro EN CURSO hermano c.1073 — NO tocar), colas relativas en títulos; parser — familia «contar» c.950, «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA.
+- COMPLETADO
+
 # ✅ c.1068 (2026-08-25, este lado, DISJUNTO context — marcador EN CURSO `71285bc` publicado al iniciar, doctrina anti-carrera SU c.1066; DISJUNTO de la transversal «cómo <piso>» del hermano) — feat(context): sub-lateral SU c.1064 junk AFIRMATIVO de envolvente modal de obligación RESUELTA — «tengo que es eso», «tengo que sí, claro», «tengo que/q mañana», «hay que eso/mañana/sí», «habría que eso», «tendría que mañana», «debería eso», «debería que mañana», «tengo que el lunes» ya NO se persisten como TASK 0.45 basura («Es eso», «Mañana», «Eso»): guard `obligationModalLacksInfinitive` suprime el piso cuando el modal de obligación no va seguido de infinitivo (12/12 → NULL), con doctrina aparte que conserva los complementos NOMINALES/temporales legítimos y la captura FIEL de prohibición
 
 - HEAD inicial: `71285bc` (mi marcador EN CURSO, remoto sincronizado; re-fetch pre-docs sin cambios del hermano — cero colisión). HEAD final: el de este push.
