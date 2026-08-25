@@ -150,4 +150,12 @@ class ContextIntentEngineSacarGatoDeltaTest {
         // mascota (salir a pasear uno mismo — pin estructural histórico).
         assertNull(analyze("salir a pasear mañana"))
     }
+
+    @Test
+    fun `pasear al bebé destinatario humano fuera pin histórico`() {
+        // Unión c.1058 (colisión convergente c.1057/c.1057): pin disjunto
+        // del hermano — destinatario humano (bebé — pin histórico
+        // anti-overreach).
+        assertNull(analyze("pasear al bebé mañana"))
+    }
 }

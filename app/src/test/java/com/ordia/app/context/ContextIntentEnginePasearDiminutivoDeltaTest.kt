@@ -48,4 +48,27 @@ class ContextIntentEnginePasearDiminutivoDeltaTest {
     }
     @Test fun `fuera salir a pasear bivalente es NULL`() { assertNull(analyze("salir a pasear mañana")) }
     @Test fun `fuera pasear al bebé destinatario humano es NULL`() { assertNull(analyze("pasear al bebé mañana")) }
+
+    // ---- Unión c.1058: cobertura DISJUNTA del hermano convergente ----
+    // (colisión convergente total c.1057/c.1057 — misma lateral, producción
+    // funcionalmente idéntica; verificación cruzada 19/19 contra la
+    // producción upstream; se conservan SOLO los tests disjuntos).
+
+    @Test fun `c7 pasear a mi perrito es HOUSEHOLD`() { hit("pasear a mi perrito", ContextIntentKind.HOUSEHOLD) }
+    @Test fun `c8 pasear el perrito articulo directo es HOUSEHOLD`() { hit("pasear el perrito", ContextIntentKind.HOUSEHOLD) }
+    @Test fun `c9 pasear a la gatita es HOUSEHOLD`() { hit("pasear a la gatita", ContextIntentKind.HOUSEHOLD) }
+    @Test fun `c10 pasear al gatito mañana es HOUSEHOLD con dueAt`() {
+        val i = analyze("pasear al gatito mañana"); assertNotNull(i); assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind); assertNotNull(i.dueAt)
+    }
+    @Test fun `guard negación envolvente no voy a pasear al gatito es NULL`() { assertNull(analyze("no voy a pasear al gatito")) }
+    @Test fun `guard hedge quizá pasee al gatito mañana es NULL`() { assertNull(analyze("quizá pasee al gatito mañana")) }
+    @Test fun `regresión pasear al gato mañana es HOUSEHOLD con dueAt`() {
+        val i = analyze("pasear al gato mañana"); assertNotNull(i); assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind); assertNotNull(i.dueAt)
+    }
+    @Test fun `regresión piso hermano sacar al perrito a las 8 es HOUSEHOLD con dueAt`() {
+        val i = analyze("sacar al perrito a las 8"); assertNotNull(i); assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind); assertNotNull(i.dueAt)
+    }
+    @Test fun `regresión piso hermano sacar al gatito a las 8 es HOUSEHOLD con dueAt`() {
+        val i = analyze("sacar al gatito a las 8"); assertNotNull(i); assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind); assertNotNull(i.dueAt)
+    }
 }

@@ -38,6 +38,17 @@ fun main() {
     hit("REG3", "pasear al perro a las 8", ContextIntentKind.HOUSEHOLD, true)
     nul("FUERA1", "salir a pasear mañana")
     nul("FUERA2", "pasear al bebé mañana")
-    println(if (failures == 0) "POST OK (16 checks)" else "POST FAILURES: $failures")
+    // Unión c.1058 (colisión convergente c.1057/c.1057): checks DISJUNTOS
+    // del hermano (verificación cruzada 19/19 contra producción upstream).
+    hit("U1", "pasear a mi perrito", ContextIntentKind.HOUSEHOLD, false)
+    hit("U2", "pasear el perrito", ContextIntentKind.HOUSEHOLD, false)
+    hit("U3", "pasear a la gatita", ContextIntentKind.HOUSEHOLD, false)
+    hit("U4", "pasear al gatito mañana", ContextIntentKind.HOUSEHOLD, true)
+    nul("U5", "no voy a pasear al gatito")
+    nul("U6", "quizá pasee al gatito mañana")
+    hit("U7", "pasear al gato mañana", ContextIntentKind.HOUSEHOLD, true)
+    hit("U8", "sacar al perrito a las 8", ContextIntentKind.HOUSEHOLD, true)
+    hit("U9", "sacar al gatito a las 8", ContextIntentKind.HOUSEHOLD, true)
+    println(if (failures == 0) "POST OK (25 checks)" else "POST FAILURES: $failures")
     if (failures > 0) kotlin.system.exitProcess(1)
 }
