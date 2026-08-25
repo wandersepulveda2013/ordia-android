@@ -2432,6 +2432,37 @@ object ContextIntentEngine {
             // objetos bivalentes («el libro», «la serie», «a estudiar»)
             // no casan; la keyword sola queda bajo el umbral.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empezar\s+(?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b""").containsMatchIn(lower)
+            // c.1125: «hacer(me|te|se|nos) (det)? revisión de la vista»
+            // — candidata (e) del complemento c.1102 (clase
+            // DECIMOTERCERA, salud; medida NULL por la sonda persistida
+            // `tools/probe/ThirteenthClassHealthProbeComplement.kt` y
+            // re-medida PRE en este ciclo con sonda efímera propia,
+            // HEAD 583d6ac: 8/8 formas objetivo NULL, guards 6/6 NULL,
+            // pines 7/7 correctos): la revisión de la vista (gafas,
+            // graduación) exige cita con profesional y caía a NULL —
+            // la keyword «revisión» existe (APPOINTMENT) pero el
+            // reflexivo «hacerme» no aportaba señal (bajo el umbral).
+            // El verbo «hacer» es bivalente (la cama/la compra/el
+            // informe), así el piso se ACOTA al objeto
+            // `revisi[oó]n de la vista` (grafía [oó] admite la forma
+            // sin tilde, precedente c.772). El enclítico reflexivo
+            // sigue EXIGIDO (hermandad conservadora con la doctrina
+            // c.862: la forma desnuda «hacer la revisión…» queda FUERA
+            // como lateral, pin en el test). Kind decidido: TASK,
+            // hermano EXACTO de «ponerme la vacuna» c.1044 (mismo
+            // autocuidado de salud reflexivo). CERO keywords nuevas:
+            // «revisión» ya es keyword APPOINTMENT (ContextIntent.kt)
+            // y «hacer» es substring de «hacerme» (doctrina c.862,
+            // medida c.1115). Anti-overreach: `(?<!no )` bloquea la
+            // negada directa; el pasado «me hice…» y la 3ª persona
+            // «se hace…» no casan por la alternancia cerrada de
+            // infinitivo+enclítico; la duda «quizá hacerme…» no casa
+            // el ancla (y HEDGE penaliza post-pisos, doctrina c.649);
+            // el sintagma nominal «la revisión de la vista…» queda a
+            // keyword sola 0.12 < umbral. Lockstep con la plantilla
+            // matchHacerseRevisionVista de [extractTitle] (lección
+            // c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer(?:me|te|se|nos)\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?revisi[oó]n\s+de\s+la\s+vista\b""").containsMatchIn(lower)
             // c.1117: «sacar (una )?(cita|turno|hora)» — candidata (c)
             // del complemento c.1102 (clase DECIMOTERCERA, salud;
             // medida NULL por la sonda persistida
@@ -4319,6 +4350,19 @@ object ContextIntentEngine {
                 // sigue su propia vía (pin byte-idéntica R8 en el test).
                 val matchEmpezarDieta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(empezar)\s+((?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEmpezarDieta != null) return "Empezar ${matchEmpezarDieta.groupValues[2]}"
+                // c.1125: plantilla «hacer(me|te|se|nos) (det)?
+                // revisión de la vista» (lockstep con el piso propio de
+                // este ciclo; el verbo capturado con su enclítico se
+                // preserva capitalizado, doctrina c.653 — «Hacerme la
+                // revisión de la vista»; el match arranca en el verbo,
+                // así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]). La forma
+                // desnuda («hacer la revisión…») nunca llega aquí
+                // porque el piso no la captura; la envolvente
+                // («recuérdame hacerme…») sigue su propia vía (pin
+                // byte-idéntica en el test).
+                val matchHacerseRevisionVista = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer(?:me|te|se|nos))\s+((?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?revisi[oó]n\s+de\s+la\s+vista\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerseRevisionVista != null) return "${matchHacerseRevisionVista.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchHacerseRevisionVista.groupValues[2]}"
                 // c.1117: plantilla «sacar (una )?(cita|turno|hora)»
                 // (lockstep con el piso propio de este ciclo; el verbo
                 // gobierna el contenido y se PRESERVA capitalizado —
