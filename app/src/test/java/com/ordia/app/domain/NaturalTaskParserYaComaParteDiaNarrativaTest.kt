@@ -156,21 +156,25 @@ class NaturalTaskParserYaComaParteDiaNarrativaTest {
     // comas era lateral FUERA pineada byte-idéntica (09:00 falso + título
     // «me tomé la pastilla»); la misma medida la mostró narrativa y c.1083
     // la resolvió con la tercera alternativa de [yaPreteriteNarrativeSuffix]
-    // + el guard hermano sin comas. Las formas con UNA sola coma y las de
-    // «ahora/ahorita» con comas SIGUEN FUERA pineadas byte-idénticas abajo.
+    // + el guard hermano sin comas.
+    // c.1094: re-pin legítimo ídem — las formas con UNA sola coma
+    // (apertura «ya, por la mañana me tomé…» / cierre «ya por la mañana,
+    // me tomé…») eran laterales FUERA pineadas byte-idénticas (medida PRE
+    // /tmp/probe1094/Probe.kt: 9/9 con ancla falsa + título mutilado) y
+    // c.1094 las resolvió (cuarta alternativa de [yaPreteriteNarrativeSuffix]
+    // + guard hermano una-sola-coma). Las de «ahora/ahorita» con DOS comas
+    // SIGUEN FUERA pineadas byte-idénticas abajo.
     @Test
     fun yaSinComasPorLaManana_resueltaC1083() =
         assertNarrativeIntact("ya por la mañana me tomé la pastilla")
 
     @Test
-    fun yaComaSoloApertura_lateralFueraPin() =
-        assertPin("ya, por la mañana me tomé la pastilla",
-            LocalDateTime.of(2026, 8, 22, 9, 0), "me tomé la pastilla")
+    fun yaComaSoloApertura_resueltaC1094() =
+        assertNarrativeIntact("ya, por la mañana me tomé la pastilla")
 
     @Test
-    fun yaComaSoloCierre_lateralFueraPin() =
-        assertPin("ya por la mañana, me tomé la pastilla",
-            LocalDateTime.of(2026, 8, 22, 9, 0), "ya , me tomé la pastilla")
+    fun yaComaSoloCierre_resueltaC1094() =
+        assertNarrativeIntact("ya por la mañana, me tomé la pastilla")
 
     @Test
     fun yaComaPorLaMananaSiguienteMeFui_lateralFueraPin() =
