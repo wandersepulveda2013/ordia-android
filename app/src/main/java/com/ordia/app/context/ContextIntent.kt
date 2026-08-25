@@ -284,6 +284,20 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el piso exige el objeto «paro», así que esos bivalentes siguen
         // NULL deliberado (sonda `tools/probe/SellarParoProbe.kt`).
         "sellar el paro",
+        // c.1148: keyword-OBJETO «currículum» + grafía sin tilde (lockstep
+        // con el piso acotado «echar (el)? curr[ií]culum», candidata (a)
+        // FUERTE de la clase DECIMOSÉPTIMA vida laboral — sonda persistida
+        // del hermano `tools/probe/SeventeenthClassWorkProbe.kt` c.1147 C5;
+        // ver ContextIntentEngine.hasStrongTaskImperative). NO el verbo
+        // «echar»: bivalente (echar agua/de menos/la culpa — lección
+        // c.829, mismo motivo por el que «gasolina» fue keyword-OBJETO).
+        // 0.12 sola inerte < umbral: «el currículum está listo para
+        // enviar» (nominal, +0.12 «enviar» = 0.24) sigue descartado.
+        // Además alimenta [TRIGGER_WORDS]: sin ella una notificación cuyo
+        // gatillo fuera solo «currículum» ni llegaría al análisis
+        // (lección c.751). Olvido silencioso P1: la oferta de empleo
+        // tiene plazo — el olvido cuesta la oportunidad entera.
+        "currículum", "curriculo",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
