@@ -578,10 +578,11 @@ object ContextIntentEngine {
     // objetos hermanos medidos NULL quedan FUERA como laterales —
     // c.1129: lateral (a-bis) «el almuerzo» (NULL PRE medido sonda c.1127
     // C18, re-pin legítimo del pin c.1128, precedente c.1035/c.1041/c.1094);
-    // restan laterales (a-ter) «dinero de la excursión», (a-quater) «ropa
-    // de recambio», (a-quinquies) «proyecto de ciencias».
+    // c.1133: lateral (a-ter) «el dinero de la excursión» (NULL PRE medido
+    // sonda c.1127 C19, re-pin legítimo del pin c.1129); restan laterales
+    // (a-quater) «ropa de recambio», (a-quinquies) «proyecto de ciencias».
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -1047,8 +1048,23 @@ object ContextIntentEngine {
     // [extractTitle]; declarado antes de STUDY_FLOORS porque la lista lo
     // referencia). «entregar» queda fuera: ya tiene piso libre en TASK
     // (fluctuación de la suite al añadirlo — recortado, no reintroducido).
+    // c.1130 (candidata (b) clase DECIMODUARTA, sonda persistida
+    // `tools/probe/FourteenthClassSchoolProbe.kt` C26-C29 — 4/4 NULL,
+    // re-medido PRE sobre `d20f6ae` con sonda efímera 8/8 targets NULL):
+    // alternativa «ayudar a <hijo> con (los) deberes». La sesión de deberes
+    // CON los hijos se dice «ayudar», no «hacer» (olvido silencioso P1:
+    // keyword «deberes» 0.12 + bono temporal 0.1 = 0.22 < umbral).
+    // Acotada a DOS objetos exigidos («niñ[oa]s?» + «deberes»): «ayudar»
+    // es bivalente («ayudar a un amigo con la mudanza» / «ayudar a los
+    // niños con la cena» quedan FUERA, guards NULL). Keyword «deberes» ya
+    // existe (c.898): CERO cambios en ContextIntent.kt (gate c.751
+    // satisfecho; «ayudar» NO se añade — bivalente). El guard de
+    // envolvente fluye por STUDY_FLOORS (fuente única, lección
+    // c.648/c.652): «recuérdame ayudar a los niños con los deberes»
+    // gobierna TASK (pin byte-idéntico 0.45). El presente «ayudo» queda
+    // lateral (UNA forma por ciclo, doctrina anti-overreach).
     private val STUDY_HOMEWORK_FLOOR =
-        Regex("""\b(?<!no )hacer\s+(?:(?:los|las|mis|tus|sus)\s+)?deberes\b""")
+        Regex("""\b(?<!no )(?:hacer\s+(?:(?:los|las|mis|tus|sus)\s+)?deberes\b|ayudar\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+con\s+(?:(?:los|las)\s+)?deberes\b)""")
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
         Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b"""),
@@ -4673,6 +4689,16 @@ object ContextIntentEngine {
                 if (matchDeberes != null) {
                     return "${capitalizeFirst(matchDeberes.groupValues[1])} ${matchDeberes.groupValues[2]}"
                 }
+                // c.1130: «ayudar a <hijo> con (los) deberes» — verbo
+                // preservado (lockstep con [STUDY_HOMEWORK_FLOOR], lección
+                // c.616); el residuo temporal lo depura [sanitizeTitle].
+                val matchAyudarDeberes = Regex(
+                    """\b(?<!no )(ayudar)\s+(a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+con\s+(?:(?:los|las)\s+)?deberes\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchAyudarDeberes != null) {
+                    return "${capitalizeFirst(matchAyudarDeberes.groupValues[1])} ${matchAyudarDeberes.groupValues[2]}"
+                }
                 null
             }
             ContextIntentKind.CALL -> {
@@ -5045,13 +5071,14 @@ object ContextIntentEngine {
                 // familiar «parque» c.852, objeto de acarreo escolar «la
                 // merienda» c.1128 → "Llevar la merienda al colegio",
                 // lateral «el almuerzo» c.1129 → "Llevar el almuerzo al
-                // colegio", lockstep con [ERRAND_SCHOOL_RUN_FLOOR]): verbo
-                // preservado con su
+                // colegio", lateral «el dinero de la excursión» c.1133 →
+                // "Llevar el dinero de la excursión al colegio", lockstep
+                // con [ERRAND_SCHOOL_RUN_FLOOR]): verbo preservado con su
                 // persona (doctrina c.653), residuo temporal de cola depurado
                 // por [sanitizeTitle]; el match arranca en el verbo, así el
                 // acuse/prefijo temporal no ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {
