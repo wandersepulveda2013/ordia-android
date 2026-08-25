@@ -1273,13 +1273,13 @@ object AssistantEngine {
     // (voseo)/d[eé]jame; la palabra «nota» sigue siendo obligatoria, así
     // «guarda el recuerdo»/«toma la pastilla»/«déjame el paquete»/«haceme
     // favor» nunca entran (sonda persistente tools/probe/AssistantNotaVerboAlternativoProbe.kt).
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$)|(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)(?=\\s*:|\\s*$))\\b")
-    private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
-    private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
-    private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
-    private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
-    private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)\\s*:\\s*(.+)$")
-    private val LO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)\\s*:\\s*(.+)$")
+    private val TAKE_NOTE_PREFIX = Regex("(?iu)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$)|(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)(?=\\s*:|\\s*$))\\b")
+    private val TAKE_NOTE_WITH_CONTENT = Regex("(?iu)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
+    private val JOT_NOTE_WITH_CONTENT = Regex("(?iu)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
+    private val WRITE_NOTE_WITH_CONTENT = Regex("(?iu)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
+    private val DICTATE_NOTE_WITH_CONTENT = Regex("(?iu)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
+    private val MELO_NOTE_WITH_CONTENT = Regex("(?iu)^(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)\\s*:\\s*(.+)$")
+    private val LO_NOTE_WITH_CONTENT = Regex("(?iu)^(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)\\s*:\\s*(.+)$")
 
     private fun takeNoteCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1318,12 +1318,12 @@ object AssistantEngine {
     // ancla ^ hace disjuntas las formas no imperativas: «no me recuerdes
     // nada», «recuerdo la tarea de ayer» y «el recuerdo llegó ayer» nunca
     // entran en la rama.
-    private val REMIND_ME_PREFIX = Regex("(?i)^recu[ée]rdame(?:\\s*:)?(?:\\s+|$)")
+    private val REMIND_ME_PREFIX = Regex("(?iu)^recu[ée]rdame(?:\\s*:)?(?:\\s+|$)")
     // c.992: ([^:].*) en lugar de (.+) — la pelada CON «:» («recuérdame:»)
     // creaba tarea BASURA «:» (el (.+) se tragaba el propio «:» por
     // backtracking al ser opcional). NUNCA tarea basura (doctrina c.969;
     // simetría con el extractor c.990 de createTaskCapture).
-    private val REMIND_ME_WITH_CONTENT = Regex("(?i)^recu[ée]rdame\\s*:?\\s*([^:].*)$")
+    private val REMIND_ME_WITH_CONTENT = Regex("(?iu)^recu[ée]rdame\\s*:?\\s*([^:].*)$")
 
     // c.993: «que» subordinado inicial («recuérdame que tengo que…») —
     // conector, NO contenido (medido: residuo en el título). Despoje
@@ -1332,7 +1332,7 @@ object AssistantEngine {
     // negación tras «que» («…que no llame…») llega al check anti-overreach
     // (NUNCA capturar lo contrario de la intención). «quedarme» (sin
     // espacio) y «qué» (con tilde) NUNCA casan.
-    private val LEADING_QUE = Regex("(?i)^que(?:\\s+|$)")
+    private val LEADING_QUE = Regex("(?iu)^que(?:\\s+|$)")
 
     private fun remindMeCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1359,8 +1359,8 @@ object AssistantEngine {
     // (despedida) y pretérito «no olvidaste» NUNCA entran — el clítico
     // opcional admite SOLO «se te»/«te». Sonda persistente
     // tools/probe/AssistantNoOlvidesReminderProbe.kt.
-    private val NO_OLVIDES_PREFIX = Regex("(?i)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?(?:\\s*:|\\s+|\\s*$)")
-    private val NO_OLVIDES_WITH_CONTENT = Regex("(?i)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?\\b\\s*:?\\s*([^:].*)$")
+    private val NO_OLVIDES_PREFIX = Regex("(?iu)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?(?:\\s*:|\\s+|\\s*$)")
+    private val NO_OLVIDES_WITH_CONTENT = Regex("(?iu)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?\\b\\s*:?\\s*([^:].*)$")
 
     private fun noOlvidesCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1387,9 +1387,9 @@ object AssistantEngine {
     // por ciclo). Verbos: crea/crear, añade/añadir, agrega/agregar;
     // artículo «una» y «:» opcionales; «tareas» admite la «s».
     private val CREATE_TASK_PREFIX =
-        Regex("(?i)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?(?:\\s*:)?(?:\\s+|$)")
+        Regex("(?iu)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?(?:\\s*:)?(?:\\s+|$)")
     private val CREATE_TASK_WITH_CONTENT =
-        Regex("(?i)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?\\s*:?\\s*([^:].*)$")
+        Regex("(?iu)^(?:crea(?:r)?|a[ñn]ad(?:e|ir)|agrega(?:r)?)\\s+(?:una\\s+)?tareas?\\s*:?\\s*([^:].*)$")
 
     private fun createTaskCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1412,9 +1412,9 @@ object AssistantEngine {
     // intercalado («avísame MAÑANA DE llamar…») se reordena al final
     // del payload para que NaturalTaskParser ancle la fecha con título
     // limpio (medido PRE: payload «mañana de llamar…» dejaba residuo).
-    private val AVISA_ME_PREFIX = Regex("(?i)^av[íi]same(?:\\s*:)?(?:\\s+|$)")
+    private val AVISA_ME_PREFIX = Regex("(?iu)^av[íi]same(?:\\s*:)?(?:\\s+|$)")
     private val AVISA_ME_WITH_CONTENT =
-        Regex("(?i)^av[íi]same\\s*:?\\s*(?:(pasado mañana|mañana|hoy)\\s+)?(?:de\\s+)?([^:].*)$")
+        Regex("(?iu)^av[íi]same\\s*:?\\s*(?:(pasado mañana|mañana|hoy)\\s+)?(?:de\\s+)?([^:].*)$")
 
     private fun avisaMeCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1444,9 +1444,9 @@ object AssistantEngine {
     // NUNCA tarea basura «:». El ancla ^ hace disjuntas la negación
     // previa («no quiero que…») y el pasado («quería que me
     // recordaras…», otra persona y otro tiempo).
-    private val QUIERO_QUE_PREFIX = Regex("(?i)^quiero que me recuerdes(?:\\s*:)?(?:\\s+|$)")
+    private val QUIERO_QUE_PREFIX = Regex("(?iu)^quiero que me recuerdes(?:\\s*:)?(?:\\s+|$)")
     private val QUIERO_QUE_WITH_CONTENT =
-        Regex("(?i)^quiero que me recuerdes\\s*:?\\s*([^:].*)$")
+        Regex("(?iu)^quiero que me recuerdes\\s*:?\\s*([^:].*)$")
 
     private fun quieroQueRecuerdesCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1472,16 +1472,16 @@ object AssistantEngine {
     // final («… mañana») se tolera en la forma pero no se puede guardar
     // sin saber QUÉ recordar — la guía es la respuesta honesta.
     private val REMIND_ME_LO =
-        Regex("(?i)^recu[ée]rdamelo(?:\\s+(?:ma[ñn]ana|hoy|pasado ma[ñn]ana|esta (?:tarde|noche|ma[ñn]ana)))?\\.?$")
+        Regex("(?iu)^recu[ée]rdamelo(?:\\s+(?:ma[ñn]ana|hoy|pasado ma[ñn]ana|esta (?:tarde|noche|ma[ñn]ana)))?\\.?$")
 
     // c.1088: lateral (3) de la auditoría c.1085 — «recuérdamelo:
     // <contenido>». Cuando el contenido viaja en el propio texto («lo»
     // = aquello que sigue), la captura como tarea; la guía c.996
     // (abajo) conserva SÓLO la pelada exacta (y los temporales pelados),
     // al estilo de c.987.
-    private val REMIND_ME_LO_PREFIX = Regex("(?i)^recu[ée]rdamelo(?:\\s*:)?(?:\\s+|$)")
+    private val REMIND_ME_LO_PREFIX = Regex("(?iu)^recu[ée]rdamelo(?:\\s*:)?(?:\\s+|$)")
     private val REMIND_ME_LO_WITH_CONTENT =
-        Regex("(?i)^recu[ée]rdamelo\\s*:?\\s*([^:].*)$")
+        Regex("(?iu)^recu[ée]rdamelo\\s*:?\\s*([^:].*)$")
 
     // c.1090: lateral (4) — última restante de la auditoría c.1085.
     // «olvidé/olvide (de) <contenido>» DECLARATIVO pasado caía al MENÚ
@@ -1497,13 +1497,13 @@ object AssistantEngine {
     // c.1093: el «?» colgante sin «¿» de apertura (teclado laxo) tampoco
     // captura — guarda sobre el contenido crudo en `olvideCapture`.
     private val OLVIDE_PAST_PREFIX =
-        Regex("(?i)^olvid[ée](?:\\s+de)?(?:\\s|:|$)")
+        Regex("(?iu)^olvid[ée](?:\\s+de)?(?:\\s|:|$)")
     private val OLVIDE_PAST_WITH_CONTENT =
-        Regex("(?i)^olvid[ée](?:\\s+de)?\\s*:?\\s*([^:].*)$")
+        Regex("(?iu)^olvid[ée](?:\\s+de)?\\s*:?\\s*([^:].*)$")
     private val OLVIDE_SE_PREFIX =
-        Regex("(?i)^se\\s+olvid[oó](?:\\s+de)?(?:\\s|:|$)")
+        Regex("(?iu)^se\\s+olvid[oó](?:\\s+de)?(?:\\s|:|$)")
     private val OLVIDE_SE_WITH_CONTENT =
-        Regex("(?i)^se\\s+olvid[oó](?:\\s+de)?\\s*:?\\s*([^:].*)$")
+        Regex("(?iu)^se\\s+olvid[oó](?:\\s+de)?\\s*:?\\s*([^:].*)$")
     // Huecas: «olvidé algo/nada» no basta (NUNCA tarea basura a ciegas).
     // c.1093: «de» — conector huérfano («olvide de» capturaba «de»).
     // c.1095: «que» se añade a las palabras huérfanas — «olvidé que» pelada
@@ -1517,7 +1517,7 @@ object AssistantEngine {
     // creaba TAREA BASURA (sonda efímera /tmp/probe1093/Probe.kt). La
     // guía honesta es la respuesta; NUNCA tarea basura (doctrina c.969).
     private val TEMPORAL_ONLY_CONTENT = Regex(
-        "(?i)^(?:(?:ma[ñn]ana|hoy|pasado\\s+ma[ñn]ana|esta\\s+(?:tarde|noche|ma[ñn]ana))" +
+        "(?iu)^(?:(?:ma[ñn]ana|hoy|pasado\\s+ma[ñn]ana|esta\\s+(?:tarde|noche|ma[ñn]ana))" +
             "(?:\\s+(?:por|en)\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada)|\\s+a\\s+las?\\s+\\d{1,2}(?::\\d{2})?(?:\\s*(?:am|pm|h))?)?|" +
             "(?:por|en)\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada)|" +
             "a\\s+las?\\s+\\d{1,2}(?::\\d{2})?(?:\\s*(?:am|pm|h))?)\\.?$"
@@ -1591,8 +1591,8 @@ object AssistantEngine {
     // confirma (NADA se completa en silencio). El ancla ^ con «marca(r)»
     // imperativo hace disjuntas la negación («no marques…») y el pasado
     // («ya la marqué…»). Completadas/archivadas NUNCA se ofrecen.
-    private val MARK_DONE_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])(?:\\s|:|$)")
-    private val MARK_DONE_WITH_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])\\s*:?\\s*([^:].*)$")
+    private val MARK_DONE_PREFIX = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])(?:\\s|:|$)")
+    private val MARK_DONE_WITH_CONTENT = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao])\\s*:?\\s*([^:].*)$")
     private val MARK_DONE_STOPWORDS = setOf(
         "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
         "al", "en", "y", "o", "a", "con", "por", "para", "mi", "mis",
@@ -1611,15 +1611,15 @@ object AssistantEngine {
     // hace disjuntas la negación («no completé…»), el presente («casi
     // termino…») y la segunda persona («¿completaste…?»). El «ya» enfático y
     // el conector «de» («terminé de …») se despojan antes del extractor.
-    private val COMPLETE_PAST_PREFIX = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?(?:\\s|:|$)")
-    private val COMPLETE_PAST_WITH_CONTENT = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?\\s*:?\\s*([^:].*)$")
+    private val COMPLETE_PAST_PREFIX = Regex("(?iu)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?(?:\\s|:|$)")
+    private val COMPLETE_PAST_WITH_CONTENT = Regex("(?iu)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?\\s*:?\\s*([^:].*)$")
 
     // c.1089: imperativos inequívocos de cierre «termina/finaliza/tacha/
     // completa <tarea>» — hermanos de «marca como hecha…» (c.997). La
     // bivalente «haz la tarea» queda FUERA por diseño. Pelada («termina la
     // tarea») y sin coincidencia → guía honesta SIN acción.
-    private val MARK_DONE_IMPL_PREFIX = Regex("(?i)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])(?:\\s|:|$)")
-    private val MARK_DONE_IMPL_WITH_CONTENT = Regex("(?i)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])\\s*:?\\s*([^:].*)$")
+    private val MARK_DONE_IMPL_PREFIX = Regex("(?iu)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])(?:\\s|:|$)")
+    private val MARK_DONE_IMPL_WITH_CONTENT = Regex("(?iu)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])\\s*:?\\s*([^:].*)$")
 
     private fun markDoneTokens(s: String): Set<String> =
         s.foldForSearch().split(' ').filter { it.isNotBlank() && it !in MARK_DONE_STOPWORDS }.toSet()
@@ -1678,16 +1678,16 @@ object AssistantEngine {
     // título → guía honesta. Cubre también la forma «marca(r) … como
     // pendiente», espejo exacto de «marca como hecha …» (c.997), en posición
     // prefija («marca como pendiente X») y sufija («marca X como pendiente»).
-    private val REOPEN_MARK_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente(?:\\s|:|$)")
-    private val REOPEN_MARK_WITH_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente\\s*:?\\s*([^:].*)$")
-    private val REOPEN_MARK_SUFFIX = Regex("(?i)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+pendiente\\s*[.!?]?$")
+    private val REOPEN_MARK_PREFIX = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente(?:\\s|:|$)")
+    private val REOPEN_MARK_WITH_CONTENT = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+pendiente\\s*:?\\s*([^:].*)$")
+    private val REOPEN_MARK_SUFFIX = Regex("(?iu)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+pendiente\\s*[.!?]?$")
     // c.1004 (UNIÓN): el verbo puede llevar la inserción «como
     // hecha/completada/terminada» antes del objeto («desmarca como hecha la
     // tarea del presupuesto») — sin ella el contenido tragaba «como hecha» y
     // ningún título la contiene (mentira por omisión medida: «No encuentro
     // ninguna tarea completada…» pese a existir la completada exacta).
-    private val REOPEN_VERB_PREFIX = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?(?:\\s|:|$)")
-    private val REOPEN_VERB_WITH_CONTENT = Regex("(?i)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?\\s*:?\\s*([^:].*)$")
+    private val REOPEN_VERB_PREFIX = Regex("(?iu)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?(?:\\s|:|$)")
+    private val REOPEN_VERB_WITH_CONTENT = Regex("(?iu)^(?:reabr(?:e|ir)|reactiv[ae](?:r)?|desmarc[ae](?:r)?|vuelve\\s+a\\s+poner(?:la|lo)?\\s+pendiente)(?:\\s+como\\s+(?:hech[ao]|completad[ao]|terminad[ao]))?\\s*:?\\s*([^:].*)$")
 
     private fun reopenCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1735,8 +1735,8 @@ object AssistantEngine {
     // (anti-overreach: «recupera mi cuenta» NUNCA entra). El ancla ^ en
     // imperativo/infinitivo disjunta negación («no recuperes…»), pasado
     // («ya recuperé…») y 2ª persona («¿recuperaste…?»).
-    private val RESTORE_PREFIX = Regex("(?i)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
-    private val RESTORE_WITH_CONTENT = Regex("(?i)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val RESTORE_PREFIX = Regex("(?iu)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val RESTORE_WITH_CONTENT = Regex("(?iu)^(?:recupera(?:r)?|desarchiva(?:r)?|restaura(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
 
     private fun restoreCapture(clean: String, archivedTasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1781,8 +1781,8 @@ object AssistantEngine {
     // ancla ^ en imperativo/infinitivo disjunta negación («no archives…»),
     // pasado («ya archivé…») y 2ª persona («¿archivaste…?»); «desarchiva…»
     // sigue yendo a RESTORE (prefijos disjuntos en ambos sentidos).
-    private val ARCHIVE_PREFIX = Regex("(?i)^archiva(?:r)?\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
-    private val ARCHIVE_WITH_CONTENT = Regex("(?i)^archiva(?:r)?\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val ARCHIVE_PREFIX = Regex("(?iu)^archiva(?:r)?\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val ARCHIVE_WITH_CONTENT = Regex("(?iu)^archiva(?:r)?\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
 
     private fun archiveCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1837,13 +1837,13 @@ object AssistantEngine {
     // Grupo NO capturante: los índices de captura de los regex de abajo
     // asumen que el nivel es 1 grupo, no 2 (sonda /tmp/probe1006b/Rx.kt).
     private val PRIORITY_LEVELS = "(?:importante|urgente|prioridad\\s+alta|prioridad\\s+baja)"
-    private val PRIORITY_MARCAR_LEVEL_PREFIX = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
-    private val PRIORITY_MARCAR_PREFIX_CONTENT = Regex("(?i)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)\\s*:?\\s*(.+?)\\s*[.!?]?$")
-    private val PRIORITY_MARCAR_SUFFIX = Regex("(?i)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
-    private val PRIORITY_PON_LEVEL_PREFIX = Regex("(?i)^pon(?:er)?(?:le)?\\s+(prioridad\\s+(?:alta|baja))(?:\\s|:|$)")
-    private val PRIORITY_PON_SUFFIX_LEVEL = Regex("(?i)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(?:como|en)\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
-    private val PRIORITY_PON_FIRST = Regex("(?i)^pon(?:er)?(?:le)?\\s+(prioridad\\s+alta|prioridad\\s+baja)\\s+a\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s*[.!?]?$")
-    private val PRIORITY_PON_SUFFIX = Regex("(?i)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s+(?:como|en)\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
+    private val PRIORITY_MARCAR_LEVEL_PREFIX = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
+    private val PRIORITY_MARCAR_PREFIX_CONTENT = Regex("(?iu)^m[áa]rca(?:r)?(?:la|lo)?\\s+como\\s+($PRIORITY_LEVELS)\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val PRIORITY_MARCAR_SUFFIX = Regex("(?iu)^m[áa]rca(?:r)?\\s+(.+?)\\s+como\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
+    private val PRIORITY_PON_LEVEL_PREFIX = Regex("(?iu)^pon(?:er)?(?:le)?\\s+(prioridad\\s+(?:alta|baja))(?:\\s|:|$)")
+    private val PRIORITY_PON_SUFFIX_LEVEL = Regex("(?iu)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(?:como|en)\\s+($PRIORITY_LEVELS)(?:\\s|:|$)")
+    private val PRIORITY_PON_FIRST = Regex("(?iu)^pon(?:er)?(?:le)?\\s+(prioridad\\s+alta|prioridad\\s+baja)\\s+a\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s*[.!?]?$")
+    private val PRIORITY_PON_SUFFIX = Regex("(?iu)^pon(?:er)?\\s+(?:la\\s+)?tareas?\\s+(.+?)\\s+(?:como|en)\\s+($PRIORITY_LEVELS)\\s*[.!?]?$")
 
     private fun priorityLevelOf(level: String): TaskPriority {
         val folded = level.lowercase().replace(Regex("\\s+"), " ")
@@ -1928,10 +1928,10 @@ object AssistantEngine {
     // pospone A MAÑANA (fuente única: OrdiaViewModel.deferTaskToTomorrow →
     // TaskRules.deferToNextDay, que exige dueAt); otro temporal → limitación
     // honesta. NADA se pospone en silencio: el botón confirma.
-    private val POSTPONE_PREFIX = Regex("(?i)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)(?:\\s|:|$)")
-    private val POSTPONE_WITH_CONTENT = Regex("(?i)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)\\s*:?\\s*(.+?)(?:\\s+para\\s+(.+?))?\\s*[.!?]?$")
-    private val POSTPONE_MANANA = Regex("(?i)^(?:a\\s+|hasta\\s+)?mañana$")
-    private val POSTPONE_TRAILING_MANANA = Regex("(?i)\\s+(?:a|hasta)\\s+mañana$")
+    private val POSTPONE_PREFIX = Regex("(?iu)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)(?:\\s|:|$)")
+    private val POSTPONE_WITH_CONTENT = Regex("(?iu)^(?:posp[oó]n(?:er)?|aplaz[ae](?:r)?)\\s*:?\\s*(.+?)(?:\\s+para\\s+(.+?))?\\s*[.!?]?$")
+    private val POSTPONE_MANANA = Regex("(?iu)^(?:a\\s+|hasta\\s+)?mañana$")
+    private val POSTPONE_TRAILING_MANANA = Regex("(?iu)\\s+(?:a|hasta)\\s+mañana$")
 
     private fun postponeCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1981,8 +1981,8 @@ object AssistantEngine {
     // es obligatoria, paridad c.990: «borra todo» no captura). El ancla ^ en
     // imperativo/infinitivo disjunta negación («no borres…») y pasado («ya
     // borré…»).
-    private val DELETE_PREFIX = Regex("(?i)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
-    private val DELETE_WITH_CONTENT = Regex("(?i)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val DELETE_PREFIX = Regex("(?iu)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val DELETE_WITH_CONTENT = Regex("(?iu)^(?:borra(?:r)?|elimina(?:r)?|quita(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
 
     private fun deleteCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -2027,8 +2027,8 @@ object AssistantEngine {
     // acción; la palabra «tarea» es obligatoria («cancela el recordatorio»
     // NUNCA entra). El ancla ^ en imperativo/infinitivo disjunta negación
     // («no descartes…») y pasado («ya descarté…»).
-    private val CANCEL_PREFIX = Regex("(?i)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
-    private val CANCEL_WITH_CONTENT = Regex("(?i)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
+    private val CANCEL_PREFIX = Regex("(?iu)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea(?:\\s|:|$)")
+    private val CANCEL_WITH_CONTENT = Regex("(?iu)^(?:descarta(?:r)?|cancela(?:r)?)\\s+(?:la\\s+)?tarea\\s*:?\\s*(.+?)\\s*[.!?]?$")
 
     private fun cancelCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -2063,12 +2063,12 @@ object AssistantEngine {
     // el sustantivo pasado («el recordatorio sonó ayer») y la consulta
     // («qué recordatorios tengo», rama c.808 intacta). El «:» opcional da
     // simetría con notas («ponme un recordatorio: llamar al banco»).
-    private val SET_REMINDER_PREFIX = Regex("(?i)^pon(?:me)?\\s+(?:un\\s+)?recordatorio(?:\\s|:|$)")
-    private val SET_REMINDER_WITH_CONTENT = Regex("(?i)^pon(?:me)?\\s+(?:un\\s+)?recordatorio\\s*:?\\s*(.+)$")
+    private val SET_REMINDER_PREFIX = Regex("(?iu)^pon(?:me)?\\s+(?:un\\s+)?recordatorio(?:\\s|:|$)")
+    private val SET_REMINDER_WITH_CONTENT = Regex("(?iu)^pon(?:me)?\\s+(?:un\\s+)?recordatorio\\s*:?\\s*(.+)$")
     // El conector «para» («…recordatorio PARA mañana llamar al banco») se
     // despoja: medido con sonda que NaturalTaskParser extrae la fecha pero
     // dejaba el «para» de residuo en el título («para llamar al banco»).
-    private val LEADING_PARA = Regex("(?i)^para\\s+")
+    private val LEADING_PARA = Regex("(?iu)^para\\s+")
 
     private fun setReminderCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -2116,7 +2116,7 @@ object AssistantEngine {
      * reclama isAgendaQuery mucho antes en el despacho.
      */
     private val CONTENT_QUALIFIED_INTERROGATIVE_PATTERN =
-        Regex("""(?i)^¿?qu[eé]\s+(notas?|tareas?|pendientes?)\s+tengo\s+((?:de|del)(?:\s+(?:la|las|los|el))?\s+\S.*)$""")
+        Regex("""(?iu)^¿?qu[eé]\s+(notas?|tareas?|pendientes?)\s+tengo\s+((?:de|del)(?:\s+(?:la|las|los|el))?\s+\S.*)$""")
 
     private fun contentQualifiedInterrogativePayload(clean: String): String? {
         val match = CONTENT_QUALIFIED_INTERROGATIVE_PATTERN.matchEntire(clean.trim().trimEnd('?', '¿', ' ')) ?: return null
