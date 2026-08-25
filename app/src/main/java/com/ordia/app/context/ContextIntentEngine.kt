@@ -1256,6 +1256,19 @@ object ContextIntentEngine {
     // 0.85−0.3=0.55 ≥ umbral, igual que «quizá…» con bono temporal).
     // Variantes FUERA (laterales hermanas, UNA por ciclo): «no sabemos si…»,
     // «no sé si llamaré…», «no sé muy bien si…».
+    // c.1072: lateral abierta c.1069/c.1070 — duda intercalada «no sé muy
+    // bien si + infinitivo» («no sé muy bien si llamar a mamá» → CALL 0.57
+    // firme, «no sé muy bien si ir al médico» → APPOINTMENT 0.67, «no sé muy
+    // bien si sacar al perro» → HOUSEHOLD 0.45; 7 capturas medidas PRE con
+    // sonda efímera). El «muy bien» entre «sé» y «si» rompía el marcador
+    // c.1069. El marcador admite ahora el intercalado opcional «muy bien»;
+    // el lookahead de infinitivo (c.1069) y el modal opcional (c.1070) se
+    // reutilizan sin tocar. Anti-overreach medido: «sé muy bien que tengo
+    // que llamar a mamá» (sin «no») intacto TASK 0.45; «no sé muy bien si
+    // es buena idea, llamar a mamá» (la duda gobierna «es buena idea») y
+    // «no sé muy bien si debería, llamar a mamá» (la coma cierra) fieles
+    // CALL 0.57. Residual aceptado (doctrina de la familia): «no sé muy
+    // bien si ir al médico mañana a las 9» 0.85−0.3=0.55 ≥ umbral.
     // c.1070: lateral abierta c.1069 — duda «no sé si + MODAL + infinitivo»
     // («no sé si debería llamar a mamá» → CALL 0.57 firme, «no sé si debería
     // ir al médico» → APPOINTMENT 0.67, «no sé si debería pagar la luz» →
@@ -1271,7 +1284,7 @@ object ContextIntentEngine {
     // familia): «no sé si debería ir al médico mañana a las 9» 0.85−0.3=0.55
     // ≥ umbral (sobrevive con confianza reducida).
     private val HEDGE_PATTERN = Regex(
-        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+si(?=\s+(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}(?!\p{L})))(?!\p{L})"""
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}(?!\p{L})))(?!\p{L})"""
     )
 
     // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto

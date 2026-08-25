@@ -17653,3 +17653,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): context — variantes de la duda restantes (futuro «llamaré», plural «no sabemos si», intercalado «no sé muy bien si» — las tres medidas), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA. NOTA anti-colisión: transversal «cómo <piso>» EN CURSO del hermano (c.1071) — NO tocarla.
 - COMPLETADO
+
+## Ciclo c.1072 (2026-08-25, este lado, DISJUNTO context — marcador EN CURSO `753b28b` publicado al iniciar, doctrina anti-carrera SU c.1066/c.1068; DISJUNTO de la transversal «cómo <piso>» EN CURSO del hermano c.1071 `9132701`: SU = guards de piso, este = HEDGE_PATTERN, MISMO archivo, regiones disjuntas) — feat(context): lateral ABIERTA c.1069/c.1070 duda intercalada «no sé muy bien si + infinitivo» capturada como compromiso firme RESUELTA — el marcador «no sé si» (c.1069) admite el intercalado opcional «muy bien»
+
+- HEAD inicial: `ba75c84` (mi c.1070; marcador `753b28b` al iniciar). CERO integraciones (remoto quieto). Toolchain heredada /tmp. Baseline UNIÓN **OK (8091)**, smokes 25/25 y 9/9.
+- Problema seleccionado: P1/P2 — duda intercalada «no sé muy bien si + infinitivo» persistida como compromiso firme (CALL 0.57 / APPOINTMENT 0.67 / HOUSEHOLD 0.45), bandeja degradada con items no validados (misma clase que c.649/c.1069/c.1070). Causa raíz: el «muy bien» entre «sé» y «si» rompía el marcador c.1069.
+- Medición PRE: sonda efímera `/tmp/probe1072/Probe.kt` (motor real vía `tools/run_probe.sh`) — 7 capturas confirmadas (incl. sin tilde, «…mañana» con dueAt, combinación modal c.1070); pins c.1069/c.1070 y guards intactos.
+- Fix UN punto (mismo sitio): marcador admite intercalado opcional «muy bien»; lookahead de infinitivo (c.1069) y modal opcional (c.1070) reutilizados sin tocar; penaliza post-pisos −0.3, no bloquea (doctrina c.649). CERO keywords nuevas (lección c.751).
+- TDD estricto: 21 tests nuevos `ContextIntentEngineNoSeMuyBienSiDoubtDeltaTest` — RED exacto EXACTAMENTE 7 fallos → GREEN 21/21 (1 iteración, cero ajustes). SIN re-pins.
+- Sonda POST: 7/7 → NULL; residual aceptado «…mañana a las 9» 0.55 ≥ umbral; anti-overreach intacto («sé muy bien que tengo que llamar a mamá» sin «no» → TASK 0.45 fiel; coma cierra → CALL 0.57 fiel).
+- Suite UNIÓN FINAL **OK (8112 = 8091 + 21 — aritmética exacta)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Archivos: M `ContextIntentEngine.kt` (HEDGE_PATTERN marcador + comentario c.1072), A `ContextIntentEngineNoSeMuyBienSiDoubtDeltaTest.kt` (21 tests), docs AI_AUTONOMY. Eliminados: ninguno.
+- Commits: 1 commit feat (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): context — variantes de la duda restantes (futuro «llamaré» → CALL 0.53 medido, plural «no sabemos si» → CALL 0.57 medido), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA. NOTA anti-colisión: transversal «cómo <piso>» EN CURSO del hermano (c.1071) — NO tocarla.
+- COMPLETADO
