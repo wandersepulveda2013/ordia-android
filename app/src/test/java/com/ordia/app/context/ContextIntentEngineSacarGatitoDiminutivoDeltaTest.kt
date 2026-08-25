@@ -20,9 +20,10 @@ import org.junit.Test
  * negación dedicada de [imperativeIsNegated] y en la plantilla de título
  * de [extractTitle]. CERO keywords nuevas. Anti-overreach intacto:
  * negación inmediata, envolvente c.1009, pasado, hedge — todos NULL.
- * Acotado (UNA por ciclo): el diminutivo perro «sacar al perrito» y la
- * vía «pasear al gatito» siguen FUERA (nuevos pins, laterales
- * documentadas).
+ * Acotado (UNA por ciclo): el diminutivo perro «sacar al perrito» quedó
+ * RESUELTO en c.1056 (re-pin legítimo); la vía pasear del diminutivo
+ * («pasear al gatito» / «pasear al perrito») sigue FUERA (pins,
+ * laterales documentadas).
  */
 class ContextIntentEngineSacarGatitoDiminutivoDeltaTest {
 
@@ -130,8 +131,10 @@ class ContextIntentEngineSacarGatitoDiminutivoDeltaTest {
     // ---- Pin FUERA byte-idéntico (laterales documentadas, UNA por ciclo) ----
 
     @Test
-    fun `sacar al perrito fuera lateral documentada diminutivo hermano c740`() {
-        assertNull(analyze("sacar al perrito mañana"))
+    fun `pasear al perrito fuera lateral documentada via pasear c1018`() {
+        // c.1056 resolvió «sacar al perrito» (pin anterior); el nuevo FUERA
+        // es la vía pasear del diminutivo perro (piso hermano c.1018 intacto).
+        assertNull(analyze("pasear al perrito mañana"))
     }
 
     @Test
