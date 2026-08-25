@@ -9,7 +9,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.1043 — DELTA de la lateral «hora numérica «a las H» AL FINAL tras
+ * c.1045 — DELTA de la lateral «hora numérica «a las H» AL FINAL tras
  * cadena narrativa ya/ahora/ahorita + clíticos + pretérito inequívoco»
  * (medida en RUN_LOG c.1042 sobre UNIÓN e66b419b): la hora cierra un
  * RELATO de un hecho cumplido («ya me llamó a las 8»); jamás es ancla
