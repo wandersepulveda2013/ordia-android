@@ -95,6 +95,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // queda bajo el umbral: "la dieta mediterránea es sana" sigue
         // descartado; con bono temporal 0.22 < 0.45 (pin en el test).
         "dieta",
+        // c.1131: keyword-OBJETO "rodilla" (lockstep con el piso acotado
+        // "operar (…) la rodilla", lección c.713/c.751/c.765: sin ella la
+        // notificación sin palabra gatillo ni llega al análisis).
+        // NO se añade el verbo "operar": bivalente (la máquina/en
+        // bolsa). Cubre el plural por subcadena ("rodillas"); no es
+        // subcadena de palabra común alguna. 0.12 sola queda bajo el
+        // umbral: "la rodilla me duele" sigue descartado (pin en el
+        // test); "la operación de rodilla es en enero" también (pin).
+        "rodilla",
         // c.861: keyword-FRASE "contestar a" (lockstep con el piso acotado
         // «contestar a <persona>», ver ContextIntentEngine.hasStrongTaskImperative;
         // lección c.751: sin ella la notificación "contestar a Juan esta

@@ -2531,6 +2531,42 @@ object ContextIntentEngine {
             // (pin). Lockstep con la plantilla matchSacarCita de
             // [extractTitle] (lección c.616).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:sacar|saco)\s+(?:una?\s+|el\s+|la\s+)?(?:cita|turno|hora)\b""").containsMatchIn(lower)
+            // c.1131: «operar (…) la rodilla» — candidata (m) del
+            // complemento c.1102 (clase DECIMOTERCERA, salud; medida
+            // NULL por la sonda persistida
+            // `tools/probe/ThirteenthClassHealthProbeComplement.kt`
+            // [C24 «operar la rodilla en enero»] y re-medida PRE en
+            // este ciclo con sonda efímera propia, HEAD 3d9782d:
+            // 8/8 formas objetivo NULL, guards 9/9 NULL, pines
+            // intactos): una operación programada es de los
+            // compromisos de salud con mayor coste de olvido y caía
+            // a NULL — «operar» no tenía piso y «rodilla» no era
+            // keyword (gate c.751: sin palabra gatillo ni llegaba al
+            // análisis). El verbo es bivalente («operar la máquina»,
+            // «operar en bolsa»), así el piso se ACOTA al objeto
+            // `rodilla` — otros objetos corporales («cadera»,
+            // «hombro»…) quedan FUERA como laterales (una forma por
+            // ciclo, doctrina anti-overreach). Formas admitidas
+            // (hermanas de la candidata medida): infinitivo desnudo
+            // «operar la rodilla», reflexivo con enclítico
+            // «operarme/operarte/operarse/operarnos (de) la rodilla»,
+            // dativo 3ª plural «me/nos operan (de) la rodilla» y
+            // perífrasis «me/nos van a operar (de) la rodilla». Kind
+            // decidido: TASK, hermano EXACTO de «ponerme la vacuna»
+            // (c.1044), «empezar la dieta» (c.1111) y «hacerme la
+            // revisión de la vista» (c.1125): autocuidado de salud
+            // enunciado como compromiso. Keyword-OBJETO «rodilla» en
+            // ContextIntent.kt TASK en lockstep (lección c.751):
+            // 0.12 sola < umbral («la rodilla me duele» sigue
+            // descartado, pin en el test). Anti-overreach: `(?<!no )`
+            // bloquea la negada directa; el pretérito («operé…»,
+            // «me operaron…») y la 3ª persona («mi madre opera…»)
+            // no casan por alternancia de verbo cerrada; la duda
+            // («quizá operar/opere…») no casa el ancla; el sintagma
+            // nominal («la operación de rodilla») queda a keyword
+            // sola < umbral. Lockstep con la plantilla
+            // matchOperarRodilla de [extractTitle] (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:(?:me|nos)\s+van\s+a\s+)?(?:operar(?:me|te|se|nos)?|(?:me|nos)\s+operan)\s+(?:de\s+|del\s+|por\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?rodillas?\b""").containsMatchIn(lower)
             // c.860 (candidata 2/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD bebc7c2,
@@ -4430,6 +4466,24 @@ object ContextIntentEngine {
                 // piso — sin deriva piso↔plantilla.
                 val matchSacarCita = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sacar|saco)\s+((?:una?\s+|el\s+|la\s+)?(?:cita|turno|hora)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchSacarCita != null) return "${matchSacarCita.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchSacarCita.groupValues[2]}"
+                // c.1131: plantilla «operar (…) la rodilla» (lockstep
+                // con el piso propio de este ciclo; el verbo capturado
+                // con su prefijo «me van a »/enclítico se preserva
+                // capitalizado, doctrina c.653 — «Operar la rodilla»,
+                // «Operarme de la rodilla», «Me operan de la rodilla»,
+                // «Me van a operar de la rodilla»; el match arranca en
+                // el verbo, así acuse/prefijo temporal se despojan; el
+                // residuo temporal de cola lo depura [sanitizeTitle]).
+                // Los objetos bivalentes («la máquina», «en bolsa») y
+                // las formas fuera de alcance (pasado/3ª persona/otros
+                // objetos corporales) nunca llegan aquí porque el piso
+                // no los captura; las envolventes («recuérdame operar…»,
+                // «tengo que operar…») tampoco casan el ancla y siguen
+                // su propia vía (pines byte-idénticas en el test). La
+                // alternancia de verbo/objeto es la MISMA del piso —
+                // sin deriva piso↔plantilla.
+                val matchOperarRodilla = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:(?:me|nos)\s+van\s+a\s+)?(?:operar(?:me|te|se|nos)?|(?:me|nos)\s+operan))\s+((?:de\s+|del\s+|por\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?rodillas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchOperarRodilla != null) return "${matchOperarRodilla.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchOperarRodilla.groupValues[2]}"
                 // c.766: plantilla "ponerse la insulina" (ancla/guard
                 // idénticos al piso; el residuo temporal lo depura
                 // sanitizeTitle).
