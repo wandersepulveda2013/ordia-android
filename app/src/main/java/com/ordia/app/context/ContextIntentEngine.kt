@@ -3234,6 +3234,34 @@ object ContextIntentEngine {
             // enclítica («no hacerme la maleta»), el pasado («me hice la
             // maleta ayer») no casa. Título en lockstep (lección c.616).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|preparar|meter)(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b""").containsMatchIn(lower)
+            // c.1155: «preparar la entrevista (de trabajo)» — candidata
+            // (d) FUERTE de la clase DECIMOSÉPTIMA vida laboral dicho-
+            // como-se-habla (auditoría persistida c.1147, sonda
+            // `tools/probe/SeventeenthClassWorkProbe.kt` C4; NULL 4/4
+            // re-medido PRE sobre HEAD e8f4acd: keyword EVENT
+            // «entrevista» 0.12 + bono temporal 0.1 = 0.22 < umbral).
+            // Una entrevista perdida es una oportunidad perdida (coste
+            // hermano del check-in c.1140). Verbo bivalente acotado por
+            // objeto EXIGIDO «entrevistas?» (doctrina objeto-anclada
+            // c.774/c.827): «preparar la cena» (HOUSEHOLD c.898),
+            // «preparar el examen» (STUDY) y «preparar la maleta»
+            // (c.827) tienen sus pisos propios y quedan intactos;
+            // «preparar la presentación/la reunión» quedan FUERA
+            // (laterales, UNA forma por ciclo). Hermano EXACTO del piso
+            // maleta c.827 (adyacente, cluster temático «preparar») y
+            // de «cubrir el turno» c.1149. La negada la cubre el
+            // lookbehind `(?<!no )` (keyword 0.12 + bono 0.1 = 0.22 <
+            // umbral: no hace falta cláusula dedicada en
+            // [imperativeIsNegated], mismo argumento que c.895b/c.1140);
+            // el pretérito «preparé», el subjuntivo «prepare», el
+            // presente «preparo» y el nominal «la entrevista es mañana»
+            // no casan (forma EXACTA infinitivo, medidos NULL en PRE).
+            // Kind TASK (preparación previa con plazo, hermana de
+            // «preparar la maleta» c.827 — EVENT es el evento en sí);
+            // lockstep plantilla matchPrepararEntrevista en
+            // [extractTitle] (lección c.616); CERO keywords nuevas
+            // («entrevista» ya es keyword EVENT, gate c.751).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )preparar\s+(?:(?:el|la|una|mi)\s+)?entrevistas?\b""").containsMatchIn(lower)
             // c.895b: "cobrar la nómina/el reembolso" ("cobrar la nómina
             // mañana"), familia 3/8 de la clase NOVENA dinero/banca
             // (sonda persistida `tools/probe/CobrarNominaProbe.kt`,
@@ -5025,6 +5053,17 @@ object ContextIntentEngine {
                 // precedente c.770 «Tomarme la pastilla»).
                 val matchMaleta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:hacer|preparar|meter)(?:me|te|se|nos)?)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?maletas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMaleta != null) return "${capitalizeFirst(matchMaleta.groupValues[1])} ${matchMaleta.groupValues[2]}"
+                // "preparar la entrevista X" → "Preparar la entrevista X"
+                // (c.1155): lockstep con el piso acotado «preparar (det)?
+                // entrevistas?» — hermana de matchCubrirTurno c.1149
+                // (mismo ancla/guard, doctrina c.653: verbo gobernante
+                // fijo «preparar», objeto capturado con grafía
+                // preservada; el residuo temporal de cola lo depura
+                // [sanitizeTitle], que protege el genitivo «de mañana»
+                // — c.690 — así se conserva igual que en la envolvente
+                // c.613).
+                val matchPrepararEntrevista = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )preparar\s+((?:(?:el|la|una|mi)\s+)?entrevistas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPrepararEntrevista != null) return "Preparar ${matchPrepararEntrevista.groupValues[1]}"
                 // c.860: plantilla "responder el correo" (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
                 // verbo, así acuse/prefijo temporal se despojan; el residuo
