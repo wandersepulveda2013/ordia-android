@@ -17531,3 +17531,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): context — indefinido humano «tomar una pastilla» (c.859, bivalente), TRANSVERSAL negación envolvente → TASK afirmativa, colas relativas en títulos, envolvente SIN tilde «recuerdame…» (NULL medido c.1055); parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA. Humanos «cortarle una uña al niño»/«dale una pastilla al niño» FUERA estructuralmente (NO resolver).
 - COMPLETADO
+
+## Ciclo c.1062 (2026-08-25, este lado, DISJUNTO context) — feat(context): lateral ABIERTA (1) c.1059/c.1061 «tomar una/unas pastilla(s)», «tomar un medicamento» (indefinido humano, piso c.859) RESUELTA — captura TASK en lockstep 2 puntos, paridad con pisos dativos de mascota
+
+- HEAD inicial: `07d885c` (mi c.1061, remoto sincronizado, re-fetch pre-implementación limpio, sin colisión). Toolchain ya instalada en /tmp este run. Baseline **OK (7901)**, smokes 25/25 y 9/9.
+- Unidad (P1): forma con artículo INDEFINIDO del piso humano c.859 («tomar una pastilla» — medicación puntual humana dicho-como-se-habla) nacía SIN captura; el piso sólo admitía definido/posesivo. Medida PRE sonda efímera `/tmp/probe1062/Probe.kt`: 6/6 candidatas NULL, 3/3 guards NULL, 3/3 regresiones HIT, 3/3 FUERA NULL; envolvente «tengo que…» ya ruteaba TASK 0.45 PRE (RED-pass medido, patrón c.1055). Bivalencia acotada: objeto tras «tomar» siempre medicación humana (dativo mascota exige «darle/dale»); «tomar una copa» no casa.
+- Fix lockstep 2 puntos (piso `score` + plantilla título `extractTitle`; SIN cláusula dedicada en `imperativeIsNegated` — aritmética c.859/c.860): alternancia extendida a `un|una|unos|unas`. CERO keywords nuevas (lección c.751).
+- TDD estricto: 17 tests nuevos `ContextIntentEngineTomarUnaPastillaIndefinidoDeltaTest` — RED exacto EXACTAMENTE 6 fallos (7918 run) → GREEN. SIN re-pins.
+- Hallazgo transversal re-medido (`/tmp/probe1062/Probe2.kt`, piso definido c.859): negación envolvente «tengo que no tomar la/una pastilla» → TASK afirmativa «No tomar la pastilla» — ESTABLE (paridad c.1012/c.1015/c.1018), pin en delta test; lateral ABIERTA transversal.
+- Sonda POST persistida `tools/probe/TomarUnaPastillaIndefinidoPostProbe.kt`: 17/17 OK.
+- Suite UNIÓN FINAL **OK (7918 = 7901 + 17 — aritmética exacta)**; smokes 25/25 y 9/9. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Archivos: M `ContextIntentEngine.kt`, A 1 test NUEVO (17 tests), A `tools/probe/TomarUnaPastillaIndefinidoPostProbe.kt`, docs AI_AUTONOMY. Eliminados: ninguno.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo): TRANSVERSAL negación envolvente «tengo que no <piso>» → TASK afirmativa (todos los pisos), «darle el medicamento…» (FUERA pineado c.1012), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA.
+- COMPLETADO

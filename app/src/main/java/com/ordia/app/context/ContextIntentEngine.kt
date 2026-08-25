@@ -2054,7 +2054,18 @@ object ContextIntentEngine {
             // "medicina"/"pastillas"); grafía [oó] admite la forma sin
             // tilde (precedente c.772 «tensi[oó]n»). SIN plural: "las
             // medicaciones" no es forma cotidiana (una forma por ciclo).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:tomar|tomarme)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b""").containsMatchIn(lower)
+            // c.1062: la alternancia de artículo admite también el
+            // INDEFINIDO «un/una/unos/unas» («tomar una pastilla» — LA
+            // forma dicho-como-se-habla de la medicación puntual humana;
+            // lockstep con la plantilla de título, DOS puntos: este piso
+            // no tiene cláusula dedicada en [imperativeIsNegated] por la
+            // aritmética c.859/c.860 documentada arriba). Paridad con los
+            // hermanos dativos de mascota (vacuna c.1011+c.1014, pastilla
+            // c.1012+c.1050+c.1059, uñas c.1015+c.1061). Bivalencia
+            // acotada: el objeto tras «tomar» es siempre medicación
+            // humana (el dativo de mascota exige «darle/dale», verbo
+            // disjunto); «tomar una copa»/«una decisión» no casan.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:tomar|tomarme)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+|unos\s+|unas\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b""").containsMatchIn(lower)
             // c.860 (candidata 2/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD bebc7c2,
@@ -3826,7 +3837,11 @@ object ContextIntentEngine {
                 // c.859: el objeto admite «medicaci[oó]n» (lockstep con el
                 // piso; la grafía del usuario se preserva, doctrina c.653:
                 // "Tomar la medicacion" sin tilde queda tal cual).
-                val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar|tomarme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // c.1062: la alternancia de artículo admite también el
+                // INDEFINIDO «un/una/unos/unas» (lockstep con el piso:
+                // "Tomar una pastilla" — grafía del usuario preservada,
+                // doctrina c.653).
+                val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar|tomarme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+|unos\s+|unas\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTomarMedicina != null) return "${matchTomarMedicina.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchTomarMedicina.groupValues[2]}"
                 // c.766: plantilla "ponerse la insulina" (ancla/guard
                 // idénticos al piso; el residuo temporal lo depura
