@@ -1,3 +1,5 @@
+# 🔒 EN CURSO (este lado, 2026-08-25) — ciclo c.1086: candidata (c) clase DUODÉCIMA «inflar las ruedas de la bici (hoy)» — piso ACOTADO «inflar <objeto=ruedas>» (TASK, hermano de «poner las ruedas» c.1082 y «cargar el coche» c.853) + plantilla de título acotada; keyword-OBJETO «ruedas» ya existe (c.1082 — lockstep reutilizado, no duplicada). DISJUNTA de SU c.1083 (parser «ya») y de SU c.1085 (auditoría AssistantEngine) — región contexto exclusiva. UNA forma por ciclo; PRE medido con sonda efímera antes de implementar.
+
 
 # Ciclo c.1084 (2026-08-25, este lado) — candidata (b) clase DUODÉCIMA RESUELTA: «cargar el carro» (diagonal LatAm) ya captura TASK. Marcador EN CURSO publicado al inicio (`0ddeb09`); al cerrar vuelvo a SIN TRABAJO ACTIVO (los marcadores SU c.1083 parser y SU c.1085 assistant del hermano siguen activos en sus regiones).
 
