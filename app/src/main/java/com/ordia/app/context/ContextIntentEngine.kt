@@ -2400,6 +2400,34 @@ object ContextIntentEngine {
             // objetos bivalentes («el libro», «la serie», «a estudiar»)
             // no casan; la keyword sola queda bajo el umbral.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empezar\s+(?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b""").containsMatchIn(lower)
+            // c.1117: «sacar (una )?(cita|turno|hora)» — candidata (c)
+            // del complemento c.1102 (clase DECIMOTERCERA, salud;
+            // medida NULL por la sonda persistida
+            // `tools/probe/ThirteenthClassHealthProbeComplement.kt` y
+            // re-medida PRE en este ciclo con sonda efímera propia,
+            // HEAD 92b0ffe: 7/7 formas objetivo NULL, regresiones
+            // intactas): «sacar cita/turno/hora» es LA forma coloquial
+            // LatAm de comprometerse a agendar y caía a NULL — «sacar»
+            // sólo pisaba acotado a basura (c.717), mascota
+            // (c.740/c.1050) y dinero (c.893), todos con objetos
+            // DISJUNTOS de `cita|turno|hora`. El verbo es bivalente
+            // (la basura/al perro/dinero/los cuartos de un juego), así
+            // el piso se ACOTA al objeto `cita|turno|hora` — «sacar el
+            // coche», «sacar al gato» y demás hermanos quedan intactos.
+            // Kind decidido: TASK, hermano EXACTO de «pedir hora/turno»
+            // (TASK 0.45 medido c.1102): «sacar cita» es la ACCIÓN de
+            // agendar, no la cita — la cita enunciada («cita con el
+            // dentista») ya captura APPOINTMENT por sí misma y le gana
+            // por score (0.79 > 0.45, pin en el test). CERO keywords
+            // nuevas: «cita» ya es keyword APPOINTMENT y el piso no
+            // depende de keywords. Anti-overreach: `(?<!no )` bloquea
+            // la negada directa; el pretérito «saqué…» y la 3ª persona
+            // «mi madre saca…» no casan por alternancia de verbo
+            // cerrada (sacar|saco); la duda «quizá sacar…» no casa el
+            // ancla; «sacar cita con el dentista» sigue APPOINTMENT
+            // (pin). Lockstep con la plantilla matchSacarCita de
+            // [extractTitle] (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:sacar|saco)\s+(?:una?\s+|el\s+|la\s+)?(?:cita|turno|hora)\b""").containsMatchIn(lower)
             // c.860 (candidata 2/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD bebc7c2,
@@ -4259,6 +4287,21 @@ object ContextIntentEngine {
                 // sigue su propia vía (pin byte-idéntica R8 en el test).
                 val matchEmpezarDieta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(empezar)\s+((?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEmpezarDieta != null) return "Empezar ${matchEmpezarDieta.groupValues[2]}"
+                // c.1117: plantilla «sacar (una )?(cita|turno|hora)»
+                // (lockstep con el piso propio de este ciclo; el verbo
+                // gobierna el contenido y se PRESERVA capitalizado —
+                // «sacar»/«saco» — alineación piso↔título lección c.616,
+                // grafía del usuario conservada doctrina c.653; el match
+                // arranca en el verbo, así acuse/prefijo temporal se
+                // despojan; el residuo temporal de cola lo depura
+                // [sanitizeTitle] — «Sacar cita para el oftalmólogo»,
+                // «Saco cita para el médico»). Los objetos bivalentes
+                // («la basura», «al perro», «dinero») nunca llegan aquí:
+                // sus pisos hermanos son de OTRO kind. La alternancia
+                // cerrada de objeto (`cita|turno|hora`) es la misma del
+                // piso — sin deriva piso↔plantilla.
+                val matchSacarCita = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sacar|saco)\s+((?:una?\s+|el\s+|la\s+)?(?:cita|turno|hora)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchSacarCita != null) return "${matchSacarCita.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchSacarCita.groupValues[2]}"
                 // c.766: plantilla "ponerse la insulina" (ancla/guard
                 // idénticos al piso; el residuo temporal lo depura
                 // sanitizeTitle).
