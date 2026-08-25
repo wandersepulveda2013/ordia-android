@@ -1165,7 +1165,7 @@ object ContextIntentEngine {
     // (c.619, 1ª persona) y de la interrogativa c.687. Sin ella, la forma
     // más cotidiana de auto-recordatorio se DESCARTABA → NULL (P1).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
+        Regex("""\b(recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|av[ií]same|notif[ií]came|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653) + PAYMENT (c.746: su
@@ -1682,7 +1682,7 @@ object ContextIntentEngine {
     // [hasStrongReminderImperative] (c.619).
     private val WRAPPER_NEGATION_SPAN = Regex(
         """\b(?:recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|cancelar|anular|""" +
-            """avísame|notifícame|acordarme(?:\s+de)?|""" +
+            """av[ií]same|notif[ií]came|acordarme(?:\s+de)?|""" +
             """(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que|""" +
             """deber[ií]a(?:s|mos|is|n)?(?:\s+que)?)\s+no(?:\s+([a-záéíóúñü]+))?"""
     )
@@ -2787,7 +2787,10 @@ object ContextIntentEngine {
      * muletilla "avísame" aislada. "acordarme de" admite el "de" opcional.
      */
     private fun hasStrongReminderImperative(lower: String): Boolean =
-        Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower) ||
+        // c.1067: alternancia de tilde `av[ií]same|notif[ií]came` en lockstep
+        // con el guard c.652, el bono REMINDER, la plantilla de título y
+        // [WRAPPER_NEGATION_SPAN] (misma clase de defecto que c.1065).
+        Regex("""\b(av[ií]same|notif[ií]came|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower) ||
             // c.687: "te acuerdas de <infinitivo>?" es el formato interrogativo
             // del auto-recordatorio ("¿te acuerdas de pagar la renta?" =
             // acuérdate de pagarla). El lookahead de infinitivo excluye la
@@ -3492,7 +3495,7 @@ object ContextIntentEngine {
                 // TAREA (su piso c.613 gobierna); los sinónimos puros de aviso
                 // ("avísame|notifícame|acordarme") siguen siendo REMINDER
                 // (alineados con [hasStrongReminderImperative]).
-                if (Regex("""(avísame|notifícame|acordarme)""").containsMatchIn(lower)) s += 0.25f
+                if (Regex("""(av[ií]same|notif[ií]came|acordarme)""").containsMatchIn(lower)) s += 0.25f
                 s
             }
             ContextIntentKind.PAYMENT -> {
@@ -4199,7 +4202,7 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.REMINDER -> {
-                val match = Regex("""(recu[ée]rdame|avísame|notifícame) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                val match = Regex("""(recu[ée]rdame|av[ií]same|notif[ií]came) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(match.groupValues[2])
 
                 // "te acuerdas de X?" → "X" (c.687): mismo lookahead de
