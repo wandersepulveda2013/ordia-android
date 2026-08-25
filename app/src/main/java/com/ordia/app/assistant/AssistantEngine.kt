@@ -1494,6 +1494,8 @@ object AssistantEngine {
     // formas pronominales («se me/nos…») no entran aquí: viven en la ruta
     // de recapitulación (c.797). Ancla «^» se conserva: «¿se olvidó …?»
     // sigue al MENÚ (deliberado: interrogativa ambigua, nunca capturar).
+    // c.1093: el «?» colgante sin «¿» de apertura (teclado laxo) tampoco
+    // captura — guarda sobre el contenido crudo en `olvideCapture`.
     private val OLVIDE_PAST_PREFIX =
         Regex("(?i)^olvid[ée](?:\\s+de)?(?:\\s|:|$)")
     private val OLVIDE_PAST_WITH_CONTENT =
@@ -1516,6 +1518,12 @@ object AssistantEngine {
             val topic = if (seForm) "¿Qué se olvidó?" else "¿Qué se te olvidó?"
             return AssistantAnswer("$topic Escríbelo y lo preparo como tarea pendiente.")
         }
+        // c.1093: contenido crudo terminado en «?» = interrogativa colgante
+        // (teclado laxo, sin «¿» de apertura) — MENÚ, espejo del ancla «^»
+        // (deliberado: interrogativa ambigua, NUNCA capturar). Sobre el crudo
+        // y TRAS la guía pelada (la hueca conserva su respuesta con ruta
+        // siguiente) y la guarda negativa.
+        if (rawContent.trim().endsWith("?")) return null
         if (content.lowercase().startsWith("no ")) return null // «olvidé no …» raro — por seguridad nulo
         return AssistantAnswer("Preparado: «${content}» — confírmalo en los pendientes.", AssistantAction.CREATE_TASK, content)
     }
