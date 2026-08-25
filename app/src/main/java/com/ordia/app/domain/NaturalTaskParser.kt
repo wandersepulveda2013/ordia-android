@@ -2473,7 +2473,7 @@ object NaturalTaskParser {
      * intensificador opcional "misma" ("esta misma tarde/noche/mañana/madrugada"),
      * paridad con "esta misma semana/este mismo mes" (thisWeekPattern/softMonthPattern).
      */
-    private val partOfDayPattern = Regex("""(?i)\besta\s+(?:misma\s+)?(ma[nñ]ana|tarde|noche|madrugada)\b""")
+    private val partOfDayPattern = Regex("""(?iu)\besta\s+(?:misma\s+)?(ma[nñ]ana|tarde|noche|madrugada)\b""")
     private val partOfDayTimes = mapOf(
         "mañana" to LocalTime.of(9, 0),
         "manana" to LocalTime.of(9, 0),
@@ -2539,7 +2539,7 @@ object NaturalTaskParser {
     // título. Doctrina SIMÉTRICA para todos los conectores: el sufijo se consume con
     // la ancla (título limpio) y desplaza la fecha +1d (ver standalonePartOfDayNext y
     // el guard anti-artículo del pleonasmo en la pre-normalización).
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier)|\s+siguientes?)?\b""")
+    private val standalonePartOfDayPattern = Regex("""(?iu)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier)|\s+siguientes?)?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -2583,7 +2583,7 @@ object NaturalTaskParser {
         // "después de mañana" (≡ "pasado mañana", c.846) va ANTES que "mañana"
         // suelto: si no, la forma compacta "después de mañana tarde" casaba sólo
         // "mañana tarde" y dejaba "después" como residuo huérfano en el título.
-        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|despu[eé]s\s+de\s+ma[nñ]ana|ma[nñ]ana|hoy|anteayer|antier|ayer)\s+(tarde|noche|madrugada)\b""")
+        Regex("""(?iu)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|despu[eé]s\s+de\s+ma[nñ]ana|ma[nñ]ana|hoy|anteayer|antier|ayer)\s+(tarde|noche|madrugada)\b""")
     private val compactDayPartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -2606,7 +2606,7 @@ object NaturalTaskParser {
     // bivalente, hermano del pin «avisar la última hora»). La narrativa
     // plural «a las primeras horas de clase» sigue protegida por el guard.
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+las?\s+|a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
+        Regex("""(?iu)(?:justo\s+)?\b(?:a\s+las?\s+|a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
@@ -2642,7 +2642,7 @@ object NaturalTaskParser {
     // c.933: artículo plural «a las» simétrico («avisar a las últimas
     // horas» → 18:00 con título limpio «avisar», sin residuo «a las»).
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+las?\s+|a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
+        Regex("""(?iu)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+las?\s+|a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
@@ -3021,7 +3021,7 @@ object NaturalTaskParser {
         // sólo aplica SIN artículo ("envío mañana siguiente"); antes el rewrite ciego
         // robaba «siguiente» y la ancla resolvía la mañana de HOY — 09:00 ya pasada al
         // mediodía → tarea vencida al nacer (P1 evitar-olvidos).
-        working = working.replace(Regex("""(?i)(?<!la\s)\bma[nñ]ana\s+siguientes?\b"""), "mañana")
+        working = working.replace(Regex("""(?iu)(?<!la\s)\bma[nñ]ana\s+siguientes?\b"""), "mañana")
 
         // Ordinales numéricos: "1ro"/"2do"/"3er"/"1º"… seguidos de " de " se normalizan a
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
@@ -4950,14 +4950,14 @@ object NaturalTaskParser {
             // "pasado mañana" y que "mañana" suelto: la palabra "mañana" dentro de la
             // frase casaba con mananaAsDate → +1 (fecha errónea) y "antepasado" quedaba
             // como residuo en el título (P1: cita 2 días antes y título corrupto).
-            Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
-            Regex("""(?i)\bpasado\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+            Regex("""(?iu)\bantepasad[oa]\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
+            Regex("""(?iu)\bpasado\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             // "después de mañana" ≡ "pasado mañana" (el día después de mañana, +2):
             // forma coloquial extendidísima. Antes la "mañana" interna casaba con
             // mananaAsDate → +1 día (P1: tarea agendada un día ANTES de lo pedido,
             // fecha errónea silenciosa). Debe ir ANTES que "mañana" suelto, igual
             // que "antepasado mañana"/"pasado mañana".
-            Regex("""(?i)\bdespu[eé]s\s+de\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+            Regex("""(?iu)\bdespu[eé]s\s+de\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             // "mañana" como fecha (el día de mañana) sólo si NO forma parte de un
             // marcador de parte del día ("de la mañana", "por la mañana", "a la
             // mañana"). Antes, "Reunión a las 9 de la mañana" se fechaba en MAÑANA
@@ -5794,7 +5794,7 @@ object NaturalTaskParser {
             // huérfano al final: el recorte de conector final (c.548) sólo conoce
             // "después" CON tilde, así "Cita despues de manana" quedaba "Cita despues"
             // (título degradado, P1 captura). Con tilde ya salía limpio vía c.548.
-            .replace(Regex("""(?i)\bdespu[eé]s\s+de\s+ma[nñ]ana\b"""), " ")
+            .replace(Regex("""(?iu)\bdespu[eé]s\s+de\s+ma[nñ]ana\b"""), " ")
             // Calificador "de/del/desde + día relativo" ("reunión de mañana", "tarea de hoy",
             // "cita de ayer", "llamada de pasado mañana", "trabajo desde hoy", "estudio desde
             // mañana"): la preposición "de"/"del"/"desde" antes de un marcador de día relativo
@@ -7739,7 +7739,7 @@ object NaturalTaskParser {
         val timeMarker = Regex("""(?i)(?:de|por|a|en)\s+la\s+$|\besta\s+$|\bmedia\s+$""")
         var idx = 0
         while (true) {
-            val m = Regex("""(?i)\bma[nñ]ana\b""").find(working, idx) ?: return false
+            val m = Regex("""(?iu)\bma[nñ]ana\b""").find(working, idx) ?: return false
             val prefix = working.substring(0, m.range.first)
             if (!timeMarker.containsMatchIn(prefix) && !mananaOccurrenceIsContent(working, m.range)) return true
             idx = m.range.last + 1
@@ -7804,7 +7804,7 @@ object NaturalTaskParser {
         forceDayPreteriteNarrative: Boolean = false,
         forceYaPreteriteNarrative: Boolean = false
     ): String {
-        val token = Regex("""(?i)\bma[nñ]ana\b""")
+        val token = Regex("""(?iu)\bma[nñ]ana\b""")
         val connector = Regex("""(?i)\b(?:de|del|desde)\s+$""")
         var result = title
         var idx = 0
@@ -7882,7 +7882,7 @@ object NaturalTaskParser {
      * borrado del título ([eraseOrdinalHoraToken]) para que nunca diverjan.
      */
     private val ordinalHoraCanonicalSuffix = Regex(
-        """(?i)(?:de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)$"""
+        """(?iu)(?:de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)$"""
     )
     private val ordinalHoraContentGenitive =
         Regex("""(?i)^\s+(?:del|de(?:\s+(?:la|las|los))?)\s+(\p{L}+)""")
@@ -8588,7 +8588,7 @@ object NaturalTaskParser {
     }
 
     private val relativeDayErasePattern = Regex(
-        """(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""
+        """(?iu)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""
     )
 
     // c.1075: genitivo de RANGO con día relativo PASADO en posición de
@@ -8716,7 +8716,7 @@ object NaturalTaskParser {
             "tomé|tomó|tomaste|tomaron|leí|leyó|leyeron|sentí|sintió|sintieron"
 
     private val weekdayPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?iu)^\s*,?\s*(?:ya\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
@@ -8767,7 +8767,7 @@ object NaturalTaskParser {
     private val yaPreteriteNarrativePartOfDay =
         """(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(?:tarde|noche|madrugada|ma[nñ]ana)|de\s+(?:tarde|noche|madrugada)|durante\s+la\s+(?:tarde|noche|madrugada))"""
     private val yaPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*(?:,\s*(?:[^,.;:!?]{1,60},\s*)?|[^,.;:!?]{1,60},\s*|,\s*$yaPreteriteNarrativePartOfDay\s+|$yaPreteriteNarrativePartOfDay\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?iu)^\s*(?:,\s*(?:[^,.;:!?]{1,60},\s*)?|[^,.;:!?]{1,60},\s*|,\s*$yaPreteriteNarrativePartOfDay\s+|$yaPreteriteNarrativePartOfDay\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
@@ -8827,7 +8827,7 @@ object NaturalTaskParser {
      * «de la X» quedan como ancla, medidos en los pins de c.954).
      */
     private val weekdayPreteriteNarrativeIntercalatedPartOfDay = Regex(
-        """(?i)^\s*,?\s*(?:en|por)\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)\s+"""
+        """(?iu)^\s*,?\s*(?:en|por)\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)\s+"""
     )
 
     /**
