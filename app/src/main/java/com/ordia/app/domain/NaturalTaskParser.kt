@@ -8583,12 +8583,15 @@ object NaturalTaskParser {
      * cumplido: el ancla `now` se suprime (la anécdota no es un compromiso
      * que vence hoy) y el título conserva el «ya» (contenido del usuario).
      * Misma lista cerrada de c.950 (un encargo real jamás abre su predicado
-     * en pretérito) y mismo conservadurismo: un único clítico opcional, las
-     * formas ambiguas pretérito/presente («ya salimos») siguen ancla, y sólo
-     * el «ya» suelto se evalúa («ya mismo» queda intacto para comandos).
+     * en pretérito) y mismo conservadurismo: las formas ambiguas
+     * pretérito/presente («ya salimos») siguen ancla, y sólo el «ya» suelto
+     * se evalúa («ya mismo» queda intacto para comandos). c.1029: la cadena
+     * proclítica admite hasta DOS clíticos (indirecto + directo: «ya me lo
+     * pagó», «ya se lo dije») — la cadena estándar del español no pasa de
+     * dos en proclisis.
      */
     private val yaPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:(?:me|te|se|nos|os|lo|la|le|les)\s+)?(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?i)^\s*,?\s*(?:(?:me|te|se|nos|os|lo|la|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**

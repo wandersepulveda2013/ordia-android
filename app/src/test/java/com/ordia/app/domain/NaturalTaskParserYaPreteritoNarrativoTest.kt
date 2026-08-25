@@ -111,10 +111,11 @@ class NaturalTaskParserYaPreteritoNarrativoTest {
 
     // ---- Pines byte-idénticos de laterales medidas FUERA (registradas) ----
 
-    @Test fun yaMeLoPago_cliticosMultiplesLateralFueraPin() =
-        // Clíticos múltiples («me lo») FUERA: la lista narrativa admite un
-        // único pronombre (doctrina c.950); ampliarla es otra lateral.
-        assertAnchorNow("ya me lo pagó", "me lo pagó")
+    @Test fun yaMeLoPago_cliticosMultiplesResueltaEnC1029() =
+        // Re-pin c.1029 (lateral clíticos múltiples RESUELTA): la cadena
+        // proclítica admite hasta dos clíticos (cobertura en
+        // NaturalTaskParserYaPreteritoNarrativoCliticosMultiplesTest).
+        assertNarrativeIntact("ya me lo pagó")
 
     @Test fun yaComaAPrimeraHoraSonoLaAlarma_lateralFueraPin() =
         // «ya» separado por coma de la cadena narrativa: la evidencia ya no es
