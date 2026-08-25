@@ -6355,8 +6355,11 @@ object NaturalTaskParser {
         // viernes"): "del"/"al" no casan con "de "/"a " (límites de palabra + espacio),
         // así que esos rangos siguen siendo evento único anclado al cierre (curso,
         // conferencia de varios días). c.487.
+        // (?iu): (?i) es ASCII-only — «MIÉRCOLES»/«SÁBADO» en caps no casaban
+        // con mi[eé]rcoles/s[aá]bado y el rango se perdía (residuo + mutilación).
+        // c.1106.
         val weekdayRangePattern =
-            Regex("""(?i)\b(?:(?:los\s+|de\s+)?(?<w1>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|hasta)\s+(?<w2>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|entre\s+(?<w3>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|y|hasta)\s+(?<w4>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
+            Regex("""(?iu)\b(?:(?:los\s+|de\s+)?(?<w1>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|hasta)\s+(?<w2>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|entre\s+(?<w3>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|y|hasta)\s+(?<w4>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
         val weekdayRangeMatch = weekdayRangePattern.find(working)
         if (weekdayRangeMatch != null) {
             val start = (weekdayRangeMatch.groups["w1"] ?: weekdayRangeMatch.groups["w3"])!!.value
@@ -6397,9 +6400,9 @@ object NaturalTaskParser {
         // intacto). N puede ser dígito o número escrito ("cada dos lunes").
         // Nombre de día reusable (lo usa el conteo "cada N lunes" de arriba y la
         // lista de días de abajo). Definido aquí para estar disponible en ambos.
-        val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
+        val dayNameRegex = Regex("""(?iu)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weekdayCountPattern =
-            Regex("""(?i)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?iu)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         weekdayCountPattern.find(working)?.let { match ->
             val rawN = match.groupValues[1]
             val n = rawN.toLongOrNull()?.toInt() ?: parseWrittenNumber(rawN)?.toInt()
@@ -6450,8 +6453,11 @@ object NaturalTaskParser {
         // No capturador para no alterar los índices de grupo (hasPrefix=[1],
         // artículo=[2], días=[3]). El rango Lun-Vie ("entre lunes y viernes") ya
         // se resolvió arriba, así que aquí solo llegan listas reales. c.282.
+        // (?iu): (?i) es ASCII-only — en MAYÚSCULAS el día acentuado no casaba
+        // («los lunes y los MIÉRCOLES» capturaba solo lunes, mutilando la
+        // rutina en silencio; «TODOS LOS SÁBADOS» se perdía entera). c.1106.
         val dayListPattern =
-            Regex("""(?i)\b(?:entre\s+)?(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?iu)\b(?:entre\s+)?(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
             val days = dayNameRegex.findAll(weeklyMatch.groupValues[3])
