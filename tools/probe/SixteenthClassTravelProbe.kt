@@ -53,6 +53,9 @@ import com.ordia.app.context.ContextIntentEngine
  *        asiento perdido) y ventana corta (24-48 h antes del vuelo).
  *        Piso NUEVO acotado «(facturar|hacer el check-in de(l)?) el
  *        vuelo» + keyword (lockstep, lección c.616).
+ *        → RESUELTA c.1140 (NULL→HIT TASK 0.45 títulos limpios dueAt;
+ *        lockstep 2 puntos piso+plantillas, CERO keywords nuevas;
+ *        suite UNIÓN 9023; ver RUN_LOG c.1140).
  *     b) «salir para <aeropuerto/estación> a las N» — 1/1 NULL (C9):
  *        la logística previa al viaje (si no sales, lo pierdes todo).
  *        CANDIDATA: piso acotado «salir para (el|la) <lugar>».
@@ -98,8 +101,8 @@ fun main() {
     // --- CANDIDATAS (viajes/reservas cotidianos: compromisos plausibles) ---
     show("C1",  "reservar mesa para el sábado a las 9")
     show("C2",  "reservar el hotel para el puente de diciembre")
-    show("C3",  "facturar el vuelo mañana")
-    show("C4",  "hacer el check-in del vuelo mañana por la mañana")
+    show("C3",  "facturar el vuelo mañana")   // NULL c.1137 → HIT TASK 0.45 c.1140
+    show("C4",  "hacer el check-in del vuelo mañana por la mañana")   // NULL c.1137 → HIT TASK 0.45 c.1140
     show("C5",  "comprar los billetes del tren de Semana Santa")
     show("C6",  "recoger los billetes en la estación el viernes")
     show("C7",  "cancelar la reserva del hotel antes del jueves")
