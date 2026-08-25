@@ -1158,7 +1158,7 @@ object ContextIntentEngine {
     // (c.619, 1ª persona) y de la interrogativa c.687. Sin ella, la forma
     // más cotidiana de auto-recordatorio se DESCARTABA → NULL (P1).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
+        Regex("""\b(recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653) + PAYMENT (c.746: su
@@ -1674,7 +1674,7 @@ object ContextIntentEngine {
     // los pisos [hasStrongTaskImperative] (c.613 + c.835) y
     // [hasStrongReminderImperative] (c.619).
     private val WRAPPER_NEGATION_SPAN = Regex(
-        """\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|cancelar|anular|""" +
+        """\b(?:recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|cancelar|anular|""" +
             """avísame|notifícame|acordarme(?:\s+de)?|""" +
             """(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que|""" +
             """deber[ií]a(?:s|mos|is|n)?(?:\s+que)?)\s+no(?:\s+([a-záéíóúñü]+))?"""
@@ -1705,7 +1705,7 @@ object ContextIntentEngine {
      * "Anular X" sin texto envolvente.
      */
     private fun hasStrongTaskImperative(lower: String): Boolean =
-        Regex("""\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|(?<!no )cancelar|(?<!no )anular)\s+\w""")
+        Regex("""\b(?:recu[ée]rdame|no olvides|tengo (?:que|q)|hay que|(?<!no )cancelar|(?<!no )anular)\s+\w""")
             .containsMatchIn(lower) ||
             // c.835: envolvente CONDICIONAL de necesidad («habría que…»,
             // «tendría que…», «debería…» + verbo). La familia ya enrutaba
@@ -3379,7 +3379,7 @@ object ContextIntentEngine {
                 // "hay que + verbo"
                 if (Regex("""hay que \w+""").containsMatchIn(lower)) s += 0.15f
                 // "recuérdame + verbo"
-                if (Regex("""recuérdame \w+""").containsMatchIn(lower)) s += 0.2f
+                if (Regex("""recu[ée]rdame \w+""").containsMatchIn(lower)) s += 0.2f
                 // "no olvides + verbo"
                 if (Regex("""no olvides \w+""").containsMatchIn(lower)) s += 0.2f
                 s
@@ -3604,7 +3604,7 @@ object ContextIntentEngine {
                 if (match != null) return capitalizeFirst(match.groupValues[2])
 
                 // "recuérdame X" → "X"
-                val match2 = Regex("""recuérdame (.+)""", RegexOption.IGNORE_CASE).find(original)
+                val match2 = Regex("""recu[ée]rdame (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match2 != null) return capitalizeFirst(match2.groupValues[1])
 
                 // "no olvides X" → "X"
@@ -4192,7 +4192,7 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.REMINDER -> {
-                val match = Regex("""(recuérdame|avísame|notifícame) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                val match = Regex("""(recu[ée]rdame|avísame|notifícame) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(match.groupValues[2])
 
                 // "te acuerdas de X?" → "X" (c.687): mismo lookahead de
