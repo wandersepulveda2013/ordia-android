@@ -1312,6 +1312,26 @@ object ContextIntentEngine {
         """\b(?:(?:tuv\w*|ten[íi]a(?:mos|n|s)?|hab[íi]a)\s+(?:(?:que|q)\b|(?:una?\s+)?(?:reuni[oó]n|cita)\b)|deb(?:[íi]a(?:mos|s|n)?|isteis|ieron|iste|imos|[ií][oó]|[íi])(?!\p{L})(?:\s+que\b)?)"""
     )
 
+    // Guard anti-overreach de relato PASADO de reunión (c.1134, hermano del
+    // guard PAST_OBLIGATION c.824 pero para los pisos MEETING por SUSTANTIVO
+    // de c.647, que carecían de guard de pretérito). Falso positivo P1 medido
+    // 5/5 (sonda /tmp/probe1129/Probe.kt, HEAD 17277ce): «fui a la reunión de
+    // padres ayer» → MEETING 0.45 con dueAt (el hecho YA celebrado se
+    // persistía como compromiso futuro — el mismo tipo de corrupción que
+    // c.824/c.1240 para los pisos por verbo). El patrón exige un pretérito de
+    // ir/estar/asistir (con opcional «no » prefijada — «no fui a la reunión»
+    // era el caso MÁS GRAVE: una NO-asistencia pasada persistida como
+    // compromiso) seguido de preposición (a|al|en); la POSICIONALIDAD la fija
+    // [pastMeetingNarrativeGoverns] (el marcador debe abarcar al match
+    // MEETING, como imperativeIsWrapped). El cierre es `(?!\p{L})` (lección
+    // c.826: \b no cierra frontera tras vocal acentuada — «asistí a…»). Las
+    // copulativas («la reunión fue ayer» — el pretérito va DESPUÉS del match)
+    // y las compuestas («hemos ido», «había ido») quedan FUERA como
+    // laterales documentadas (una forma por ciclo, anti-overreach).
+    private val PAST_MEETING_NARRATIVE_PATTERN = Regex(
+        """\b(?:no\s+)?(?:fu(?:i|e|imos|isteis|eron|iste)|estuv(?:e|o|imos|iste|ieron|isteis)|asist(?:[íi]|i[óo]|imos|iste|ieron|isteis))(?!\p{L})\s+(?:a|al|en)\b"""
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -1613,6 +1633,17 @@ object ContextIntentEngine {
         // [imperativeIsWrapped]): la envoltura presente legítima
         // ("recuérdame que tenía que…" → TASK) no se toca.
         if (pastObligationGoverns(lower, kind)) return 0f
+
+        // Guard de relato PASADO de reunión (c.1134 anti-overreach). Ver
+        // [PAST_MEETING_NARRATIVE_PATTERN]: los pisos MEETING de c.647 son por
+        // SUSTANTIVO («reunión»), así el relato en pretérito de una reunión
+        // YA celebrada («fui a la reunión de padres ayer», y el caso más
+        // grave «no fui a la reunión de padres ayer») activaba el piso y se
+        // persistía como compromiso FUTURO con fecha — la misma corrupción
+        // que c.824/c.1240 cerró para los pisos por verbo. Se descarta el
+        // candidato MEETING gobernado por el pretérito; si era el único, la
+        // frase cae a NULL (un hecho cumplido no es un compromiso).
+        if (pastMeetingNarrativeGoverns(lower, kind)) return 0f
 
         // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
         // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
@@ -3503,6 +3534,29 @@ object ContextIntentEngine {
         val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         val markerStart = PAST_OBLIGATION_PATTERN.find(lower)?.range?.first ?: return false
         return markerStart < matchStart
+    }
+
+    /**
+     * Detecta si el match MEETING está GOBERNADO por un relato en pretérito
+     * de ir/estar/asistir (c.1134 anti-overreach, ver
+     * [PAST_MEETING_NARRATIVE_PATTERN]). Hermano posicional de
+     * [pastObligationGoverns] (c.824): si el pretérito + preposición PRECEDE
+     * y ABARCA al match del piso MEETING (fin del marcador < inicio del
+     * match), la reunión es un hecho YA celebrado, no un compromiso futuro
+     * ⇒ se descarta el kind. Posicionalidad conservadora: «la reunión de
+     * padres es mañana; fui a la del curso pasado» sigue capturando (el
+     * marcador va DESPUÉS del match). La envolvente presente legítima
+     * («recuérdame que fui a la reunión…» → TASK, candado c.613) sobrevive:
+     * sólo se descarta el candidato MEETING, no la frase. El piso quedar
+     * ([MEETING_QUEDAR_FLOOR], c.847 — «quedamos con ana ayer») NO se toca:
+     * su overreach documentado es lateral (KDoc del piso) y exigiría
+     * negación morfológica DENTRO del piso — una forma por ciclo.
+     */
+    private fun pastMeetingNarrativeGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.MEETING) return false
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
+        return PAST_MEETING_NARRATIVE_PATTERN.findAll(lower).any { it.range.last < matchStart }
     }
 
     /**
