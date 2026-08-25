@@ -44,8 +44,19 @@ import com.ordia.app.context.ContextIntentEngine
  *        c.751). CANDIDATA P1.
  *     2) «configurar el móvil nuevo por la noche» — verbo
  *        «configurar» sin piso ni keyword. CANDIDATA P1.
+ *        → RESUELTA c.1032 (piso acotado «configurar <dispositivo>»
+ *        + keyword + plantilla; HIT TASK 0.45 «Configurar el móvil
+ *        nuevo»).
  *     3) «formatear el ordenador el sábado» — verbo «formatear»
  *        sin piso ni keyword. CANDIDATA P1.
+ *        → RESUELTA c.1036 (piso acotado «formatear <dispositivo>»
+ *        + keyword + plantilla; HIT TASK 0.45 «Formatear el
+ *        ordenador» dueAt=true).
+ *   RE-MEDICIÓN c.1036 (POST): 13/14 candidatas HIT (sólo C3
+ *   «cambiar la contraseña del banco esta tarde» sigue NULL —
+ *   keyword-objeto ausente, próxima frontera medida), regresiones
+ *   8/8 intactas, controles 7/8 NULL correctos + G7 falso positivo
+ *   conocido (candidata P2).
  *   REGRESIONES — 8/8 HITs intactos (correo TASK c.860, DNI TASK
  *   c.864, luz PAYMENT, euros TASK c.710, llamar CALL 0.67,
  *   cajero ERRAND c.893, baja gimnasio TASK c.892, cargar móvil

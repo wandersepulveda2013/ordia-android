@@ -179,6 +179,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el umbral y el piso anclado la excluye (precedente "reescanear"
         // c.888). "la configuración quedó bien" sigue descartado.
         "configurar",
+        // c.1036: keyword-VERBO "formatear" (lockstep con el piso acotado
+        // "formatear <dispositivo>", ver ContextIntentEngine
+        // .hasStrongTaskImperative; lección c.751: sin ella una notificación
+        // "formatear el ordenador mañana" sin palabra gatillo ni llega al
+        // análisis en producción). Verbo monosemántico (precedente c.864
+        // "escanear"/c.752 "votar"/c.1032 "configurar"); subcadenas inertes:
+        // el sustantivo "formateo" y la forma pasada "formateé" NO contienen
+        // "formatear"; "reformatear" la contiene pero 0.12 sola queda bajo
+        // el umbral y el piso anclado la excluye (precedente "reescanear"
+        // c.888). "el formateo quedó a medias" sigue descartado.
+        "formatear",
         // c.875: keyword-VERBO "presentar" (lockstep con el piso acotado
         // "presentar la declaración de la renta", ver ContextIntentEngine
         // .hasStrongTaskImperative; lección c.751: sin ella la notificación

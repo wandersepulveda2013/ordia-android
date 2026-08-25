@@ -2347,6 +2347,32 @@ object ContextIntentEngine {
             // contra HOUSEHOLD: no es quehacer doméstico, es puesta en
             // marcha de dispositivo).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )configurar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:m[óo]vil|celular|ordenador|computadora|port[áa]til|tablet|router|impresora|tele(?:visor)?|wifi)\b""").containsMatchIn(lower)
+            // c.1036: piso acotado «formatear <dispositivo>» — candidata
+            // (c) medida NULL por la sonda persistida
+            // tools/probe/EleventhClassDigitalProbe.kt (c.1026, clase
+            // UNDÉCIMA: vida digital cotidiana; C11 «formatear el
+            // ordenador el sábado» NULL, re-medido en el PRE de este
+            // ciclo). Olvido silencioso P1: formatear el dispositivo es
+            // un trámite digital cotidiano de coste real (requiere copia
+            // previa y ventana de tiempo). El verbo «formatear» es
+            // bivalente (el documento/el texto) → el piso se ACOTA al
+            // objeto-dispositivo formateable (ordenador/computadora/
+            // portátil/móvil/celular/tablet; [óo]/[áa] admiten la grafía
+            // sin tilde, hermana «tensi[oó]n» c.772). Ancla ^/ACK/
+            // temporal, `(?<!no )` bloquea la negada; el pasado
+            // «formateé…», el suelto «formatear» y el sustantivo
+            // «formateo» no casan. Negación sin cláusula dedicada:
+            // keyword «formatear» 0.12 + bono temporal 0.1 = 0.22 <
+            // umbral 0.45 (con «móvil»/«celular» keyword c.851: 0.34 <
+            // 0.45, aritmética hermana c.1032/c.771). Lockstep
+            // keyword-VERBO «formatear» en [ContextIntentKind.TASK]
+            // (lección c.751; monosemántico, precedente c.752 «votar»/
+            // c.864 «escanear»/c.1032 «configurar») + plantilla de
+            // título. Kind TASK (hermano del dispositivo «configurar el
+            // móvil» c.1032 y «reiniciar el router» c.771; deliberación
+            // contra HOUSEHOLD: no es quehacer doméstico, es
+            // mantenimiento de dispositivo).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )formatear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:ordenador|computadora|port[áa]til|m[óo]vil|celular|tablet)\b""").containsMatchIn(lower)
             // Piso "medir la tensión" (c.772, quinta clase — salud/
             // autocuidado; dispersión epoch-day 20685 % 5 = 0 sobre el pool
             // OPEN residual de 5; NULL PRE verificado por la sonda sobre
@@ -3766,6 +3792,17 @@ object ContextIntentEngine {
                 // tilde queda tal cual.
                 val matchConfigurarDispositivo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(configurar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:m[óo]vil|celular|ordenador|computadora|port[áa]til|tablet|router|impresora|tele(?:visor)?|wifi)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchConfigurarDispositivo != null) return "Configurar ${matchConfigurarDispositivo.groupValues[2]}"
+                // c.1036: plantilla «formatear <dispositivo>» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; el resto de la
+                // frase —«nuevo»— se conserva: es la misma gestión. El
+                // objeto bivalente «formatear el documento…» nunca llega
+                // aquí porque el piso no lo captura). La grafía del usuario
+                // se preserva (doctrina c.653): «el portatil» sin tilde
+                // queda tal cual.
+                val matchFormatearDispositivo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(formatear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:ordenador|computadora|port[áa]til|m[óo]vil|celular|tablet)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFormatearDispositivo != null) return "Formatear ${matchFormatearDispositivo.groupValues[2]}"
                 // c.772: plantilla "medir la tensión" (ancla/guard idénticos
                 // al piso; lección c.616: el match arranca en el verbo, así
                 // acuse/prefijo temporal se despojan; el residuo temporal de
