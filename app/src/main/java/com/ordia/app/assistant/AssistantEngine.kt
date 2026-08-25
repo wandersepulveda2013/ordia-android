@@ -81,6 +81,7 @@ object AssistantEngine {
         val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
         val noOlvidesCapture = noOlvidesCapture(clean)
         val remindMeLoGuide = remindMeLoGuide(clean)
+        val remindMeLoCapture = remindMeLoCapture(clean)
         val markDoneCapture = markDoneCapture(clean, tasks)
         // c.999: captura «pospón/aplaza <tarea>» (acción). Debe evaluarse ANTES
         // de la consulta de posposición («qué puedo posponer»): «pospón la
@@ -539,6 +540,10 @@ object AssistantEngine {
             // c.996: lateral (d) de la sonda persistente — «recuérdamelo»
             // deíctico: guía honesta (NUNCA tarea basura «lo»).
             remindMeLoGuide != null -> remindMeLoGuide
+            // c.1088: «recuérdamelo: <contenido>» — captura de TAREA
+            // (la guía c.996 conserva las peladas; auditoría c.1085
+            // lateral ABIERTA (3)).
+            remindMeLoCapture != null -> remindMeLoCapture
             // c.997: sonda DiscoveryProbe — «marca como hecha …» con
             // coincidencia única → COMPLETE_TASK (el botón confirma).
             markDoneCapture != null -> markDoneCapture
@@ -1452,6 +1457,31 @@ object AssistantEngine {
     // sin saber QUÉ recordar — la guía es la respuesta honesta.
     private val REMIND_ME_LO =
         Regex("(?i)^recu[ée]rdamelo(?:\\s+(?:ma[ñn]ana|hoy|pasado ma[ñn]ana|esta (?:tarde|noche|ma[ñn]ana)))?\\.?$")
+
+    // c.1088: lateral (3) de la auditoría c.1085 — «recuérdamelo:
+    // <contenido>». Cuando el contenido viaja en el propio texto («lo»
+    // = aquello que sigue), la captura como tarea; la guía c.996
+    // (abajo) conserva SÓLO la pelada exacta (y los temporales pelados),
+    // al estilo de c.987.
+    private val REMIND_ME_LO_PREFIX = Regex("(?i)^recu[ée]rdamelo(?:\\s*:)?(?:\\s+|$)")
+    private val REMIND_ME_LO_WITH_CONTENT =
+        Regex("(?i)^recu[ée]rdamelo\\s*:?\\s*([^:].*)$")
+
+    private fun remindMeLoCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!REMIND_ME_LO_PREFIX.containsMatchIn(trimmed)) return null
+        val raw = REMIND_ME_LO_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        val content = raw?.let { LEADING_QUE.replace(it, "") }?.trim()
+        if (content.isNullOrEmpty()) {
+            // Pelada CON «:» o «que»: cae a la guía honesta (c.996),
+            // nunca tarea basura (doctrina c.969/c.988).
+            return AssistantAnswer("No sé a qué se refiere «lo». Escríbeme qué quieres que te recuerde — por ejemplo «recuérdame llamar al banco» — y lo guardo como tarea.")
+        }
+        // Anti-overreach (espejo c.987): «recuérdamelo NO <x>» pide no
+        // hacerlo; capturar sería grabar lo contrario de la intención.
+        if (content.startsWith("no ", ignoreCase = true)) return null
+        return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
 
     private fun remindMeLoGuide(clean: String): AssistantAnswer? {
         if (!REMIND_ME_LO.matches(clean.trim())) return null

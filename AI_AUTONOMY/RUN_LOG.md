@@ -1,3 +1,15 @@
+# ✅ c.1088 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `18008e6` publicado al inicio del run anterior; fix TDD en este run) — lateral ABIERTA (3) de la auditoría c.1085 RESUELTA: «recuérdamelo: <contenido>» → CREATE_TASK
+
+- HEAD inicial: `18008e6` (en sync tras `git fetch` + `pull --ff-only` al abrir este run; gradle/lint/assemble NO VERIFICADO — sin SDK, toolchain heredada /tmp, `JAVA_OPTS=-Xmx6g`). HEAD final: el de este push.
+- Cambios: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` — `remindMeLoCapture` con `REMIND_ME_LO_PREFIX`/`REMIND_ME_LO_WITH_CONTENT` (hermana de remindMeCapture c.987; reusa `LEADING_QUE` del «que» subordinado) y rama de routing inmediatamente TRAS la guía c.996 (las peladas/temporales pelados siguen cayendo a la guía). A `app/src/test/java/com/ordia/app/assistant/AssistantEngineRecuerdameloWithContentCaptureTest.kt` (8 tests). A `tools/probe/AssistantRecuerdameloCaptureProbe.kt` (sonda PERSISTIDA, 4 capturas + 4 guards). Docs: BACKLOG + CURRENT_STATE + RUN_LOG.
+- Bugs: P1 — «recuérdamelo: llamar al banco» (el recordatorio DICHO con deíctico resuelto en el propio texto) caía al MENÚ genérico (mentira por omisión): la guía pelada c.996 sólo admitía «recuérdamelo[:] [temporal]» EXACTO.
+- Features: ninguna (fix de routing honesto; determinista regex, CERO random, CERO IA falsa, cero UI).
+- Tests: `tools/run_domain_tests.sh` — RED exacto EXACTAMENTE 4 fallos (8369 run: las 4 capturas; guards y regresiones verdes desde RED como pins) → GREEN OK (**8369 = 8361 + 8**, aritmética exacta), 1 iteración, cero ajustes. `tools/run_domain_checks.sh` 25/25. Sonda persistida POST 8/8 (0 inesperados).
+- Anti-colisión: marcador docs-only `18008e6` (run anterior); integración NO-destructiva: ninguna necesaria (remoto sin cambios durante el run). Nunca force, nunca `reset --hard`, nunca `main`.
+- Commits: marcador `18008e6`; fix+tests+sonda+docs: el de este push.
+- Laterales ABIERTAS restantes de la auditoría c.1085 (UNA por ciclo): (1) acción marca-hecha «termina/tacha/finaliza la tarea <x>» (candidata a EVALUAR, bivalencia de «haz la tarea»); (4) declaración pasada «olvidé algo» al menú (candidata-agenda).
+- Próxima prioridad: una de las laterales ABIERTAS restantes (sugerido (1) marca-hecha — acción sobre tarea, a evaluar por bivalencia de «haz la tarea»).
+
 # ✅ c.1087 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `df626db` publicado al inicio del run anterior; continuación TDD en este run) — lateral ABIERTA (2) de la auditoría c.1085 RESUELTA: familia recordatorio «no (se) (te) olvide(s) <x>» → CREATE_TASK
 
 - HEAD inicial: `9b51d2b` (sync limpio `git fetch` + `pull --ff-only`). Una integración NO-destructiva pre-push (stash -u → pull --ff-only → stash pop) — el remoto contenía sólo mi propio marcador `df626db`. HEAD final: el de este push.
