@@ -299,7 +299,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
         "especialista", "consulta", "revisión", "chequeo", "terapia",
-        "psicólogo", "nutricionista", "pediatra")),
+        "psicólogo", "nutricionista", "pediatra", "dermatólogo")),
     MEETING("Reunión", listOf("reunión con", "reunión de", "junta", "encuentro",
         "quedar con", "vernos", "nos vemos", "quedamos",
         // c.847: lockstep del piso «quedar con|para» (lección c.751).
