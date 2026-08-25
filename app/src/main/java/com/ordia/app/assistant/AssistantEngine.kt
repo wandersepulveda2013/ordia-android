@@ -2769,7 +2769,8 @@ object AssistantEngine {
         // consulta rompía la coincidencia exacta que ya funcionaba (sonda
         // (A): «¿a qué hora es lo del dentista?» vs título «Lo del dentista»).
         val matches = tasks.filter {
-            ENTITY_NEEDLE_FILLER_PATTERN.replace(it.title.foldForSearch(), "").contains(needle)
+            val foldedTitle = ENTITY_NEEDLE_FILLER_PATTERN.replace(it.title.foldForSearch(), "")
+            foldedTitle.contains(needle) || needleTokensMatchTitle(needle, foldedTitle)
         }
         if (matches.isEmpty()) {
             return AssistantAnswer("No encuentro nada que sea «$needle» entre tus tareas.")
@@ -2829,6 +2830,61 @@ object AssistantEngine {
     // Solo determinantes de la entidad preguntada; jamás sustantivos.
     private val ENTITY_NEEDLE_FILLER_PATTERN =
         Regex("""^(?:es |lo del |lo de la |lo de |del |de la |de |la |las |el |los |lo )+""")
+
+    // c.1112: fallback por TOKENS con paridad sustantivo/verbo (lateral (a) de
+    // c.1109). El usuario pregunta con el sustantivo («¿cuándo es el pago de
+    // la luz?») y tituló la tarea con el infinitivo («Pagar luz»): la subcadena
+    // literal exigía la misma forma y respondía «No encuentro nada…» con la
+    // tarea EXISTENTE (medida PRE: 4/4 gaps con sonda /tmp/probe1112). El
+    // fallback solo se evalúa cuando la subcadena falla (pins intactos) y
+    // exige que TODOS los tokens de contenido de la aguja casen con tokens del
+    // título — la guarda real contra falsos positivos (A1/A2 de la sonda:
+    // «visita al médico» NO casa con «Visitar a Marta»).
+    private val ENTITY_TOKEN_STOP_WORDS = setOf(
+        "de", "del", "la", "las", "el", "los", "lo", "y", "en", "con", "a", "al",
+        "un", "una", "para", "por", "mi", "mis", "tu", "tus", "su", "sus"
+    )
+
+    /** Sufijos cerrados: infinitivos (ar/er/ir) y nominales comunes. */
+    private val INFINITIVE_SUFFIXES = listOf("ar", "er", "ir")
+    private val NOUN_SUFFIXES = listOf("cion", "miento", "ada", "ida", "aje", "o", "a", "os", "as", "es", "s")
+
+    /**
+     * Raíces candidatas de un token: la forma íntegra + cada corte de UN
+     * sufijo cerrado que deje raíz ≥ 3. El flag marca si el corte fue de
+     * infinitivo: la paridad exige al menos UN lado verbo, así «marta»/«martes»
+     * (raíz común «mart», cero infinitivos) NO casan, mientras «pago»/«pagar»
+     * (raíz «pag», lado «pagar»-ar) sí. Sin lematizador fingido ni modelos.
+     */
+    private fun stemCandidates(token: String): List<Pair<String, Boolean>> {
+        val out = mutableListOf(token to false)
+        for (s in INFINITIVE_SUFFIXES) {
+            if (token.length - s.length >= 3 && token.endsWith(s)) out += token.dropLast(s.length) to true
+        }
+        for (s in NOUN_SUFFIXES) {
+            if (token.length - s.length >= 3 && token.endsWith(s)) out += token.dropLast(s.length) to false
+        }
+        return out
+    }
+
+    private fun tokensMatchWithParity(a: String, b: String): Boolean {
+        if (a == b) return true
+        for (x in stemCandidates(a)) {
+            for (y in stemCandidates(b)) {
+                if (x.first == y.first && (x.second || y.second)) return true
+            }
+        }
+        return false
+    }
+
+    private fun needleTokensMatchTitle(needle: String, foldedTitle: String): Boolean {
+        val needleTokens = needle.split(' ')
+            .filter { it.isNotBlank() && it !in ENTITY_TOKEN_STOP_WORDS }
+        if (needleTokens.isEmpty()) return false
+        val titleTokens = foldedTitle.split(' ')
+            .filter { it.isNotBlank() && it !in ENTITY_TOKEN_STOP_WORDS }
+        return needleTokens.all { n -> titleTokens.any { t -> tokensMatchWithParity(n, t) } }
+    }
 
     private fun extractEntityNeedle(query: String): String? {
         val markers = listOf(

@@ -41,19 +41,15 @@ fun main() {
         Triple("¿qué fecha es lo del dentista?", 1L, "marcador «que fecha »"),
         Triple("¿qué día es lo de la tintorería?", 5L, "relleno «lo de la »"),
         Triple("¿dónde es lo de la tintorería?", 5L, "marcador «donde es »"),
-        Triple("¿cuándo es el pago de la luz?", 4L, "relleno «es el » (aguja «pago de la luz» vs título «Pagar luz»: no resuelve — pin honesto)")
+        Triple("¿cuándo es el pago de la luz?", 4L, "relleno «es el » + paridad sustantivo/verbo (c.1112: «pago de la luz» ↔ «Pagar luz» ahora RESUELVE)")
     )
     for ((q, id, label) in gaps) {
         val a = AssistantEngine.answer(q, clean, emptyList(), emptyList(), now = now, zone = zone)
-        if (label.startsWith("relleno «es el »")) {
-            // Lateral fuera de alcance (paridad sustantivo/verbo): la aguja sale
-            // limpia pero «Pagar luz» no contiene «pago de la luz»; se exige el
-            // NO-mensaje honesto CON aguja limpia (sin relleno).
-            check(label, a.relatedTaskIds.isEmpty() && "«pago de la luz»" in a.text && "«es " !in a.text,
-                a.text.replace("\n", " ").take(100))
-        } else {
-            check(label, a.relatedTaskIds == listOf(id), a.text.replace("\n", " ").take(100))
-        }
+        // c.1112: el pin honesto «no resuelve» giró legítimamente — la paridad
+        // sustantivo/verbo cierra el lateral (a) y «Pagar luz» sí casa con la
+        // aguja «pago de la luz» (raíz «pag», lado infinitivo). Todos los gaps
+        // se exigen resueltos a su id.
+        check(label, a.relatedTaskIds == listOf(id), a.text.replace("\n", " ").take(100))
     }
 
     // Paridad: fixture con título «Lo del dentista» (id 6) SOLO — la aguja
