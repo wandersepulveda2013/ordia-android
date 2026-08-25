@@ -8596,8 +8596,12 @@ object NaturalTaskParser {
      * pagó», «ya se lo dije») — la cadena estándar del español no pasa de
      * dos en proclisis.
      */
+    // c.1035: la guard admite UNA cláusula adverbial acotada entre comas
+    // («ya, a primera hora, sonó la alarma» — pin FUERA c.1027 resuelto):
+    // `[^,.;:!?]{1,60},` salta el adverbial sin tragar puntuación ni desbordar.
+    // Mismo conservadurismo: el predicado sigue exigiendo pretérito inequívoco.
     private val yaPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:(?:me|te|se|nos|os|lo|la|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?i)^\s*,?\s*(?:[^,.;:!?]{1,60},\s*)?(?:(?:me|te|se|nos|os|lo|la|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**

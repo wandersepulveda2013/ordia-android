@@ -117,8 +117,9 @@ class NaturalTaskParserYaPreteritoNarrativoTest {
         // NaturalTaskParserYaPreteritoNarrativoCliticosMultiplesTest).
         assertNarrativeIntact("ya me lo pagó")
 
-    @Test fun yaComaAPrimeraHoraSonoLaAlarma_lateralFueraPin() =
-        // «ya» separado por coma de la cadena narrativa: la evidencia ya no es
-        // adyacente; conservador (medido FUERA, sonda del ciclo).
-        assertAnchorNow("ya, a primera hora, sonó la alarma", "a primera hora, sonó la alarma")
+    @Test fun yaComaAPrimeraHoraSonoLaAlarma_resueltaEnC1035() =
+        // Re-pin c.1035 (lateral «ya, <adverbial>, <pretérito>» RESUELTA): la
+        // guard admite UNA cláusula adverbial acotada entre comas (cobertura en
+        // NaturalTaskParserYaPreteritoNarrativoComaAdverbialTest).
+        assertNarrativeIntact("ya, a primera hora, sonó la alarma")
 }
