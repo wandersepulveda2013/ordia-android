@@ -10,7 +10,8 @@ import org.junit.Test
  * «cortarme el cabello el sábado» (el sinónimo «cabello», la forma
  * mayoritaria en español latinoamericano para la cita de peluquería).
  * Candidata documentada ABIERTA en la propia fila del piso c.842
- * (acotado deliberado, UNA por ciclo): plural «los pelos» y objeto
+ * (acotado deliberado, UNA por ciclo): plural «los pelos» (RESUELTA
+ * c.1055) y objeto
  * «cabello» quedaban FUERA; el dativo se resolvió en c.1006 y esta
  * unidad resuelve SOLO el objeto «cabello». NULL PRE medido con sonda
  * efímera `/tmp/probe1007/Probe.kt` sobre HEAD `1794a56` (motor real
@@ -35,7 +36,8 @@ import org.junit.Test
  * la negación inmediata la bloquean el lookbehind del piso y la
  * cláusula, el pasado no casa el infinitivo literal y el hedge sigue
  * NULL. Acotado deliberado (UNA forma por ciclo): plural «los pelos»
- * queda FUERA — candidata documentada c.842.
+ * (RESUELTA c.1055)
+ * quedaba FUERA — candidata documentada c.842.
  */
 class ContextIntentEngineCortarCabelloFloorTest {
 

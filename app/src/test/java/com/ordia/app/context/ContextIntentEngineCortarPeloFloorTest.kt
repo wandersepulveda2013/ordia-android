@@ -30,8 +30,9 @@ import org.junit.Test
  * «pelo» en ERRAND (lección c.751) + cláusula de negación dedicada en
  * [imperativeIsNegated] (cinturón y tirantes, precedente c.829) +
  * plantilla de título (lección c.616). Acotado deliberado (una forma
- * por ciclo): plural «los pelos», dativo «cortarle el pelo al niño» y
- * objeto «cabello» quedan FUERA — candidatas documentadas.
+ * por ciclo): plural «los pelos» (RESUELTA c.1055, re-pin en
+ * `plural los pelos RESUELTO c1055`), dativo «cortarle el pelo al
+ * niño» (c.1006) y objeto «cabello» (c.1013) — antes FUERA.
  */
 class ContextIntentEngineCortarPeloFloorTest {
 
@@ -152,9 +153,15 @@ class ContextIntentEngineCortarPeloFloorTest {
     }
 
     @Test
-    fun `plural los pelos queda fuera`() {
-        // Acotado deliberado (una forma por ciclo): candidata documentada.
-        assertNull(analyze("cortarme los pelos mañana"))
+    fun `plural los pelos RESUELTO c1055`() {
+        // Re-pin legítimo (precedente c.1019/c.1024/c.1046): la
+        // candidata documentada se captura en c.1055 (lockstep 3
+        // puntos, `pelos?`). No borrada — renombrada con evidencia.
+        val i = analyze("cortarme los pelos mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        assertEquals("Cortarme los pelos", i.title)
+        assertNotNull(i.dueAt)
     }
 
     // ---- Regresiones (pisos hermanos intactos) ----

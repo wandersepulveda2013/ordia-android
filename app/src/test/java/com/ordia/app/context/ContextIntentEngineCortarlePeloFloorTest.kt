@@ -10,7 +10,8 @@ import org.junit.Test
  * «cortarle el pelo al niño» (la peluquería del hijo, de los recados
  * familiares más cotidianos). Candidata documentada ABIERTA en la
  * propia fila del piso c.842 (acotado deliberado, UNA por ciclo):
- * plural «los pelos», dativo «cortarle el pelo al niño» y objeto
+ * plural «los pelos» (RESUELTA c.1055), dativo «cortarle el pelo al
+ * niño» y objeto
  * «cabello» quedaban FUERA; esta unidad resuelve SOLO el dativo.
  * NULL PRE medido con sonda efímera `/tmp/probe1006/Probe.kt` sobre
  * HEAD `b3eb86e` (motor real vía `tools/run_probe.sh`): las 4 formas
@@ -36,7 +37,8 @@ import org.junit.Test
  * negación inmediata la bloquean el lookbehind del piso y la
  * cláusula, el pasado («le corté el pelo») no casa el infinitivo
  * literal y el hedge «quizá…» sigue NULL. Acotado deliberado (UNA
- * forma por ciclo): plural «los pelos» y objeto «cabello» quedan
+ * forma por ciclo): plural «los pelos» (RESUELTA c.1055) y objeto
+ * «cabello» quedaban
  * FUERA — candidatas documentadas c.842.
  */
 class ContextIntentEngineCortarlePeloFloorTest {
