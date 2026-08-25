@@ -3330,6 +3330,29 @@ object ContextIntentEngine {
             // c.616). Olvido silencioso P1: sellar el paro es periódico —
             // olvidarlo cuesta la prestación por desempleo.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(?:el\s+)?paro\b""").containsMatchIn(lower)
+            // c.1148: "echar el currículum" ("echar el currículum en la
+            // oferta de infojobs"), candidata (a) FUERTE de la clase
+            // DECIMOSÉPTIMA vida laboral (sonda persistida del hermano
+            // `tools/probe/SeventeenthClassWorkProbe.kt` c.1147 C5; NULL
+            // PRE medido sobre 5a39f45 con sonda efímera: 4/4 candidatas
+            // desnudas NULL, envolvente «recuérdame…» HIT por camino
+            // genérico, 6/6 guards NULL, 4/4 regresiones HIT). Hermano
+            // EXACTO del piso «sellar (el)? paro» c.1143: kind TASK
+            // (gestión laboral SIN desplazamiento explícito; doctrina
+            // ERRAND c.842/c.862 solo gobierna el desplazamiento), misma
+            // ancla ^|acuse|temporal y guard `(?<!no )`. El objeto
+            // EXIGIDO «curr[ií]culums?» (ambas grafías + plural) blinda
+            // los bivalentes de «echar» c.829 («echar de menos», «echar
+            // la carta al buzón» no casan — NULL deliberado); el pasado
+            // «eché…» no casa (regex exige «echar\s»), la negada «no
+            // eches…» no casa (morfología distinta), la duda «no sé si
+            // echar…» no casa (el ancla exige ^|acuse|temporal antes del
+            // verbo). Lockstep keywords-OBJETO «currículum»/«curriculum»
+            // en ContextIntent + plantilla matchEcharCurriculum en
+            // [extractTitle] (lección c.616). Olvido silencioso P1: la
+            // oferta de empleo tiene plazo — olvidarla cuesta la
+            // oportunidad entera.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )echar\s+(?:el\s+)?curr[ií]culums?\b""").containsMatchIn(lower)
             // c.901: "dar las gracias a <persona> (por <objeto>)" ("dar las
             // gracias a Ana por el regalo"), candidata (b) y ÚLTIMA forma
             // NULL de la clase NOVENA-b coordinación/préstamos (sonda
@@ -4519,6 +4542,14 @@ object ContextIntentEngine {
                 // ancla/guard que el piso (lección c.616/c.751).
                 val matchCubrirTurno = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+((?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCubrirTurno != null) return "Cubrir ${matchCubrirTurno.groupValues[1]}"
+                // "echar el currículum X" → "Echar el currículum X"
+                // (c.1148): lockstep con el piso acotado «echar (el)?
+                // curr[ií]culums?» — hermana de matchSellarParo (mismo
+                // ancla/guard, doctrina c.653: verbo-frase preservado,
+                // solo capitalización inicial; el residuo temporal de
+                // cola lo depura [sanitizeTitle]).
+                val matchEcharCurriculum = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )echar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEcharCurriculum != null) return "Echar ${matchEcharCurriculum.groupValues[1]}"
 
                 // "dar las gracias a X" → "Dar las gracias a X" (c.901):
                 // lockstep con el piso acotado «dar las gracias a <persona>»

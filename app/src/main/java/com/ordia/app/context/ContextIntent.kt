@@ -301,6 +301,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword la notificación ni llega al análisis (gate c.751).
         "salir para el aeropuerto",
         "salir para la estación",
+        // c.1148: keywords-OBJETO «currículum»/«curriculum» (lockstep
+        // con el piso acotado «echar (el)? curr[ií]culums?», candidata
+        // (a) FUERTE de la clase DECIMOSÉPTIMA vida laboral; ver
+        // ContextIntentEngine.hasStrongTaskImperative). Grafías con y
+        // sin tilde — el matching es substring `contains` sin
+        // normalizar (precedente EXACTO en esta lista:
+        // «suscripción»/«suscripcion» c.895c, «nómina» c.895b). Cuasi-
+        // monosemánticas (contexto laboral); el plural «currículums»
+        // casa por substring. 0.12 sola inerte < umbral y el piso
+        // exige el verbo «echar» — «el currículum ya está enviado»
+        // sigue NULL deliberado.
+        "currículum", "curriculum",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
