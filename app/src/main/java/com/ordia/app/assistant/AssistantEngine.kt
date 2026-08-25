@@ -1505,7 +1505,22 @@ object AssistantEngine {
     private val OLVIDE_SE_WITH_CONTENT =
         Regex("(?i)^se\\s+olvid[oó](?:\\s+de)?\\s*:?\\s*([^:].*)$")
     // Huecas: «olvidé algo/nada» no basta (NUNCA tarea basura a ciegas).
-    private val OLVIDE_BARE_WORDS = setOf("algo", "nada")
+    // c.1093: «de» — conector huérfano («olvide de» capturaba «de»).
+    private val OLVIDE_BARE_WORDS = setOf("algo", "nada", "de")
+
+    // c.1093: auditoría del verbo-family — contenido PURAMENTE temporal
+    // («recuérdamelo a las 5», «…mañana por la mañana», «olvidé mañana»)
+    // creaba TAREA BASURA (sonda efímera /tmp/probe1093/Probe.kt). La
+    // guía honesta es la respuesta; NUNCA tarea basura (doctrina c.969).
+    private val TEMPORAL_ONLY_CONTENT = Regex(
+        "(?i)^(?:(?:ma[ñn]ana|hoy|pasado\\s+ma[ñn]ana|esta\\s+(?:tarde|noche|ma[ñn]ana))" +
+            "(?:\\s+(?:por|en)\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada)|\\s+a\\s+las?\\s+\\d{1,2}(?::\\d{2})?(?:\\s*(?:am|pm|h))?)?|" +
+            "(?:por|en)\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada)|" +
+            "a\\s+las?\\s+\\d{1,2}(?::\\d{2})?(?:\\s*(?:am|pm|h))?)\\.?$"
+    )
+
+    private fun temporalOnlyContent(content: String): Boolean =
+        TEMPORAL_ONLY_CONTENT.matches(content.trim())
 
     private fun olvideCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()
@@ -1514,7 +1529,8 @@ object AssistantEngine {
         val rawContent = (if (seForm) OLVIDE_SE_WITH_CONTENT.matchEntire(trimmed)
         else OLVIDE_PAST_WITH_CONTENT.matchEntire(trimmed))?.groupValues?.get(1)
         val content = rawContent?.trim()?.trimEnd('.', '!', '?')
-        if (content == null || content.foldForSearch().split(' ').all { it in OLVIDE_BARE_WORDS }) {
+        // c.1093: hueca incluye conector huérfano y puramente temporal.
+        if (content == null || content.foldForSearch().split(' ').all { it in OLVIDE_BARE_WORDS } || temporalOnlyContent(content)) {
             val topic = if (seForm) "¿Qué se olvidó?" else "¿Qué se te olvidó?"
             return AssistantAnswer("$topic Escríbelo y lo preparo como tarea pendiente.")
         }
@@ -1533,8 +1549,9 @@ object AssistantEngine {
         if (!REMIND_ME_LO_PREFIX.containsMatchIn(trimmed)) return null
         val raw = REMIND_ME_LO_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
         val content = raw?.let { LEADING_QUE.replace(it, "") }?.trim()
-        if (content.isNullOrEmpty()) {
-            // Pelada CON «:» o «que»: cae a la guía honesta (c.996),
+        if (content.isNullOrEmpty() || temporalOnlyContent(content)) {
+            // Pelada CON «:» o «que», o c.1093 puramente temporal («…a las
+            // 5», «…mañana por la mañana»): cae a la guía honesta (c.996),
             // nunca tarea basura (doctrina c.969/c.988).
             return AssistantAnswer("No sé a qué se refiere «lo». Escríbeme qué quieres que te recuerde — por ejemplo «recuérdame llamar al banco» — y lo guardo como tarea.")
         }
