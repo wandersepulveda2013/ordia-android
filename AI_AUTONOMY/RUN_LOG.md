@@ -1,3 +1,15 @@
+# 🔄 c.1049 — DELTA candado «quedar con» extendido a weekday y hora numérica: lateral ABIERTA (b) de c.1048 RESUELTA (guard compartido `narrativePreteritePrefix` + idiom `ordinalHoraQuedarConArrangement` en 2 consumidores más)
+
+- **Rama**: openhands/autonomous-ordia. HEAD inicial `4f2fd280` (mi c.1048). Toolchain heredada /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`, `JAVA_OPTS=-Xmx6g`).
+- **Lateral (b) abierta en c.1048**: «quedar con» suprimida injustamente en weekday y hora numérica — el candado `ordinalHoraQuedarConArrangement` cubría sólo el ordinal. Este ciclo la cierra.
+- **Medida PRE (sonda efímera /tmp/probe1049/Probe1049.kt)**: «ya quedé con Ana el lunes» (L1), «ya quedé con Ana a las 8» (L2), «ahora quedé con Ana el sábado» (G3), «ahorita quedé con Ana a las 9» (G4) → dueAt=null los 4 (supresión injusta); pins: «quedé con Ana el lunes»/«a las 8» anclan, «ya quedé con Ana a primera hora» ancla (c.1048).
+- **Fix**: MISMO candado compartido aplicado en `weekdayOccurrenceIsPreteriteNarrative` (rama prefix) y `timeMatchIsPreteriteNarrative` — evalúa el idiom `ordinalHoraQuedarConArrangement` antes de suprimir (re-uso sin duplicación, doctrina c.1048). 2 sitios, cero nuevas regex.
+- **TDD**: 9 tests nuevos `NaturalTaskParserQuedarConCandadoWeekdayTimeMatchDeltaTest` (4 capturas + 3 pins byte-idénticos + 2 guards narrativos puros). RED exacto EXACTAMENTE 4 fallos → GREEN.
+- **Suite UNIÓN**: OK (7752 = 7743 + 9, aritmética exacta).
+- **Sonda POST**: L1 2026-08-31T09:00, L2 2026-08-25T08:00, G3 2026-08-29T09:00, G4 2026-08-25T09:00 (4/4 HIT); C1/C2 null (narrativa pura); G1/G2/G5 pins byte-idénticos.
+- Smokes 25/25 y 9/9. Determinista (regex), cero random, cero IA fingida, cero UI. NO VERIFICADO Android/gradle (sin SDK).
+- laterales ABIERTAS residuales: verbos fuera de lista cerrada c.950 (3 superficies); fold ordinal (SU c.1045).
+
 # 🔄 c.1048 [renumerado c.1046→c.1048 por colisión cycle-ID con SU c.1046 «pasear al gato» `9c2a308` y SU c.1047 «ponerme la vacuna» `b89a1cd`, fijadas en re-fetch pre-push; regiones DISJUNTAS context vs parser; integración NO-destructiva `pull --rebase` del commit propio no publicado + resolución markdown UNIÓN conservando AMBOS lados] — DELTA ordinal-narrativa «ahora/ahorita … <a primera/última hora> FINAL»: RESUELTA (guard compartido `narrativePreteritePrefix`; idiom «quedar con» tolerante a marca narrativa inicial)
 
 - **Run**: sesión actual OpenHands (este lado, DISJUNTO parser; base `1980dc7` docs-close SU c.1022, pull --ff-only limpio SIN colisión) | **HEAD inicial**: `1980dc7` | Baselines medidas: **OK (7702)**, smokes 25/25 y 9/9.

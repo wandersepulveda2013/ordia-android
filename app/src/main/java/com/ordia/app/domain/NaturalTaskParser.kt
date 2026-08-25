@@ -1655,8 +1655,13 @@ object NaturalTaskParser {
      * ([narrativePreteritePrefix]); el presente con «ya/ahora» («ya te
      * aviso a las 8») sigue anclando byte-idéntico.
      */
-    private fun timeMatchIsPreteriteNarrative(match: MatchResult, source: String): Boolean =
-        narrativePreteritePrefix(source.substring(0, match.range.first))
+    private fun timeMatchIsPreteriteNarrative(match: MatchResult, source: String): Boolean {
+        val prefix = source.substring(0, match.range.first)
+        // c.1049: MISMO candado «quedar con» del ordinal (c.1048) — «ya
+        // quedé con Ana a las 8» es CITA futura, jamás relato. Medida
+        // PRE: 4/4 suprimidas injustamente (RUN_LOG c.1049).
+        return narrativePreteritePrefix(prefix) && !ordinalHoraQuedarConArrangement.containsMatchIn(prefix)
+    }
 
     private fun timeMatchIsCountNoun(match: MatchResult, source: String): Boolean {
         val mv = match.value.lowercase()
@@ -8753,7 +8758,10 @@ object NaturalTaskParser {
         // pagó el lunes», «ahora me lo dijo el martes»): el weekday
         // cierra el relato de un hecho cumplido; jamás es ancla.
         val prefix = text.substring(0, match.range.first)
-        if (narrativePreteritePrefix(prefix)) return true
+        // c.1049: MISMO candado «quedar con» del ordinal (c.1048) — «ya
+        // quedé con Ana el lunes» es CITA futura, jamás relato. Medida
+        // PRE: 4/4 suprimidas injustamente (RUN_LOG c.1049).
+        if (narrativePreteritePrefix(prefix) && !ordinalHoraQuedarConArrangement.containsMatchIn(prefix)) return true
         val suffix = text.substring(match.range.last + 1)
         if (weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)) return true
         // c.1041 (UNIÓN con la rama [narrativePreteritePrefix — ex
