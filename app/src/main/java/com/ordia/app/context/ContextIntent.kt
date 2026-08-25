@@ -284,6 +284,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el piso exige el objeto «paro», así que esos bivalentes siguen
         // NULL deliberado (sonda `tools/probe/SellarParoProbe.kt`).
         "sellar el paro",
+        // c.1149: keyword-VERB «cubrir» (lockstep con el piso acotado
+        // «cubrir (el|la|mi|tu|su|un|una)? turnos?», candidata (b) de la
+        // clase DECIMOSÉPTIMA; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Bivalente («cubrir la mesa/los gastos»): 0.12 sola inerte <
+        // umbral (gate c.751, medido PRE); el piso exige el objeto «turno».
+        "cubrir",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver

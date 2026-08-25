@@ -3390,6 +3390,30 @@ object ContextIntentEngine {
             // Lockstep: keyword-frase «darle gracias» (lección c.751) y
             // plantilla en [extractTitle] (lección c.616).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower) ||
+            // c.1149: «cubrir el turno» (candidata (b) de la clase
+            // DECIMOSÉPTIMA vida laboral, medida NULL 1/1 en la sonda
+            // persistida c.1147 C7 y re-medida PRE sobre HEAD 48c3ee6:
+            // 7/7 capturas NULL, 2/2 envolventes TASK por c.613, 8/8
+            // guards NULL, 4/4 regresiones HIT intactas). El turno
+            // descubierto deja colgado al compañero/equipo y la ventana
+            // para avisar es corta. Verbo bivalente acotado por objeto
+            // EXIGIDO «turno» (hermano EXACTO de c.1117 «sacar
+            // (cita|turno|hora)»): «cubrir la mesa/los gastos» quedan
+            // FUERA (bivalentes NULL deliberados, medidos PRE). Determinantes/
+            // posesivos/indefinidos/plural casan («mi turno», «un turno»,
+            // «turnos»). La negada la cubre el lookbehind `(?<!no )`
+            // (keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace falta
+            // cláusula dedicada en [imperativeIsNegated], mismo argumento
+            // que c.895b/c.895c); el pasado «cubrí» y el futuro «cubriré»
+            // no casan (forma EXACTA). Kind TASK (gestión laboral sin
+            // desplazamiento, hermana de «cambiar el turno» TASK medido
+            // en la sonda c.1147; doctrina ERRAND c.842/c.862 gobierna
+            // solo el desplazamiento). Lockstep: keyword-VERB «cubrir»
+            // (lección c.751) y plantilla matchCubrirTurno en
+            // [extractTitle] (lección c.616). Alcance: SOLO infinitivo;
+            // 1ª persona «cubro el turno» queda lateral (UNA forma por
+            // ciclo, doctrina anti-overreach).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+(?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?\b""").containsMatchIn(lower) ||
             // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
             // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
             // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
@@ -4466,6 +4490,16 @@ object ContextIntentEngine {
                 // temporal de cola lo depura [sanitizeTitle]).
                 val matchSellarParo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchSellarParo != null) return "Sellar ${matchSellarParo.groupValues[1]}"
+
+                // "cubrir el turno del sábado" → "Cubrir el turno del
+                // sábado" (c.1149): lockstep con el piso acotado
+                // «cubrir (el|la|mi|tu|su|un|una)? turnos?» — el verbo
+                // gobernante es fijo («cubrir») y el objeto se captura
+                // con grafía preservada (doctrina c.653); el residuo
+                // temporal de cola lo depura [sanitizeTitle]. Mismo
+                // ancla/guard que el piso (lección c.616/c.751).
+                val matchCubrirTurno = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+((?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCubrirTurno != null) return "Cubrir ${matchCubrirTurno.groupValues[1]}"
 
                 // "dar las gracias a X" → "Dar las gracias a X" (c.901):
                 // lockstep con el piso acotado «dar las gracias a <persona>»
