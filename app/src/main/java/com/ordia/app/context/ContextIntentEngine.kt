@@ -1082,7 +1082,7 @@ object ContextIntentEngine {
     // (lockstep keyword↔patrón, misma lección c.639 para HOUSEHOLD): sin ellos,
     // "ir al psicólogo" no reunía evidencia suficiente para superar el umbral.
     private val APPOINTMENT_MEDICAL_PATTERN =
-        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta)""")
+        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra)""")
     // Desplazamiento a destino médico inequívoco (c.682, hallazgo c.681):
     // "ir al médico mañana" se DESCARTABA (NULL, olvido silencioso P1): las
     // evidencias sueltas (keyword + patrón médico + bono de fecha ≈ 0.42) no
@@ -1097,7 +1097,7 @@ object ContextIntentEngine {
     // Se aplica como BONO (no piso), así la duda (c.649) y la condición (c.650)
     // penalizan DESPUÉS y siguen descartando ("quizá ir al médico" → NULL).
     private val APPOINTMENT_GO_PATTERN =
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta)\b""")
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra)\b""")
     // Futuro declarativo de 1ª persona (c.663): "tendré (una |la )?cita" y "tendré
     // <sustantivo médico>" son promesas explícitas (no infinitivo condicionable),
     // evidencia MÁS firme que el presente — mismo olvido P1 que c.656 cerró para
@@ -1107,7 +1107,7 @@ object ContextIntentEngine {
     private val APPOINTMENT_CITA_FUTURE_PATTERN =
         Regex("""\b(?<!no )tendré\s+(?:una\s+|la\s+)?cita\b""")
     private val APPOINTMENT_MEDICAL_FUTURE_PATTERN =
-        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)\b""")
+        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|pediatra)\b""")
     private val APPOINTMENT_SPECIFIC =
         listOf(
             APPOINTMENT_CITA_PATTERN,
