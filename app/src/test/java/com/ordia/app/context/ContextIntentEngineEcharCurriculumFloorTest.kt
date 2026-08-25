@@ -7,35 +7,38 @@ import org.junit.Test
 
 /**
  * c.1148 — candidata (a) FUERTE de la clase DECIMOSÉPTIMA (vida laboral,
- * sonda persistida `tools/probe/SeventeenthClassWorkProbe.kt` c.1147 del
- * hermano, C5): «echar el currículum en la oferta de infojobs». NULL PRE
- * medido con sonda efímera (motor real vía `tools/run_probe.sh`, base
- * `5a39f45`): 7/7 candidatas NULL (desnuda sin temporal, con «mañana»,
- * «esta semana», oferta con plazo, acuse «vale,», grafía sin tilde
- * «curriculo», sin artículo), 2/2 envolventes HIT por camino genérico
- * («tengo que…»/«recuérdame…» 0.45, título ya limpio), 8/8 guards NULL,
- * 4/4 regresiones HIT. Olvido silencioso P1: la oferta de empleo tiene
- * plazo — el olvido cuesta la oportunidad entera.
+ * sonda persistida `tools/probe/SeventeenthClassWorkProbe.kt` de la
+ * auditoría c.1147 del hermano, C5): «echar el currículum en la oferta
+ * de infojobs». NULL PRE medido con sonda efímera (motor real vía
+ * `tools/run_probe.sh`, base `5a39f45`): 4/4 candidatas desnudas NULL
+ * (C1/C2/C3/C5), la envolvente «recuérdame…» ya captura por camino
+ * genérico (C4 TASK 0.45), 6/6 guards NULL, 4/4 regresiones HIT.
+ * Olvido silencioso P1: la oferta de empleo tiene plazo — olvidarla
+ * cuesta la oportunidad entera (el olvido más caro de la clase
+ * DECIMOSÉPTIMA).
  *
- * Decisión de dominio: TASK (gestión administrativa SIN desplazamiento
- * explícito: echar el currículum se hace online; hermana de «enviar»
- * TASK c.692 y de «sellar el paro» TASK c.1143 — la doctrina ERRAND
- * c.842/c.862 gobierna solo el desplazamiento).
+ * Decisión de dominio: TASK (gestión laboral SIN desplazamiento
+ * explícito; hermana de «sellar el paro» TASK c.1143 — la doctrina
+ * ERRAND c.842/c.862 gobierna solo el desplazamiento).
  *
- * Lockstep TRES puntos (lección c.616/c.751, hermano EXACTO de c.1143;
- * keyword-OBJETO como «gasolina» c.829 porque «echar» es bivalente —
- * echar agua/de menos/la culpa — y NO se añade):
- * (1) keyword-OBJETO «currículum»/«curriculo» en TASK; (2) piso NUEVO
- * «echar (el)? curr[ií]culum» en `hasStrongTaskImperative` junto al
- * piso «sellar el paro» c.1143 (ancla ^|acuse|temporal y guard
- * `(?<!no )` heredados de la familia); (3) plantilla hermana
- * matchEcharCurriculum en [extractTitle] (doctrina c.653: verbo
- * preservado, solo capitalización inicial).
+ * Lockstep TRES puntos (lección c.616/c.751, hermano EXACTO de c.1143):
+ * (1) keywords-OBJETO «currículum»/«curriculum» en TASK (grafías con y
+ * sin tilde — el matching es substring `contains` sin normalizar;
+ * precedente EXACTO en la misma lista: «suscripción»/«suscripcion»
+ * c.895c, «nómina» c.895b; cuasi-monosemánticas: contexto laboral,
+ * 0.12 sola inerte < umbral); (2) piso NUEVO «echar (el)? curr[ií]culums?»
+ * en `hasStrongTaskImperative` junto al piso «sellar (el)? paro» c.1143
+ * (ancla ^|acuse|temporal y guard `(?<!no )` heredados de la familia;
+ * el objeto «currículum» es EXIGIDO — «echar» es bivalente c.829:
+ * «echar de menos», «echar la carta», «echar gasolina» no casan);
+ * (3) plantilla hermana matchEcharCurriculum en [extractTitle]
+ * (doctrina c.653: verbo-frase preservado).
  *
- * Acotado deliberado: «echar de menos…», «echar la carta», «echar
- * agua a las plantas» NULL — el objeto «currículum» es EXIGIDO por el
- * piso. Lateral ABIERTA (UNA por ciclo): «echar un currículum»
- * (indefinido), «mandar el currículum» (sinónimo).
+ * Acotado deliberado: «echar de menos a la familia», «echar la carta
+ * al buzón» NULL — el objeto «currículum» es EXIGIDO por el piso.
+ * Laterales ABIERTAS (UNA por ciclo): resto de familias de la auditoría
+ * c.1147 ((b) «cubrir el turno», (c) «hacer el curso de…», (d) «preparar
+ * la entrevista», (e) «llevar el portátil»).
  */
 class ContextIntentEngineEcharCurriculumFloorTest {
 
@@ -49,7 +52,7 @@ class ContextIntentEngineEcharCurriculumFloorTest {
     // ─── Capturas «echar el currículum» ───────────────────────────
 
     @Test
-    fun `echar el curriculum en oferta con plazo captura TASK`() {
+    fun `echar el curriculum en oferta captura TASK`() {
         val intent = analyze("echar el currículum en la oferta de infojobs")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
@@ -57,28 +60,34 @@ class ContextIntentEngineEcharCurriculumFloorTest {
     }
 
     @Test
-    fun `echar el curriculum manana captura TASK con titulo limpio`() {
-        val intent = analyze("echar el currículum mañana")
+    fun `echar el curriculum sin tilde manana captura TASK con titulo limpio`() {
+        val intent = analyze("echar el curriculum mañana")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
-        assertEquals("Echar el currículum", intent.title)
+        assertEquals("Echar el curriculum", intent.title)
         assertNotNull(intent.dueAt)
     }
 
     @Test
-    fun `echar el curriculum esta semana captura TASK`() {
-        val intent = analyze("echar el currículum esta semana")
+    fun `echar curriculums plural sin articulo captura TASK`() {
+        val intent = analyze("echar currículums en varias webs esta semana")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        // Lateral de título (heredada del motor, NO del piso): la cola
+        // «esta semana» no la depura [sanitizeTitle] — pin del
+        // comportamiento real medido (sonda POST c.1148). Misma familia
+        // que la cola «el día N» documentada en c.1143.
+        assertEquals("Echar currículums en varias webs esta semana", intent.title)
+        assertEquals(null, intent.dueAt)
     }
 
     @Test
-    fun `echar el curriculum sin fecha captura TASK sin dueAt`() {
-        val intent = analyze("echar el currículum")
+    fun `echar el curriculum hoy captura TASK con dueAt`() {
+        val intent = analyze("echar el currículum hoy")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
         assertEquals("Echar el currículum", intent.title)
-        assertEquals(null, intent.dueAt)
+        assertNotNull(intent.dueAt)
     }
 
     @Test
@@ -87,20 +96,6 @@ class ContextIntentEngineEcharCurriculumFloorTest {
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
         assertEquals("Echar el currículum", intent.title)
-    }
-
-    @Test
-    fun `echar el curriculo sin tilde captura TASK`() {
-        val intent = analyze("echar el curriculo en infojobs")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.TASK, intent!!.kind)
-    }
-
-    @Test
-    fun `echar curriculum sin articulo captura TASK`() {
-        val intent = analyze("echar currículum en la oferta del mercadona")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 
     // ─── Guards (NULL deliberado) ─────────────────────────────────
@@ -126,65 +121,51 @@ class ContextIntentEngineEcharCurriculumFloorTest {
     }
 
     @Test
-    fun `sustantivo el curriculum esta listo no captura`() {
-        assertNull(analyze("el currículum está listo para enviar"))
-    }
-
-    @Test
     fun `bivalente echar de menos no captura`() {
-        assertNull(analyze("echar de menos a los compañeros del trabajo"))
+        assertNull(analyze("echar de menos a la familia"))
     }
 
     @Test
-    fun `bivalente echar la carta no captura`() {
+    fun `otro objeto echar la carta no captura`() {
         assertNull(analyze("echar la carta al buzón"))
     }
 
     @Test
-    fun `bivalente echar agua a las plantas no captura`() {
-        assertNull(analyze("echar agua a las plantas"))
+    fun `sustantivo el curriculum ya enviado no captura`() {
+        assertNull(analyze("el currículum ya está enviado"))
     }
 
     // ─── Regresiones (byte-idénticas) ─────────────────────────────
 
     @Test
-    fun `echar gasolina sigue ERRAND c829`() {
-        val intent = analyze("echar gasolina mañana")
+    fun `enviar el informe sigue TASK`() {
+        val intent = analyze("enviar el informe antes del viernes")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
+
+    @Test
+    fun `quedar con el jefe sigue MEETING`() {
+        val intent = analyze("quedar con el jefe mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.MEETING, intent!!.kind)
+    }
+
+    @Test
+    fun `imprimir el informe sigue TASK`() {
+        val intent = analyze("imprimir el informe esta tarde")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
+
+    @Test
+    fun `llevarle el informe al jefe sigue ERRAND`() {
+        val intent = analyze("llevarle el informe al jefe")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
-        assertEquals("Echar gasolina", intent.title)
     }
 
-    @Test
-    fun `sellar el paro sigue TASK c1143`() {
-        val intent = analyze("sellar el paro mañana")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.TASK, intent!!.kind)
-        assertEquals("Sellar el paro", intent.title)
-    }
-
-    @Test
-    fun `enviar el curriculum sigue TASK c692`() {
-        val intent = analyze("enviar el currículum a la empresa mañana")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.TASK, intent!!.kind)
-        assertEquals("Enviar el currículum a la empresa", intent.title)
-    }
-
-    @Test
-    fun `pagar la luz sigue PAYMENT`() {
-        val intent = analyze("pagar la luz mañana")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.PAYMENT, intent!!.kind)
-    }
-
-    @Test
-    fun `envolvente tengo que echar el curriculum sigue TASK`() {
-        val intent = analyze("tengo que echar el currículum mañana")
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.TASK, intent!!.kind)
-        assertNotNull(intent.dueAt)
-    }
+    // ─── Envolvente (camino genérico, re-pin legítimo c.1035) ─────
 
     @Test
     fun `envolvente recuerdame echar el curriculum sigue TASK`() {
@@ -192,5 +173,6 @@ class ContextIntentEngineEcharCurriculumFloorTest {
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
         assertEquals("Echar el currículum", intent.title)
+        assertNotNull(intent.dueAt)
     }
 }

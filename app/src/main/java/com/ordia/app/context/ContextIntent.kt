@@ -284,26 +284,35 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el piso exige el objeto «paro», así que esos bivalentes siguen
         // NULL deliberado (sonda `tools/probe/SellarParoProbe.kt`).
         "sellar el paro",
-        // c.1148: keyword-OBJETO «currículum» + grafía sin tilde (lockstep
-        // con el piso acotado «echar (el)? curr[ií]culum», candidata (a)
-        // FUERTE de la clase DECIMOSÉPTIMA vida laboral — sonda persistida
-        // del hermano `tools/probe/SeventeenthClassWorkProbe.kt` c.1147 C5;
-        // ver ContextIntentEngine.hasStrongTaskImperative). NO el verbo
-        // «echar»: bivalente (echar agua/de menos/la culpa — lección
-        // c.829, mismo motivo por el que «gasolina» fue keyword-OBJETO).
-        // 0.12 sola inerte < umbral: «el currículum está listo para
-        // enviar» (nominal, +0.12 «enviar» = 0.24) sigue descartado.
-        // Además alimenta [TRIGGER_WORDS]: sin ella una notificación cuyo
-        // gatillo fuera solo «currículum» ni llegaría al análisis
-        // (lección c.751). Olvido silencioso P1: la oferta de empleo
-        // tiene plazo — el olvido cuesta la oportunidad entera.
-        "currículum", "curriculo",
         // c.1149: keyword-VERB «cubrir» (lockstep con el piso acotado
         // «cubrir (el|la|mi|tu|su|un|una)? turnos?», candidata (b) de la
         // clase DECIMOSÉPTIMA; ver ContextIntentEngine.hasStrongTaskImperative).
         // Bivalente («cubrir la mesa/los gastos»): 0.12 sola inerte <
         // umbral (gate c.751, medido PRE); el piso exige el objeto «turno».
         "cubrir",
+        // c.1150: keywords-frase «salir para el aeropuerto» / «salir para
+        // la estación» (lockstep con el piso acotado «salir para (el
+        // aeropuerto|la estación)», candidata (b) de la clase DECIMOSEXTA,
+        // NULL medida c.1137 C9; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Monosemánticas: partida al transporte. «salir» solo NO se añade
+        // (extremadamente polivalente: de fiesta/con alguien/del trabajo);
+        // «aeropuerto»/«estación» solos tampoco (sustantivos declarativos:
+        // «el aeropuerto cierra a las 10» sigue NULL deliberado). Sin la
+        // keyword la notificación ni llega al análisis (gate c.751).
+        "salir para el aeropuerto",
+        "salir para la estación",
+        // c.1148: keywords-OBJETO «currículum»/«curriculum» (lockstep
+        // con el piso acotado «echar (el)? curr[ií]culums?», candidata
+        // (a) FUERTE de la clase DECIMOSÉPTIMA vida laboral; ver
+        // ContextIntentEngine.hasStrongTaskImperative). Grafías con y
+        // sin tilde — el matching es substring `contains` sin
+        // normalizar (precedente EXACTO en esta lista:
+        // «suscripción»/«suscripcion» c.895c, «nómina» c.895b). Cuasi-
+        // monosemánticas (contexto laboral); el plural «currículums»
+        // casa por substring. 0.12 sola inerte < umbral y el piso
+        // exige el verbo «echar» — «el currículum ya está enviado»
+        // sigue NULL deliberado.
+        "currículum", "curriculum",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
