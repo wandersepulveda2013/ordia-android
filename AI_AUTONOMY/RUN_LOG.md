@@ -18444,3 +18444,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Tests: suite JVM OK (8852 = 8831 [post-c.1124] + 21 [hermano c.1123 ecografía]) medida en ESTE run sobre la base integrada; smoke dominio 25/25; automation 9/9. CERO cambios de producto (convención descubrimiento c.822…c.1102). NO VERIFICADO Android/gradle/lint/assemble/UI/Room.
 - AI_AUTONOMY: BACKLOG (fila c.1127 con candidatas (a)/(b)), CURRENT_STATE (✅ DESCUBIERTAS c.1127), RUN_LOG (esta entrada).
 - HEAD final: ver commit docs c.1127. Próxima prioridad: candidata (a) «llevar la merienda al colegio» (lockstep piso↔plantilla c.616) o marcadores del hermano si los fija antes (primer-marcador-gana).
+
+---
+
+## Run c.1125 (este lado, 2026-08-25) — candidata (e) «hacerme la revisión de la vista» → piso TASK reflexivo (FIXED VERIFIED)
+
+- HEAD inicial: `7a795fc` (docs c.1124); marcador EN CURSO propio `583d6ac` publicado antes del código (primer-marcador-gana); pull --ff-only limpio al inicio.
+- Problema: «hacerme la revisión de la vista este mes» (y variantes «hacerse»/«hacerte»/«hacernos»/indefinido/acuse «vale,»/prefijo temporal «mañana»/pelada) caía a NULL — olvido silencioso P1 (revisión de la vista: gafas, graduación; cita con profesional de coste real).
+- Causa raíz (medida, sonda efímera `/tmp/probe1125/Probe.kt` vía `tools/run_probe.sh`, motor real): keyword «revisión» existe (APPOINTMENT) pero el reflexivo «hacerme» no aporta señal → bajo umbral. PRE: 8/8 targets NULL, 6/6 guards NULL, 7/7 pines correctos (envolvente ya TASK 0.54 vía candado c.613).
+- Fix (lockstep 2 puntos, lección c.616; hermano EXACTO de c.1044 «ponerme la vacuna»): piso TASK «hacer(me|te|se|nos) (det)? revisi[oó]n de la vista» en hasStrongTaskImperative (junto al piso dieta c.1111) + plantilla matchHacerseRevisionVista en extractTitle (junto a matchEmpezarDieta). CERO cambios en ContextIntent.kt (gate ya cubierto: «revisión» keyword APPOINTMENT + «hacer»⊂«hacerme», doctrina c.862). Enclítico EXIGIDO (desnuda FUERA, hermandad c.862 — aunque aquí el objeto «de la vista» no es bivalente; disciplina conservadora, una forma por ciclo).
+- TDD estricto: 21 tests nuevos `ContextIntentEngineHacerseRevisionVistaFloorTest.kt` — RED exacto EXACTAMENTE 8 fallos (las 8 capturas; guards+pines verdes desde RED) → GREEN 21/21 (1 iteración, cero ajustes).
+- Colisión NO-destructiva: el remoto avanzó durante mi verificación (43efb0f docs c.1124-bis / 60c2237 c.1123 ecografía [ERRAND_BLOOD_TEST_FLOOR, región DISJUNTA] / 6b37f23 marcador c.1126 «limpieza dental» hermano / ba3e2d8+10c7789 c.1127 discovery DECIMODUARTA). `pull --rebase` limpio: mi único commit de código reaplicado sobre `10c7789` con auto-merge (ContextIntentEngine.kt regiones disjuntas; docs ya revertidas antes del rebase para re-aplicarlas sobre el estado UNIÓN).
+- Sonda POST re-ejecutada sobre la UNIÓN: 8/8 N→HIT TASK 0.45, títulos limpios («este mes» se conserva con dueAt=false — lateral documentada), guards 6/6 NULL, pines 7/7 byte-idénticos.
+- Suite UNIÓN `tools/run_domain_tests.sh` sobre el HEAD final: **OK (8873 = 8852 [remoto c.1123+c.1127] + 21 míos — aritmética exacta)**; `run_domain_checks.sh` 25/25 y `run_automation_engine_checks.sh` 9/9 (medidos sobre mi base; la UNIÓN no toca dominio/automation).
+- Commits: `583d6ac` (marcador) + `9a8de0f` (fix piso+plantilla+21 tests, rebaseado sobre `10c7789`) + commit docs. HEAD final: commit docs.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: respetando el marcador activo del hermano c.1126 «limpieza dental» (NO TOCAR): candidatas DECIMOTERCERA restantes (k) «empaste», (m) «operar la rodilla»; laterales (n-bis) «empezar el régimen», (e-bis) «hacer la revisión de la vista» desnuda, «revisión de los ojos»; clase DECIMODUARTA abierta (c.1127): (a) «llevar <objeto> al colegio» 5/5 NULL, (b) «inscribir en campamento» NULL.
