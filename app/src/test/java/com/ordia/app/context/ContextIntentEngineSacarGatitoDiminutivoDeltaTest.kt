@@ -22,8 +22,8 @@ import org.junit.Test
  * negación inmediata, envolvente c.1009, pasado, hedge — todos NULL.
  * Acotado (UNA por ciclo): el diminutivo perro «sacar al perrito» quedó
  * RESUELTO en c.1056 (re-pin legítimo); la vía pasear del diminutivo
- * («pasear al gatito» / «pasear al perrito») sigue FUERA (pins,
- * laterales documentadas).
+ * («pasear al gatito» / «pasear al perrito») quedó RESUELTA en c.1057
+ * (re-pins legítimos a «salir a pasear» bivalente y «pasear al bebé»).
  */
 class ContextIntentEngineSacarGatitoDiminutivoDeltaTest {
 
@@ -131,14 +131,18 @@ class ContextIntentEngineSacarGatitoDiminutivoDeltaTest {
     // ---- Pin FUERA byte-idéntico (laterales documentadas, UNA por ciclo) ----
 
     @Test
-    fun `pasear al perrito fuera lateral documentada via pasear c1018`() {
-        // c.1056 resolvió «sacar al perrito» (pin anterior); el nuevo FUERA
-        // es la vía pasear del diminutivo perro (piso hermano c.1018 intacto).
-        assertNull(analyze("pasear al perrito mañana"))
+    fun `salir a pasear bivalente fuera pin estructural`() {
+        // c.1057 resolvió la vía pasear diminutiva «pasear al perrito»
+        // (pin anterior); el nuevo FUERA es «pasear» bivalente sin objeto
+        // mascota (salir a pasear uno mismo — pin estructural histórico).
+        assertNull(analyze("salir a pasear mañana"))
     }
 
     @Test
-    fun `pasear al gatito fuera lateral documentada via pasear c1043`() {
-        assertNull(analyze("pasear al gatito mañana"))
+    fun `pasear al bebé destinatario humano fuera pin histórico`() {
+        // c.1057 resolvió la vía pasear diminutiva «pasear al gatito»
+        // (pin anterior); el nuevo FUERA es el destinatario humano
+        // (bebé — pin histórico anti-overreach).
+        assertNull(analyze("pasear al bebé mañana"))
     }
 }

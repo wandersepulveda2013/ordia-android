@@ -144,10 +144,10 @@ class ContextIntentEngineSacarGatoDeltaTest {
     // ---- Pin FUERA byte-idéntico (lateral documentada, UNA por ciclo) ----
 
     @Test
-    fun `pasear al perrito fuera lateral documentada via pasear c1018`() {
-        // c.1054 resolvió «sacar al gatito» y c.1056 resolvió «sacar al
-        // perrito» (pins anteriores); el nuevo FUERA es la vía pasear del
-        // diminutivo perro (piso hermano c.1018 intacto).
-        assertNull(analyze("pasear al perrito mañana"))
+    fun `salir a pasear bivalente fuera pin estructural`() {
+        // c.1057 resolvió la vía pasear diminutiva «pasear al perrito»
+        // (pin anterior); el nuevo FUERA es «pasear» bivalente sin objeto
+        // mascota (salir a pasear uno mismo — pin estructural histórico).
+        assertNull(analyze("salir a pasear mañana"))
     }
 }

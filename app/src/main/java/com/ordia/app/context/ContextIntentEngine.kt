@@ -251,7 +251,7 @@ object ContextIntentEngine {
     // (salir a pasear uno mismo / pasear al bebé / pasear la mirada), así
     // se ACOTA al objeto mascota `perr[oa]s?` (idéntico acotamiento del
     // hermano c.740; la lateral «pasear al gato» se RESUELVE en
-    // c.1043 — ancla de objeto extendida a (?:perr[oa]|gat[oa])s?
+    // c.1043 — ancla de objeto extendida a (?:perrit[oa]|gatit[oa]|perr[oa]|gat[oa])s?
     // en lockstep con la cláusula de negación y la plantilla de
     // título (keyword gato/gata preexistente c.744; cero keywords
     // nuevas). «sacar al gato» (piso hermano c.740) sigue FUERA —
@@ -266,7 +266,7 @@ object ContextIntentEngine {
     // `\b` final: "perrito(s)" (diminutivo) no casa; guard de negación
     // explícito heredado de la familia (?<!no ).
     private val HOUSEHOLD_WALK_DOG_FLOOR =
-        Regex("""\b(?<!no )pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]|gat[oa])s?\b""")
+        Regex("""\b(?<!no )pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)(?:perrit[oa]|gatit[oa]|perr[oa]|gat[oa])s?\b""")
     // Piso faena doméstica "pasar la aspiradora" (c.742, forma 5/7 de la
     // CUARTA clase cotidiana — sonda `FourthClassChoreProbe.kt` c.734;
     // renumerada c.740→c.742 por colisión de cycle-ID con la mascota):
@@ -3140,7 +3140,7 @@ object ContextIntentEngine {
         // (cinturón y tirantes, precedente c.740/c.748). Alternancia de
         // artículo directo c.756 en lockstep con [HOUSEHOLD_WALK_DOG_FLOOR].
         if (kind == ContextIntentKind.HOUSEHOLD &&
-            Regex("""\bno\s+pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]|gat[oa])s?\b""").containsMatchIn(lower)
+            Regex("""\bno\s+pasear\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)(?:perrit[oa]|gatit[oa]|perr[oa]|gat[oa])s?\b""").containsMatchIn(lower)
         ) return true
         // "podar el jardín" (HOUSEHOLD, piso acotado c.748) es imperativo
         // multi-palabra: la keyword-verbo "podar" (lockstep c.748) + la
@@ -4315,7 +4315,7 @@ object ContextIntentEngine {
                 // del "sacar al perro" de arriba (alineado con
                 // [HOUSEHOLD_WALK_DOG_FLOOR]).
                 val matchPasearPerro = Regex(
-                    """\b(pasear) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) (?:perr[oa]|gat[oa])s?.*)""",
+                    """\b(pasear) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) (?:perrit[oa]|gatit[oa]|perr[oa]|gat[oa])s?.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchPasearPerro != null) {

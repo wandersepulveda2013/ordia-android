@@ -22,7 +22,8 @@ import org.junit.Test
  * plantilla de título de [extractTitle]. CERO keywords nuevas.
  * Anti-overreach intacto: negación inmediata, envolvente c.1009, pasado,
  * hedge — todos NULL. Acotado (UNA por ciclo): la vía «pasear al
- * perrito» sigue FUERA (pin nuevo, lateral documentada).
+ * perrito» quedó RESUELTA en c.1057 (re-pin legítimo a «salir a
+ * pasear» bivalente).
  */
 class ContextIntentEngineSacarPerritoDiminutivoDeltaTest {
 
@@ -138,7 +139,10 @@ class ContextIntentEngineSacarPerritoDiminutivoDeltaTest {
     // ---- Pin FUERA byte-idéntico (lateral documentada, UNA por ciclo) ----
 
     @Test
-    fun `pasear al perrito fuera lateral documentada via pasear c1018`() {
-        assertNull(analyze("pasear al perrito mañana"))
+    fun `salir a pasear bivalente fuera pin estructural`() {
+        // c.1057 resolvió la vía pasear diminutiva «pasear al perrito»
+        // (pin anterior); el nuevo FUERA es «pasear» bivalente sin objeto
+        // mascota (salir a pasear uno mismo — pin estructural histórico).
+        assertNull(analyze("salir a pasear mañana"))
     }
 }
