@@ -17979,3 +17979,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca `main`.
 - COLISIÓN cycle-ID (mismo id c.1095, unidades DISJUNTAS — precedente c.1093): durante mi TDD, SU empujó c.1094 parser una-coma `5fa9e12` y su marcador EN CURSO c.1095 parser «ahora/ahorita» DOS comas `39af43f` (región parser — NO TOCAR). Integración NO-destructiva: `git stash -u` → `pull --ff-only` → `stash pop`; conflictos SOLO en docs (BACKLOG/CURRENT_STATE) resueltos UNIÓN conservando AMBOS lados; código DISJUNTO (assistant vs parser, auto-merge limpio). Mi «c.1094 ABIERTA» inicial quedó obsoleta (SU la cerró) — descartada en la resolución (product-first, precedente c.1074).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo): (B) mayúsculas con tilde en el verbo-family ((?i) Java ASCII-only — sistémico, evaluar alcance antes de tocar); parser — «ya/ahora/ahorita» con UNA sola coma (c.1094, medida POST c.1077 disponible); colas relativas en títulos; familia «contar» c.950.
+
+---
+
+## Run c.1094-b (2026-08-25) — COLISIÓN-DOCUMENTADA + verificación independiente del fix hermano
+
+- **HEAD inicial**: `5132fae` (mi marcador c.1094 EN CURSO) → tras fetch: remoto avanzó a `39af43f` (SU c.1093 `6e127b6` + hermano c.1094 `5fa9e12` + marcador SU c.1095 EN CURSO).
+- **Problema**: mi ciclo c.1094 (lateral UNA sola coma, registrada c.1077 / re-pineada FUERA c.1083) resolvió el MISMO problema en paralelo al hermano — fixes funcionalmente equivalentes (guard hermano yaSingleComma... + 4ª alternativa de apertura en `yaPreteriteNarrativeSuffix` + erasers bajo MISMO flag; 15 tests míos vs 16 suyos; 4 re-pines en ambos; suite OK 8451 = 8436 + 15 en mi base vs 8452 suya).
+- **Resolución anti-colisión**: precedente product-first-pushed c.1074/c.1092 — mi duplicado local NO-publicado descartado (respaldo rama local `backup-c1094-local-duplicate`, sin push; integración vía `reset --soft` + checkout de archivos, NUNCA force/reset --hard). CERO cambios de producto desde este lado.
+- **Verificación INDEPENDIENTE del fix hermano** sobre `39af43f`: suite UNIÓN **OK (8468 = 8452 + 16 [SU c.1093] — aritmética exacta)** vía `tools/run_domain_tests.sh`; smoke 25/25; sonda efímera 9/9 — 4 narrativas una-sola-coma (ya/ahora/ahorita × apertura/cierre) → due=null + título íntegro; presente → 09:00; «siguiente» → mañana 09:00; «de hoy» → hoy 09:00; presente-cierre → 09:00; dos-comas «ahora» FUERA byte-idéntica (región EN CURSO SU c.1095, NO tocada).
+- **Tests**: `run_domain_tests.sh` OK (8468); `run_domain_checks.sh` 25/25. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Commits**: este run sólo documenta (CURRENT_STATE COLISIÓN + RUN_LOG). HEAD final: ver `git log`.
+- **Próxima prioridad**: no colisionar con SU c.1095 («ahora/ahorita» DOS comas, EN CURSO). Laterales ABIERTAS: colas relativas en títulos, familia «contar» c.950, sujeto nominal «el paquete llegó el lunes» (pin c.1041).
