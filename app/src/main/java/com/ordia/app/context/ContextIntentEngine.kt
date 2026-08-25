@@ -2271,6 +2271,32 @@ object ContextIntentEngine {
             // «cargar el carro» y la (c) «inflar las ruedas de la bici»
             // quedan como candidatas propias.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:invierno|verano)\b""").containsMatchIn(lower)
+            // c.1097: «inflar las ruedas de la bici/bicicleta/moto» —
+            // candidata (c) de la clase DUODÉCIMA (vida con vehículo),
+            // medida NULL por la sonda persistida
+            // `tools/probe/TwelfthClassVehicleProbe.kt` (c.1079, C12) y
+            // re-medida PRE en este ciclo con sonda efímera propia
+            // (N1/N2/N4 NULL, guards 4/4 NULL, regresiones 4/4 HIT,
+            // HEAD 92e6a2b): inflar las ruedas es EL mantenimiento
+            // básico de la bici/moto (coste real de olvido: rueda baja,
+            // llanta dañada, caída) y caía a NULL — «inflar» no tenía
+            // piso (0.12 keyword-OBJETO «ruedas» c.1082 + bono temporal
+            // 0.1 = 0.22 < 0.45; con «tengo que…» ya capturaba por los
+            // 0.45 del ancla). El piso se ACOTA al objeto
+            // `ruedas? de (la )?(bicicleta|bici|moto)` — el vehículo de
+            // dos ruedas es lo que hace inequívoco el mantenimiento;
+            // «inflar las ruedas del coche» queda FUERA como candidata
+            // propia (una forma por ciclo, pin en el test). Keyword-
+            // OBJETO «ruedas» YA en su sitio desde c.1082 (cero cambios
+            // en ContextIntent.kt). Kind decidido: TASK, hermano de
+            // «poner las ruedas de invierno» c.1082 (mismo deber de
+            // mantenimiento del vehículo). Anti-overreach: `(?<!no )`
+            // bloquea la negada directa y la guardia de plan/volición
+            // c.1009 las compuestas («no voy a inflar…»); el pasado
+            // «inflé…», la duda «quizá infle…», el decoy financiero
+            // «inflar el saldo…» y el otro objeto «inflar globos…» no
+            // casan; la keyword sola queda bajo el umbral.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )inflar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b""").containsMatchIn(lower)
             // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
             // c.750, candidato cívico "votar"): "votar <complemento/día>".
             // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
@@ -4112,6 +4138,13 @@ object ContextIntentEngine {
                 // preserva las palabras del usuario.
                 val matchPonerRuedas = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:invierno|verano)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPonerRuedas != null) return "Poner ${matchPonerRuedas.groupValues[2]}"
+                // c.1097: misma plantilla para "inflar" ACOTADA al objeto
+                // «ruedas de la bici/bicicleta/moto» (lockstep con el
+                // piso propio de este ciclo — la keyword-OBJETO «ruedas»
+                // ya estaba desde c.1082; el match arranca en el verbo
+                // y preserva las palabras del usuario).
+                val matchInflarRuedas = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(inflar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchInflarRuedas != null) return "Inflar ${matchInflarRuedas.groupValues[2]}"
                 // c.752: misma plantilla para "votar" (ancla/guard idénticos
                 // al piso; verbo unívoco, complemento libre).
                 val matchVotar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(votar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
