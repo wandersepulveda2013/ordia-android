@@ -32,7 +32,12 @@ object UniversalCaptureEngine {
     // NaturalTaskParser.bareReminderVerbPattern (que también limpia el título
     // y aplica el offset de respaldo con fecha). El pretérito "se me olvidó"
     // (contenido: un olvido pasado confesado) NO casa y no infiere aviso.
-    private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+(?:se\s+(?:me|te|le|les|nos|os)\s+)?olvide|no\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?)|no\s+vaya\s+a\s+ser\s+que\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?))\b""")
+    // «(?iu)» y no «(?i)»: el inline flag (?i) de la JVM es ASCII-only y las
+    // señales acentuadas no casaban en mayúsculas («RECUÉRDAME…» se degradaba
+    // a tarea genérica — evitar-olvidos P1, c.1101; mismo bug sistémico ya
+    // resuelto en AssistantEngine c.1096). UNICODE_CASE añade fold Unicode
+    // manteniendo la semántica ASCII idéntica (\b intacto, sin expansión).
+    private val reminderSignal = Regex("""(?iu)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+(?:se\s+(?:me|te|le|les|nos|os)\s+)?olvide|no\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?)|no\s+vaya\s+a\s+ser\s+que\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?))\b""")
     // Verbos de acción cotidiana: sin fecha ni "tengo que/debo", una captura
     // como "hacer ejercicio" o "revisar contrato" es claramente una tarea, pero
     // antes caía a INBOX por no figurar aquí y exigía reclasificar a mano. Se
@@ -42,7 +47,9 @@ object UniversalCaptureEngine {
     // verbos vagos/gerenciales ("organizar", "gestionar", "mirar"...) que aparecen
     // en texto NO accionable ("una idea que no sé organizar") y falsearían TASK.
     // Límites \b evitan coincidencia por prefijo (la captura nunca muta el texto).
-    private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|mandar|comprar|pagar|terminar|entregar|responder|reuni[oó]n|hacer|revisar|preparar|limpiar|arreglar|avisar|pedir|reservar|leer|escribir|estudiar|cocinar|visitar|ir\s+(?:a|al))\b""")
+    // «(?iu)»: mismo fold Unicode que reminderSignal — «REUNIÓN…» en caps caía
+    // a INBOX por no casar «reuni[oó]n» (c.1101).
+    private val taskSignal = Regex("""(?iu)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|mandar|comprar|pagar|terminar|entregar|responder|reuni[oó]n|hacer|revisar|preparar|limpiar|arreglar|avisar|pedir|reservar|leer|escribir|estudiar|cocinar|visitar|ir\s+(?:a|al))\b""")
     private val urlOnly = Regex("""(?i)^https?://\S+$""")
     private val listPrefix = Regex("""^\s*(?:[-*•]|\d+[.)]|\[\s?])\s+""")
 
