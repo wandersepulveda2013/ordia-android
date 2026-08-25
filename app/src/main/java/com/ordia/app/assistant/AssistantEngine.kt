@@ -1521,15 +1521,24 @@ object AssistantEngine {
     private val COMPLETE_PAST_PREFIX = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?(?:\\s|:|$)")
     private val COMPLETE_PAST_WITH_CONTENT = Regex("(?i)^(?:ya\\s+)?(?:complet[ée]|termin[ée]|acab[ée])(?:\\s+de)?\\s*:?\\s*([^:].*)$")
 
+    // c.1089: imperativos inequívocos de cierre «termina/finaliza/tacha/
+    // completa <tarea>» — hermanos de «marca como hecha…» (c.997). La
+    // bivalente «haz la tarea» queda FUERA por diseño. Pelada («termina la
+    // tarea») y sin coincidencia → guía honesta SIN acción.
+    private val MARK_DONE_IMPL_PREFIX = Regex("(?i)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])(?:\\s|:|$)")
+    private val MARK_DONE_IMPL_WITH_CONTENT = Regex("(?i)^(?:termin[ao]|finaliz[ao]|tach[ao]|complet[ao])\\s*:?\\s*([^:].*)$")
+
     private fun markDoneTokens(s: String): Set<String> =
         s.foldForSearch().split(' ').filter { it.isNotBlank() && it !in MARK_DONE_STOPWORDS }.toSet()
 
     private fun markDoneCapture(clean: String, tasks: List<TaskEntity>): AssistantAnswer? {
         val trimmed = clean.trim()
         val past = COMPLETE_PAST_PREFIX.containsMatchIn(trimmed)
-        if (!MARK_DONE_PREFIX.containsMatchIn(trimmed) && !past) return null
+        val imperative = MARK_DONE_IMPL_PREFIX.containsMatchIn(trimmed)
+        if (!MARK_DONE_PREFIX.containsMatchIn(trimmed) && !past && !imperative) return null
         val content = (MARK_DONE_WITH_CONTENT.matchEntire(trimmed)
-            ?: COMPLETE_PAST_WITH_CONTENT.matchEntire(trimmed))?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
+            ?: COMPLETE_PAST_WITH_CONTENT.matchEntire(trimmed)
+            ?: MARK_DONE_IMPL_WITH_CONTENT.matchEntire(trimmed))?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
         if (content.isNullOrEmpty()) {
             // NUNCA completar a ciegas: guía honesta SIN acción.
             return AssistantAnswer(if (past) "¿Qué tarea completaste? Escríbela y la marco como completada."
@@ -1538,8 +1547,9 @@ object AssistantEngine {
         if (content.lowercase().startsWith("no ")) return null
         val wanted = markDoneTokens(content)
         if (wanted.isEmpty()) {
-            // c.1000: contenido de stopwords puros («completé la tarea») —
-            // guía honesta SIN acción (NUNCA completar a ciegas).
+            // c.1000: contenido de stopwords puros («completé la tarea»,
+            // «termina la tarea») — guía honesta SIN acción (NUNCA completar
+            // a ciegas).
             return AssistantAnswer(if (past) "¿Qué tarea completaste? Escríbela y la marco como completada."
                 else "¿Qué tarea marco como completada? Escríbela tras «marca como hecha …» y la preparo.")
         }

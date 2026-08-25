@@ -1,3 +1,15 @@
+# ✅ c.1089 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `e62c8f5` publicado al inicio de este run) — lateral ABIERTA (1) de la auditoría c.1085 RESUELTA: acción marca-hecha «termina/finaliza/tacha/completa <tarea>» → COMPLETE_TASK
+
+- HEAD inicial: `cc36a67` (en sync tras `git fetch` al abrir; marcador EN CURSO `e62c8f5` docs-only). HEAD final: el de este push.
+- Cambios: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` — `MARK_DONE_IMPL_PREFIX` + `MARK_DONE_IMPL_WITH_CONTENT` wired en `markDoneCapture` (hermana de c.997/c.998). A `app/src/test/java/com/ordia/app/assistant/AssistantEngineTerminaFinalizaTachaCompletaTest.kt` (10 tests). A `tools/probe/AssistantTerminaFinalizaTachaCompletaProbe.kt` (sonda PERSISTIDA, 4 capturas + 6 guards). Docs: BACKLOG + CURRENT_STATE + RUN_LOG.
+- Bugs: P1 — medido PRE con sonda efímera /tmp/probe1089/Probe.kt: las 4 candidatas («termina/finaliza/tacha/completa <tarea>») caían al MENÚ genérico (mentira por omisión). «haz la tarea» (bivalente entre hacer y marcar) evaluada y dejada FUERA por diseño — honestísima.
+- Features: ninguna (routing honesto; determinista regex, CERO random, CERO IA falsa, cero UI).
+- Tests: tools/run_domain_tests.sh — RED exacto EXACTAMENTE 7 fallos (4 capturas + 3 guías: pelada/sin-coincidencia/completadas-NUNCA-ofrecidas-incidieron-como-captura) → GREEN OK (8379 = 8369 + 10, aritmética exacta), 1 iteración, cero ajustes. tools/run_domain_checks.sh 25/25. Sonda persistida POST 10/10.
+- Anti-colisión: marcador docs-only `e62c8f5`; integración NO-destructiva: ninguna necesaria. Nunca force, nunca `reset --hard`, nunca `main`.
+- Commits: marcador `e62c8f5` + fix: el de este push.
+- Laterales ABIERTAS restantes de la auditoría c.1085 (UNA por ciclo): sólo (4) declaración pasada «olvidé algo» al menú (candidata-agenda recapitulativa — línea a tratar la «agenda», no tarea suelta).
+- Próxima prioridad: lateral (4) «olvidé algo» (evaluar: recapitulación honesta de hoy/mañana vs agregar una agenda; medir primero).
+
 # ✅ c.1088 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `18008e6` publicado al inicio del run anterior; fix TDD en este run) — lateral ABIERTA (3) de la auditoría c.1085 RESUELTA: «recuérdamelo: <contenido>» → CREATE_TASK
 
 - HEAD inicial: `18008e6` (en sync tras `git fetch` + `pull --ff-only` al abrir este run; gradle/lint/assemble NO VERIFICADO — sin SDK, toolchain heredada /tmp, `JAVA_OPTS=-Xmx6g`). HEAD final: el de este push.
