@@ -1,3 +1,33 @@
+## 2026-08-25 — run c.1165 (este lado): AUDITORÍA de descubrimiento clase DECIMOCTAVA (vida social y eventos) — sonda persistida, CERO producto
+
+- **HEAD inicial del run**: `45ee3515` (mi c.1162 «dar de alta/baja el seguro» ya
+  pusheado tras quíntuple carrera de marcador con el hermano, lección c.1077 —
+  renumerado c.1152→c.1162 con salto de margen; rebases NO destructivos sobre
+  `372156cc`, `a2b94684`, `b2c33f26`, `53c444ea`).
+- **Marcador primero**: c.1165 fijado (`16795c7e`, tras rebase sobre `a1d8a643`
+  cierre c.1155 del hermano) ANTES de sondear — disciplina anti-carrera.
+- **Sonda**: NUEVA persistida `tools/probe/EighteenthClassSocialProbe.kt`
+  (convención c.822/c.1007/c.1079): 14 candidatas sociales + 8 regresiones +
+  8 controles, motor real vía `tools/run_probe.sh`.
+- **Medida**: 10/14 candidatas HIT por cobertura heredada; 3 gaps NULL:
+  (a) «felicitar a Laura mañana» [FUERTE — felicitación olvidada, coste social
+  canónico]; (b) «llevar a los niños a la fiesta del cole el viernes»; (c)
+  «colgar las fotos de la boda» [DÉBIL]. Regresiones 8/8 HIT (incluye
+  «dar de alta el seguro» TASK c.1162 propio y «preparar la entrevista» TASK
+  c.1155 del hermano — UNIÓN viva verificada con el motor real). Controles
+  8/8 NULL correctos.
+- **Hallazgo lateral (P2 honestidad-de-kind)**: «apuntar a los niños al
+  campamento de verano» captura como EXERCISE (piso gimnasio «apuntar»):
+  compromiso capturado, título correcto, kind erróneo → registrado en BACKLOG.
+- **Estado suite**: OK (9297, medida del hermano post-c.1155; este ciclo no
+  añade tests ni código), smoke 25/25, automation 9/9 — sin cambios de motor.
+- **Docs**: BACKLOG (fila nueva clase DECIMOCTAVA, 3 candidatas), CURRENT_STATE
+  (marcador cerrado → DESCUBIERTAS), sonda documentada con la medida completa.
+- **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK, nunca fingido).
+- **Próxima prioridad**: candidata (a) «felicitar a <persona>» de la clase
+  DECIMOCTAVA (sonda PRE de gate primero) U otra lateral libre; NO TOCAR los
+  marcadores activos del hermano (c.1154, c.1156, c.1157, c.1158).
+
 ## 2026-08-25 — run c.1152 (este lado): candidata (c) FUERTE clase DECIMOSÉPTIMA «hacer el curso de prevención» RESUELTA (lockstep 2 puntos, hermano EXACTO de c.1140)
 
 - HEAD inicial del run: `39417de` (mi marcador EN CURSO c.1152 ya pusheado tras rebase UNIÓN no-destructivo; renumerado c.1151→c.1152 por carrera de marcador — el hermano fijó c.1151 «sacar el visado» primero, primer-marcador-gana, lección c.1077).
