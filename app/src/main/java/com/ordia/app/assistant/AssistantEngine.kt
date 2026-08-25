@@ -1506,7 +1506,11 @@ object AssistantEngine {
         Regex("(?i)^se\\s+olvid[oó](?:\\s+de)?\\s*:?\\s*([^:].*)$")
     // Huecas: «olvidé algo/nada» no basta (NUNCA tarea basura a ciegas).
     // c.1093: «de» — conector huérfano («olvide de» capturaba «de»).
-    private val OLVIDE_BARE_WORDS = setOf("algo", "nada", "de")
+    // c.1095: «que» se añade a las palabras huérfanas — «olvidé que» pelada
+    // cae a la guía honesta, NUNCA tarea basura «que» (doctrina c.969,
+    // hermana de la «:» pelada c.992). El despojo del título lo hace
+    // LEADING_QUE (val c.993, reutilizado en olvideCapture).
+    private val OLVIDE_BARE_WORDS = setOf("algo", "nada", "de", "que")
 
     // c.1093: auditoría del verbo-family — contenido PURAMENTE temporal
     // («recuérdamelo a las 5», «…mañana por la mañana», «olvidé mañana»)
@@ -1528,9 +1532,20 @@ object AssistantEngine {
         if (!seForm && !OLVIDE_PAST_PREFIX.containsMatchIn(trimmed)) return null
         val rawContent = (if (seForm) OLVIDE_SE_WITH_CONTENT.matchEntire(trimmed)
         else OLVIDE_PAST_WITH_CONTENT.matchEntire(trimmed))?.groupValues?.get(1)
-        val content = rawContent?.trim()?.trimEnd('.', '!', '?')
-        // c.1093: hueca incluye conector huérfano y puramente temporal.
-        if (content == null || content.foldForSearch().split(' ').all { it in OLVIDE_BARE_WORDS } || temporalOnlyContent(content)) {
+        // c.1095: «que» subordinado — espejo UN punto de c.993 (val reutilizado
+        // arriba). PRE medido con sonda efímera /tmp/probe1095: «olvidé que»
+        // creaba tarea basura «que» (c.969) y «olvidé que llamar a mamá»
+        // capturaba con título residual «que llamar a mamá» (las hermanas
+        // remindMe c.993 y noOlvides c.1087 ya lo despojan). Bonus: la
+        // negación «olvidé que no llamar…» ahora SÍ llega a la guarda «no ».
+        val content = rawContent?.let { LEADING_QUE.replace(it, "") }?.trim()?.trimEnd('.', '!', '?')
+        // c.1093/c.1095: hueca incluye conector huérfano, el propio «que»
+        // pelado («olvidé que») y puramente temporal.
+        // c.1095: `isEmpty()` — la guía estrella espelda de «que» («olvidé
+        // que») despoja TODO el crudo y deja contenido VACÍO (debug sonda:
+        // CREATE_TASK con payload vacío). Antes de BARE_WORDS («que» ya fue
+        // despojado) y de LEADING_QUE.
+        if (content.isNullOrEmpty() || content.foldForSearch().split(' ').all { it in OLVIDE_BARE_WORDS } || temporalOnlyContent(content)) {
             val topic = if (seForm) "¿Qué se olvidó?" else "¿Qué se te olvidó?"
             return AssistantAnswer("$topic Escríbelo y lo preparo como tarea pendiente.")
         }
