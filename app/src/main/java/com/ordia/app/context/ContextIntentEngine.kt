@@ -3693,6 +3693,7 @@ object ContextIntentEngine {
             m.range.first > match.range.last &&
                 lower.substring(match.range.last + 1, m.range.first).none { it in ".!?,;:" }
         }
+    }
 
     /**
      * Enunciado declarativo ANCLADO al inicio cuyo sujeto es una actividad
