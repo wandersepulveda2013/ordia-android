@@ -1,3 +1,13 @@
+## 2026-08-25 — run c.1111 (este lado, renumerado c.1110→c.1111 por carrera de marcador con el hermano 2d1392be — primer-marcador-gana): colisión duplicada c.1105 resuelta NO-destructiva + complemento (pin camión)
+
+- HEAD inicial (sync): `1ea434e9` (tras push rechazado de mi fix propio c.1105 `2e8105ff`: el hermano había pusheado primero `644b2c55` — MISMA unidad «inflar las ruedas del coche», rama estrictamente más amplia `(?:del|de mi/tu/su) (coche|carro|auto)` + archivo de tests propio de 15 tests).
+- Resolución (precedente c.1092/c.1094/c.1096/c.1102, primer-push-gana): `git rebase --abort` + adopción del HEAD remoto; mi commit duplicado descartado sin tocar historial remoto (queda en reflog local). Marcadores y líneas ajenos intactos.
+- Verificación INDEPENDIENTE de la unión adoptada: suite del dominio **OK (8634 tests)** + smoke dominio 25/25 + smoke automation 9/9 en mi entorno.
+- Complemento real (lo único que mi versión tenía ausente en la del hermano): pin EJECUTABLE de alcance «inflar las ruedas del camión» sigue FUERA (`pin camion sigue fuera` en ContextIntentEngineInflarRuedasCocheFloorTest; assertNull — girar a captura si un ciclo futuro la adopta). Suite final **OK (8635 = 8634 + 1)**; smokes 25/25 y 9/9.
+- Candidata restante (UNA por ciclo, pin en BACKLOG): (e) «inflar las ruedas del camión». Cero código de producción tocado en este ciclo (solo test pin + docs).
+- Determinista, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: candidatas P1 del BACKLOG (lateral c.1098 recurrencias de parte del día; pediatra si el hermano c.1106 la abandona; clase DECIMOTERCERA restantes según sonda c.1102).
+
 ## 2026-08-25 — run c.1102-complemento (este lado, colisión con el hermano sobre la MISMA unidad resuelta NO-destructiva; complemento persistido)
 
 - HEAD inicial: `22741a2` (mi marcador EN CURSO c.1102 pushed). HEAD final: `dece72de` + commit propio del complemento. (Verificación JVM re-medida sobre `dece72de`: c.1103 parser FIXED +16 tests es región DISJUNTA; sonda byte-idéntica en las 5 bases.)
