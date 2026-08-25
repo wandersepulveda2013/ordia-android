@@ -116,7 +116,13 @@ object ContextIntentEngine {
     // la negación y al guard de envolvente (lección c.648). Lockstep
     // c.616/c.751: keyword «campamento» en ContextIntent.EXERCISE (alimenta
     // TRIGGER_WORDS; sin ella la notificación ni llega al análisis).
-    private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas|campamento"
+    // c.1146: «extraescolar(es)?» (lateral (b-bis) de c.1135) entra en la
+    // fuente única — fluye al piso de posición libre, a la negación y al
+    // guard de envolvente (lección c.648). Lockstep: keyword en
+    // ContextIntent.EXERCISE + extensión del guard declarativo c.1145
+    // (sin ella «las extraescolares empiezan en septiembre» sería FP nuevo).
+    private val EXERCISE_VERBS =
+        "correr|entrenar|nataci[oó]n|pesas|campamento|extraescolar(es)?"
     // c.831: "repostar" (P1 olvido silencioso; monosémico — proveer de
     // combustible —, así posición libre como c.727 "tender"/c.828 "vaciar",
     // sin acotamiento al objeto; a diferencia del bivalente "echar" c.829).
@@ -3756,7 +3762,11 @@ object ContextIntentEngine {
      * P1 que el pretérito+MEETING c.1138, pero por bono, no por piso).
      */
     private val DECLARATIVE_ACTIVITY_START_PATTERN = Regex(
-        """^(?:¿\s*)?(?:(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus)\s+)?(?:[a-záéíóúñü]+\s+){0,3}?(?:campamento|nataci[oó]n|pesas)\b(?:\s+(?:de|del|al|a)\s+[a-záéíóúñü]+(?:\s+[a-záéíóúñü]+){0,2})?\s+(?:empieza|empiezan|comienza|comienzan)\b"""
+        // c.1146: «extraescolar(es)?» añadido a la lista (lockstep con su
+        // entrada en EXERCISE_VERBS — sin esta extensión «las extraescolares
+        // empiezan en septiembre» sería un falso positivo NUEVO creado por
+        // el propio c.1146; pineado en ContextIntentEngineExtraescolaresFloorTest).
+        """^(?:¿\s*)?(?:(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus)\s+)?(?:[a-záéíóúñü]+\s+){0,3}?(?:campamento|nataci[oó]n|pesas|extraescolar(es)?)\b(?:\s+(?:de|del|al|a)\s+[a-záéíóúñü]+(?:\s+[a-záéíóúñü]+){0,2})?\s+(?:empieza|empiezan|comienza|comienzan)\b"""
     )
 
     /**

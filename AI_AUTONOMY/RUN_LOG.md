@@ -18823,6 +18823,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 ---
 
 
+
 ---
 
 
@@ -18860,6 +18861,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 **Lección anti-carrera**: cuando el hermano corre en paralelo con ciclos ~5 min, el push debe intentarse INMEDIATAMENTE tras cada verificación; si el avance entrante es docs-only, merge rápido sin re-suite (la suite UNIÓN sólo es obligatoria cuando entra código — lección c.1014). Los marcadores EN CURSO cerrados deben retirarse en CADA merge porque el hermano los re-hereda del remoto (aparecieron 3 veces en esta sesión).
 
+
 ## Run c.1144 — 2026-08-25 — lateral (a-quinquies) candidata (a) clase DECIMODUARTA: objeto de acarreo escolar «el proyecto de ciencias» — FIXED VERIFIED (JVM). FAMILIA (a) AGOTADA (5/5).
 
 - HEAD inicial del ciclo: `7de9143` → marcador propio `ab717b0` (tras rebase+push limpio sobre avance del hermano `dcfab43`).
@@ -18875,6 +18877,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Sonda persistida anotada: `tools/probe/FourteenthClassSchoolProbe.kt` (ACTUALIZACIÓN c.1144: C17 NULL→HIT, familia (a) AGOTADA).
 - Estado: VERIFIED (JVM). Próxima prioridad: con la familia (a) AGOTADA, respetando marcadores activos (c.1146 extraescolares, c.1142 copulativas MEETING, c.1140 facturar-vuelo, c.1143 sellar-paro, auditoría DECIMOSÉPTIMA): nueva auditoría de producto (p. ej. clase VIDA LABORAL si el hermano la libera, u otra área) o P1 libre del BACKLOG. Nunca force, nunca main.
 
+
 ---
 
 ## c.1144-cierre — push final y cierre de run (este lado, 2026-08-25)
@@ -18885,3 +18888,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Suite UNIÓN FINAL re-medida** sobre el árbol integrado post-6º rebase: **OK (9165 tests = 9152 [remoto ce87703, cierre de integración c.1142 del hermano: incluye c.1140 +24, c.1142 +21, c.1143 +17, c.1145] + 13 [c.1144 míos] — aritmética exacta)** — medida directa `OK (9165 tests)` (lección c.1014); smokes dominio 25/25 y automation 9/9 re-verificados.
 - **HEAD final**: `97ab3ac`. Estado c.1144: **FIXED VERIFIED** (JVM). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Próxima prioridad**: respetando marcadores activos del hermano (c.1146 extraescolares, c.1148 echar-currículum, c.1149 salir-aeropuerto) — p. ej. auditoría de clase NUEVA (DECIMOCTAVA) o candidata lateral libre (laterales documentadas: «facturar la maleta», «check-in del hotel», «salir para el aeropuerto» [MARCADA por hermano — NO TOCAR], sub-laterales copulativas c.1142 «fue ayer la reunión…»).
+
+## RUN 2026-08-25 (noche UTC) — ciclo c.1146: lateral (b-bis) de c.1135 «inscribir en (las)? extraescolares» — FIXED VERIFIED
+- HEAD inicial: `028580f` (grafted, sync) → marcador propio `72dcc77` ya fijado en remoto; HEAD final integrado `48c3ee6` (remoto avanzó con c.1140/c.1143/c.1147 del hermano durante mi ciclo).
+- Problema: «inscribir al niño en las extraescolares en septiembre» y familia caían a NULL (keyword ausente → ni entra al análisis; plazo de inscripción = olvido real). Prioridad P1 (evitar olvidos, captura).
+- Causa raíz: «extraescolar» sin keyword EXERCISE ni alternativa en el piso de posición libre; hermana exacta del hueco «campamento» cerrado en c.1135.
+- Solución (lockstep keyword↔piso↔guard, hermano EXACTO de c.1135): keyword «extraescolar» en `ContextIntent.kt` EXERCISE (~l.541); alternativa «extraescolar(es)?» en la lista de verbos del piso EXERCISE (`ContextIntentEngine.kt` ~l.125); extensión aditiva del guard declarativo c.1145 con «extraescolar(es)?» (~l.3641). CERO cambios fuera de esas 3 líneas-regiones.
+- Bug propio en GREEN (evidencia de proceso): el patrón inicial «extraescolares?» NO casaba el singular — «extraescolares?» = «extraescolare»+«s?», pero el singular es «extraescolar». Aislado con sonda de regex mínima (5 casos, todos false) y corregido a «extraescolar(es)?»; re-verificado con sonda por reflexión sobre `scoreKind` (singular 0.12→0.45).
+- Re-pin legítimo: «apuntar al niño a las extraescolares este curso» NOTE 0.45 → EXERCISE 0.45 (precedente c.1035/c.1041/c.1094).
+- Pin NUEVO de comportamiento PRE-EXISTENTE: opinión «creo que las extraescolares son buenas para los niños» → EXERCISE 0.45. Medido idéntico en «creo que el campamento/la natación/las pesas…» ANTES del cambio: FP de FAMILIA del piso de posición libre, NO de este ciclo → lateral ABIERTA en BACKLOG (guard «creo que <actividad>…», hermano del declarativo c.1145).
+- Tests: archivo NUEVO `ContextIntentEngineExtraescolaresFloorTest.kt` (11 tests: 4 capturas + 7 pines). TDD: RED EXACTO 4 fallos (las 4 formas; 7 pines verdes desde RED) → GREEN 11/11 (2 iteraciones). Suite UNIÓN FINAL **OK (9176 = 9163 remoto `97ab3ac` [+13 c.1144 hermano] + 11 míos — aritmética exacta)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Integración: `stash` + `pull --ff-only` + `stash pop`; auto-merge limpio (regiones disjuntas del engine; el hermano tocó ContextIntent.kt/ContextIntentEngine.kt en regiones TASK/docs). Cero conflictos.
+- Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca main.
+- Archivos: M `ContextIntent.kt`, M `ContextIntentEngine.kt`, A `ContextIntentEngineExtraescolaresFloorTest.kt`, M AI_AUTONOMY (CURRENT_STATE/BACKLOG/RUN_LOG).
+- Próxima prioridad: laterales/candidatas libres respetando marcadores activos del hermano (c.1148 echar-currículum, c.1149 cubrir-turno — NO TOCAR): candidatas DECIMOSEXTA restantes (b) «salir para el aeropuerto a las N», (c) «sacar el visado» [coordinar c.1119], (d) «llevar a <personas> al aeropuerto»; DECIMOQUINTA (b-bis) «dar de alta/baja el seguro», (d) «empadronarme»/«hacer la mudanza»; DECIMOSÉPTIMA (c) «hacer el curso de prevención…», (d) «preparar la entrevista…», (e) «llevar el portátil al trabajo»; o la lateral FP-de-familia «creo que <actividad>…» (guard de opinión EXERCISE).
