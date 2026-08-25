@@ -73,6 +73,9 @@ import com.ordia.app.context.ContextIntentEngine
  *        CANDIDATA.
  *     g) «hacerse la ecografía el miércoles» — «ecografía» sin
  *        keyword; «hacerse» reflexivo sin piso. CANDIDATA.
+ *        RESUELTA c.1123 (objeto «ecograf[ií]as?» en el piso
+ *        reflexivo ERRAND_BLOOD_TEST_FLOOR, lockstep piso↔plantilla;
+ *        hermana EXACTA de (a) c.1115; ver C13 abajo).
  *   REGRESIONES — 8/8 HITs intactos (médico APPOINTMENT 0.85,
  *   medir la tensión TASK c.772, llamar CALL 0.67, leche SHOPPING
  *   0.47, luz PAYMENT, taller ERRAND c.684, sacar al perro HOUSEHOLD,
@@ -116,6 +119,9 @@ fun main() {
     show("C10", "recoger la medicación en la farmacia esta tarde")
     show("C11", "comprar los medicamentos mañana")
     show("C12", "ir a la limpieza dental la semana que viene")
+    // c.1123: C13 RESUELTA → ERRAND 0.45 «Hacerse la ecografía»,
+    // dueAt=true (objeto «ecograf[ií]as?» en ERRAND_BLOOD_TEST_FLOOR
+    // c.862, lockstep piso↔plantilla; enclítico reflexivo exigido).
     show("C13", "hacerse la ecografía el miércoles")
     show("C14", "pedir turno para el ginecólogo mañana")
 

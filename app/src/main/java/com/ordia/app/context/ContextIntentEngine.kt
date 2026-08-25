@@ -780,7 +780,7 @@ object ContextIntentEngine {
     // TASK «hacer» por subcadena (hermana de c.860/c.862). Sin cláusula
     // dedicada en [imperativeIsNegated] (aritmética c.859/c.860/c.862).
     private val ERRAND_BLOOD_TEST_FLOOR =
-        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?)\b""")
+        Regex("""\b(?<!no )hacer(?:me|te|se|nos)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?|ecograf[ií]as?)\b""")
             // c.881: objeto «tatuaje» en la familia «hacerse» (lateral medida
             // NULL c.862, hermana de análisis/prueba-de-sangre; gestión
             // personal acotada al objeto, anti-overreach).
@@ -803,6 +803,14 @@ object ContextIntentEngine {
             // 8/8 regresiones HIT). Con/sin tilde (anal[ií]); el enclítico
             // reflexivo sigue EXIGIDO (doctrina c.862: la forma desnuda
             // «hacer la analítica (de datos)» es bivalente y queda FUERA).
+            // c.1123: objeto «ecograf[ií]a(s)» — candidata (g) de la clase
+            // DECIMOTERCERA (sonda persistida c.1102, caso C13): «hacerse
+            // la ecografía» (embarazo/diagnóstico, desplazamiento y a veces
+            // preparación), medida NULL con sonda efímera
+            // /tmp/probe1123/Probe.kt (8/8 candidatas NULL, 7/7 pines NULL,
+            // envolvente «recuérdame…» TASK 0.54 intacta vía candado c.613,
+            // 6/6 regresiones HIT). Con/sin tilde (ecograf[ií]); enclítico
+            // reflexivo EXIGIDO (doctrina c.862).
     // Piso dativo enclítico de «llevar/devolver» (c.854 — candidata 5/6 de
     // la sonda persistida `SeventhClassErrandProbe.kt` c.845; sonda PRE
     // re-verificada sobre HEAD d403b59: «llevarle el almuerzo a papá
@@ -5077,9 +5085,10 @@ object ContextIntentEngine {
                 // de sangre» (c.876, lockstep con el piso), al tatuaje
                 // (c.881), a «prueba(s) de embarazo» (c.882) y a
                 // «prueba(s) de sonido» (c.889) y a «analítica(s)»
-                // (c.1115, lockstep con el piso).
+                // (c.1115, lockstep con el piso) y a «ecograf[ií]a(s)»
+                // (c.1123, lockstep con el piso).
                 val matchBloodTest = Regex(
-                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?)\b.*)""",
+                    """\b(?<!no )(hacer(?:me|te|se|nos))\s+((?:(?:el|la|los|las|un|una|unos|unas|mi|tu|su)\s+)?(?:an[aá]lisis|pruebas?\s+de\s+sangre|tatuajes?|pruebas?\s+de\s+embarazo|pruebas?\s+de\s+sonido|anal[ií]ticas?|ecograf[ií]as?)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBloodTest != null) {
