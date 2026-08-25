@@ -1513,6 +1513,12 @@ object ContextIntentEngine {
         // OPUESTO de un compromiso; se descarta TODA la clasificación.
         if (planWrapperIsNegated(lower)) return 0f
 
+        // Guard de AVERSIÓN (c.1107, hermano de [planWrapperIsNegated]
+        // c.1009): «odio ir al dentista», «detesto llamar al banco»,
+        // «aborrezco hacer la compra» expresan RECHAZO, no compromiso;
+        // se descarta TODA la clasificación.
+        if (aversionGoverns(lower)) return 0f
+
         // Guard de obligación/posesión PASADA que gobierna la acción (c.824
         // anti-overreach). Ver [PAST_OBLIGATION_PATTERN] para el alcance:
         // "tenía que ir al médico"/"tenía cita con el dentista"/"había que
@@ -3607,6 +3613,32 @@ object ContextIntentEngine {
             """\bsin\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b"""
         ).find(lower, m.range.last + 1) == null
     }
+
+    /**
+     * Guard de AVERSIÓN (c.1107, hermano de [planWrapperIsNegated] c.1009):
+     * un verbo de aversión de 1ª persona en presente de indicativo
+     * («odio», «detesto», «aborrezco») que gobierna un infinitivo expresa
+     * RECHAZO de la acción, no un compromiso. Medida PRE (sonda efímera
+     * `/tmp/probe1107/Probe.kt`, HEAD `85ddffa`): 12 capturas como falso
+     * compromiso firme («odio ir al dentista» APPOINTMENT 0.67, «detesto
+     * llamar al banco» CALL 0.57, «odio ir al dentista mañana» APPOINTMENT
+     * 0.77 con fecha, …) — la captura pasiva persistía exactamente lo
+     * contrario de la actitud del usuario (contamina What Now; misma clase
+     * P1/P2 de precisión que c.1009). Se descarta TODA la clasificación
+     * (todos los kinds), igual que c.681/c.1009.
+     * Anti-overreach: (1) «no odio …» no casa (lookbehind `(?<!no )`) —
+     * la negación de la aversión no es aversión (pin byte-idéntico del
+     * estado previo); (2) exige infinitivo inmediato — el sustantivo
+     * «odio los lunes» queda NULL estructural y «odio cuando suena la
+     * alarma» intacto; (3) acotado a presente de indicativo de 1ª
+     * persona — condicional «odiaría …» y 3ª persona «mi madre odia …»
+     * son laterales registradas (pin byte-idéntico), fuera de alcance.
+     * Determinista (regex), sin IA fingida.
+     */
+    private fun aversionGoverns(lower: String): Boolean =
+        Regex(
+            """\b(?<!no )(?:odio|detesto|aborrezco)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b"""
+        ).containsMatchIn(lower)
 
     /**
      * Detecta marcadores de duda/condicional (c.649). "quizá"/"a lo mejor"/"tal
