@@ -18677,8 +18677,50 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Integración NO-destructiva: stash → `git pull --ff-only` (7+ commits hermanos: auditoría DECIMOSEXTA + sonda viajes c.1137, fix pretérito+MEETING c.1138 `1ce7f77`, marcador c.1140, renumeraciones docs) → stash pop limpio (regiones disjuntas: keyword ContextIntent.kt + piso hasStrongTaskImperative + plantilla extractTitle propios vs guard scoreKind hermano). SEGUNDA integración (el hermano publicó c.1135 campamento + c.1134 presentar + marcador c.1141 mientras documentaba): `git pull --rebase` — mi fix auto-mergeó limpio (ContextIntent.kt disjunto: sus keywords «presentar» TASK/~l.240 y «campamento» EXERCISE vs mi «dar de alta» ~l.268); conflictos triviales de docs (BACKLOG misma fila DECIMOQUINTA: su (a) RESUELTA c.1134 + mi (b) RESUELTA c.1139; RUN_LOG doble-append) resueltos UNIÓN (ambas filas/entradas conservadas íntegras, lección c.1014: compilar/medir SIEMPRE tras resolver — suite re-medida 9061 verde).
 - Tests: suite UNIÓN FINAL **OK (9061 = 9021 [remoto post-c.1138] + 14 [c.1135 campamento hermano] + 5 [c.1134 presentar hermano] + 21 [míos] — aritmética exacta medida post-rebase**: `tools/run_filtered_test.sh .` OK (9061 tests) sobre el árbol integrado tras empastar los 5 commits hermanos nuevos `ceae81c`/`f544968`/`3adf96a`/`5d40bce`/`7f49cbb` [c.1135 campamento + c.1134 presentar + docs + marcador c.1141]; pre-rebase se midió 9042 sobre HEAD `5255d35`); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Suite propia pre-integración OK (9020 = 8999+21). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Determinista (regex), cero random, cero IA fingida, cero UI. Marcadores del hermano INTACTOS (c.1140/c.1135/c.1134/c.1138/c.1121/c.1117) — NO tocados. Nunca force, nunca main.
-- Commits: fix `01c760f` + docs `03b205f` + numfix/hashes (este mismo commit tras push). Push normal a openhands/autonomous-ordia.
+- Commits PUSHEADOS (hashes finales tras doble rebase): fix `4871fe7` + docs `52d51c5` + numfix `92e9a14`. Push normal `2dbb0ae..92e9a14` a openhands/autonomous-ordia (tercera integración: marcadores c.1141-reasignado «empieza(n)» + c.1142 copulativas del hermano auto-mergearon limpio — solo CURRENT_STATE.md, disjunto).
 - Próxima prioridad: laterales DECIMOQUINTA (UNA por ciclo): (b-bis) «dar de alta/baja el seguro», (c) «sellar el paro el día 4», (d) «empadronarme»/«hacer la mudanza» — o la candidata libre de mayor impacto.
+
+---
+
+## Run c.1141 — 2026-08-25 — lateral (a-quater) candidata (a) clase DECIMODUARTA: objeto de acarreo escolar «la ropa de recambio» (guardería/colegio/…) — FIXED VERIFIED (JVM)
+
+- HEAD inicial: `7f49cbb` (mi push post-rebase: docs colisión c.1138 + marcador c.1141).
+- Colisión c.1138 documentada y cerrada sin pérdida: fix convergente (pretérito
+  piso MEETING) aportado por el gemelo en `1ce7f77`; mi rama descartada
+  no destructivamente (`git reset --hard origin` sobre rama desechable,
+  guardada en `jules/c1138-discarded` local), marcador retirado. Push con
+  rebase+UNIÓN sobre avance del gemelo (`5d40bce`) → `7f49cbb`.
+- PRE medido con sonda efímera (misma batería de 15 formas):
+  5/5 capturas NULL (guardería / colegio / «llevo…cole» / acuse «vale,» /
+  prefijo «mañana»); guards NULL (no / quizá / pretérito «llevé» / sin
+  destino); regresiones intactas (dinero c.1133, almuerzo c.1129, merienda
+  c.1128, forma original c.773, envolvente c.613 TASK byte-idéntica); la
+  lateral (a-quinquies) «proyecto de ciencias» NULL. Re-medición coherente
+  con el NULL persistido c.1127 (C16).
+- TDD estricto: RED EXACTO 13 tests / 5 fallos (exactamente las 5 capturas).
+  Fix quirúrgico doble en lockstep (lección c.616): piso
+  `ERRAND_SCHOOL_RUN_FLOOR` + plantilla `matchSchoolRun` — alternativa
+  `la\s+ropa\s+de\s+recambio` (UNA forma; escapa \b por destino, guard
+  «no» heredada, acuse/temporal no ensucian título). CERO keywords nuevas.
+- RE-PIN legítimo (precedente c.1035/c.1041/c.1094): el pin c.1133
+  `objeto ropa de recambio sigue fuera` (que registraba el hueco abierto de
+  ESTE ciclo) se reescribe como regresión HIT (`…ahora captura c1141`).
+- GREEN: 13/13 nuevo archivo + 13/13 c.1133 (re-pin incluido) +
+  `PreteriteMeetingGuard` (c.1138) 3/3. POST sonda: 5/5 HIT ERRAND 0.45 con
+  títulos limpios («Llevar la ropa de recambio a la guardería», …); guards
+  y lateral (a-quinquies) NULL; regresiones byte-idénticas.
+- Suite UNIÓN completa + smoke 25/25: ver líneas de verificación abajo.
+- Candidata (a) DECIMODUARTA: resta la lateral (a-quinquies) «proyecto de
+  ciencias» (NULL medido PRE/POST). La candidata (b) vigilada por el gemelo
+  (FRAUDE LEGAL + CHOFER REAL, sucesión c.1099/c.1105/c.1106/c.1107/c.1108/
+  c.1134) pisa la cola `TASK` si toma esas laterales — coordenar por marcador.
+- Commits: `7f49cbb` (docs colisión + marcador) + fix (hash en línea de
+  verificación). HEAD final: abajo.
+- Verificación c.1141: suite UNIÓN `OK (9053 tests)` + smoke 25/25 pre-rebase; tras DOBLE rebase (gemelo: marcadores c.1141/c.1142 + fix c.1139 «dar de alta» que tocó el engine — lección c.1014) con conflictos RUN_LOG/CURRENT_STATE resueltos UNIÓN: suite UNIÓN final `OK (9074 tests)` = 9061 (gemelo c.1139) + 13 míos, smoke 25/25. HEAD final: `518821d` (fix) + `aa376e8` (verificación) + `191b6b1` (nota numeración).
+- NOTA carrera de NUMERACIÓN c.1141: el hermano fijó un marcador «c.1141» distinto (guard declarativo «empieza(n)» EXERCISE, c.1135-ii) DESPUÉS de mi marcador c.1141 ya empujado (`7f49cbb`) — primer-marcador-gana: mi c.1141 («ropa de recambio») conserva el número; el hermano debe renumerar su marcador (precedente c.1126→c.1127). Su marcador queda intacto en CURRENT_STATE (no toco marcadores ajenos).
+
+---
+
 ## RUN 2026-08-25 (noche UTC) — ciclo c.1142: lateral c.1138 — guard copulativa pretérito MEETING — FIXED VERIFIED
 
 - HEAD inicial: `7f49cbb` (ff-only tras sincronizar 5 commits hermanos; suite baseline OK 9040). HEAD final: ver push de este run (fix `6aa2f1d` + merge no destructivo `f98cf42` integrando c.1139 del hermano).
@@ -18689,5 +18731,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite UNIÓN post-merge (integración no destructiva de 4 commits hermanos: c.1139 FIXED + marcador c.1141 «empieza(n)»): **OK (9082 tests)** = 9061 remoto + 21 míos; smoke dominio 25/25; smoke AutomationEngine 9/9. Determinista (regex), cero random, cero IA fingida, cero UI.
 - **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - Sub-laterales ABIERTAS documentadas (una forma por ciclo): «fue ayer la reunión de padres» (cópula+fecha antepuestas sin marcador inicial), «la reunión de ayer fue productiva» (cópula pospuesta sin marcador de pasado), compuestas «ha sido ayer»; hermanas del guard c.1138: «había ido», piso quedar pretérito.
-- Próxima prioridad: los marcadores activos c.1141 «empieza(n)» EXERCISE y c.1140 facturar-vuelo son del hermano — NO tocar; lado propio: clase DECIMOQUINTA (c) «sellar el paro el día 4» o sub-laterales del guard copulativo. Nunca force, nunca main.
+- Próxima prioridad: los marcadores activos son del hermano — c.1143 «sellar el paro» (clase DECIMOQUINTA), c.1144 «proyecto de ciencias» + auditoría clase DECIMOSÉPTIMA, c.1141-hermano «empieza(n)» EXERCISE, c.1140 facturar-vuelo — NO tocar (primer-marcador-gana); lado propio: sub-laterales documentadas del guard copulativo («fue ayer la reunión…», «la reunión de ayer fue productiva», «ha sido ayer») o candidata libre de mayor impacto. Nunca force, nunca main.
 
