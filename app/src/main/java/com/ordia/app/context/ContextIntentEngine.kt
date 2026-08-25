@@ -2228,6 +2228,38 @@ object ContextIntentEngine {
             // deliberado (una forma por ciclo): «cargar el carro»
             // (diagonal dialectal LatAm) queda como candidata propia.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b""").containsMatchIn(lower)
+            // c.1082: «poner las ruedas de invierno/verano» — candidata
+            // (a) de la clase DUODÉCIMA (vida con vehículo), medida NULL
+            // por la sonda persistida `tools/probe/TwelfthClassVehicleProbe.kt`
+            // (c.1079, C5) y re-medida PRE en este ciclo con sonda efímera
+            // (5/5 capturas NULL, 6/6 guards NULL, 4/4 regresiones HIT,
+            // HEAD 3faea01). El cambio de ruedas de temporada es EL
+            // mantenimiento estacional del coche (coste real de olvido:
+            // circular con neumáticos inadecuados) y caía a NULL: «poner»
+            // es bivalente (la lavadora/la mesa/el lavavajillas ya tienen
+            // piso HOUSEHOLD propio c.729/c.736/c.738) y «ruedas» no era
+            // keyword (gate c.751: sin ella la notificación sin palabra
+            // gatillo ni llega al análisis en producción). El piso se
+            // ACOTA al objeto `ruedas? de (invierno|verano)` — la
+            // temporada es lo que hace inequívoco el mantenimiento
+            // estacional; «poner las ruedas» a secas sigue FUERA (pin en
+            // el test). Lockstep keyword-OBJETO «ruedas» (lección
+            // c.713/c.751/c.765; 0.12 sola queda bajo el umbral: «las
+            // ruedas están gastadas» descartado; «inflar las ruedas de la
+            // bici» — candidata (c) — sigue FUERA: 0.12 + bono temporal
+            // 0.1 = 0.22 < 0.45, pin en el test). Kind decidido: TASK,
+            // hermano de «cargar el coche» c.853 y «cambiar el aceite»
+            // c.710 (deber de mantenimiento del vehículo; deliberación
+            // contra ERRAND — no implica desplazamiento enunciado — y
+            // contra HOUSEHOLD — no es quehacer del hogar). Anti-overreach:
+            // `(?<!no )` bloquea la negada; el pasado «puse…», el suelto
+            // «poner» y el sintagma nominal «las ruedas de invierno» no
+            // casan; la duda «quizá poner…» no casa el ancla y la keyword
+            // sola queda bajo el umbral. Acotado deliberado (una forma
+            // por ciclo): «neumáticos de invierno», la candidata (b)
+            // «cargar el carro» y la (c) «inflar las ruedas de la bici»
+            // quedan como candidatas propias.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:invierno|verano)\b""").containsMatchIn(lower)
             // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
             // c.750, candidato cívico "votar"): "votar <complemento/día>".
             // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
@@ -4052,6 +4084,15 @@ object ContextIntentEngine {
                 // del usuario: "Cargar el coche antes del viaje").
                 val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:(?:celular|m[oó]vil)(?:es)?|coches?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
+
+                // c.1082: misma plantilla para "poner" ACOTADA al objeto
+                // «ruedas de invierno/verano» (misma bivalencia que
+                // c.751: la lavadora/la mesa/el lavavajillas tienen
+                // plantilla HOUSEHOLD propia). Lockstep piso+keyword
+                // (lección c.616/c.717); el match arranca en el verbo y
+                // preserva las palabras del usuario.
+                val matchPonerRuedas = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:invierno|verano)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPonerRuedas != null) return "Poner ${matchPonerRuedas.groupValues[2]}"
                 // c.752: misma plantilla para "votar" (ancla/guard idénticos
                 // al piso; verbo unívoco, complemento libre).
                 val matchVotar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(votar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)

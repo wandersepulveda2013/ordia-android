@@ -55,6 +55,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // que "automóvil" c.851): "la cochera está cerrada" sigue
         // descartado.
         "coche",
+        // c.1082: keyword-OBJETO "ruedas" (lockstep con el piso acotado
+        // "poner las ruedas de invierno/verano", lección c.713/c.751/
+        // c.765: sin ella la notificación sin palabra gatillo ni llega al
+        // análisis en producción). Cubre el singular por subcadena
+        // ("rueda"). 0.12 sola queda bajo el umbral: "las ruedas están
+        // gastadas" sigue descartado; "inflar las ruedas de la bici"
+        // (candidata (c) de la clase DUODÉCIMA) sigue FUERA: 0.12 + bono
+        // temporal 0.1 = 0.22 < 0.45 (pins en el test).
+        "ruedas",
         // c.752: keyword-verbo "votar" (lockstep con el piso; verbo
         // unívoco, ningún objeto bivalente queda abierto).
         "votar",
