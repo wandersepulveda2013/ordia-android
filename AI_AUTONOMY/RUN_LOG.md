@@ -17411,3 +17411,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): context — «dale la pastilla…» (c.1012), plural «los pelos» (c.842), «sacar al gato» (FUERA pineado SU c.1046), plural «no vais/van a…» (ABIERTA SU c.1044); parser — «ya, <narrativa>» con coma (c.1027), residual «ahora/ahorita + pretérito» (P2). O auditoría de descubrimiento (clase DUODÉCIMA).
 - COMPLETADO
+
+## Ciclo c.1051 (2026-08-25, este lado, DISJUNTO context) — docs-close: COLISIÓN CONVERGENTE c.1050/c.1050 sobre la MISMA lateral «dale la pastilla…» (c.1012): el hermano fijó su c.1050 (context, `e407a1c`, SUPERCONJUNTO 20 tests «dale/dales» + plurales + artículos) en el re-fetch pre-push; duplicado propio (15 tests, `bc9d413`) descartado NO-destructivo — precedente c.1014/c.1040 — preservado SOLO en rama local `discarded-c1050-dale` (NUNCA empujada); verificación INDEPENDIENTE de la UNIÓN remota `e407a1c`: suite OK (7772), smokes 25/25 y 9/9.
+- HEAD inicial: `b89a1cd` (mi c.1047). Tres re-fetch consecutivos revelaron TRES colisiones: SU c.1048 `4f2fd28` (parser ordinal-narrativa), SU c.1049 `b2b0a47` (parser candado «quedar con») y SU c.1050 `e407a1c` (context «dale la(s) pastilla(s)» — CONVERGENTE con mi c.1050). HEAD final: `e407a1c` (remoto intacto + este docs-close).
+- Cambios: docs AI_AUTONOMY únicamente (BACKLOG, CURRENT_STATE, RUN_LOG). Código propio descartado: rama local `discarded-c1050-dale` (`bc9d413`, NO empujada) — el remoto gana por SUPERCONJUNTO (20 tests vs 15; cubre «dales», plurales «las pastillas» y variantes de artículo).
+- Bugs: ninguno nuevo. Features: ninguna nueva propia (descarte convergente). Lateral «dale la pastilla…» (c.1012) RESUELTA por SU c.1050.
+- Tests: suite UNIÓN intermedia propia OK (7767 = 7752 + 15) verificada antes del descarte; verificación INDEPENDIENTE de la UNIÓN remota `e407a1c`: **OK (7772)**, `run_domain_checks.sh` 25/25, `run_automation_engine_checks.sh` 9/9.
+- Commits: 1 commit docs-close (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): context — plural «los pelos» (c.842), «sacar al gato» (FUERA pineado SU c.1046), plural «no vais/van a…» (ABIERTA SU c.1044), «dale una pastilla…» indefinido (FUERA pineado SU c.1050), «dale la medicina al perro» (FUERA pineada); parser — «ya, <narrativa>» con coma (c.1027), residual «ahora/ahorita + pretérito» (P2). O auditoría de descubrimiento (clase DUODÉCIMA).
+- COMPLETADO
