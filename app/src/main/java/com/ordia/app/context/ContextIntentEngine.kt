@@ -376,14 +376,21 @@ object ContextIntentEngine {
     // quedó RESUELTA en c.1059 (paridad con el piso de vacuna
     // c.1011+c.1014: la alternancia admite "un/una/unos/unas" en
     // lockstep 3 puntos; el destinatario sigue acotado a mascota —
-    // "dale una pastilla al niño" queda FUERA, pin en test).
+    // "dale una pastilla al niño" queda FUERA, pin en test). El
+    // objeto "medicamento"/"medicina" quedó RESUELTO en c.1063
+    // (lateral ABIERTA (2) c.1012: la medicación veterinaria líquida
+    // o genérica se dice "medicamento"/"medicina" dicho-como-se-habla
+    // — el jarabe de la tos del perro; paridad estructural exacta con
+    // "pastillas?", lockstep 3 puntos; el destinatario sigue acotado
+    // a mascota — "darle el medicamento al niño" queda FUERA, pin en
+    // test).
     // CERO keywords nuevas: el piso basta (la keyword-mascota sola queda
-    // bajo el umbral — medido PRE); objeto "pastilla" NO se añade como
-    // keyword para no capturar el sintagma nominal "la pastilla del
-    // perro". `\b` final sin derrame nominal; guard de negación heredado
-    // (?<!no ).
+    // bajo el umbral — medido PRE); objeto "pastilla"/"medicamento" NO
+    // se añade como keyword para no capturar el sintagma nominal "la
+    // pastilla del perro"/"el medicamento del perro". `\b` final sin
+    // derrame nominal; guard de negación heredado (?<!no ).
     private val HOUSEHOLD_PILL_DATIVE_FLOOR =
-        Regex("""\b(?<!no )(?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?pastillas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+        Regex("""\b(?<!no )(?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?(?:pastillas?|medicamentos?|medicinas?)\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
     // Piso mascota DATIVO "cortarle/cortarles la(s) uña(s) al perro/gato"
     // (c.1015 — candidata (c) de la fila clase DÉCIMA c.1007, sonda
     // `TenthClassPetProbe.kt` C8): la hermana humana "cortarle el pelo
@@ -3243,7 +3250,7 @@ object ContextIntentEngine {
         // pero la cláusula se añade por cinturón y tirantes simétrico
         // (precedente hermano c.1011 dativo "ponerle la vacuna").
         if (kind == ContextIntentKind.HOUSEHOLD &&
-            Regex("""\bno\s+(?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?pastillas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+(?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?(?:pastillas?|medicamentos?|medicinas?)\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
         ) return true
         // "cortarle la(s) uña(s) al perro/gato" (HOUSEHOLD, piso dativo
         // acotado c.1015) es imperativo multi-palabra: la keyword-mascota +
@@ -4474,7 +4481,7 @@ object ContextIntentEngine {
                 // el objeto mascota es el ANCLA (no se despoja) y la cola
                 // temporal la depura [sanitizeTitle].
                 val matchDarlePastilla = Regex(
-                    """\b((?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?pastillas?) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
+                    """\b((?:dar(?:le|les)|dale?s?)\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?(?:pastillas?|medicamentos?|medicinas?)) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchDarlePastilla != null) {
