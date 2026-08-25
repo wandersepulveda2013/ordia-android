@@ -276,6 +276,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // objeto-suministro (luz/agua/gas/internet). «dar» solo NO se
         // añade (extremadamente polivalente).
         "dar de alta",
+        // c.1143: keyword-frase «sellar el paro» (lockstep con el piso
+        // acotado «sellar (el)? paro», candidata (c) de la clase
+        // DECIMOQUINTA; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Monosemántica: sólo la obligación periódica del SEPE. «sellar»
+        // solo NO se añade (bivalente: «sellar el pasaporte/la carta»);
+        // el piso exige el objeto «paro», así que esos bivalentes siguen
+        // NULL deliberado (sonda `tools/probe/SellarParoProbe.kt`).
+        "sellar el paro",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver

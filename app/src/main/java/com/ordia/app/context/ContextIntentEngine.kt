@@ -3298,6 +3298,30 @@ object ContextIntentEngine {
             // silencioso P1: mudanza sin luz/agua/gas/internet (alta) o
             // cargo mensual fantasma del piso viejo (baja).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet)\b""").containsMatchIn(lower)
+            // c.1143: "sellar el paro" ("sellar el paro el día 4"),
+            // candidata (c) de la clase DECIMOQUINTA burocracia/
+            // administración (sonda persistida del hermano
+            // `tools/probe/FifteenthClassAdminProbe.kt` c.1132 C1; NULL
+            // PRE medido sobre 8eba7fe con sonda efímera: 2/2 candidatas
+            // desnudas NULL, 2/2 envolventes HIT por camino genérico,
+            // 5/5 guards NULL, 3/3 regresiones HIT). Hermano EXACTO del
+            // piso «dar de alta» c.1139: kind TASK (obligación
+            // administrativa periódica SIN desplazamiento explícito;
+            // doctrina ERRAND c.842/c.862 solo gobierna el
+            // desplazamiento), misma ancla ^|acuse|temporal y guard
+            // `(?<!no )`. El objeto EXIGIDO «paro» blinda los bivalentes
+            // («sellar el pasaporte/la carta» no casan — NULL
+            // deliberado). El verbo-frase «sellar el paro» es
+            // monosemántico (obligación del SEPE); el pasado «sellé…» no
+            // casa (regex exige «sellar\s»), el sustantivo «el sello del
+            // paro» no casa (falta el verbo), la negada «no selles…» no
+            // casa (morfología distinta), la duda «no sé si sellar…» no
+            // casa (el ancla exige ^|acuse|temporal antes del verbo).
+            // Lockstep keyword-frase «sellar el paro» en ContextIntent +
+            // plantilla matchSellarParo en [extractTitle] (lección
+            // c.616). Olvido silencioso P1: sellar el paro es periódico —
+            // olvidarlo cuesta la prestación por desempleo.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(?:el\s+)?paro\b""").containsMatchIn(lower)
             // c.901: "dar las gracias a <persona> (por <objeto>)" ("dar las
             // gracias a Ana por el regalo"), candidata (b) y ÚLTIMA forma
             // NULL de la clase NOVENA-b coordinación/préstamos (sonda
@@ -4397,6 +4421,14 @@ object ContextIntentEngine {
                 // temporal de cola lo depura [sanitizeTitle]).
                 val matchDarDeAlta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDarDeAlta != null) return "Dar de alta ${matchDarDeAlta.groupValues[1]}"
+
+                // "sellar el paro X" → "Sellar el paro X" (c.1143): lockstep
+                // con el piso acotado «sellar (el)? paro» — hermana de
+                // matchDarDeAlta (mismo ancla/guard, doctrina c.653: verbo-
+                // frase preservado, solo capitalización inicial; el residuo
+                // temporal de cola lo depura [sanitizeTitle]).
+                val matchSellarParo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchSellarParo != null) return "Sellar ${matchSellarParo.groupValues[1]}"
 
                 // "dar las gracias a X" → "Dar las gracias a X" (c.901):
                 // lockstep con el piso acotado «dar las gracias a <persona>»
