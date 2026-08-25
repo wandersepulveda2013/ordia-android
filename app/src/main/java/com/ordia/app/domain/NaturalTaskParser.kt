@@ -8542,6 +8542,10 @@ object NaturalTaskParser {
     // compartida (mismo contenido, byte a byte) para reutilizarla en el guard
     // narrativo del ordinal de hora ([ordinalHoraOccurrenceIsPreteriteNarrative])
     // sin duplicar la lista ni arriesgar deriva entre copias.
+    // c.1034: cobertura ampliada con las familias devolver/confirmar/mandar
+    // (pretérito inequívoco; medida P1 con sonda /tmp/probe1034 — «ya devolvió
+    // el libro» anclaba AHORA falso y mutilaba el título). Mismo
+    // conservadurismo: sólo pretéritos, las formas ambiguas no se tocan.
     private val preteriteNarrativeVerbAlternation =
         "llegó|llegué|llegaste|llegaron|fue|fui|fuiste|fueron|era|eran|" +
             "estuvo|estuve|estuviste|estuvieron|vino|vine|viniste|vinieron|" +
@@ -8549,6 +8553,8 @@ object NaturalTaskParser {
             "sonó|sonaste|sonaron|llamó|llamé|llamaste|llamaron|" +
             "escribió|escribí|escribiste|escribieron|compró|compré|compraste|compraron|" +
             "pagó|pagué|pagaste|pagaron|envió|envié|enviaste|enviaron|" +
+            "devolvió|devolví|devolviste|devolvieron|confirmó|confirmé|confirmaste|confirmaron|" +
+            "mandó|mandé|mandaste|mandaron|" +
             "recibió|recibí|recibiste|recibieron|volvió|volví|volviste|volvieron|" +
             "regresó|regresé|regresaste|regresaron|terminó|terminé|terminaste|terminaron|" +
             "empezó|empecé|empezaste|empezaron|comenzó|comencé|comenzaste|comenzaron|" +
