@@ -18143,6 +18143,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). Nunca force, nunca `main`.
 - Próxima prioridad: (d) «inflar las ruedas del coche» (pin FUERA de c.1097); lateral (B) mayúsculas con tilde es SU c.1096 EN CURSO (NO tocar); colas relativas en títulos; familia «contar» c.950; sujeto nominal «el paquete llegó el lunes» (pin c.1041).
 
+## 2026-08-25 — Run c.1102-bis (este lado, docs/sonda) — COLISIÓN CONVERGENTE con OH3 sobre la clase DECIMOTERCERA (resolución c.1094, docs UNIÓN)
+
+- HEAD inicial de este run: `cff687a`; durante mi medición el remoto avanzó (`3b414d7` parser c.1098 + merges + `07ecb1e` marcador c.1103 + `95c9553` **misma clase DECIMOTERCERA por OH3** — 7 candidatas, sonda persistida 30 casos; y después `56f0d48` domain c.1101 OH3).
+- Colisión: DOS sondas independientes de la MISMA clase con frases DISJUNTAS (precedente c.1094 — implementaciones convergentes). Resolución producto-primero-pusheado: adopto íntegro el trabajo OH3 (`95c9553`); descarto NO-destructivo mi commit local `3ac2b45` (sonda duplicada + docs): `reset --soft cff687a` → `stash -u` → `pull --ff-only` → `stash drop` (descarte voluntario de mi duplicado; cero trabajo ajeno tocado, nunca force, nunca reset --hard).
+- Aporte preservado (mi medición independiente, sonda efímera /tmp/probe1102 — 26 casos, frases distintas — medida sobre `cff687a` y RE-medida byte-idéntica sobre la UNIÓN `56f0d48`): confirma (a) analítica y (b) pediatra de OH3; añade (i) «hacerme las gafas» NULL (refuerza la familia reflexiva «hacerse»); (ii) GAP DE PRECISIÓN inédito «odio ir al dentista» → APPOINTMENT 0.67 → candidata (h) complementaria de la fila DECIMOTERCERA del BACKLOG (guard anti-aversión; evaluar junto a c.1009).
+- Verificación de la UNIÓN en este run: suite `bash tools/run_domain_tests.sh` **OK (8566)** sobre `56f0d48`; smoke 25/25. **NO VERIFICADO** Android/gradle/UI/Room (sin SDK).
+- Archivos: `AI_AUTONOMY/CURRENT_STATE.md` (mi marcador 🔒 c.1102 → ✅ COLISIÓN-DOCUMENTADA), `AI_AUTONOMY/RUN_LOG.md` (append). CERO cambios de producto, cero cambios de tests.
+- Próxima prioridad: candidatas DECIMOTERCERA (a)–(h) UNA por ciclo cuando la región context quede LIBRE (SU c.1097/c.1100 EN CURSO — NO TOCAR); c.1103 parser EN CURSO del hermano — NO TOCAR.
 
 ---
 
@@ -18156,5 +18164,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: `07ecb1e` marcador EN CURSO → `92fc578` fix+tests → docs a continuación. Nunca force, nunca main.
 - Laterales ABIERTAS nuevas (registradas en BACKLOG, UNA por ciclo): lista de días con acento en caps «los lunes y los MIÉRCOLES» → WEEKLY solo lunes + residuo «y los MIÉRCOLES cenas» (medida PRE c.1103); rareza «cada por la mañana» residuo «cada» (también en minúscula — fix de producto). Siguen pendientes de c.1098: clock-tail «a las X DE LA MAÑANA» (1708/2859), «el DÍA de MAÑANA» (5781), «media MAÑANA» (2794), deadlines «SIN FALTA MAÑANA» (3582-3649).
 - Próxima prioridad: una de las laterales ABIERTAS parser-caps anteriores (UNA por ciclo), respetando marcadores hermanos activos (SU c.1097 context, OH2 c.1099 assistant + c.1101 capture-engine, OH c.1100 context, OH3 c.1102 sonda — NO TOCAR).
+
 
 
