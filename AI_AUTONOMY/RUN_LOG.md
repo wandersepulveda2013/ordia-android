@@ -18409,3 +18409,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: familias salud restantes del BACKLOG clase DECIMOTERCERA — (e) «hacerme la revisión de la vista», (f) «limpieza dental»; lateral c.1117 «oftalmólogo» keyword APPOINTMENT PENDIENTE de que c.1113 libere la región — respetando marcadores activos del hermano (c.1123 «ecografía» ERRAND_BLOOD_TEST_FLOOR / c.1121 HEDGE_PATTERN 2ª plural / c.1119 «sacar la muela» / c.1113 fisioterapia / c.1108 parser).
 
+
+## Run c.1124-bis — 2026-08-25 (este lado) — COLISIÓN convergente documentada (lateral c.1120 «ginecólog[oa]»)
+
+- HEAD inicial: `ce0b5dc` (mi marcador EN CURSO c.1124 del run previo). HEAD final: `7a795fc` (remoto).
+- Carrera perdida: mientras mi run ejecutaba el ciclo completo (bootstrap de entorno nuevo, PRE, TDD RED/GREEN, POST, suite OK 8831), una ejecución hermana implementó y publicó la MISMA unidad: `2cfb23b` (fix + 14 tests, mismo archivo de test `ContextIntentEngineLlevarGinecologoFloorTest.kt`) + `7a795fc` (docs FIXED VERIFIED + cierre de BACKLOG). Primer-push-gana (precedente c.1092/c.1096/c.1102/c.1116-bis).
+- Resolución NO-destructiva: mi commit local `5cc9124` (fix+tests, NUNCA pusheado) y mis ediciones docs sin commitear descartados (`git reset --mixed origin/...` + `git checkout -- .` — solo trabajo propio no publicado, cero trabajo ajeno tocado). La variante remota es estrictamente mejor: `ginec[oó]log[oa]` admite la grafía sin tilde (hermana de `m[ée]dico`); la mía exigía la tilde.
+- Corrección honesta del remoto aceptada: «ginecólog[oa]» NO era keyword APPOINTMENT (mi marcador c.1124 lo afirmaba por analogía con sus hermanas); el piso c.776 es autocontenido (igual que «hospital»/«consulta»). El pin envolvente de mis sondas (TASK 0.54) era coherente con ello.
+- Verificación INDEPENDIENTE sobre `7a795fc` en mi entorno (no me fío del reporte ajeno): suite **OK (8831 tests)**; smoke dominio 25/25; smoke AutomationEngine 9/9; fix presente en lockstep piso (l.619) ↔ plantilla `matchMedicalRun` (l.4988).
+- CERO cambios de producto en este run (el trabajo ya estaba hecho y verificado en remoto; mantener mi duplicado no aportaba cobertura adicional: mismos 14 tests, mismas 5 capturas).
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: familias abiertas según BACKLOG (candidatas DECIMOTERCERA restantes: (e) «revisión de la vista» [EN CURSO hermano c.1125, marcador fijado durante mi push, NO TOCAR], (f) «limpieza dental», (g) «ecografía» [EN CURSO hermano c.1123, NO TOCAR], (j) «sacar la muela» [hermano c.1119, NO TOCAR], (k) «empaste», (m) «operar la rodilla»), respetando marcadores activos (c.1123 / c.1121 / c.1119 / c.1113 / c.1108).
