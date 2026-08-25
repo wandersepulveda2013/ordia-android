@@ -175,4 +175,47 @@ class ContextIntentEngineEcharCurriculumFloorTest {
         assertEquals("Echar el currículum", intent.title)
         assertNotNull(intent.dueAt)
     }
+
+    // ─── Complemento c.1148 (este lado): grafía coloquial sin -m ──
+    // «curriculo/currículo» (dicho-como-se-habla: «echar el curriculo en
+    // infojobs») — medida NULL por el run paralelo cedido (colisión
+    // convergente c.1148, primer-push-gana del hermano): la canónica
+    // «curr[ií]culums?» exige la -m final. Extensión aditiva del piso a
+    // «curr[ií]cul[ou]m?s?» + keywords «curriculo»/«currículo» (0.12
+    // sola inerte < umbral, mismo lockstep keyword↔piso, lección c.616).
+
+    @Test
+    fun `echar el curriculo sin tilde ni m captura TASK`() {
+        val intent = analyze("echar el curriculo en infojobs")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Echar el curriculo en infojobs", intent.title)
+    }
+
+    @Test
+    fun `echar el curriculo con temporal captura TASK titulo limpio`() {
+        val intent = analyze("echar el curriculo mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Echar el curriculo", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun `echar el curriculum con tilde sin m captura TASK`() {
+        val intent = analyze("echar el currículo mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Echar el currículo", intent.title)
+    }
+
+    @Test
+    fun `pasado eche el curriculo no captura`() {
+        assertNull(analyze("eché el curriculo ayer"))
+    }
+
+    @Test
+    fun `sustantivo el curriculo listo para enviar no captura`() {
+        assertNull(analyze("el curriculo está listo para enviar"))
+    }
 }

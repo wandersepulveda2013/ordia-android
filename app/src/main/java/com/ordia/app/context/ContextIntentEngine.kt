@@ -3351,8 +3351,13 @@ object ContextIntentEngine {
             // en ContextIntent + plantilla matchEcharCurriculum en
             // [extractTitle] (lección c.616). Olvido silencioso P1: la
             // oferta de empleo tiene plazo — olvidarla cuesta la
-            // oportunidad entera.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )echar\s+(?:el\s+)?curr[ií]culums?\b""").containsMatchIn(lower)
+            // oportunidad entera. Complemento c.1148 (este lado, tras
+            // la colisión convergente — primer-push-gana del hermano):
+            // «[ou]m?s?» admite la grafía coloquial sin -m final
+            // «curriculo/currículo» (dicho-como-se-habla, medida NULL
+            // en el run cedido; tests en el archivo canónico del piso).
+            // El plural «currículums» canónico sigue casando.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )echar\s+(?:el\s+)?curr[ií]cul[ou]m?s?\b""").containsMatchIn(lower)
             // c.901: "dar las gracias a <persona> (por <objeto>)" ("dar las
             // gracias a Ana por el regalo"), candidata (b) y ÚLTIMA forma
             // NULL de la clase NOVENA-b coordinación/préstamos (sonda

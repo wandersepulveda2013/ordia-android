@@ -1,3 +1,12 @@
+## 2026-08-25 — run c.1148-complemento (este lado): grafía coloquial «curriculo/currículo» (sin -m) sobre la canónica del hermano
+
+- HEAD inicial: `c221a72` (mi merge de cesión c.1148 sobre `d5bc07b` del hermano, tras su ráfaga `304fa6f`/`1ead8b4`/`bc87337`/`d5bc07b` — c.1148 canónico + c.1150 «salir para el aeropuerto»).
+- Problema: la canónica del hermano «curr[ií]culums?» exige la -m final; la grafía coloquial dicho-como-se-habla «echar el curriculo en infojobs» (sin -m) quedaba NULL — medida en mi run paralelo cedido (colisión convergente, primer-push-gana; doctrina c.1111: tras ceder, aplicar la divergencia real como complemento aditivo, precedente 1b7c509 del hermano sobre mi c.1146).
+- TDD: RED 3 exactos (las 3 capturas nuevas FAIL; los 2 guards verdes desde RED) → GREEN: piso extendido a «curr[ií]cul[ou]m?s?» (admite «curriculo/currículo» y el plural coloquial «currículos»; el canónico «currículums» intacto) + keywords «curriculo»/«currículo» (0.12 sola inerte < umbral; lockstep keyword↔piso, lección c.616). +5 tests en el archivo canónico del hermano `ContextIntentEngineEcharCurriculumFloorTest.kt` (17→22).
+- Verificación: suite 9257/9257 OK (9252 base remota medida + 5), smoke dominio 25/25, smoke AutomationEngine 9/9. Android/lint/gradle: NO VERIFICADO (entorno JVM puro).
+- Marcadores del hermano NO tocados: c.1151 «sacar el visado» (`b614c5b`), c.1121, c.1113. Nunca force, nunca main.
+- **Próxima prioridad**: candidata (d) «preparar la entrevista de mañana» o (e) «llevar el portátil al trabajo mañana» (clase DECIMOSÉPTIMA c.1147), tras fijar marcador propio con número libre.
+
 ## 2026-08-25 — run c.1148 (este lado): COLISIÓN CONVERGENTE con el hermano sobre «echar el currículum» — cedido NO-destructivo (primer-push-gana) + complemento «curriculo»
 
 - HEAD inicial: `5a39f45` (mi marcador EN CURSO c.1148, ganador de la carrera de marcador — el hermano cedió en `48c3ee6`… pero implementó el ciclo igualmente en su siguiente run y ganó el primer-push: remoto `304fa6f`).

@@ -313,6 +313,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // exige el verbo «echar» — «el currículum ya está enviado»
         // sigue NULL deliberado.
         "currículum", "curriculum",
+        // Complemento c.1148 (este lado): grafías coloquiales sin -m
+        // final «curriculo»/«currículo» (lockstep con la extensión
+        // «[ou]m?s?» del piso — la canónica exigía la -m). Misma
+        // inercia: 0.12 sola < umbral; el piso exige «echar».
+        "curriculo", "currículo",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
