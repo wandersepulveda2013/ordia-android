@@ -6243,8 +6243,12 @@ object NaturalTaskParser {
             "noche" to LocalTime.of(21, 0),
             "madrugada" to LocalTime.of(4, 0)
         )
+        // (?iu): (?i) es ASCII-only en la JVM, así «CADA MAÑANA»/«TODAS LAS
+        // MAÑANAS» en mayúsculas no casaban y la rutina diaria se perdía
+        // (tarea única o sin fecha, con «CADA» de residuo). Paridad con la
+        // hermana minúscula (c.1103, misma doctrina que c.1098).
         val partOfDayDailyPattern = Regex(
-            """(?i)\bcada\s+(ma[nñ]ana|manana|tarde|noche|madrugada)\b""" +
+            """(?iu)\bcada\s+(ma[nñ]ana|manana|tarde|noche|madrugada)\b""" +
                 """|\btodas\s+las\s+(ma[nñ]anas|mananas|tardes|noches|madrugadas)\b"""
         )
         partOfDayDailyPattern.find(working)?.let { match ->
