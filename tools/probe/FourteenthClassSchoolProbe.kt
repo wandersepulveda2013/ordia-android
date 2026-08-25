@@ -82,6 +82,20 @@ import com.ordia.app.context.ContextIntentEngine
  *   cola «el día 1» queda en el título de PAYMENT con dueAt=true
  *   (C8) — mismo patrón heredado que la regresión R3 «el día 5»,
  *   consistente.
+ *
+ * ACTUALIZACIÓN c.1130 (este lado): familia (c) «ayudar a <hijo>
+ * con los deberes» — C26-C29 persistidos aquí tras medirse con
+ * sonda efímera (motor real, PRE sobre `d20f6ae`: 4/4 NULL;
+ * keyword «deberes» c.898 existía pero el piso
+ * `STUDY_HOMEWORK_FLOOR` sólo admitía el verbo «hacer» → 0.22 <
+ * 0.45). POST c.1130 (alternativa «ayudar a… niñ[oa]s? con
+ * (los)? deberes» en el piso + plantilla hermana, lockstep
+ * c.616): 4/4 NULL→HIT STUDY 0.45, títulos limpios y dueAt
+ * anclado. Las etiquetas C20-C25 quedan libres para el gap (b)
+ * «inscribir en campamento» y sus laterales. Olvido silencioso
+ * P1: la sesión de deberes CON los hijos es el compromiso
+ * escolar cotidiano por excelencia y se decía «ayudar», no
+ * «hacer».
  */
 fun main() {
     fun a(t: String) = ContextIntentEngine.analyze(
@@ -117,6 +131,12 @@ fun main() {
     show("C18", "llevar el almuerzo al colegio mañana")
     // --- Familia de la observación C7 (cola «en <mes>») ---
     show("C19", "inscribir al niño en el campamento en julio")
+
+    // --- FAMILIA (c) «ayudar a <hijo> con los deberes» (c.1130: NULL→HIT) ---
+    show("C26", "ayudar a los niños con los deberes esta tarde")
+    show("C27", "ayudar al niño con los deberes mañana")
+    show("C28", "ayudar a la niña con los deberes esta tarde")
+    show("C29", "ayudar a los niños con los deberes de matemáticas mañana")
 
     // --- REGRESIONES (formas que YA capturan, canario) ---
     show("R1", "llamar a mamá esta noche")
