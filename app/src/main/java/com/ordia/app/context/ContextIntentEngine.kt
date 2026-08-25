@@ -2312,6 +2312,23 @@ object ContextIntentEngine {
             // "me puse…"/suelto "ponerse"/sustantivo "la insulina está…" no
             // casa. Negación sin cláusula dedicada: 0.12+0.1=0.22<umbral.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )ponerse\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b""").containsMatchIn(lower)
+            // c.1044: piso «ponerme/ponerte/ponerse/ponernos la(s) vacuna(s)»
+            // (humana, reflexiva — lateral ABIERTA registrada en c.1011
+            // cuando el piso dativo se acotó al objeto mascota; medida
+            // NULL PRE con sonda efímera sobre HEAD 04878cd: 4/4 formas
+            // NULL). Vacunarse es un compromiso de salud cotidiano de
+            // coste real (campaña de gripe, refuerzos, viajes): olvido
+            // silencioso P1. Hermano estructural «ponerse la insulina»
+            // c.766: el enclítico reflexivo (me|te|se|nos) ACOTA el
+            // destinatario a uno mismo — monosemántico (vacunarse); el
+            // dativo «ponerle» (a otro) queda FUERA a propósito (mascota
+            // ya HOUSEHOLD c.1011; humano «al niño» = otra candidata).
+            // Lockstep keyword-OBJETO «vacuna» (lección c.751) y plantilla
+            // de título. Determinante definido/indefinido/posesivo opcional
+            // (hermano c.1014 «un|una»). Negación sin cláusula dedicada:
+            // 0.12+0.1=0.22 < umbral (aritmética c.766); pasado «me puse…»
+            // y sustantivo «la vacuna está…» no casan el infinitivo.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )poner(?:me|te|se|nos)\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?vacunas?\b""").containsMatchIn(lower)
             // Piso "pasar la ITV" (c.768, forma 4/9 quinta clase): la
             // inspección técnica del vehículo es un trámite periódico
             // obligatorio. Kind decidido: TASK, en deliberación contra
@@ -3789,6 +3806,12 @@ object ContextIntentEngine {
                 // sanitizeTitle).
                 val matchPonerseInsulina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(ponerse)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPonerseInsulina != null) return "Ponerse ${matchPonerseInsulina.groupValues[2]}"
+                // c.1044: plantilla «ponerme/… la(s) vacuna(s)» (ancla/guard
+                // idénticos al piso; el verbo capturado con su pronombre se
+                // preserva capitalizado, doctrina c.653 — «Ponerme la
+                // vacuna»; el residuo temporal lo depura [sanitizeTitle]).
+                val matchPonerVacuna = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(poner(?:me|te|se|nos))\s+((?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?vacunas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPonerVacuna != null) return "${matchPonerVacuna.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchPonerVacuna.groupValues[2]}"
                 // c.768: plantilla "pasar la ITV" (ancla/guard idénticos al
                 // piso; lección c.616: el match arranca en el verbo, así
                 // acuse/prefijo temporal se despojan; el residuo temporal de

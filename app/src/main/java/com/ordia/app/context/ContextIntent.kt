@@ -102,6 +102,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la
         // insulina está en la nevera" sigue descartado.
         "insulina",
+        // c.1044: keyword-OBJETO "vacuna" (lockstep con el piso reflexivo
+        // «ponerme la vacuna»; lección c.751 — sin ella la notificación ni
+        // llega al análisis). NO el verbo «poner(se)»: bivalente. 0.12 sola
+        // bajo el umbral: «la vacuna de la gripe está disponible» sigue
+        // descartado; con «perro» (keyword mascota) + bono temporal suma
+        // 0.34 < 0.45: «la vacuna del perro mañana» sigue NULL. Subcadenas
+        // «vacunar»/«vacunación» la contienen pero son inertes bajo el
+        // umbral (el piso mascota c.757/c.1011 gobierna esas rutas).
+        "vacuna",
         // c.768: keyword-OBJETO "itv" (lockstep con el piso acotado "pasar
         // la ITV", ver ContextIntentEngine.hasStrongTaskImperative). NO el
         // verbo "pasar": bivalente (la tarde/el rato/la película). 0.12 sola
