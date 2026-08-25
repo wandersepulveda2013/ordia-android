@@ -1375,6 +1375,28 @@ object ContextIntentEngine {
         """\b(?:ayer|anteayer|anoche)\s+(?:fue|era)(?!\p{L})(?:\s+(?:el|la|los|las|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|vuestr[oa]s?)(?!\p{L}))*"""
     )
 
+    // Marcador de INSCRIPCIÓN en pretérito (c.1154 anti-overreach). Hallazgo
+    // P1 ABIERTO de c.1135 (1b7c509): por el camino KEYWORD EXERCISE
+    // («campamento» c.1135, «natación», «extraescolar» c.1146 — las tres en
+    // ContextIntent.kt) el relato en pretérito de una inscripción YA hecha
+    // («inscribí al niño en el campamento ayer», «apunté a los niños en
+    // extraescolares la semana pasada») capturaba EXERCISE 0.45 con dueAt
+    // PASADO (sonda efímera PRE, HEAD 7e0e655: 5/5 HIT con fecha pasada;
+    // sin temporal el keyword inerte queda bajo el umbral y ya era NULL).
+    // Misma corrupción que c.1138 cerró para MEETING (hecho cumplido
+    // persistido como compromiso futuro), pero por camino keyword: los pisos
+    // EXERCISE no casan («inscribí» no es EXERCISE_VERBS), así la
+    // posicionalidad se toma contra la KEYWORD, no contra WRAPPABLE_PATTERNS.
+    // Formas inequívocas solamente (anti-overreach, doctrina c.1138 UNA
+    // forma por ciclo): «inscribimos/apuntamos» son presente/pretérito
+    // ambiguas («inscribimos al niño en natación en septiembre» es plan
+    // legítimo — medido EXERCISE) y quedan FUERA como lateral documentada.
+    // Tilde EXIGIDA en «apunté/apuntó»: «apunto» sin tilde es presente 1ª
+    // persona (captura legítima). Sin «no »: la negada ya era NULL PRE.
+    private val PAST_EXERCISE_ENROLL_PATTERN = Regex(
+        """\b(?:inscrib(?:í|ió|isteis|ieron)|apunt(?:é|ó|asteis|aron))(?!\p{L})"""
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -1696,6 +1718,14 @@ object ContextIntentEngine {
         // el hecho ya celebrado como compromiso futuro. Mismo cierre que
         // su hermano: se descarta sólo el candidato MEETING.
         if (pastMeetingCopulativeGoverns(lower, kind)) return 0f
+
+        // Guard de INSCRIPCIÓN en pretérito (c.1154 anti-overreach). Ver
+        // [PAST_EXERCISE_ENROLL_PATTERN]: el camino keyword EXERCISE
+        // persistía «inscribí/apunté … ayer» como compromiso futuro con
+        // fecha PASADA. Se descarta sólo el candidato EXERCISE gobernado
+        // por el pretérito; la envolvente presente legítima («recuérdame
+        // inscribir…» → TASK) y el presente/infinitivo no se tocan.
+        if (pastExerciseEnrollGoverns(lower, kind)) return 0f
 
         // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
         // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
@@ -3857,6 +3887,27 @@ object ContextIntentEngine {
         val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
         val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         return PAST_MEETING_NARRATIVE_PATTERN.findAll(lower).any { it.range.last < matchStart }
+    }
+
+    /**
+     * Detecta si la keyword EXERCISE que disparó el candidato está
+     * GOBERNADA por una inscripción en pretérito (c.1154 anti-overreach —
+     * hermano del guard c.1138 pero por camino KEYWORD: ver
+     * [PAST_EXERCISE_ENROLL_PATTERN] para el alcance y las formas
+     * ambiguas excluidas). Posicionalidad contra la primera keyword
+     * EXERCISE presente (mismo mecanismo `contains` que el scoring):
+     * el pretérito debe PRECEDER a la keyword — «inscribí al niño en el
+     * campamento ayer» descarta EXERCISE; «el campamento quedó genial,
+     * mañana inscribo al niño» (keyword antes del marcador) no gobierna.
+     * Sólo gobierna el kind EXERCISE: la envolvente presente legítima
+     * («recuérdame inscribir…» → TASK, candado c.613) sobrevive.
+     */
+    private fun pastExerciseEnrollGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.EXERCISE) return false
+        val kwStart = kind.keywords
+            .mapNotNull { lower.indexOf(it, ignoreCase = true).takeIf { idx -> idx >= 0 } }
+            .minOrNull() ?: return false
+        return PAST_EXERCISE_ENROLL_PATTERN.findAll(lower).any { it.range.last < kwStart }
     }
 
     /**

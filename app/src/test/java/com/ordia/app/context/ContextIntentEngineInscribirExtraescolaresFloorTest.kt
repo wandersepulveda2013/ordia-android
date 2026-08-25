@@ -141,22 +141,21 @@ class ContextIntentEngineInscribirExtraescolaresFloorTest {
         assertNull(intent)
     }
 
-    // PIN DE OVERREACH FAMILIAR MEDIDO (no introducido por c.1146): el
-    // pretérito de 1ª persona «inscribí … ayer» captura EXERCISE 0.45 con
-    // dueAt en el PASADO en TODAS las hermanas (medido POST: «inscribí al
-    // niño en el campamento ayer» / «…en natación ayer» → EXERCISE 0.45,
-    // dueAt=ayer). Persistir un hecho ya cumplido como compromiso es la
-    // misma clase P1 que c.1138 cerró para pretérito+MEETING; el guard de
-    // pretérito para el camino keyword EXERCISE queda como candidato de
-    // ciclo propio (BACKLOG, hallazgo c.1146-i). El pin documenta la
-    // consistencia familiar actual, no la corrección del enunciado.
+    // OVERREACH FAMILIAR CERRADO (c.1154, hallazgo c.1146-i): el pretérito
+    // de 1ª persona «inscribí … ayer» capturaba EXERCISE 0.45 con dueAt en
+    // el PASADO en TODAS las hermanas (pin original de este test: medido
+    // POST c.1146 «inscribí al niño en el campamento ayer» / «…en natación
+    // ayer» → EXERCISE 0.45, dueAt=ayer). El guard
+    // [ContextIntentEngine.pastExerciseEnrollGoverns] c.1154 descarta la
+    // keyword EXERCISE gobernada por pretérito; este pin se invirtió de
+    // documentar-el-defecto a regresión-de-la-corrección (el comentario
+    // original ya anticipaba el guard como «candidato de ciclo propio»).
     @Test
     fun `pin preterito primera persona hereda overreach familiar`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "inscribí al niño en las extraescolares ayer", 1000)
         )
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertNull(intent)
     }
 
     // Consecuencia medida y deliberada (mismo perfil que la familia

@@ -19019,6 +19019,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - LECCIÓN (anti-colisión, más allá de primer-marcador-gana c.1077): un marcador EN CURSO no basta si el hermano está en ráfaga; antes de implementar, re-fetch y comprobar también commits recientes (`git log --oneline -3 origin/...`), no solo marcadores.
 - Nunca force, nunca main. Determinista, cero IA fingida.
 
+## Run c.1154 (este lado, 2026-08-25) — P1 hallazgo c.1135-i: pretérito de inscripción por camino keyword EXERCISE (FIXED VERIFIED)
+
+- HEAD inicial: `7e0e655` (remoto, tras pull --ff-only limpio). Marcador EN CURSO fijado; renumerado c.1149→c.1154 por primer-marcador-gana (c.1149-c.1153 ya ocupados por otros runs).
+- Problema: «inscribí al niño en el campamento/natación/extraescolares ayer» (+ 3ª persona «inscribió/apuntó/inscribieron … ayer») → EXERCISE 0.45 con dueAt en el PASADO: hecho cumplido persistido como compromiso futuro (clase hermana de c.1138 pretérito+MEETING, pero por camino KEYWORD — los pisos EXERCISE no casan).
+- PRE medido (sonda efímera, HEAD 7e0e655): 5/5 HIT EXERCISE 0.45 dueAt pasado; negada NULL (c.648), sin-temporal NULL (bajo umbral), regresiones/ambiguas medidas.
+- Fix: `PAST_EXERCISE_ENROLL_PATTERN` + helper `pastExerciseEnrollGoverns` (posicionalidad contra la keyword EXERCISE vía indexOf, mismo mecanismo que el scoring) + guard `return 0f` en `scoreKind` tras c.1142. Formas inequívocas solamente (UNA forma por ciclo); «inscribimos/apuntamos» ambiguas EXCLUIDAS (lateral documentada); tilde exigida en «apunté/apuntó».
+- TDD: test NUEVO `ContextIntentEnginePastExerciseEnrollGuardTest.kt` (14 tests) — RED EXACTO 5 fallos → GREEN 14/14.
+- Re-pin legítimo ×1: pin hermano c.1146 «pin preterito primera persona hereda overreach familiar» (pinneaba el defecto; su comentario anticipaba este guard) invertido a regresión assertNull (precedente c.1035/c.1041/c.1094).
+- Sonda PERSISTIDA `tools/probe/PastExerciseEnrollGuardProbe.kt` (lección c.1058): POST 4/4 NULL nuevos + 3ª persona NULL, regresiones R1-R5/X2 byte-idénticas, pines NULL intactos, ambiguas A1-A3 intactas.
+- Suite UNIÓN base `7e0e655`: `bash tools/run_domain_tests.sh` → OK (9266 = 9252+14); smoke dominio 25/25; automation 9/9.
+- Integración: CUATRO `git pull --rebase` sucesivos (hermano en ráfaga: c.1149-carrera, c.1150-colisión, c.1151, piso c.1152 «hacer el curso» `a2b9468`, c.1162 «dar de alta/baja el seguro» +18 `45ee351`, c.1155 «preparar la entrevista» +14 `bfbae40`, marcadores c.1157/c.1158/c.1165). El hermano CEDIÓ este hallazgo como c.1153 (primer-marcador-gana, mi marcador llegó primero) — cero duplicación en el motor. Motor auto-fusionado en todos los rebases (regiones disjuntas: sus pisos vs mi guard scoreKind); conflictos SOLO markdown (CURRENT_STATE/RUN_LOG) resueltos UNIÓN conservando AMBOS lados (marcadores hermanos c.1156-c.1158/c.1165 y cierre c.1155 intactos).
+- **Suite UNIÓN FINAL re-medida post-rebase sobre `16795c7` (lección c.1014): OK (9349 = 9335 remoto + 14 míos — aritmética exacta)**; smoke dominio 25/25; automation 9/9.
+- Archivos: M `ContextIntentEngine.kt` (patrón + guard + helper), A `ContextIntentEnginePastExerciseEnrollGuardTest.kt`, M `ContextIntentEngineInscribirExtraescolaresFloorTest.kt` (re-pin), A `tools/probe/PastExerciseEnrollGuardProbe.kt`, docs (CURRENT_STATE/BACKLOG/RUN_LOG).
+- Laterales ABIERTAS: ambiguas «inscribimos/apuntamos … ayer» (siguen HIT, documentado); otras familias verbo-pretérito por camino keyword (descubrimiento futuro). Hallazgo negación c.1135-(i) «no inscribir…mañana» sigue ABIERTO (solapamiento c.1113, coordinar).
+- NO VERIFICADO: Android/gradle/UI/Room (sin SDK, nunca fingido).
+- Nunca force, nunca main. Determinista, cero IA fingida.
+
+---
+
 ## RUN 2026-08-25 (noche UTC) — ciclo c.1149: carrera de implementación «cubrir el turno» — RETIRADA PROPIA + COBERTURA ADICIONAL
 - HEAD inicial: `5560ccb` (sync limpio). HEAD final: (este commit, sobre `1b7c509`).
 - Carrera: c.1149 era MI marcador (`48c3ee6`, c.1148→c.1149 cediendo «echar el currículum»). Implementé la candidata (b) DECIMOSÉPTIMA «cubrir el turno del sábado» completa con TDD (16 tests, RED 5 exactos → GREEN 16/16, suite 9192 OK sobre `5560ccb`, smokes 25/25 y 9/9; commit local `69c04f3`) pero al pushear el remoto ya tenía la implementación canónica del hermano (`b10cb5f` + cierre `f7a59ec`): keyword-VERB «cubrir» + piso «cubrir (el|la|mi|tu|su|un|una)? turnos?» + plantilla `matchCubrirTurno`, 21 tests, estrictamente MÁS AMPLIA que la mía (cubre posesivos/indefinidos/plural — mis laterales pineadas ya cubiertas).
