@@ -3381,7 +3381,32 @@ object ContextIntentEngine {
             // a Dios/a la vida/al cielo» (bivalencia medida c.904).
             // Lockstep: keyword-frase «darle gracias» (lección c.751) y
             // plantilla en [extractTitle] (lección c.616).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar(?:le)?\s+(?:las\s+gracias\s+a(?:l)?\s+\w|gracias\s+a(?:l)?\s+(?!dios\b|la\s+vida\b|vida\b|cielo\b)\w)""").containsMatchIn(lower) ||
+            // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
+            // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
+            // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
+            // re-medida PRE sobre HEAD c24b146: 5/5 candidatas NULL,
+            // 11/11 guards NULL, 7/7 regresiones HIT intactas). El
+            // check-in perdido tiene coste directo (recargo, asiento
+            // perdido) y ventana corta (24-48 h). Verbo bivalente
+            // acotado por objeto EXIGIDO «vuelo» (hermano EXACTO de
+            // c.865 «reclamar la factura»): «facturar el proyecto/la
+            // maleta» (mercantil/equipaje) y «hacer el check-in del
+            // hotel» quedan FUERA (laterales medidas NULL, UNA forma
+            // por ciclo). La grafía «checkin»/«check in» sin guion casa
+            // y se preserva en el título (doctrina c.653). Kind TASK
+            // (gestión previa al viaje, hermana de «reservar» c.709 /
+            // «confirmar» c.700 / «imprimir las tarjetas» c.708 /
+            // «preparar la maleta» c.715); CERO keywords nuevas
+            // («vuelo» ya es keyword TRAVEL y «hacer» keyword TASK —
+            // gate c.751 satisfecho, medido PRE: TRAVEL 0.22 < umbral
+            // sin piso). La negada la cubre el lookbehind `(?<!no )`
+            // (la keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace
+            // falta cláusula dedicada en [imperativeIsNegated], mismo
+            // argumento que c.895b/c.895c); el pasado «facturé/hice» y
+            // el subjuntivo «facture» no casan (forma EXACTA).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+el\s+vuelo\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -4945,6 +4970,18 @@ object ContextIntentEngine {
                 // (misma alternancia que el piso).
                 val matchReclamarFactura = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reclamar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?facturas?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReclamarFactura != null) return "Reclamar ${matchReclamarFactura.groupValues[2]}"
+                // c.1140: plantillas hermanas del piso (lección c.616: el
+                // match arranca en el verbo, así acuse/prefijo temporal se
+                // despojan; el residuo temporal de cola lo depura
+                // [sanitizeTitle]). Objeto EXIGIDO «vuelo» (misma ancla
+                // que el piso); los bivalentes («facturar el proyecto»,
+                // «check-in del hotel») nunca llegan aquí porque el piso
+                // no los captura. La grafía del usuario se preserva
+                // («checkin» sin guion, doctrina c.653).
+                val matchFacturarVuelo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(facturar)\s+(el\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFacturarVuelo != null) return "Facturar ${matchFacturarVuelo.groupValues[2]}"
+                val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerCheckIn != null) return "Hacer ${matchHacerCheckIn.groupValues[2]}"
 
                 null
             }
