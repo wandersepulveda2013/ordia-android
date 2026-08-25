@@ -28,6 +28,18 @@
 - Hallazgo: residual «ahora/ahorita + pretérito» («ahora llegó el cartero») sigue anclando → BACKLOG P2.
 - Archivos: SOLO docs AI_AUTONOMY (cero producción).
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+## Ciclo c.1037 (2026-08-24, este lado, DISJUNTO parser) — fix(parser): lateral residual «ahora/ahorita + pretérito» narrativa (registrada c.1028) RESUELTA («ahora llegó el cartero» → narrativa intacta)
+
+- Renumerado c.1036→c.1037 por colisión con el ciclo c.1036 del hermano (contexto) detectada en re-fetch pre-push; rebase no destructivo limpio (regiones DISJUNTAS) y re-verificación completa sobre la base rebasada.
+- HEAD inicial: `bca127e4` (mi docs-close c.1035, PUSHED) → base rebasada sobre `ead0ff69` (c.1036 hermano).
+- Unidad (P2, lateral ABIERTA registrada en c.1028): la guard c.1027 sólo evaluaba la ocurrencia «ya»; «ahora»/«ahorita» + pretérito inequívoco («ahora llegó el cartero», «ahorita me llamó el médico» — acabativo: relato de un hecho RECIÉN cumplido) seguía anclando AHORA → ancla AHORA FALSA + título MUTILADO.
+- Medida PRE con sonda efímera `/tmp/probe1034/Probe4.kt` (motor real, now=domingo 2026-08-23 12:00 America/Santo_Domingo): 5/5 candidatas dañadas; comandos en presente/imperativo/infinitivo («ahora llamo al banco», «hazlo ahora», «llamar ahorita») y la frase completa «ahora mismo» anclan correctamente.
+- Fix mínimo (1 punto): la guard del ancla AHORA evalúa también «ahora»/«ahorita» con la MISMA regex de sufijo narrativo c.1027/c.1035 (sin duplicarla ni arriesgar deriva — doctrina c.1016). Mismo conservadurismo c.950: predicado en pretérito inequívoco obligatorio.
+- TDD: RED exacto 5 fallos (5 candidatas, cero guards) → GREEN **OK (7582 = 7570 + 12)**; tras rebase **OK (7599 = 7582 + 17 del hermano)**; smoke 25/25; automation 9/9. Sonda POST: 5/5 narrativa intacta (due=null, título íntegro), comandos byte-idénticos, regresiones «ya» intactas. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Archivos: `NaturalTaskParser.kt` (guard ampliada + nota c.1037), `NaturalTaskParserAhoraPreteritoNarrativoTest.kt` (NUEVO, 12 tests), docs AI_AUTONOMY.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push): residual narrativa con expresión temporal interna (registrado c.1035 — cambio mayor, medir antes); nuevas oportunidades de producto.
+
 ## Ciclo c.1035 (2026-08-24, este lado, DISJUNTO parser) — fix(parser): lateral «ya, <adverbial>, <pretérito>» (pin FUERA c.1027) RESUELTA («ya, a primera hora, sonó la alarma» → narrativa intacta)
 
 - HEAD inicial: `3e036371` (mi docs-close c.1034, PUSHED). Re-fetch pre-implementación: sin avance remoto (regiones DISJUNTAS).

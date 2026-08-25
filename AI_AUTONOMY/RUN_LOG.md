@@ -17245,3 +17245,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: ver abajo. HEAD final: el de este push.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: candidata (d) UNDÉCIMA — guard acotado «subir de peso» (P2 precisión, falso positivo medido G7) u otra lateral ABIERTA; re-fetch OBLIGATORIO pre-implementación y pre-push.
+## Ciclo c.1037 (2026-08-24, este lado, DISJUNTO parser)
+- Renumerado c.1036→c.1037 por colisión con el ciclo c.1036 del hermano (contexto) detectada en re-fetch pre-push; `git pull --rebase` no destructivo limpio (regiones DISJUNTAS); re-verificación completa sobre la base rebasada.
+- HEAD inicial: `bca127e4` (mi docs-close c.1035, PUSHED) → base rebasada sobre `ead0ff69` (c.1036 hermano).
+- Cambios: `NaturalTaskParser.kt` (guard del ancla AHORA evalúa también «ahora»/«ahorita» con la misma regex de sufijo narrativo + nota c.1037), `NaturalTaskParserAhoraPreteritoNarrativoTest.kt` (NUEVO, 12 tests), docs AI_AUTONOMY.
+- Bugs: «ahora llegó el cartero»/«ahora me pagó»/«ahora sonó la alarma»/«ahorita me llamó el médico»/«ahorita se lo dije» (acabativo) — ancla AHORA FALSA + título MUTILADO (P2, medida PRE sonda efímera `/tmp/probe1034/Probe4.kt`: 5/5 RED). Regresiones correctas (comandos presente/imperativo/infinitivo anclan, «ahora mismo» intacto, «ya» intacto).
+- Features: ninguna (fix de lateral registrada).
+- Tests: RED exacto 5 fallos (5 candidatas, cero guards) → GREEN `run_domain_tests.sh` **OK (7582 = 7570 + 12)**; tras rebase **OK (7599 = 7582 + 17 del hermano)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST: 5/5 narrativa intacta, comandos byte-idénticos. Determinista (regex), cero random.
+- Commits: ver abajo. HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): residual narrativa con expresión temporal interna (c.1035, cambio mayor).
