@@ -18191,3 +18191,29 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (M — piso + plantilla + comentarios), `app/src/test/java/com/ordia/app/context/ContextIntentEngineInflarRuedasCocheFloorTest.kt` (N — 15 tests), `app/src/test/java/com/ordia/app/context/ContextIntentEngineInflarRuedasFloorTest.kt` (M — giro de pin), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md` (M).
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). Nunca force, nunca `main`.
 - Próxima prioridad: clase DUODÉCIMA (a)-(d) COMPLETA → siguiente frontera: candidatas clase DECIMOTERCERA (salud, sonda c.1102, 7 gaps (a)-(g)); lateral (B) recurrencias parser «CADA MAÑANA…» caps es del hermano c.1103 (NO tocar NaturalTaskParser); clase (?i)→(?iu) en manos del hermano (c.1104 CommitmentEngine/SensitiveSecretPatterns).
+## c.1106 — 2026-08-25 (run OpenHands, continuación c.1103)
+
+- **HEAD inicial**: `b44e6b7` (mi marcador EN CURSO c.1106 publicado en run anterior).
+- **Ítem**: lateral ABIERTA registrada c.1103 — listas de días de la semana con acento en MAYÚSCULAS («los lunes y los MIÉRCOLES»). P1 evitar olvidos / persistencia de rutinas. Región parser (`NaturalTaskParser.parseRecurrence`), DISJUNTA de los marcadores de hermanos (c.1104/c.1105). Disciplina UNA por ciclo: SOLO esta lateral.
+- **Sondas efímeras PRE** `/tmp/probe1106/Probe.kt` + `Probe2.kt` (motor real vía `tools/run_probe.sh`, now=domingo 2026-08-23 12:00 America/Santo_Domingo, 18 + 9 frases): 8/8 caps con acento GAP vs sus hermanas minúsculas —
+  - «cena con los abuelos los lunes y los MIÉRCOLES» → WEEKLY days=1 (solo lunes) + residuo «y los MIÉRCOLES» (mutilación silenciosa: el miércoles jamás se recuerda).
+  - «cena con los abuelos LOS LUNES Y LOS MIÉRCOLES» → idéntico (days=1 + residuo).
+  - «reunión LUNES MIÉRCOLES Y VIERNES» → NONE + «MIÉRCOLES Y» residual + lunes como fecha única (rutina de 3 días → tarea única).
+  - «gym SÁBADOS Y DOMINGOS» → days=7 solo + residuo «SÁBADOS Y».
+  - «gym TODOS LOS SÁBADOS» → NONE + título íntegro sucio + due=null (pérdida total).
+  - «clases ENTRE SÁBADO Y DOMINGO» → NONE + residuo «ENTRE SÁBADO Y» + domingo fecha única.
+  - «gimnasio DE LUNES A MIÉRCOLES» → NONE + residuo «A MIÉRCOLES» + lunes fecha única.
+  - «yoga CADA DOS MIÉRCOLES» → MONTHLY día 2 + residuo (caída al «cada N» a-secas, c.343).
+  - Pins ASCII caps intactas desde el PRE: «LOS LUNES Y JUEVES» (1,4), «CADA DOMINGO» (7), «EL MARTES Y EL JUEVES» (2,4). Anti-overreach «MAÑANA VOY AL MÉDICO» fecha única correcta.
+- **Causa raíz**: `(?i)` ASCII-only en los 4 patrones de la familia lista-de-días: `weekdayRangePattern`, `dayNameRegex`, `weekdayCountPattern`, `dayListPattern` (misma clase c.1096/c.1098/c.1101/c.1103).
+- **Fix** (4 flips en 1 función): `(?i)`→`(?iu)` en los 4 patrones. Bonus medido: «gym SÁBADOS» bare plural caps también recuperado (dayListPattern lo absorbe ahora).
+- **TDD estricto**: 18 tests nuevos `NaturalTaskParserDiaSemanaRecurrenciaCapsTest` — RED exacto 14 fallos (8 RED comportamiento + 6 parity con hermana minúscula; 4 pins verdes desde RED: 3 ASCII caps + 1 anti-overreach) → fix → GREEN 18/18 con paridad byte-idéntica (recurrencia+intervalo+días+ancla+título).
+- **Suite**: `bash tools/run_domain_tests.sh` → **OK (8619 = 8601 + 18 — aritmética exacta)**, 0 fallos; `tools/run_domain_checks.sh` → 25/25; `tools/run_automation_engine_checks.sh` → 9/9. Sonda POST: 8/8 caps idénticas a hermanas minúsculas.
+- **Commit**: `923de34` fix(parser) c.1106 (4 flips + 18 tests). Determinista (regex), cero random, cero IA fingida, cero UI, cero pantallas nuevas (menos es más: recupera frases que ya debían funcionar).
+- **Laterales ABIERTAS descubiertas/registradas** (UNA por ciclo, en BACKLOG): `weekdayPattern` (día suelto como FECHA) también `(?i)` ASCII-only — «reunión el MIÉRCOLES» → due=null (la cita del miércoles se PIERDE en caps; minúscula ancla 2026-08-26 09:00); «el MIÉDICO viene el SÁBADO» → due=null. Medida PRE c.1106.
+- **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **HEAD final**: tras docs, pendiente push.
+- **Próxima prioridad**: lateral weekdayPattern caps («reunión el MIÉRCOLES») si el parser sigue libre; si no, BACKLOG P1.
+- **Integración NO-destructiva (colisión documentada)**: push rechazado — el remoto avanzó `b44e6b7..644b2c5` (hermano c.1105 «inflar coche» fix `644b2c5` + marcadores c.1107/c.1102-complemento/c.1106-pediatra). CARRERA DE NÚMERO documentada (precedente c.1102-bis/c.1094): el hermano OH3 renumeró SU c.1105→c.1106 («pediatra» listas médicas APPOINTMENT, ContextIntent) mientras mi c.1106 (parser caps) ya estaba publicado (`b44e6b7`, primer-marcador-gana temporalmente); ambos c.1106 coexisten con regiones DISJUNTAS (NaturalTaskParser vs ContextIntent) — cero solape, cero pérdida. Integración: `git rebase origin` sobre MIS 2 commits no-pusheados (código `923de34` auto-merge limpio — regiones DISJUNTAS; conflictos SOLO markdown CURRENT_STATE/RUN_LOG resueltos UNIÓN conservando AMBOS lados). Nunca force, nunca main.
+- **Suite UNIÓN FINAL medida post-rebase**: **OK (8634 = 8619 míos + 15 hermano c.1105)**, 0 fallos; smokes 25/25 y 9/9 (re-corridos sobre la unión).
+
