@@ -1161,7 +1161,7 @@ object ContextIntentEngine {
     // c.1126). Frase de dos palabras: el doméstico («limpieza de casa»)
     // no casa.
     private val APPOINTMENT_MEDICAL_PATTERN =
-        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental)""")
+        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental|empaste)""")
     // Desplazamiento a destino médico inequívoco (c.682, hallazgo c.681):
     // "ir al médico mañana" se DESCARTABA (NULL, olvido silencioso P1): las
     // evidencias sueltas (keyword + patrón médico + bono de fecha ≈ 0.42) no
@@ -1178,7 +1178,7 @@ object ContextIntentEngine {
     // c.1126: «limpieza dental» añadida como destino (lockstep; «ir a la
     // limpieza dental» es tan inequívoco como «ir al dentista»).
     private val APPOINTMENT_GO_PATTERN =
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental)\b""")
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental|empaste)\b""")
     // Futuro declarativo de 1ª persona (c.663): "tendré (una |la )?cita" y "tendré
     // <sustantivo médico>" son promesas explícitas (no infinitivo condicionable),
     // evidencia MÁS firme que el presente — mismo olvido P1 que c.656 cerró para
@@ -1191,7 +1191,7 @@ object ContextIntentEngine {
     // «tendré dentista» (desnudo), la forma natural lleva artículo:
     // «tendré LA limpieza dental» — artículo opcional propio.
     private val APPOINTMENT_MEDICAL_FUTURE_PATTERN =
-        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|pediatra|dermatólog[oa]|(?:la\s+)?limpieza dental)\b""")
+        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|pediatra|dermatólog[oa]|(?:la\s+)?limpieza dental|(?:el\s+)?empaste)\b""")
     private val APPOINTMENT_SPECIFIC =
         listOf(
             APPOINTMENT_CITA_PATTERN,
@@ -3774,8 +3774,20 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun planWrapperIsNegated(lower: String): Boolean {
+        // c.1136: la rama «voy/vamos/vas/vais/van a» admite ahora la
+        // contracción «al/a la/a los/a las» (misma forma que
+        // [APPOINTMENT_GO_PATTERN]): «no voy AL dentista» es idéntica
+        // negación de plan que «no voy A LA consulta», pero la variante
+        // masculina escapaba al guard (`\ba\b` no casa dentro de «al»)
+        // y se capturaba APPOINTMENT 0.50 «No voy al dentista» —
+        // persistir exactamente lo opuesto de lo dicho (P1 c.681/1009).
+        // Medida PRE con sonda efímera `/tmp/ProbeNoVoyAl.kt`: «no voy
+        // al dentista/médico/empaste mañana» capturaban APPOINTMENT
+        // 0.50 mientras «no voy a la consulta/limpieza dental» eran
+        // NULL. El `\b` final protege verbos con prefijo («no voy
+        // alargar» NO casa: tras «al» de «alargar» no hay boundary).
         val m = Regex(
-            """\b(?:ya\s+)?no\s+(?:(?:voy|vamos|vas|vais|van)\s+a\b|(?:pienso|pensamos|piensas|planeo|planeamos|planeas|quiero|queremos|quieres|piensan|quieren)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b|(?:cuento|contamos|cuentas|cuentan)\s+con\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b)"""
+            """\b(?:ya\s+)?no\s+(?:(?:voy|vamos|vas|vais|van)\s+a(?:l| la| los| las)?\b|(?:pienso|pensamos|piensas|planeo|planeamos|planeas|quiero|queremos|quieres|piensan|quieren)\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b|(?:cuento|contamos|cuentas|cuentan)\s+con\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b)"""
         ).find(lower) ?: return false
         return Regex(
             """\bsin\s+\w*(?:ar|er|ir)(?:me|te|se|nos|le|les|la|lo|las|los)?\b"""

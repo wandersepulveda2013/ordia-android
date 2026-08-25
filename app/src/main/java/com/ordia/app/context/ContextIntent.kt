@@ -313,7 +313,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // DECIMOTERCERA; lockstep con MEDICAL/GO/FUTURE, lección
         // c.682/c.1110). Frase de DOS palabras: «limpieza» a secas (de
         // casa/del piso/del coche) jamás entra (anti-overreach).
-        "limpieza dental")),
+        "limpieza dental",
+        // c.1136: keyword «empaste» (candidata (k) clase DECIMOTERCERA;
+        // lockstep con MEDICAL/GO/FUTURE, hermana EXACTA de c.1126).
+        // Sustantivo inequívoco dental: el verbo albañil «empastar» NO
+        // lo contiene como substring (difieren en la 7ª letra).
+        "empaste")),
     MEETING("Reunión", listOf("reunión con", "reunión de", "junta", "encuentro",
         "quedar con", "vernos", "nos vemos", "quedamos",
         // c.847: lockstep del piso «quedar con|para» (lección c.751).
