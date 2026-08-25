@@ -18510,3 +18510,21 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Lateral NUEVA registrada (P3, estética, global a la familia): título «Cita: la limpieza dental» conserva el artículo «la» en minúscula tras «Cita: » (rama `extractTitle` APPOINTMENT no-selfMention; «tengo la terapia» idéntico). No es bug de captura; candidata de pulido de títulos si se decide homogeneizar «Cita: <sustantivo>» sin artículo.
 - Marcadores del hermano intactos (c.1128 merienda escolar piso c.773 EN CURSO, c.1125 revisión de la vista [integrado], c.1121 HEDGE, c.1119 muela, c.1113 fisioterapia, c.1108 parser) — NO tocados.
 - Próxima prioridad: candidatas DECIMOTERCERA restantes (UNA por ciclo, respetando marcadores activos): (k) «empaste», (m) «operar la rodilla»; laterales c.1111: (n-bis) «empezar el régimen», (n-ter) «voy a empezar la dieta»; laterales c.1127 DECIMODUARTA: (a-bis..a-quinquies) objetos de acarreo escolar restantes, (b) «inscribir en campamento»; lateral `DateRules.formatTime/formatDate` zone (c.1112); lateral de títulos «Cita: la …» (P3, este run).
+
+---
+
+## c.1129 (2026-08-25) — lateral (a-bis) candidata (a) clase DECIMODUARTA: «llevar el almuerzo al colegio» (objeto acarreo escolar piso c.773) — FIXED VERIFIED
+
+- HEAD inicial: `889a1b3` (cierre c.1128); marcador `d20f6ae` (19:49:01); HEAD final: `028580f` (fix) + docs de cierre.
+- NULL PRE: medido por la sonda persistida c.1127 `tools/probe/FourteenthClassSchoolProbe.kt` (C18) y pinneado NULL en el test c.1128 (`objeto almuerzo sigue fuera`).
+- Causa raíz: idéntica a c.1128 — la alternancia de objeto de `ERRAND_SCHOOL_RUN_FLOOR`/`matchSchoolRun` no admitía «el almuerzo».
+- Fix (lockstep piso↔plantilla, lección c.616): +1 alternativa de objeto `el\s+almuerzo` en el piso (`ContextIntentEngine.kt` l.584) y en la plantilla `matchSchoolRun` (l.5044). CERO keywords nuevas. Re-pin legítimo del pin c.1128 (girado NULL→HIT documentado, precedente c.1035/c.1041/c.1094).
+- UNA forma por ciclo: laterales ABIERTAS (a-ter) «dinero de la excursión», (a-quater) «ropa de recambio», (a-quinquies) «proyecto de ciencias».
+- TDD estricto: archivo NUEVO `ContextIntentEngineLlevarAlmuerzoColegioFloorTest.kt` (13 tests) — RED EXACTO 5 fallos (las capturas) → GREEN (1 iteración).
+- Sonda POST (motor real, /tmp/probe1129, efímera): T1-T5 → ERRAND 0.45 títulos limpios + dueAt («Llevar el almuerzo al colegio», «Llevo el almuerzo al cole», «Llevar el almuerzo a la guardería»); T6 envolvente «recuérdame…» → TASK 0.45 (c.613 gobierna); guards 3/3 NULL (no/quizá/pasado «llevé»); pines: merienda c.1128 y forma original niños HIT byte-idénticos, «dinero de la excursión» NULL (lateral), sin-destino NULL, destino «al trabajo» NULL; regresiones R1-R3 (parque c.852, pediatra c.1116, recoger c.1029) HIT byte-idénticas.
+- Suite UNIÓN FINAL medida sobre HEAD `028580f` (incluye c.1126 «limpieza dental» del hermano): **OK (8921 = 8886 [post-c.1128] + 22 [hermano c.1126] + 13 [míos] — aritmética medida)**; `tools/run_domain_checks.sh` 25/25; `tools/run_automation_engine_checks.sh` 9/9.
+- Integración NO-destructiva: el hermano pusheó 3 marcadores (`3d9782d` c.1130 deberes, `a9dca02` c.1131 rodilla, `17277ce` guard pretérito+MEETING) + cierre c.1126 (`680773b`+`4be8d3d`) durante mi verificación; `pull --rebase` limpio (regiones DISJUNTAS: suyo APPOINTMENT/scoreKind, mío piso escolar).
+- ⚠️ COLISIÓN DE NÚMERO documentada: el hermano fijó «c.1129» (guard pretérito+MEETING, `17277ce` 19:53:33) DESPUÉS de mi marcador c.1129 almuerzo (`d20f6ae` 19:49:01). Primer-marcador-gana (precedente c.1116-bis): c.1129 = almuerzo; su guard debería renumerarse c.1132 (sus marcadores c.1130/c.1131 ya citan «c.1129 almuerzo» como mío). Marcador ajeno INTACTO, NO tocado.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Marcadores del hermano intactos (c.1131 rodilla, c.1130 deberes, «c.1129»-pretérito→renumerar, c.1121 HEDGE, c.1119 muela, c.1113 fisioterapia, c.1108 parser, c.1106) — NO tocados.
+- Próxima prioridad: laterales (a-ter..a-quinquies) UNA por ciclo; NO duplicar candidata (b) «inscribir en campamento»/«deberes» (el hermano la trabaja como c.1130). Nunca force, nunca main.
