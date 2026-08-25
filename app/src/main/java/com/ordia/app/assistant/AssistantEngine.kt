@@ -1305,11 +1305,14 @@ object AssistantEngine {
             ?: DICTATE_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: MELO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
             ?: LO_NOTE_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
-        return if (content.isNullOrEmpty()) {
-            AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
-        } else {
-            AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
+        if (content.isNullOrEmpty()) {
+            return AssistantAnswer("¿Qué quieres anotar? Escríbelo tras «tomar nota: » o «guardar como nota: » y la guardo.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» (teclado laxo) = interrogativa ambigua: MENÚ, nunca capturar
+        // con el residuo en el payload (cubre las 5 rutas de nota arriba).
+        if (content.endsWith("?")) return null
+        return AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
     }
 
     // c.987: «recuérdame <contenido>» — captura de TAREA hermana de la
@@ -1344,6 +1347,12 @@ object AssistantEngine {
             // honesta de cómo dictarlo, SIN acción.
             return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «recuérdame …» y lo guardo como tarea.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — contenido crudo
+        // terminado en «?» sin «¿» (teclado laxo) = interrogativa ambigua:
+        // MENÚ, nunca capturar con el «?» de residuo en el título. Sobre el
+        // crudo (antes de despojar «que»), tras la guía pelada: cubre la
+        // pelada con «?» («recuérdame ?», NUNCA tarea basura «?», c.969).
+        if (raw?.endsWith("?") == true) return null
         // Anti-overreach: «recuérdame NO llamar…» pide no hacerlo; crear la
         // tarea capturaría lo contrario de la intención (falso positivo
         // grave). Menú honesto.
@@ -1371,6 +1380,9 @@ object AssistantEngine {
             // Hermana de la guía remindMe pelada (c.988): NUNCA tarea vacía.
             return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «recuérdame …» y lo guardo como tarea.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» = interrogativa ambigua: MENÚ, nunca residuo en el título.
+        if (raw?.endsWith("?") == true) return null
         // Anti-overreach: «no olvides NO ir…» pide no hacerlo; crear la
         // tarea capturaría lo contrario de la intención. Menú honesto.
         if (content.startsWith("no ", ignoreCase = true)) return null
@@ -1402,6 +1414,9 @@ object AssistantEngine {
             // honesta de cómo dictarlo, SIN acción.
             return AssistantAnswer("¿Qué tarea quieres crear? Escríbela tras «crea una tarea: …» y la guardo.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» = interrogativa ambigua: MENÚ, nunca residuo en el título.
+        if (content.endsWith("?")) return null
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
     }
 
@@ -1426,6 +1441,9 @@ object AssistantEngine {
             // NUNCA tarea vacía (doctrina c.969): guía honesta SIN acción.
             return AssistantAnswer("¿Sobre qué quieres que te avise? Escríbelo tras «avísame …» y lo guardo como tarea.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» = interrogativa ambigua: MENÚ, nunca residuo en el título.
+        if (content.endsWith("?")) return null
         // Anti-overreach: la negación tras «de» («avísame de NO llamar…»)
         // pide no hacerlo; crear la tarea capturaría lo contrario de la
         // intención (hermana de c.986/c.993). Menú honesto.
@@ -1456,6 +1474,9 @@ object AssistantEngine {
             // NUNCA tarea vacía (doctrina c.969): guía honesta SIN acción.
             return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «quiero que me recuerdes …» y lo guardo como tarea.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» = interrogativa ambigua: MENÚ, nunca residuo en el título.
+        if (content.endsWith("?")) return null
         // Anti-overreach: el contenido negado («quiero que me recuerdes
         // NO llamar…») pide no hacerlo; crear la tarea capturaría lo
         // contrario de la intención (hermana de c.986/c.993/c.994).
@@ -1570,6 +1591,9 @@ object AssistantEngine {
             // nunca tarea basura (doctrina c.969/c.988).
             return AssistantAnswer("No sé a qué se refiere «lo». Escríbeme qué quieres que te recuerde — por ejemplo «recuérdame llamar al banco» — y lo guardo como tarea.")
         }
+        // c.1099: espejo de la guarda c.1093 de olvide — «?» colgante sin
+        // «¿» = interrogativa ambigua: MENÚ, nunca residuo en el título.
+        if (raw?.endsWith("?") == true) return null
         // Anti-overreach (espejo c.987): «recuérdamelo NO <x>» pide no
         // hacerlo; capturar sería grabar lo contrario de la intención.
         if (content.startsWith("no ", ignoreCase = true)) return null

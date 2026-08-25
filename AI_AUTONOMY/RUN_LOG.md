@@ -18028,3 +18028,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos de este push: `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md` (M — docs unión; BACKLOG adoptado upstream sin delta). CERO cambios de producto.
 - Estado: STALE_RACE resuelto NO-destructivo; c.1094 FIXED VERIFIED (JVM) por SU `5fa9e12` + verificación independiente. Nunca force, nunca `main`.
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo): «?» de cierre sin «¿» captura en verbo-family (región assistant — SU c.1096 la cerró con (?iu) ×60 patrones, verificar residuo); colas relativas en títulos; familia «contar» c.950. Regiones EN CURSO del hermano que NO tocar: SU c.1097 (context «inflar las ruedas de la bici» — CommitmentEngine/ContextIntentEngine) y SU c.1098 (parser día-relativo/parte-del-día en mayúsculas, familia mañana).
+---
+
+## 2026-08-25 — Run c.1099 (este lado, assistant) — interrogativa colgante («?» sin «¿») nunca captura
+
+- HEAD inicial: `277aaa6` (suite 8512 OK, base sincronizada pull --ff-only).
+- Problema: última lateral ABIERTA de la auditoría SU c.1093. La familia olvide ya trataba la interrogativa colgante (guarda c.1093: contenido crudo terminado en «?» → MENÚ), pero sus 7 capturas hermanas la tragaban con el «?» como residuo en el payload (título corrupto guardado de verdad, P1) y la pelada con espacio creaba TAREA BASURA literal «?» (c.969 violada).
+- Causa raíz medida (sonda efímera PRE `/tmp/probe1099/Probe.kt`, motor real, 22/22 byte-exacta): 10 capturas-residuo + 1 pelada-basura; 11 pines ya correctos.
+- Fix (UN punto, espejo c.1093): guarda `crudo.endsWith("?") → null` (MENÚ honesto) tras la guía pelada y antes de la guarda negativa en `takeNoteCapture` (cubre las 5 rutas), `remindMeCapture`, `noOlvidesCapture`, `avisaMeCapture`, `quieroQueRecuerdesCapture`, `remindMeLoCapture`, `createTaskCapture`. La pelada queda cubierta (su crudo es «?»).
+- TDD estricto: 23 tests `AssistantEngineInterrogativaColganteCaptureTest` — RED EXACTAMENTE 11 fallos (12 pines verdes desde RED) → GREEN 23/23.
+- Verificación: sonda POST persistida `tools/probe/AssistantInterrogativaColganteProbe.kt` 22/22; suite `bash tools/run_domain_tests.sh` **OK (8535 = 8512 + 23 — aritmética exacta)**; `run_domain_checks.sh` 25/25. Cero regresiones.
+- Determinista (regex + endsWith), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). No force, no main, no destructivo.
+- Auditoría c.1093 CERRADA (4/4 frentes: (a) basura-sin-sustancia, (B) mayúsculas-tilde, (c) «que» huérfano, (d) interrogativa colgante).
+- Próxima prioridad: descubrimiento c.1096 — «(?i)» ASCII-only latente en parser/IME/repository (context/CommitmentEngine es región SU c.1097 EN CURSO — NO TOCAR); NO colisionar con SU c.1097/c.1098.
