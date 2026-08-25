@@ -240,4 +240,21 @@ class ContextIntentEngineSalirAeropuertoFloorTest {
         assertEquals(0.45f, r.confidence)
         assertEquals("Preparar la maleta", r.title)
     }
+
+    // Cobertura adicional del hermano (este lado, c.1150): convergencia
+    // funcional detectada en integración (ambos lados implementaron la
+    // candidata (b) con piso/plantilla/keywords idénticos; primer-push-gana,
+    // lección c.1077). Se cede el canónico y se aportan los 2 guards
+    // únicos del lado perdedor, medidos POST sobre la implementación
+    // canónica (`saldre` NULL, `ir al aeropuerto` NULL).
+
+    @Test
+    fun `futuro saldre para la estacion queda NULL`() {
+        assertNull(analyze("saldré para la estación a las 7"))
+    }
+
+    @Test
+    fun `ir al aeropuerto NULL status quo pineado`() {
+        assertNull(analyze("ir al aeropuerto"))
+    }
 }
