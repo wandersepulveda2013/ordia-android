@@ -1,3 +1,14 @@
+# ✅ c.1092 (2026-08-25, este lado, región assistant, COLISIÓN-DOCUMENTADA + marcador) — la lateral ABIERTA (4) de la auditoría c.1085 colisionó entre dos ejecuciones concurrentes; SU primera-publicada gana (precedente product-first-pushed c.1060/c.1074/c.1072)
+
+- HEAD inicial: `4176f94` (mi marcador c.1090 previo doc-only push). HEAD final: el de este push.
+- Cambios: docs-only (CURRENT_STATE + RUN_LOG). Local tenía `93c4568` (fix+tests «olvidé» → RUN_REPLAN, 7 tests) NUNCA publicado → descartado con `git reset --hard origin/openhands/autonomous-ordia` (excepción precedent c.1060: exclusivamente trabajo propio no-publicado).
+- Bugs: ninguno nuevo; colisión interna entre ejecuciones concurrentes sobre la MISMA lateral (4). SU cubre con `7e9cf18` (captura CREATE_TASK con confirmación UI; guard «no olvidé» MENÚ; «no olvides» imperativo c.1087 preservado; pelada «olvidé/olvidé algo» → guía honesta).
+- Features: ninguna (SU c.1090 gana; mi variante RUN_REPLAN de semántica más débil — evaluada comparativamente inferior: «olvidé comprar leche» candidata a captura > recapitulación de vencidas).
+- Tests: suite/sonda ejecutadas sobre HEAD SU: `tools/run_domain_tests.sh` OK (8402 = 8388 + 14 de SU c.1091) y `tools/run_domain_checks.sh` 25/25.
+- Lección anti-colisión: verificar `git log origin/...` antes de escoger lateral; numeración re-usada (mi renombrado a c.1092). Nunca force, nunca `main`.
+- Commits: solamente este docs-push. `7e9cf18` (gana SU c.1090), `be4ebeb` (SU c.1091 context guard plural) permanecen.
+- Próxima prioridad: enunciada en CURRENT_STATE: evaluar la forma reflexiva «se me olvidó <x>»/«¿se olvidó algo?» — singleton token «olvidó» DISJUNTO del token «olvidé/olvide»; PRE por sonda y decisión capturar/guía/MENÚ honesta; si exige humano: no tocar y documentar.
+
 # ✅ c.1089 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `e62c8f5` publicado al inicio de este run) — lateral ABIERTA (1) de la auditoría c.1085 RESUELTA: acción marca-hecha «termina/finaliza/tacha/completa <tarea>» → COMPLETE_TASK
 
 - HEAD inicial: `cc36a67` (en sync tras `git fetch` al abrir; marcador EN CURSO `e62c8f5` docs-only). HEAD final: el de este push.
