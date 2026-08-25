@@ -168,6 +168,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NO contienen "fotocopiar"; 0.12 sola queda bajo el umbral.
         // "la fotocopia está en el cajón" sigue descartado.
         "fotocopiar",
+        // c.1029: keyword-VERBO "configurar" (lockstep con el piso acotado
+        // "configurar <dispositivo>", ver ContextIntentEngine
+        // .hasStrongTaskImperative; lección c.751: sin ella una notificación
+        // "configurar el móvil nuevo mañana" sin palabra gatillo ni llega al
+        // análisis en producción). Verbo monosemántico (precedente c.864
+        // "escanear"/c.752 "votar"); subcadenas inertes: el sustantivo
+        // "configuración" y la forma pasada "configuré" NO contienen
+        // "configurar"; "reconfigurar" la contiene pero 0.12 sola queda bajo
+        // el umbral y el piso anclado la excluye (precedente "reescanear"
+        // c.888). "la configuración quedó bien" sigue descartado.
+        "configurar",
         // c.875: keyword-VERBO "presentar" (lockstep con el piso acotado
         // "presentar la declaración de la renta", ver ContextIntentEngine
         // .hasStrongTaskImperative; lección c.751: sin ella la notificación

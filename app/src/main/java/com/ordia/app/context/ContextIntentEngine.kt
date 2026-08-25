@@ -2322,6 +2322,31 @@ object ContextIntentEngine {
             // está…" no casan. Negación sin cláusula dedicada: keyword 0.12
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reiniciar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b""").containsMatchIn(lower)
+            // c.1029: piso acotado «configurar <dispositivo>» — candidata
+            // (b) medida NULL por la sonda persistida
+            // tools/probe/EleventhClassDigitalProbe.kt (c.1026, clase
+            // UNDÉCIMA: vida digital cotidiana; C10 «configurar el móvil
+            // nuevo por la noche» NULL, re-medido en el PRE de este ciclo).
+            // Olvido silencioso P1: la puesta en marcha del dispositivo
+            // nuevo (móvil/ordenador/router/impresora) es de los trámites
+            // digitales más cotidianos. El verbo «configurar» es bivalente
+            // (la cuenta/el perfil/la alarma) → el piso se ACOTA al objeto-
+            // dispositivo (móvil/celular/ordenador/computadora/portátil/
+            // tablet/router/impresora/tele(visor)/wifi; [óo]/[áa] admiten
+            // la grafía sin tilde, hermana «tensi[oó]n» c.772). Ancla
+            // ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
+            // «configuré…», el suelto «configurar» y el sustantivo
+            // «configuración» no casan. Negación sin cláusula dedicada:
+            // keyword «configurar» 0.12 + keyword «móvil» 0.12 + bono
+            // temporal 0.1 = 0.34 < umbral 0.45 (aritmética hermana
+            // c.859/c.860/c.771). Lockstep keyword-VERBO «configurar» en
+            // [ContextIntentKind.TASK] (lección c.751; monosemántico,
+            // precedente c.752 «votar»/c.864 «escanear») + plantilla de
+            // título. Kind TASK (hermano del dispositivo «cargar el
+            // celular» c.751 y «reiniciar el router» c.771; deliberación
+            // contra HOUSEHOLD: no es quehacer doméstico, es puesta en
+            // marcha de dispositivo).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )configurar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:m[óo]vil|celular|ordenador|computadora|port[áa]til|tablet|router|impresora|tele(?:visor)?|wifi)\b""").containsMatchIn(lower)
             // Piso "medir la tensión" (c.772, quinta clase — salud/
             // autocuidado; dispersión epoch-day 20685 % 5 = 0 sobre el pool
             // OPEN residual de 5; NULL PRE verificado por la sonda sobre
@@ -3730,6 +3755,17 @@ object ContextIntentEngine {
                 // ordenador…" nunca llega aquí porque el piso no lo captura).
                 val matchReiniciarRouter = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reiniciar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReiniciarRouter != null) return "Reiniciar ${matchReiniciarRouter.groupValues[2]}"
+                // c.1029: plantilla «configurar <dispositivo>» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; el resto de la
+                // frase —«nuevo», «de casa»— se conserva: es la misma
+                // gestión. El objeto bivalente «configurar la cuenta…»
+                // nunca llega aquí porque el piso no lo captura). La grafía
+                // del usuario se preserva (doctrina c.653): «el movil» sin
+                // tilde queda tal cual.
+                val matchConfigurarDispositivo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(configurar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:m[óo]vil|celular|ordenador|computadora|port[áa]til|tablet|router|impresora|tele(?:visor)?|wifi)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchConfigurarDispositivo != null) return "Configurar ${matchConfigurarDispositivo.groupValues[2]}"
                 // c.772: plantilla "medir la tensión" (ancla/guard idénticos
                 // al piso; lección c.616: el match arranca en el verbo, así
                 // acuse/prefijo temporal se despojan; el residuo temporal de
