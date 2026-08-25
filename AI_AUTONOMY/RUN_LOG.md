@@ -17216,3 +17216,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: ver abajo. HEAD final: el de este push.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); cobertura de verbos pretérito narrativo.
+## Ciclo c.1034 (2026-08-24, este lado, DISJUNTO parser)
+- HEAD inicial: `f636e8e7` (mi docs-close c.1033, PUSHED). Re-fetch pre-implementación: sin avance remoto.
+- Cambios: `NaturalTaskParser.kt` (familias devolver/confirmar/mandar añadidas a `preteriteNarrativeVerbAlternation` + nota KDoc c.1034), `NaturalTaskParserYaPreteritoNarrativoVerbosCoberturaTest.kt` (NUEVO, 20 tests), docs AI_AUTONOMY.
+- Bugs: «ya devolvió el libro»/«ya confirmaron la cita»/«ya mandé el correo» (pretérito inequívoco fuera de la lista cerrada c.950) — ancla AHORA FALSA + título MUTILADO (P1, medida PRE sonda efímera `/tmp/probe1034/Probe.kt`: 9/9 RED). Regresiones correctas (comandos anclan, narrativa c.1027/c.1033 intacta, ambigua ancla, «ya mismo» intacto).
+- Features: ninguna (fix de lateral registrada).
+- Tests: RED exacto 9 fallos (9 candidatas, cero guards) → GREEN `run_domain_tests.sh` **OK (7559 = 7539 + 20)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST: 9/9 narrativa intacta, comandos byte-idénticos. Determinista (regex), cero random.
+- Commits: ver abajo. HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2).
