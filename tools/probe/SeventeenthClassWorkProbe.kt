@@ -80,6 +80,14 @@ import com.ordia.app.context.ContextIntentEngine
  *        SÍ HIT 0.46): el piso «llevar <objeto>» tiene alternancia de
  *        objetos cerrada sin «portátil/ordenador». Olvidar el portátil
  *        = no poder trabajar. CANDIDATA: extensión de objeto.
+ *        ANOTACIÓN c.1157 [este lado]: RESUELTA — C20 NULL→HIT
+ *        ERRAND 0.45 («Llevar el portátil al trabajo», dueAt mañana)
+ *        vía piso NUEVO acotado `ERRAND_WORK_DEVICE_FLOOR` + plantilla
+ *        `matchWorkDeviceRun` (lockstep c.616, CERO keywords nuevas);
+ *        disjunta de TODOS los pisos «llevar» (objetos/destinos
+ *        disjuntos). Laterales ABIERTAS: «a la oficina»/«al curro»,
+ *        plural «los portátiles», objeto «tablet». Re-verificado POST
+ *        con sonda efímera: 6/6 capturas HIT, 9/9 guards NULL.
  *   OBSERVACIONES laterales (NO gaps de esta clase): C17 «turno de
  *   noche esta semana» NULL nominal — consistente con la familia
  *   sustantivo+fecha (documentada c.1102/c.1136/c.1137); C18 «empiezo

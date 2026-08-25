@@ -19149,3 +19149,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimientos nuevos (BACKLOG): (d-bis) «llevar el currículum a la entrevista» NULL (objeto «currículum» fuera del piso llevar-objeto — candidata futura); familia genitivo-temporal «de mañana/de la tarde» no parsea a dueAt en ningún camino (piso ni envolvente) — medida aquí y en R4 envolvente c.613.
 - Nunca force, nunca main, cero pérdida de trabajo válido. Determinista (regex), cero random, cero IA fingida, cero UI.
 - Próxima prioridad: candidatas DECIMOSÉPTIMA restantes — (e) «llevar el portátil al trabajo mañana» (objeto «portátil/ordenador» fuera del piso llevar-objeto) o (d-bis) «llevar el currículum a la entrevista»; vigilar cierres del hermano (c.1151/c.1152/c.1154) antes de cada push.
+
+## Run c.1157 — 2026-08-25 (este lado, OpenHands, DISJUNTO context) — feat(context): candidata (e) clase DECIMOSÉPTIMA «llevar el portátil al trabajo mañana» → ERRAND
+
+- HEAD inicial: `b2c33f2` (mi marcador EN CURSO c.1157 ya fijado — primer-marcador-gana, lección c.1077).
+- Problema: «llevar el portátil al trabajo mañana» → analyze NULL. Causa raíz: «llevar» keyword TASK (0.12 + bono temporal 0.1 = 0.22 < umbral) y pisos «llevar» con listas de objetos CERRADAS sin «portátil/ordenador». Olvido silencioso P1.
+- PRE (sonda efímera `/tmp/probe1157/`, motor real vía tools/run_probe.sh, base b2c33f2): 6/6 capturas NULL, 9/9 guards NULL correctos, 6/6 pines HIT (proyecto-ciencias c.1144, coche-taller c.684, perro-veterinario c.747, dativo c.854, envolvente c.613, «creo que hay que…»).
+- Fix lockstep DOS puntos (lección c.616; CERO keywords nuevas): piso NUEVO acotado `ERRAND_WORK_DEVICE_FLOOR` en la lista ERRAND + plantilla `matchWorkDeviceRun` en extractTitle (rama ERRAND tras matchMedicalRun; grafía preservada c.653; match arranca en el verbo). Anti-overreach: destino «al trabajo» EXIGIDO, determinante + singular obligatorios; «a la oficina»/«al curro», plural, «tablet» laterales ABIERTAS.
+- TDD estricto: 23 tests NUEVOS `ContextIntentEngineLlevarPortatilTrabajoFloorTest` — RED EXACTO 7 fallos (las 7 capturas) → GREEN 23/23 en 1 iteración (+2 tests post-GREEN: grafía LatAm «la portátil», guard plural).
+- POST (misma sonda): 6/6 capturas HIT ERRAND 0.45 títulos limpios + dueAt; 9/9 guards NULL byte-idénticos; 6/6 pines byte-idénticos.
+- Tests: suite UNIÓN OK (9326 = 9303 + 23, aritmética exacta) [tools/run_domain_tests.sh]; smoke dominio 25/25 [tools/run_domain_checks.sh]; automation 9/9 [tools/run_automation_engine_checks.sh]. NOTA infra: suite lanzada 2 veces (la 1ª compiló antes de los 2 tests extra; la 2ª, definitiva, da 9326).
+- AI_AUTONOMY: CURRENT_STATE (cierre), BACKLOG (fila nueva + anotación fila auditoría c.1147), sonda persistida anotada C20 NULL→HIT.
+- Bugs: ninguno nuevo. Features: 1 (piso + plantilla). NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Marcadores del hermano intactos (c.1154/c.1155/c.1156 — NO tocados). Nunca force, nunca main.
+- Próxima prioridad: laterales ABIERTAS de c.1157 (UNA por ciclo: «a la oficina»/«al curro», plural, «tablet») o clase DECIMOSÉPTIMA casi agotada → valorar auditoría de clase NUEVA (DECIMOCTAVA).
+- HEAD final: pendiente de commit (este run).
