@@ -17204,3 +17204,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 **Estado: VERIFIED (JVM).**
 **Próxima prioridad**: candidata (c) UNDÉCIMA «formatear el ordenador» (mismo patrón; cribar contra `ContextPrivacyFilter` primero, lección SU c.1029); luego (d) guard «subir de peso» (P2). Laterales ABIERTAS: «no vas a…», «ponerme la vacuna», «dale la pastilla…», «pasear al gato», «los pelos», colas relativas; parser («ya <pretérito>» clíticos múltiples/coma, genitivos, «por la tarde/noche» dueAt). Re-fetch OBLIGATORIO pre-push.
 
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación): residual «ahora/ahorita + pretérito» narrativa (P2, BACKLOG) u otra abierta.
+## Ciclo c.1033 [renumerado c.1029→c.1032→c.1033 por QUÁDRUPLE colisión cycle-ID: SU c.1029 context `298dc0a` + SU c.1030 delta parser `51e27af`/`a4f11cc` + SU c.1031 docs `d41cd31b` + SU c.1032 context «configurar <dispositivo>» `947e91c7`/`00aa8eb2`, fijados en DOS re-fetch pre-push] (2026-08-24, este lado, DISJUNTO parser) — fix(parser): lateral «clíticos múltiples» guard c.1027 RESUELTA
+- HEAD inicial: `25cce920` (mi re-pin convergente c.1028, PUSHED).
+- Cambios: `NaturalTaskParser.kt` (grupo de clítico de `yaPreteriteNarrativeSuffix` `?`→`{0,2}` + KDoc), `NaturalTaskParserYaPreteritoNarrativoCliticosMultiplesTest.kt` (NUEVO, 12 tests), `NaturalTaskParserYaPreteritoNarrativoTest.kt` (re-pin 1 del pin FUERA del hermano, precedente c.957/c.965/c.1018/c.1019).
+- Bugs: «ya me lo pagó»/«ya se lo dije»/«ya me lo enviaron» (doble clítico + pretérito inequívoco) — ancla AHORA FALSA + título MUTILADO (P1, medida PRE sonda efímera `/tmp/probe1029/Probe.kt`: 6/6 RED). Regresiones correctas (1 clítico c.1027, comandos «ya», ambigua «ya salimos»).
+- Features: ninguna (fix de lateral registrada).
+- Tests: RED exacto 7 fallos (6 candidatas + re-pin, revert temporal verificado) → GREEN `run_domain_tests.sh` **OK (7501 = 7489 + 12)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Determinista (regex), cero random.
+- Integración: remoto avanzó (SU c.1029/c.1030/c.1031) → stash docs + `pull --rebase` limpio (código DISJUNTO) + conflictos SOLO markdown resueltos UNIÓN (AMBOS lados conservados). Verificación INDEPENDIENTE de la UNIÓN: **OK (7539 = 7511 + 16 [SU c.1032] + 12, aritmética exacta)**; smoke 25/25; automation 9/9.
+- Descubrimiento FUERA registrado: cobertura de verbos pretérito narrativo («devolvió/confirmaron/mandé» fuera de la lista cerrada c.950) — lateral distinta de la de clíticos.
+- Commits: ver abajo. HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); cobertura de verbos pretérito narrativo.
