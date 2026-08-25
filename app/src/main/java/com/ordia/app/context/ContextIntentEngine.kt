@@ -3236,7 +3236,27 @@ object ContextIntentEngine {
             // «di de baja…» no casa, «dar de alta» (acción opuesta) no casa
             // (artículo intermedio lo impide… el ancla exige «baja\s+»), el
             // sustantivo «la baja…» no casa (falta el verbo «dar de»).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?)\b""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?|luz|agua|gas|internet)\b""").containsMatchIn(lower)
+            // c.1139: "dar de alta <suministro>" ("dar de alta la luz del
+            // piso nuevo mañana"), candidata (b) de la clase DECIMOQUINTA
+            // burocracia/administración (sonda persistida del hermano
+            // `tools/probe/FifteenthClassAdminProbe.kt` c.1132 C3/C4; NULL
+            // PRE medido sobre 67b7e7e con sonda efímera: 8/8 candidatas
+            // NULL, 7/7 guards NULL, regresiones HIT). Hermano EXACTO del
+            // piso «dar de baja» c.895c: kind TASK (gestión administrativa
+            // SIN desplazamiento; doctrina ERRAND c.842/c.862 solo gobierna
+            // el desplazamiento), misma ancla ^|acuse|temporal y guard
+            // `(?<!no )`. El objeto-suministro (luz|agua|gas|internet)
+            // blinda la bivalencia médica («dar de alta a un paciente» no
+            // casa) y el acotado deliberado («dar de alta el gimnasio»
+            // sigue NULL, pin del test c.895c). La extensión aditiva de
+            // objetos del piso «dar de baja» cubre las bajas de suministro
+            // («dar de baja el internet del piso viejo»). Lockstep
+            // keyword-frase «dar de alta» en ContextIntent + plantilla
+            // matchDarDeAlta en [extractTitle] (lección c.616). Olvido
+            // silencioso P1: mudanza sin luz/agua/gas/internet (alta) o
+            // cargo mensual fantasma del piso viejo (baja).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet)\b""").containsMatchIn(lower)
             // c.901: "dar las gracias a <persona> (por <objeto>)" ("dar las
             // gracias a Ana por el regalo"), candidata (b) y ÚLTIMA forma
             // NULL de la clase NOVENA-b coordinación/préstamos (sonda
@@ -4259,6 +4279,14 @@ object ContextIntentEngine {
                 // Mismo ancla/guard que el piso.
                 val matchDarDeBaja = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDarDeBaja != null) return "Dar de baja ${matchDarDeBaja.groupValues[1]}"
+
+                // "dar de alta X" → "Dar de alta X" (c.1139): lockstep con
+                // el piso acotado «dar de alta <suministro>» — hermana de
+                // matchDarDeBaja (mismo ancla/guard, doctrina c.653: verbo-
+                // frase preservado, solo capitalización inicial; el residuo
+                // temporal de cola lo depura [sanitizeTitle]).
+                val matchDarDeAlta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDarDeAlta != null) return "Dar de alta ${matchDarDeAlta.groupValues[1]}"
 
                 // "dar las gracias a X" → "Dar las gracias a X" (c.901):
                 // lockstep con el piso acotado «dar las gracias a <persona>»
