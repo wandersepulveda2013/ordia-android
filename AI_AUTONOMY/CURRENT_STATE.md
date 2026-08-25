@@ -15807,5 +15807,5 @@ NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 ## c.1151 — CIERRE (OpenHands, 2026-08-25)
 
 - **Cambios**: 4/4 candidatas NULL→TASK 0.45 con títulos limpios («Sacar el visado»); 6/6 guards NULL preservados; 5/5 pins byte-idénticos PRE/POST (envolventes incluidas). Lockstep 3 puntos: keyword-frase «sacar el visado» + piso acotado + plantilla hermana sin cola (el residuo «antes del viaje» no es parseable). Suite completa 9238/9238 VERDE (run_domain_tests.sh) + smoke 25/25. La clase DECIMOSEXTA cierra con tres hermanos convergentes; la lateral (d) «sacar el pasaporte» queda DESCARTADA (R8 bivalente). Detalle en RUN_LOG c.1151 CIERRE.
-- **Estado**: VERIFIED. Último commit: (pendiente; se rellena tras el commit de cierre).
+- **Estado**: VERIFIED. Último commit: `4c22398`.
 - **Próxima acción recomendada**: candidata (a) — «quedar con <persona> para <cosa>» REMINDER (última NULL con volumen real de la clase DECIMOSEXTA); o barrido a)–h).
