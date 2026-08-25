@@ -1339,6 +1339,32 @@ object ContextIntentEngine {
         """\b(?:no\s+)?(?:fu(?:i|e|imos|isteis|eron|iste)|estuv(?:e|o|imos|iste|ieron|isteis)|asist(?:[íi]|i[óo]|imos|iste|ieron|isteis))(?!\p{L})\s+(?:a|al|en)\b"""
     )
 
+    // Copulativa pretérito POSPUESTA al match MEETING (c.1142, lateral
+    // documentada del guard c.1138): «la reunión de padres fue ayer». El
+    // pretérito va DESPUÉS del sustantivo, así el patrón narrativo c.1138
+    // (que exige pretérito+preposición PRECEDIENDO) no la alcanzaba y el
+    // hecho ya celebrado se persistía como compromiso futuro (medido PRE
+    // 8/8 HIT MEETING 0.45 con dueAt, sonda efímera /tmp/probe1142). La
+    // exigencia de marcador de pasado INMEDIATO (ayer|anteayer|anoche)
+    // tras la cópula mantiene fuera «la reunión fue pospuesta» (NULL
+    // heredado) y «la reunión de ayer fue productiva» (HIT heredado,
+    // hermana de la doctrina c.5369 — lateral documentada). La
+    // posicionalidad de cláusula la fija [pastMeetingCopulativeGoverns]
+    // (sin corte [.!?,;:] entre match y cópula: «la reunión es mañana; la
+    // del curso fue ayer» sigue capturando la futura).
+    private val PAST_MEETING_COPULA_AFTER_PATTERN = Regex(
+        """\b(?:fue|era)\s+(?:ayer|anteayer|anoche)(?!\p{L})"""
+    )
+    // Copulativa pretérito ANTEPUESTA al match MEETING (c.1142): «ayer fue
+    // la reunión de padres». La lista cerrada de artículos/poseedores y la
+    // ADYACENCIA estricta hasta el inicio del match (verificada en
+    // [pastMeetingCopulativeGoverns]) blindan el anti-overreach: «ayer fue
+    // un día largo, la reunión de padres es mañana» NO gobierna (la cópula
+    // pertenece a otra oración) y sigue capturando.
+    private val PAST_MEETING_COPULA_BEFORE_PATTERN = Regex(
+        """\b(?:ayer|anteayer|anoche)\s+(?:fue|era)(?!\p{L})(?:\s+(?:el|la|los|las|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|vuestr[oa]s?)(?!\p{L}))*"""
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -1651,6 +1677,15 @@ object ContextIntentEngine {
         // candidato MEETING gobernado por el pretérito; si era el único, la
         // frase cae a NULL (un hecho cumplido no es un compromiso).
         if (pastMeetingNarrativeGoverns(lower, kind)) return 0f
+
+        // Guard de copulativa PASADA de reunión (c.1142 anti-overreach,
+        // lateral documentada del guard c.1138). Ver
+        // [PAST_MEETING_COPULA_AFTER_PATTERN]/[PAST_MEETING_COPULA_BEFORE_PATTERN]:
+        // «la reunión de padres fue ayer» / «ayer fue la reunión de
+        // padres» activaban el piso MEETING por sustantivo y persistían
+        // el hecho ya celebrado como compromiso futuro. Mismo cierre que
+        // su hermano: se descarta sólo el candidato MEETING.
+        if (pastMeetingCopulativeGoverns(lower, kind)) return 0f
 
         // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
         // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
@@ -3590,6 +3625,48 @@ object ContextIntentEngine {
         val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
         val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         return PAST_MEETING_NARRATIVE_PATTERN.findAll(lower).any { it.range.last < matchStart }
+    }
+
+    /**
+     * Detecta si el match MEETING está GOBERNADO por una copulativa en
+     * pretérito (c.1142 anti-overreach — lateral documentada del guard
+     * c.1138, ver [PAST_MEETING_COPULA_AFTER_PATTERN] y
+     * [PAST_MEETING_COPULA_BEFORE_PATTERN]). Dos formas, ambas con
+     * posicionalidad estricta:
+     *  - POSPUESTA («la reunión de padres fue ayer»): la cópula
+     *    «(fue|era) (ayer|anteayer|anoche)» aparece DESPUÉS del match y
+     *    en la MISMA cláusula — sin corte [.!?,;:] entre el fin del
+     *    match y la cópula, así «la reunión de padres es mañana; fui a
+     *    la del curso pasado» sigue capturando (pin posicional c.1138)
+     *    y una segunda cláusula en pasado no contamina la primera.
+     *  - ANTEPUESTA («ayer fue la reunión de padres»): el marcador debe
+     *    llegar JUSTO hasta el inicio del match consumiendo sólo
+     *    artículos/poseedores — «ayer fue un día largo, la reunión de
+     *    padres es mañana» NO gobierna (anti-overreach) y sigue
+     *    capturando.
+     * Sólo gobierna el kind MEETING: la envolvente presente legítima
+     * («recuérdame que la reunión fue ayer» → TASK, candado c.613)
+     * sobrevive al descarte del candidato MEETING. Laterales NO
+     * resueltas (una forma por ciclo): «fue ayer la reunión de padres»
+     * (cópula+fecha antepuestas sin marcador inicial), «la reunión de
+     * ayer fue productiva» (cópula pospuesta sin marcador de pasado tras
+     * ella — hermana de la doctrina c.5369) y las compuestas («ha sido
+     * ayer»).
+     */
+    private fun pastMeetingCopulativeGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.MEETING) return false
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val match = patterns.mapNotNull { it.find(lower) }.minByOrNull { it.range.first } ?: return false
+        val before = PAST_MEETING_COPULA_BEFORE_PATTERN.findAll(lower).any { m ->
+            var idx = m.range.last + 1
+            while (idx < lower.length && lower[idx] == ' ') idx++
+            idx == match.range.first
+        }
+        if (before) return true
+        return PAST_MEETING_COPULA_AFTER_PATTERN.findAll(lower).any { m ->
+            m.range.first > match.range.last &&
+                lower.substring(match.range.last + 1, m.range.first).none { it in ".!?,;:" }
+        }
     }
 
     /**
