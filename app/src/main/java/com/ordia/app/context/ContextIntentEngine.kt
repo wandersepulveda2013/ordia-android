@@ -1241,8 +1241,23 @@ object ContextIntentEngine {
     // \b de regex es ASCII-only (\w no incluye 'á'), así que "quizá" no cerraba
     // frontera y el patrón no casaba. Se usan lookarounds Unicode \p{L} (letras)
     // para delimitar los marcadores de forma robusta con tildes.
+    // c.1069: marcador «no sé si» + infinitivo (lateral abierta c.1063/c.1064).
+    // La duda explícita sobre la acción («no sé si llamar a mamá» → CALL 0.57
+    // firme, «no sé si ir al médico» → APPOINTMENT 0.67) se persistía como
+    // compromiso real — misma clase P1/P2 que c.649 (bandeja degradada con
+    // items no validados). El lookahead exige INFINITIVO español (con
+    // enclíticos, hermano de [INFINITIVE_LIKE] c.1064): la duda que gobierna
+    // otra cosa no casa («no sé si ella llamó ayer» pretérito, «no sé si es
+    // buena idea, llamar…» — la duda gobierna «es buena idea», no el
+    // imperativo tras la coma; cierre posicional hermano de c.650). Penaliza
+    // post-pisos (no bloquea): la duda no niega la intención. Residual
+    // aceptado (doctrina de la familia): la evidencia temporal fuerte puede
+    // sobrevivir a la penalización («no sé si ir al médico mañana a las 9»
+    // 0.85−0.3=0.55 ≥ umbral, igual que «quizá…» con bono temporal).
+    // Variantes FUERA (laterales hermanas, UNA por ciclo): «no sabemos si…»,
+    // «no sé si debería…», «no sé si llamaré…», «no sé muy bien si…».
     private val HEDGE_PATTERN = Regex(
-        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si)(?!\p{L})"""
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+si(?=\s+[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}(?!\p{L})))(?!\p{L})"""
     )
 
     // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto
