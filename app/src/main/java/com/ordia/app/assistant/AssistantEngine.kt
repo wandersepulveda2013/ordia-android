@@ -79,6 +79,7 @@ object AssistantEngine {
         val createTaskCapture = createTaskCapture(clean)
         val avisaMeCapture = avisaMeCapture(clean)
         val quieroQueRecuerdesCapture = quieroQueRecuerdesCapture(clean)
+        val noOlvidesCapture = noOlvidesCapture(clean)
         val remindMeLoGuide = remindMeLoGuide(clean)
         val markDoneCapture = markDoneCapture(clean, tasks)
         // c.999: captura «pospón/aplaza <tarea>» (acción). Debe evaluarse ANTES
@@ -531,6 +532,10 @@ object AssistantEngine {
             // c.995: lateral (b2) de la sonda persistente — «quiero que
             // me recuerdes…», hermana de remindMeCapture (mismo contrato).
             quieroQueRecuerdesCapture != null -> quieroQueRecuerdesCapture
+            // c.1087: familia «no (se) (te) olvide(s) <contenido>» —
+            // hermana de remindMeCapture (mismo contrato; descubierta en la
+            // auditoría de routing c.1085, lateral ABIERTA (2)).
+            noOlvidesCapture != null -> noOlvidesCapture
             // c.996: lateral (d) de la sonda persistente — «recuérdamelo»
             // deíctico: guía honesta (NUNCA tarea basura «lo»).
             remindMeLoGuide != null -> remindMeLoGuide
@@ -1321,6 +1326,32 @@ object AssistantEngine {
         // Anti-overreach: «recuérdame NO llamar…» pide no hacerlo; crear la
         // tarea capturaría lo contrario de la intención (falso positivo
         // grave). Menú honesto.
+        if (content.startsWith("no ", ignoreCase = true)) return null
+        return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
+    }
+
+    // c.1087: «no (se) (te) olvide(s) <contenido>» — forma cotidiana de
+    // pedir que recuerde algo (descubierta en la auditoría de routing
+    // c.1085 — lateral ABIERTA (2); caía al MENÚ). Hermana de
+    // remindMeCapture: guía pelada SIN acción (NUNCA tarea vacía); contenido
+    // negativo → menú (NUNCA capturar lo contrario); «no me olvides»
+    // (despedida) y pretérito «no olvidaste» NUNCA entran — el clítico
+    // opcional admite SOLO «se te»/«te». Sonda persistente
+    // tools/probe/AssistantNoOlvidesReminderProbe.kt.
+    private val NO_OLVIDES_PREFIX = Regex("(?i)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?(?:\\s*:|\\s+|\\s*$)")
+    private val NO_OLVIDES_WITH_CONTENT = Regex("(?i)^no\\s+(?:(?:se\\s+te|te)\\s+)?olvides?\\b\\s*:?\\s*([^:].*)$")
+
+    private fun noOlvidesCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!NO_OLVIDES_PREFIX.containsMatchIn(trimmed)) return null
+        val raw = NO_OLVIDES_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()
+        val content = raw?.let { LEADING_QUE.replace(it, "") }?.trim()
+        if (content.isNullOrEmpty()) {
+            // Hermana de la guía remindMe pelada (c.988): NUNCA tarea vacía.
+            return AssistantAnswer("¿Qué quieres que te recuerde? Escríbelo tras «recuérdame …» y lo guardo como tarea.")
+        }
+        // Anti-overreach: «no olvides NO ir…» pide no hacerlo; crear la
+        // tarea capturaría lo contrario de la intención. Menú honesto.
         if (content.startsWith("no ", ignoreCase = true)) return null
         return AssistantAnswer("La tarea está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_TASK, content)
     }

@@ -1,3 +1,15 @@
+# ✅ c.1087 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `df626db` publicado al inicio del run anterior; continuación TDD en este run) — lateral ABIERTA (2) de la auditoría c.1085 RESUELTA: familia recordatorio «no (se) (te) olvide(s) <x>» → CREATE_TASK
+
+- HEAD inicial: `9b51d2b` (sync limpio `git fetch` + `pull --ff-only`). Una integración NO-destructiva pre-push (stash -u → pull --ff-only → stash pop) — el remoto contenía sólo mi propio marcador `df626db`. HEAD final: el de este push.
+- Cambios: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` — `noOlvidesCapture` con `NO_OLVIDES_PREFIX`/`NO_OLVIDES_WITH_CONTENT` (clítico opcional SOLO «se te»/«te»; reusa `LEADING_QUE`) y rama de routing ante los actions de tarea; pelada → guía honesta SIN acción. A `app/src/test/java/com/ordia/app/assistant/AssistantEngineNoOlvidesReminderCaptureTest.kt` (10 tests). A `tools/probe/AssistantNoOlvidesReminderProbe.kt` (sonda PERSISTIDA, 5 capturas + 5 guards). Docs: BACKLOG + CURRENT_STATE + RUN_LOG.
+- Bugs: P1 — el recordatorio DICHO como se habla («no se te olvide llamar a mamá», «no olvides las pastillas», «no te olvides de comprar leche») caía al MENÚ genérico (mentira por omisión) mientras la fórmula editorial «recuérdame…» capturaba (c.987/c.988).
+- Features: ninguna (fix de routing honesto; determinista regex, CERO random, CERO IA falsa, cero UI).
+- Tests: `tools/run_domain_tests.sh` — RED exacto EXACTAMENTE 6 fallos (8361 run: las 6 capturas; guards y regresiones verdes desde RED) → GREEN OK (**8361 = 8351 + 10**, aritmética exacta), 1 iteración, cero ajustes. `tools/run_domain_checks.sh` 25/25. Sonda persistida POST 10/10. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK, JVM pura toolchain heredada /tmp, `JAVA_OPTS=-Xmx6g`).
+- Anti-colisión: marcador docs-only `df626db` al inicio (run anterior: solo TDD RED); integración NO-destructiva habituada (pop limpio — mi propio marcador). Nunca force, nunca `reset --hard`, nunca `main`.
+- Commits: marcador `df626db`; fix+tests+sonda+docs: el de este push.
+- Laterales ABIERTAS restantes de la auditoría c.1085 (UNA por ciclo): (1) acción marca-hecha «termina/tacha/finaliza la tarea <x>» (candidata a EVALUAR, bivalencia de «haz la tarea»); (3) «recuérdamelo: <contenido>» al menú; (4) declaración pasada «olvidé algo» al menú (candidata-agenda).
+- Próxima prioridad: una lateral ABIERTA restante de la auditoría c.1085 (sugerido (3) «recuérdamelo: <contenido>» — hermana directa, diseño evaluado) u otra P1/P2 real del BACKLOG.
+
 # ✅ c.1085 (2026-08-25, este lado, DISJUNTO assistant — marcador EN CURSO `08521c9` publicado al inicio) — auditoría de routing de assistant con sonda; cierre de UNA unidad acotada: captura de notas «una nota» con verbos alternativos
 
 - HEAD inicial: `0ddeb09` + marcador propio `08521c9` (sync inicial limpio `pull --ff-only`; gradle/lint/assemble NO VERIFICADO — no hay SDK, JVM pura con toolchain reconstruida por el hermano previo). HEAD final: el de este push.
