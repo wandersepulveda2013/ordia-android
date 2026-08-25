@@ -38,8 +38,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE projectId = :projectId AND archived = 0 ORDER BY completed, dueAt IS NULL, dueAt")
     fun observeByProject(projectId: Long): Flow<List<TaskEntity>>
 
-    @Query("SELECT * FROM tasks WHERE archived = 0 AND (title LIKE '%' || :query || '%' OR details LIKE '%' || :query || '%') ORDER BY updatedAt DESC LIMIT :limit")
-    suspend fun search(query: String, limit: Int = 50): List<TaskEntity>
+    // Sin búsqueda SQL: LIKE de SQLite pliega caso SOLO en ASCII (residuo familia
+    // c.1096). La búsqueda real es SearchEngine.foldForSearch() en memoria
+    // (pliega caso+tildes); cualquier reuso de esta vía reintroduciría el gap.
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(task: TaskEntity): Long
@@ -123,9 +124,6 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): ProjectEntity?
 
-    @Query("SELECT * FROM projects WHERE archived = 0 AND (name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%') ORDER BY updatedAt DESC LIMIT :limit")
-    suspend fun search(query: String, limit: Int = 30): List<ProjectEntity>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(project: ProjectEntity): Long
 
@@ -167,9 +165,6 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE projectId = :projectId AND archived = 0 ORDER BY pinned DESC, updatedAt DESC")
     fun observeByProject(projectId: Long): Flow<List<NoteEntity>>
-
-    @Query("SELECT * FROM notes WHERE archived = 0 AND (title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%') ORDER BY updatedAt DESC LIMIT :limit")
-    suspend fun search(query: String, limit: Int = 50): List<NoteEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(note: NoteEntity): Long

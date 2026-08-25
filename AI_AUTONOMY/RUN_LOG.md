@@ -503,7 +503,6 @@
 **Cambios**: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (TAKE_NOTE_PREFIX + WRITE_NOTE_WITH_CONTENT + fallback + comentario), A `app/src/test/java/com/ordia/app/assistant/AssistantEngineEscribeCreaNotaCaptureTest.kt` (19 tests), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sonda efímera `/tmp/probe973/` (NO commiteada).
 **Próxima prioridad**: continuar la auditoría de captura («escribe esto: X»/«escríbeme esto» sin «nota»; «guarda esto…» — verificar con sonda si caen al menú) u otra lateral documentada; UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
 
-
 ## Ciclo c.972 (2026-08-24)
 **Título**: feat(assistant): delta tras COLISIÓN de lateral (hermano publicó c.971 «apunta…»/«anota…») — enclíticos «apúntame»/«anótame» (± sin tilde) → CREATE_NOTE; pelada con «esto» → guía honesta (NUNCA nota basura «esto»).
 **Branch**: openhands/autonomous-ordia. **HEAD inicial**: `651de3d` (c.970) → re-fetch pre-push detectó `871a856` (c.971 del hermano, MISMA lateral) → integración NO-destructiva: trabajo local superado descartado sin commit + `pull --ff-only` (NO force, NO reset --hard, NO clean destructivo, NO `main`). Re-numeración c.971→c.972 (precedente c.963→c.964, c.968→c.969, c.970→c.971). **HEAD final**: commit de este ciclo (ver `git log`).
@@ -831,8 +830,6 @@
 - Bugs: ninguno nuevo. Features: ninguna (ciclo de descubrimiento). BACKLOG: 2 candidatas P1 nuevas (traer/gracias, UNA por ciclo — anti-overreach). CURRENT_STATE prepend c.891. Probe header actualizado con el estado medido.
 - Tests: NO VERIFICADO re-ejecutar suite completa (audit-only, cero cambios en código compilado por la suite; probe no forma parte del dominio ni de los tests). Suite de referencia pre-run: OK (5863) sobre el mismo HEAD (entrada c.889b), smoke 25/25. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs.
 - HEAD final: (este commit). Próxima prioridad: gap A «traer el cargador a Ana» (decidir bivalencia del verbo «traer» con sonda — «traer suerte»/«la alegría») o gap B «dar las gracias a <persona>»; alternativa de producto: auditar las relajaciones del invariante «verbo suelto NULL».
-
-
 
 ## RUN 2026-08-22 — ciclo c.889b STALE_RUN (duplicado con hermano; descartado no destructivo) + restauración aditiva `CURRENT_STATE`
 
@@ -16222,7 +16219,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   de clase NOVENA. Re-fetch OBLIGATORIO.
 ---
 
-
 ## Ciclo c.888 (2026-08-22) — piso «reescanear <documento>» (ContextIntentEngine, TASK) — lateral c.864 (prefijo re-)
 
 - **HEAD inicial**: 96b2faa (grafts) — pull --ff-only limpio PRE-trabajo;
@@ -16397,7 +16393,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntent.kt` (keyword-frase), test + sonda nuevos, `AI_AUTONOMY/*`. **Estado**: VERIFIED (JVM). **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). Commits/HEAD final: este. **Próxima prioridad**: clase NOVENA dinero/banca (familias restantes del barrido c.892, sonda `tools/probe/NinthClassMoneyProbe.kt`); laterales NOVENA-b registradas en BACKLOG («darle las gracias…», «dar gracias a…»). Re-fetch OBLIGATORIO pre-push.
 ---
 
-
 ## Ciclo c.902 (2026-08-23)
 
 - HEAD inicial: `8a557ef` (mi c.901 local sin commitear sobre él; suite 5962 verde pre-push).
@@ -16409,7 +16404,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: M `ContextIntentEngine.kt` (piso extendido), M `ContextIntentEngineDarLasGraciasFloorTest.kt` (+1 test), M `tools/probe/DarLasGraciasProbe.kt` (CAND-F/G), M `CURRENT_STATE.md`, M `BACKLOG.md`, M `RUN_LOG.md`. Cero cambios en `ContextIntent.kt`.
 - Determinista (regex), cero random, cero IA fingida, cero UI. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: clase NOVENA dinero/banca (`NinthClassMoneyProbe.kt` c.892); laterales NOVENA-b medidas NULL.
-
 
 ## Ciclo c.903 (2026-08-23)
 
@@ -16432,7 +16426,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Archivos: M `ContextIntentEngine.kt` (piso rama 2 + plantilla artículo opcional), M `ContextIntent.kt` (keyword-frase «dar gracias» + nota c.901 actualizada), A `ContextIntentEngineDarGraciasSinArticuloFloorTest.kt` (8 tests), M `ContextIntentEngineDarLasGraciasFloorTest.kt` + M `ContextIntentEngineDarleLasGraciasFloorTest.kt` (guardas laterales → captura intencional), A `tools/probe/DarGraciasSinArticuloProbe.kt`, M `AI_AUTONOMY/*`.
 - Estado: VERIFIED (JVM). NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK). HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: clase NOVENA dinero/banca (`tools/probe/NinthClassMoneyProbe.kt` c.892); lateral NOVENA-b final «darle gracias a…» (enclítico sin artículo). Re-fetch OBLIGATORIO pre-push.
 
-
 ## STALE_RUN c.904b (2026-08-23)
 
 - HEAD inicial: `c25e128` (c.903). Trabajo: MISMA lateral sin artículo «dar gracias a <persona>» que el hermano (colisión real detectada en push: `c25e128..d1eca89` — su c.904 publicado 05:44Z mientras yo corría mi TDD sobre la base c.903).
@@ -16450,9 +16443,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite completa `bash tools/run_domain_tests.sh` → **OK (5992 = 5984 c.904 + 8)**. Determinista (regex), cero random, cero IA fingida, cero UI.
 - Archivos: M `ContextIntentEngine.kt` (piso: lookbehind retirado; plantilla: lookbehind retirado), M `ContextIntent.kt` (keyword-frase «darle gracias»), A `ContextIntentEngineDarleGraciasSinArticuloFloorTest.kt` (8 tests), M `ContextIntentEngineDarGraciasSinArticuloFloorTest.kt` (guarda lateral → captura intencional), A `tools/probe/DarleGraciasSinArticuloProbe.kt`, M `AI_AUTONOMY/*`.
 - Estado: VERIFIED (JVM). NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK). HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: clase NOVENA dinero/banca (familias restantes del barrido c.892, sonda `tools/probe/NinthClassMoneyProbe.kt`). Re-fetch OBLIGATORIO pre-push.
-
-
-
 
 ## Ciclo c.906 (2026-08-23)
 
@@ -16690,7 +16680,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Laterales medidas FUERA (registradas, UNA por ciclo): «la primera hora del lunes fue aburrida» (artículo sin demostrativo + weekday genitivo directo → doble daño medido, título 'la fue aburrida'; pin byte-idéntico de esta clase — requiere doctrina bivalente propia pues «del lunes» es genitivo-ancla); «avisar la última hora» (objeto sin conector → residuo 'avisar la', heredada); «creo que las primeras horas de la mañana» sin predicado (fragmento bivalente, heredada); «a última hora de la tarde» → 15:00 (doctrina KDoc vigente).
 - Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: laterales medidas arriba o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
-
 ## Ciclo c.939 (2026-08-23) — fix(parser): narrativa ordinal H1-ARTÍCULO (artículo al inicio, sin demostrativo) con weekday genitivo DIRECTO («la primera hora del lunes fue aburrida») — lateral pineada en c.938 + fix de divergencia resolución/borrado
 
 - HEAD inicial: `e2b728f` (c.938, rama up-to-date con origin, working tree limpio). Toolchain ya instalada (Temurin 21.0.12.1 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc`, jars `/tmp`).
@@ -16711,7 +16700,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento del ciclo (medida sobre la base remota, sonda `/tmp/probe939/PostProbe3.kt`, 11 casos, now=domingo 2026-08-23 12:00 America/Santo_Domingo): la lateral directa SÍ quedó resuelta (8/8 formas → due=null + título íntegro; bivalente «la primera hora del lunes tengo reunion» → contenido íntegro, decisión doctrinal del otro run), PERO el genitivo INTERIOR de parte del día sigue en doble daño P1 medido 3/3: «las primeras horas de la noche del sabado fueron magicas» → sab 2026-08-29 21:00 + título «las fueron magicas» (ancla pineada byte-idéntica por el c.939 remoto, semántica narrativa rota). Registrada como fila P1 nueva en BACKLOG con implementación de referencia documentada.
 - Cambios: M `AI_AUTONOMY/BACKLOG.md` (fila P1 nueva), M `AI_AUTONOMY/CURRENT_STATE.md`, M `AI_AUTONOMY/RUN_LOG.md`. SIN cambio de motor/tests.
 - Estado: **VERIFIED (JVM, solo documental + medida)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK). HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: lateral P1 registrada (genitivo interior de parte del día) — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
-
 
 ## Ciclo c.941 (2026-08-23) — fix(parser): narrativa ordinal con genitivo INTERIOR de parte del día + weekday genitivo + predicado («las primeras horas de la noche del sábado fueron mágicas») — lateral P1 registrada en c.940
 
@@ -16765,7 +16753,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento del ciclo (medida sobre la base remota con la misma sonda): «en una primera hora del día trabajé mejor» (preposición «en» + INDEFINIDO + ordinal + genitivo canónico + predicado) → hoy 09:00 + título «en una trabajé mejor» — doble daño P1 medido 1/1, NO registrada por el c.944 remoto. ADEMÁS la lateral del c.944 remoto «una primera hora de clase fue genial» (H2 con indefinido, registrada «no medido») queda MEDIDA vía la forma hermana «una primera hora de clase fue aburrida» → hoy 09:00 + «una de clase fue aburrida» (doble daño confirmado 1/1). Registradas en BACKLOG (fila P1 nueva, UNA por ciclo).
 - Cambios: M `AI_AUTONOMY/RUN_LOG.md` (esta entrada, append-only al final), M `AI_AUTONOMY/CURRENT_STATE.md`, M `AI_AUTONOMY/BACKLOG.md` (fila P1 nueva). SIN cambio de motor/tests.
 - Estado: **VERIFIED (JVM, documental + verificación independiente)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK). HEAD final: e87c978 (merge sobre cf78fa1 remoto c.954). Próxima prioridad: laterales registradas («en una primera hora del día trabajé mejor» [medida c.945], «una primera hora de clase fue genial» [H2+indefinido, medida c.945], «en primera hora del lunes me quedé dormido» [sin artículo], «avisar la última hora») — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
-
 
 ## Ciclo c.946 (2026-08-23) — fix(parser): narrativa ordinal con preposición «en» SIN artículo AL INICIO + weekday genitivo (directo o interior) + predicado («en primera hora del lunes me quedé dormido») — lateral medida FUERA en c.942/c.943/c.944
 
@@ -16907,8 +16894,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   (OOM FixStackAnalyzer con el default 512M del wrapper).
 - Estado: **VERIFIED (JVM)**. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK). HEAD final: `1cc6615` (pusheado OK; `${github_token}` lowercase en este entorno). Próxima prioridad: laterales registradas («primera hora de clase» sin determinante [c.952]; H3 sin determinante bivalente [c.946]; weekday + parte del día intercalada + pretérito [c.950, verificada FUERA]) o nueva auditoría de descubrimiento — UNA por ciclo; re-fetch OBLIGATORIO pre-push.
 
-
-
 ---
 
 ## 2026-08-24 — ciclo c.956 — docs(ai_autonomy): COLISIÓN cycle-ID c.955 (dos runs resolvieron la MISMA lateral «hoy/ayer (en|por) la X + pretérito» en paralelo, CONVERGENCIA FUNCIONAL TOTAL sobre base c.954 `cf78fa1`) → base remota `596a3b5` verificada independientemente — SIN cambio de motor (doctrina duplicados c.916/c.934/c.940/c.945/c.948/c.949/c.953)
@@ -17007,7 +16992,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Cambios:** M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (FORMS += 3), M `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+6 tests), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. **Commits:** (hash de este ciclo). **HEAD final:** (commit de este ciclo).
 - **Próxima prioridad:** descubrimiento c.967 del hermano (BACKLOG ABIERTO): «la nota de <contenido>» → OPEN_SEARCH con la consulta íntegra (hermana de c.794) y/o «tomar nota» → captura — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
 
-
 ## c.970 (2026-08-24, UTC) — test(assistant): pin del conector «de» DESNUDO («la nota de física») tras COLISIÓN de lateral con el hermano (su c.969 publicó el MISMO fix de producción)
 - **HEAD inicial:** `a9c951c` (c.968), sync inicial limpio `pull --ff-only` (sin divergencia; NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain heredada en /tmp (JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`). Baseline: suite **OK (6724)**, smoke 25/25.
 - **Unidad original (P2 BACKLOG (a), descubierto c.967 — «UNA por ciclo»):** «la nota de la reunión» (nota CONCRETA con contenido, hermana singular de c.794 «notas de física») caía al menú genérico — mentira por omisión con ruta honesta existente. **Causa raíz:** `NOTE_LEAD_ARTICLES` = {"las","mis"} excluía el artículo «la» singular. **Sonda PRE efímera `/tmp/probe969/LaNotaDeProbe.kt` (motor real): 4/4 GAP** («la nota de la reunión/del trabajo/de física/de la lista de compras» → MENU); guards 9/9 correctos. **Fix mínimo (1 set):** `NOTE_LEAD_ARTICLES` += «la». **TDD estricto:** 5 tests nuevos `notesContent_*` — **RED exacto (6729 run, EXACTAMENTE 3 fallos = 3 capturas; 2 guards verdes desde RED) → GREEN**. **Sonda POST:** 4/4 SEARCH con la consulta íntegra; 9/9 guards byte-idénticos. **Sonda de honestidad end-to-end `/tmp/probe969/SearchHonestProbe.kt`:** el payload íntegro ENCUENTRA la nota real en `SearchEngine.search` (3/3 HIT exacto; vacío honesto sin match). Suite pre-push **OK (6729 = 6724 + 5)**; smoke 25/25.
@@ -17016,7 +17000,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Verificación FINAL post-integración:** `tools/run_domain_tests.sh` **OK (6737 = 6736 hermano + 1)**; `tools/run_domain_checks.sh` 25/25. Determinista, cero random, cero IA fingida, cero UI. **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Cambios:** M `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+1 test pin c.970), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (registro de colisión; `AssistantEngine.kt` quedó byte-idéntico al del hermano — mi cambio de producción era idéntico y se descartó). **Commits:** (hash de este ciclo). **HEAD final:** (commit de este ciclo).
 - **Próxima prioridad:** la del hermano c.969 (auditoría de captura del asistente: sonda «apunta…»/«anota…») u otra lateral documentada — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
-
 
 ## c.972 (2026-08-24, UTC) — fix(assistant): captura «apúntame…»/«anótame…» (enclítico «me», con/sin tilde) → CREATE_NOTE
 - **HEAD inicial:** `871a856` (c.971), sync inicial limpio `pull --ff-only` (sin divergencia; NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain heredada en /tmp (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g` (primer intento del RED dio OOM heap en kotlinc — reintento con 6g, lección de ciclos previos). Baseline heredada: suite OK (6750), smoke 25/25.
@@ -17027,7 +17010,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Descubrimiento nuevo (BACKLOG ABIERTO):** «escribe esto: …»/«guarda esto: …» (medido 3/3 GAP en la misma sonda; fix debe EXIGIR «esto/eso» — «escribe un correo a juan»/«guarda el archivo» NO son captura, 5/5 guards ya medidos).
 - **Cambios:** M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (1 prefijo + 1 regex + 1 fallback + comentario), A `app/src/test/java/com/ordia/app/assistant/AssistantEngineApuntameCaptureTest.kt` (13 tests), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. **Commits:** (hash de este ciclo). **HEAD final:** (commit de este ciclo)
 - **Próxima prioridad:** «escribe esto: …»/«guarda esto: …» → CREATE_NOTE (descubrimiento c.972, sonda PRE ya medida 3/3 GAP, guards listos) u otra lateral documentada — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push.
-
 
 ## c.973 (2026-08-24, UTC) — test(assistant): pins de cobertura tras COLISIÓN cycle-ID c.972/c.972 del hermano (su producción es estrictamente superior)
 - **HEAD inicial:** `871a856` (c.971), sync inicial limpio `pull --ff-only` (NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain heredada en /tmp; `JAVA_OPTS=-Xmx6g`. Baseline heredada: suite OK (6750), smoke 25/25.
@@ -17049,7 +17031,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 **Archivos**: M `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (2 regex + comentario doctrina); A `app/src/test/java/com/ordia/app/assistant/AssistantEngineGuardameloUstedCaptureTest.kt` (16 tests); M `AI_AUTONOMY/BACKLOG.md` (fila c.981 → RESUELTO c.984); M `AI_AUTONOMY/CURRENT_STATE.md`; M `AI_AUTONOMY/RUN_LOG.md`.
 **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
 **HEAD final**: `b1057cb` (c.984, publicado). **Próxima prioridad**: nueva sonda de descubrimiento continuo (parser/asistente/captura) — UNA por ciclo con sonda de medida previa; re-fetch OBLIGATORIO pre-push; colisión cycle-ID posible (hermano activo — numerar tras re-fetch).
-
 
 ## c.985 (2026-08-24, UTC) — test(assistant): 7 pins «-melo» tras COLISIÓN cycle-ID c.984/c.984 CONVERGENTE TOTAL con el hermano (producción idéntica descartada NO-destructivo; UNIÓN 23)
 - **HEAD inicial:** `5d325b0` (c.983), sync inicial limpio `pull --ff-only` (sin divergencia; NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO `main`). Toolchain reconstruida en /tmp (entorno nuevo: Temurin JDK 21 `/tmp/jdk21-home`, kotlinc 2.1.20 `/tmp/kotlinc-home` — «Permission denied» en binarios por bit exec ausente, resuelto con chmod +x, 8 jars `/tmp/libs`); `JAVA_OPTS=-Xmx6g`. Baseline verificada: suite **OK (6874)**, smoke 25/25.
@@ -17186,7 +17167,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: lateral (b2) «quiero que me recuerdes…»
   (recordatorio envuelto) o (d) «recuérdamelo» (deíctico).
 
-
 ---
 
 ## c.995 — fix(assistant): captura «quiero que me recuerdes…» — VERIFIED
@@ -17257,7 +17237,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Wiring lockstep `AssistantScreen.kt` (case POSTPONE_TASK: handler `vm::postponeTask` + label) + string `assistant_action_postpone`. Sonda persistente `AssistantTaskCreationProbe.kt`: +4 pins (3 guards — captura/pelada/negación — + 1 regresión de la consulta c.705) → POST cerradas 13, laterales 0, inesperados 0, exit 0.
 - **Commits:** `501d448` (fix) + docs-close (este). **HEAD final:** docs-close c.999. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Próxima prioridad:** lateral ABIERTA de la familia de acción sobre datos (UNA por ciclo, medida previa): «borra/elimina la tarea…» (P1 DESTRUCTIVA — diseño con confirmación explícita); re-fetch OBLIGATORIO pre-push; colisión cycle-ID frecuente (hermano activo — numerar tras re-fetch).
-
 
 ## Ciclo c.1000 (2026-08-24) — UNIÓN tras COLISIÓN cycle-ID c.998/c.998 CONVERGENTE (misma lateral, producción propia descartada NO-destructivo, precedente c.988→c.989): stopwords «lo»/«tarea» + pelada meta-palabra → guía + pin transversal independiente (18 tests)
 - HEAD inicial del run: `d243d2e` (c.997 docs-close), sync limpio; este run implementó la lateral c.997 «completé/terminé <tarea>» como SU c.998 (sonda PRE efímera `/tmp/probe998/CompleteDeclarativoProbe.kt`: 6/6 candidatas al menú — mentira por omisión; 7/7 guards NONE; 3/3 controles intactos; RED exacto 12 fallos → GREEN 30/30; suite OK 7055) y commiteó el fix local `8996180` SIN push. **Re-fetch pre-push: el hermano había empujado SU c.998 (`df221e7`+docs `56b0f5f`) implementando LA MISMA lateral** — colisión convergente total (mismo objetivo, misma política confirmable, misma familia; su variante: rama unificada en `markDoneCapture` con «acabé» y despoje del «de» en la regex).
@@ -17456,7 +17435,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: fix + docs-close. **Estado: VERIFIED (JVM). NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: auditoría de descubrimiento clase UNDÉCIMA (nueva sonda persistida `tools/probe/`, convención c.822/c.834/c.845/c.857/c.890/c.1007) — fila DÉCIMA AGOTADA; laterales parser/context ABIERTAS registradas. Re-fetch OBLIGATORIO pre-push.
 
-
 ## 2026-08-24 — Ciclo c.1023 [renumerado c.1017→c.1019→c.1020→c.1021→c.1022→c.1023 por séxtuple asignación del cycle-ID: SU c.1017/c.1018 contexto + SU c.1019 parser convergente + SU c.1020 contexto `fed4dbd` + SU c.1021 assistant ARCHIVE `5f7c77f`/`1012210` + SU c.1022 assistant «borra» `64fe8d3`/`1980dc7`; commit `4c1b5cf` (mensaje c.1022) = ESTE ciclo] — test(parser): delta de cobertura tras COLISIÓN CONVERGENTE «a la/las» + pretérito
 - HEAD inicial: `9920a22` (docs-close c.1016 del hermano).
 - Problema (P1 original → P2 cobertura): este run implementó en paralelo la lateral «a la/las primeras?/últimas? horas?» + pretérito (medida PRE propia: 8/8 candidatas con doble daño sobre `9920a22`; fix 1 punto + 22 tests, suite propia OK 7360). En el re-fetch pre-push el hermano había publicado la MISMA lateral como SU c.1019 (`2825964` fix + `4edce73` docs, merge `8d16c9c`/`9857100`, dedupe `5233834`).
@@ -17535,7 +17513,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: `b40c6404` (fix reaplicado) + `8fe8eaca` (docs-close c.1023) + docs-close c.1026 (este). HEAD final: el de este push.
 - Estado: VERIFIED (JVM, verificación de unión). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push).
-
 
 ## Ciclo c.1029 (2026-08-24) — candidata (a) UNDÉCIMA «cambiar la contraseña…» RECHAZADA por diseño P0 (privacidad deliberada, `ContextPrivacyFilter`) + pin persistido 16 tests [renumerado c.1027→c.1029 por colisión cycle-ID con SU c.1027 parser «ya»/SU c.1028 re-pin]
 - Branch: openhands/autonomous-ordia. HEAD inicial: `fde9cbfa` (mi docs-close c.1026). Re-fetch pre-implementación limpio. Re-fetch pre-push: hermano publicó SU c.1027 (`a60333a6`+…) y SU c.1028 (`25cce920`) durante mi TDD → `pull --ff-only` limpio (mi trabajo = 1 archivo nuevo untracked). Toolchain heredada /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`), `JAVA_OPTS=-Xmx6g`.
@@ -17965,7 +17942,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
 - Próxima prioridad: auditoría progresiva (C→E: recapitulación honesta del menú; laterales documentadas en sondas).
 
-
 ## 2026-08-25 — run c.1091 (este lado, UNA candidata: «no vais/van a…» 2ª persona plural)
 
 - HEAD inicial: `7e9cf18` (pull --ff-only limpio sobre origin/openhands/autonomous-ordia).
@@ -18143,7 +18119,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Laterales ABIERTAS nuevas (registradas en BACKLOG, UNA por ciclo): recurrencias «CADA MAÑANA» caps (6247), hermanas clock-tail no medidas (1708/2859), «el DÍA de MAÑANA» (5781), «media MAÑANA» (2794), deadlines «SIN FALTA MAÑANA» (3582-3649).
 - Próxima prioridad: laterales ABIERTAS parser-caps anteriores, o la mayor P1/P2 disponible respetando marcadores hermanos activos (SU c.1097 context, OH2 c.1099 assistant + c.1101 capture-engine, OH c.1100 context, OH3 c.1102 sonda).
 
-
 ## 2026-08-25 — ciclo c.1102 (este lado, context sondas): auditoría de descubrimiento DECIMOTERCERA clase — SALUD Y AUTOCUIDADO cotidiano
 
 - HEAD inicial: `92e6a2b` → tras DOS re-fetch pre-push: base final `c56291b` (SU c.1095/c.1096 producto + docs, marcadores SU c.1097 context / OH2 c.1098 parser / OH2 c.1099 assistant / SU c.1100 context / OH3 c.1101 domain). Pull --ff-only limpio en cada integración; NUNCA colisión de código (ciclo read-only por construcción).
@@ -18205,9 +18180,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Laterales ABIERTAS nuevas (registradas en BACKLOG, UNA por ciclo): lista de días con acento en caps «los lunes y los MIÉRCOLES» → WEEKLY solo lunes + residuo «y los MIÉRCOLES cenas» (medida PRE c.1103); rareza «cada por la mañana» residuo «cada» (también en minúscula — fix de producto). Siguen pendientes de c.1098: clock-tail «a las X DE LA MAÑANA» (1708/2859), «el DÍA de MAÑANA» (5781), «media MAÑANA» (2794), deadlines «SIN FALTA MAÑANA» (3582-3649).
 - Próxima prioridad: una de las laterales ABIERTAS parser-caps anteriores (UNA por ciclo), respetando marcadores hermanos activos (SU c.1097 context, OH2 c.1099 assistant + c.1101 capture-engine, OH c.1100 context, OH3 c.1102 sonda — NO TOCAR).
 
-
-
-
 ---
 ## 2026-08-25 — run c.1105 (este lado, candidata (d) clase DUODÉCIMA: «inflar las ruedas del coche» ya captura TASK)
 
@@ -18259,6 +18231,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Colisión de marcador documentada: mi marcador local c.1105 rechazado (el hermano fijó c.1105 primero, `cea218b`) → descartado con `reset --soft` SOLO sobre mi commit NO publicado + rebase abortado limpio; renumerado c.1106 (primer-marcador-gana, precedente c.1094/c.1096/c.1102).
 - Commits: `0e1c11e` marcador EN CURSO c.1106 → fix+tests+docs a continuación. Nunca force, nunca main.
 - Próxima prioridad: candidata restante de la clase DECIMOTERCERA ((a) «hacerme las analíticas», (c) «sacar cita», (d) «fisioterapia», (e) «revisión de la vista», (f) «limpieza dental», (g) «ecografía» — UNA por ciclo) o la residual «llevar al niño al pediatra» (región FLOORS, tras cierre de c.1105), respetando marcadores hermanos activos (OH2 c.1106 parser-caps lista de días, SU c.1105 floors coche, OH c.1105 CommitmentEngine (?iu), OH c.1104 — NO TOCAR).
+## 2026-08-25 — run c.1113 [renumerado c.1105→c.1111→c.1113 por DOBLE colisión cycle-ID: SU fijó c.1105 primero (`644b2c5` context «inflar las ruedas del coche») y el hermano fijó c.1111 (`a7fa35e` FLOORS «empezar la dieta») y c.1112 (`b4ae9d7` assistant entity-lookup) antes de mi push — primer-marcador-gana, precedente c.1092/c.1096/c.1102] (este lado, domain+data): auditoría residuo «(?i)» ASCII-only (familia c.1096) cerrada SIN fuga; SQL search muerta eliminada
+
+- HEAD inicial: `56f0d48`; re-sincronizado a `7eb7122` (ff-only limpio) y de nuevo a `b4ae9d7` (11 commits entrantes del hermano c.1107-c.1112, integración NO-destructiva: reset --soft SOLO sobre mi commit NO publicado + stash + pull --ff-only + stash pop; conflicto solo en RUN_LOG resuelto UNIÓN). HEAD final: el de este push.
+- Problema (P0/P1 privacidad — auditoría transversal de la familia c.1096 en regiones NO marcadas): el único «(?i)» inline con letra acentuada localizado en el escaneo (6 archivos) era `SensitiveSecretPatterns.personalIdKeyword` (alternativa «n[uú]mero de seguro social») — hipótesis: «MI NÚMERO DE SEGURO SOCIAL ES …» en caps no casaría la palabra-clave → NSS persistido en texto plano.
+- Causa raíz medida con sonda efímera PRE `/tmp/probe1105b/Probe.kt` (motor real vía `tools/run_probe.sh`, base `56f0d48`): la hipótesis NO se confirma — la alternativa ASCII redundante «seguro social» de la MISMA regex casa siempre que «número de seguro social» aparece (el texto de la alternativa larga la contiene), y el valor NSS (11 dígitos) cae en la ventana de 40 chars. Sonda 9/9 OK (2 caps-tilde, 4 pines hermanos, 3 negativos). La redundancia es carga-bearing: la verdad medida manda sobre el marcador; CERO cambios de producción (menos es más).
+- Blindaje: 3 tests pin nuevos en `SensitiveSecretPatternsTest` (nssAllCapsAccentedKeywordIsBlocked / InSentence / WithoutValue) — si alguien «simplifica» la alternativa redundante, la vía caps-tilde reaparece como fuga PII y los pins lo rompen. Sonda persistida `tools/probe/SensitivePersonalIdMayusculasTildeProbe.kt` 9/9.
+- Hallazgo lateral real del mismo escaneo (residuo Unicode-case en capa de datos): `TaskDao`/`ProjectDao`/`NoteDao.search` (LIKE dialecto-dependiente — el dialecto real hace fold de TILDES pero no case-folding Unicode: «MÚSICA» vs «música») no tenían NINGÚN caller en el worktree (la búsqueda real vive en los repositorios vía flujos). Eliminadas las 3 queries SQL y los 3 overrides de repositorio; comentario de diseño en su sitio. Cero pérdida funcional (medido: cero llamadas).
+- Verificación: suite `bash tools/run_domain_tests.sh` **OK (8700 = 8697 + 3 pins propios — aritmética exacta medida sobre la UNIÓN final post-integración del hermano c.1107/c.1109/c.1110)**; `bash tools/run_domain_checks.sh` 25/25. Daos.kt/Repositories.kt compilados contra stubs de anotación JVM (Room real NO VERIFICADO — sin Android SDK; gradle/lint/assemble/UI NO VERIFICADO).
+- Archivos de este push: `app/src/main/java/com/ordia/app/data/local/Daos.kt` (M — 3 queries muertas eliminadas), `app/src/main/java/com/ordia/app/data/repository/Repositories.kt` (M — 3 overrides eliminados), `app/src/test/java/com/ordia/app/domain/SensitiveSecretPatternsTest.kt` (M — 3 pins), `tools/probe/SensitivePersonalIdMayusculasTildeProbe.kt` (A — sonda veredicto), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md` (M).
+- Estado: AUDITADO VERIFIED (JVM). Nunca force, nunca `main`.
+- Próxima prioridad: candidatas clase DECIMOTERCERA (UNA por ciclo, orden (a)→(g) — (b)/(d) keywords baratas de UN punto); NO colisionar con marcadores activos del hermano: SU c.1097 floors / OH c.1100 HEDGE (context — NO TOCAR ContextIntentEngine/CommitmentEngine), OH2 c.1103 parser recurrencias (NO TOCAR NaturalTaskParser), c.1104 CommitmentEngine conversations (NO TOCAR); laterales parser ABIERTAS estables: colas relativas en títulos, familia «contar» c.950, sujeto nominal (pin c.1041).
 
 ### Run OH — ciclo c.1107 (2026-08-25) — candidata (h) DECIMOTERCERA: guard anti-AVERSIÓN «odio/detesto/aborrezco + infinitivo»
 

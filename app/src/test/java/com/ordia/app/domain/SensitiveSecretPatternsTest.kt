@@ -191,4 +191,30 @@ class SensitiveSecretPatternsTest {
         assertFalse(SensitiveSecretPatterns.containsNumericSensitive("comprar pan y leche mañana"))
         assertFalse(SensitiveSecretPatterns.patterns.any { it.containsMatchIn("comprar pan y leche mañana") })
     }
+
+    // ── NSS en MAYÚSCULAS con tilde (auditoría c.1105, familia c.1096) ──────
+    // «n[uú]mero» bajo «(?i)» inline NO casa «NÚMERO» (fold ASCII-only en la
+    // JVM), pero la alternativa ASCII redundante «seguro social» de la MISMA
+    // palabra-clave sí casa y salva la detección (sonda c.1105 9/9). Estos
+    // pins la hacen carga-bearing: si alguien "simplifica" la alternativa
+    // redundante, la vía caps-tilde reaparece como fuga PII y esto se rompe.
+
+    @Test fun nssAllCapsAccentedKeywordIsBlocked() {
+        assertTrue(SensitiveSecretPatterns.containsPersonalIdentifier(
+            "MI NÚMERO DE SEGURO SOCIAL ES 12345678901"
+        ))
+    }
+
+    @Test fun nssAllCapsAccentedKeywordInSentenceIsBlocked() {
+        assertTrue(SensitiveSecretPatterns.containsPersonalIdentifier(
+            "EL NÚMERO DE SEGURO SOCIAL DE MI MAMÁ ES 98765432109"
+        ))
+    }
+
+    @Test fun nssAllCapsAccentedKeywordWithoutValueIsNotBlocked() {
+        // Sin los 11 dígitos no hay PII: la palabra-clave sola no bloquea.
+        assertFalse(SensitiveSecretPatterns.containsPersonalIdentifier(
+            "EL NÚMERO DE SEGURO SOCIAL NO LO TENGO"
+        ))
+    }
 }

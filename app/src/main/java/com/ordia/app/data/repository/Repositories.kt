@@ -54,7 +54,6 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun subtreeIds(id: Long): List<Long> =
         TaskTree.collectIds(id) { dao.getChildIds(it) }
     suspend fun deletePermanently(id: Long) = dao.deleteSubtreeAndSelf(id)
-    suspend fun search(query: String): List<TaskEntity> = dao.search(query)
     suspend fun getAllNow(): List<TaskEntity> = dao.getAllNow()
 }
 
@@ -68,7 +67,6 @@ class ProjectRepository(private val dao: ProjectDao) {
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
     suspend fun deletePermanently(id: Long) = dao.deleteById(id)
-    suspend fun search(query: String): List<ProjectEntity> = dao.search(query)
 }
 
 class NoteRepository(private val dao: NoteDao) {
@@ -81,7 +79,6 @@ class NoteRepository(private val dao: NoteDao) {
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
     suspend fun deletePermanently(id: Long) = dao.deleteById(id)
-    suspend fun search(query: String): List<NoteEntity> = dao.search(query)
 }
 
 class HabitRepository(
