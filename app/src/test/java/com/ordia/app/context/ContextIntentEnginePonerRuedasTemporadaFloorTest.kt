@@ -178,12 +178,19 @@ class ContextIntentEnginePonerRuedasTemporadaFloorTest {
         assertNull(intent)
     }
 
+    // c.1097: re-pin legítimo — la candidata (c) «inflar las ruedas de
+    // la bici» ya NO sigue fuera: tiene piso propio en este ciclo
+    // (medido PRE NULL en c.1082 y re-medido PRE en c.1097; el pin
+    // histórico queda en su propio test hermano
+    // [ContextIntentEngineInflarRuedasFloorTest]).
     @Test
-    fun `candidata c inflar sigue fuera`() {
+    fun `candidata c inflar ahora captura c1097`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "inflar las ruedas de la bici hoy", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Inflar las ruedas de la bici", intent.title)
     }
 
     // ---- Regresiones (pisos hermanos intactos) ----
