@@ -16,6 +16,19 @@
 - Hallazgo: residual «ahora/ahorita + pretérito» («ahora llegó el cartero») sigue anclando → BACKLOG P2.
 - Archivos: SOLO docs AI_AUTONOMY (cero producción).
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+## Ciclo c.1035 (2026-08-24, este lado, DISJUNTO parser) — fix(parser): lateral «ya, <adverbial>, <pretérito>» (pin FUERA c.1027) RESUELTA («ya, a primera hora, sonó la alarma» → narrativa intacta)
+
+- HEAD inicial: `3e036371` (mi docs-close c.1034, PUSHED). Re-fetch pre-implementación: sin avance remoto (regiones DISJUNTAS).
+- Unidad (P1, lateral ABIERTA registrada en c.1027 — su propio pin FUERA `yaComaAPrimeraHoraSonoLaAlarma_lateralFueraPin`): la guard `yaPreteriteNarrativeSuffix` admitía UNA coma tras «ya» pero exigía el pretérito ADYACENTE; con un adverbial intermedio entre comas («a primera hora,», «sin querer,», «por fin,»…) no casaba → DOBLE daño P1: ancla AHORA FALSA + título MUTILADO.
+- Medida PRE con sonda efímera `/tmp/probe1034/Probe2.kt` (motor real, now=domingo 2026-08-23 12:00 America/Santo_Domingo): 5/5 candidatas dañadas; «ya, sonó la alarma» (pretérito adyacente tras coma) YA cubierta; comandos con adverbial anclan correctamente. Sonda Probe3 reveló el residual: adverbial que ES expresión temporal («por la mañana») sigue anclando (mismo hueco pre-existente que «ya me tomé la pastilla a las 8»).
+- Fix mínimo (1 punto): la guard admite UNA cláusula adverbial acotada entre comas (`[^,.;:!?]{1,60},`) antes de los clíticos y el pretérito. Mismo conservadurismo c.950: predicado en pretérito inequívoco obligatorio; ambiguas intactas.
+- Re-pin del pin FUERA del hermano (precedente c.957/c.965/c.1018/c.1019/c.1033): `yaComaAPrimeraHoraSonoLaAlarma_lateralFueraPin` → `yaComaAPrimeraHoraSonoLaAlarma_resueltaEnC1035` (narrativa intacta).
+- TDD: RED exacto 4 fallos (4 candidatas, cero guards) → GREEN **OK (7570 = 7559 + 11)**; smoke 25/25; automation 9/9. Sonda POST: 4/4 narrativa intacta (due=null, título íntegro), comandos byte-idénticos, regresiones intactas. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Residual REGISTRADO (lateral distinta, pre-existente): narrativa con expresión temporal INTERNA («ya, por la mañana, llegó el cartero», «ya me tomé la pastilla a las 8») — el ancla temporal sigue disparando aunque la guard «ya» salve el adverbio; requiere supresión de anclas dentro de narrativa (cambio mayor, medir antes).
+- Archivos: `NaturalTaskParser.kt` (1 regex + nota), `NaturalTaskParserYaPreteritoNarrativoComaAdverbialTest.kt` (NUEVO, 11 tests), `NaturalTaskParserYaPreteritoNarrativoTest.kt` (re-pin 1), docs AI_AUTONOMY.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO pre-implementación y pre-push): residual «ahora/ahorita + pretérito» narrativa (P2, BACKLOG); residual narrativa con expresión temporal interna (registrado c.1035); nuevas oportunidades de producto.
+
 ## Ciclo c.1034 (2026-08-24, este lado, DISJUNTO parser) — fix(parser): lateral «cobertura de verbos pretérito narrativo» (descubrimiento FUERA registrado en c.1033) RESUELTA («ya devolvió el libro» → narrativa intacta)
 
 - HEAD inicial: `f636e8e7` (mi docs-close c.1033, PUSHED). Re-fetch pre-implementación: sin avance remoto (regiones DISJUNTAS).

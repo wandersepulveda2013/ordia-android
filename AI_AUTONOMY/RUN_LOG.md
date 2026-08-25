@@ -17225,3 +17225,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commits: ver abajo. HEAD final: el de este push.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2).
+## Ciclo c.1035 (2026-08-24, este lado, DISJUNTO parser)
+- HEAD inicial: `3e036371` (mi docs-close c.1034, PUSHED). Re-fetch pre-implementación: sin avance remoto.
+- Cambios: `NaturalTaskParser.kt` (`yaPreteriteNarrativeSuffix` admite UNA cláusula adverbial acotada entre comas + nota c.1035), `NaturalTaskParserYaPreteritoNarrativoComaAdverbialTest.kt` (NUEVO, 11 tests), `NaturalTaskParserYaPreteritoNarrativoTest.kt` (re-pin 1: `yaComaAPrimeraHoraSonoLaAlarma_lateralFueraPin` → `_resueltaEnC1035`), docs AI_AUTONOMY.
+- Bugs: «ya, a primera hora, sonó la alarma»/«ya, sin querer, lo rompió»/«ya, por fin, me pagó» (adverbial entre comas + pretérito inequívoco) — ancla AHORA FALSA + título MUTILADO (P1, medida PRE sonda efímera `/tmp/probe1034/Probe2.kt`: 5/5 RED). Regresiones correctas (comandos con adverbial anclan, «ya, sonó la alarma» ya cubierta, ambigua ancla, «avisar ya» intacto).
+- Features: ninguna (fix de lateral registrada).
+- Tests: RED exacto 4 fallos (4 candidatas, cero guards) → GREEN `run_domain_tests.sh` **OK (7570 = 7559 + 11)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda POST: 4/4 narrativa intacta, comandos byte-idénticos. Determinista (regex), cero random.
+- Descubrimiento FUERA registrado: narrativa con expresión temporal INTERNA sigue anclando («ya, por la mañana, llegó el cartero» → due mañana; «ya me tomé la pastilla a las 8» → due 8:00) — la guard «ya» salva el adverbio pero no suprime anclas internas; lateral distinta (cambio mayor, medir antes).
+- Commits: ver abajo. HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales parser ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): residual «ahora/ahorita + pretérito» (P2); residual narrativa con expresión temporal interna (c.1035).
