@@ -1283,8 +1283,24 @@ object ContextIntentEngine {
     // perfecto) correctamente descartado. Residual aceptado (doctrina de la
     // familia): «no sé si debería ir al médico mañana a las 9» 0.85−0.3=0.55
     // ≥ umbral (sobrevive con confianza reducida).
+    // c.1073: lateral abierta c.1069/c.1070/c.1072 — duda «no sé si +
+    // FUTURO 1ª persona» («no sé si llamaré a mamá» → CALL 0.53 firme,
+    // «no sé si podré ir al gimnasio» → EXERCISE 0.59, «no sé si iré al
+    // médico mañana a las 9» → APPOINTMENT 0.58 con dueAt y título
+    // corrupto; 9 capturas medidas PRE con sondas efímeras). El futuro
+    // rompía el lookahead de infinitivo de c.1069. El lookahead admite
+    // ahora el FUTURO de 1ª persona como alternativa: TODAS las formas
+    // españolas de futuro 1ª persona terminan en «ré» (regulares
+    // llamaré/comeré/iré e irregulares haré/diré/sabré/podré/tendré/
+    // vendré/habré…) y «ré» no es terminación de ninguna otra palabra
+    // común — lookahead mínimo y seguro. La 3ª persona («llamará») NO
+    // casa. Anti-overreach medido: «sé que llamaré a mamá» y «llamaré a
+    // mamá» (compromiso directo) intactos CALL 0.53; «no sé si es buena
+    // idea, llamaré a mamá» (la duda gobierna «es buena idea») fiel;
+    // «no sé si sé la respuesta» (presente) y «no sabemos si
+    // llamaremos…» (plural, lateral hermana) NULL estables.
     private val HEDGE_PATTERN = Regex(
-        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}(?!\p{L})))(?!\p{L})"""
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}|[a-záéíóúñü]+ré)(?!\p{L})))(?!\p{L})"""
     )
 
     // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto

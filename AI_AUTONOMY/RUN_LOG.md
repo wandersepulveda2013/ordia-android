@@ -17693,3 +17693,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): context — variantes de la duda restantes (futuro «llamaré», plural «no sabemos si»), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA.
 - COMPLETADO
+
+## Ciclo c.1073 (2026-08-25, este lado, DISJUNTO context — marcador EN CURSO `daa7413` publicado por el run previo (terminó antes de completar; este run lo CONTINÚA, misma unidad; sin marcadores del hermano al iniciar) — feat(context): lateral ABIERTA c.1069/c.1070/c.1072 duda «no sé si + FUTURO 1ª persona» capturada como compromiso firme RESUELTA — lookahead del marcador «no sé si» admite futuro («ré») como alternativa al infinitivo
+
+- HEAD inicial: `daa7413` (mi marcador EN CURSO, remoto sincronizado). CERO integraciones (remoto quieto). Toolchain NUEVA instalada (Temurin JDK 21 `/tmp/jdk21`, kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`; `JAVA_OPTS=-Xmx6g` — OOM con heap por defecto). Baseline UNIÓN **OK (8140)**, smokes 25/25 y 9/9.
+- Problema seleccionado: P1/P2 — duda «no sé si + FUTURO» persistida como compromiso firme (CALL 0.53/0.63/0.71, EXERCISE 0.59, APPOINTMENT 0.58 con dueAt y título corrupto), bandeja degradada con items no validados (misma clase que c.649/c.1069/c.1070/c.1072). Causa raíz: el futuro rompía el lookahead de infinitivo del marcador c.1069.
+- Medición PRE: sondas efímeras `/tmp/probe1073/Probe{,2}.kt` (motor real vía `tools/run_probe.sh`) — 9 capturas confirmadas; pins familia y guards intactos.
+- Fix UN punto (mismo sitio): lookahead admite FUTURO 1ª persona `[a-záéíóúñü]+ré` como alternativa al infinitivo (TODAS las formas de futuro 1ª persona terminan en «ré»; «ré» no es terminación de otra palabra común; 3ª persona NO casa). Penaliza post-pisos −0.3, no bloquea (doctrina c.649). CERO keywords nuevas (lección c.751).
+- TDD estricto: 26 tests nuevos `ContextIntentEngineNoSeSiFuturoDoubtDeltaTest` — RED exacto EXACTAMENTE 9 fallos → GREEN 26/26 (1 iteración, cero ajustes). SIN re-pins.
+- Sonda POST persistida `tools/probe/NoSeSiFuturoDoubtPostProbe.kt`: 24/24 OK (9 capturas NULL, 5 regresiones HIT, 6 guards NULL, 3 pins familia NULL). Anti-overreach intacto (futuro plano/«sé que»/coma-cierra CALL 0.53 fieles; 3ª persona/pasado/presente/plural NULL).
+- Suite UNIÓN FINAL **OK (8166 = 8140 + 26 — aritmética exacta)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Archivos: M `ContextIntentEngine.kt` (HEDGE_PATTERN lookahead + comentario c.1073), A `ContextIntentEngineNoSeSiFuturoDoubtDeltaTest.kt` (26 tests), A `tools/probe/NoSeSiFuturoDoubtPostProbe.kt`, docs AI_AUTONOMY. Eliminados: ninguno.
+- Commits: 1 commit feat (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): context — plural «no sabemos si…» (CALL 0.57 medido c.1070, última variante de la duda), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA.
+- COMPLETADO
