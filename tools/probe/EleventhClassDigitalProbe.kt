@@ -57,6 +57,10 @@ import com.ordia.app.context.ContextIntentEngine
  *   keyword-objeto ausente, próxima frontera medida), regresiones
  *   8/8 intactas, controles 7/8 NULL correctos + G7 falso positivo
  *   conocido (candidata P2).
+ *   RE-MEDICIÓN c.1038 (POST): regresiones 8/8 intactas, controles
+ *   8/8 NULL correctos — G7 «subir de peso este verano» ya es NULL
+ *   (guard anti-figurado `(?!de\s+peso\b)` en el piso «subir
+ *   <objeto>» c.724, candidata (d) RESUELTA).
  *   REGRESIONES — 8/8 HITs intactos (correo TASK c.860, DNI TASK
  *   c.864, luz PAYMENT, euros TASK c.710, llamar CALL 0.67,
  *   cajero ERRAND c.893, baja gimnasio TASK c.892, cargar móvil
@@ -68,6 +72,8 @@ import com.ordia.app.context.ContextIntentEngine
  *   verano» → HIT TASK 0.45 (piso abierto «subir <objeto>» c.724
  *   captura el figurado corporal — mismo patrón que el G1 de la
  *   DÉCIMA; CANDIDATA P2 de precisión, guard acotado).
+ *   → RESUELTA c.1038 (guard anti-figurado en el piso c.724;
+ *   G7 NULL, controles 8/8 correctos).
  *   OBSERVACIONES laterales (parser, NO de esta clase): «por la
  *   tarde/noche» no ancla dueAt (C6/R8 dueAt=false); «este mes»
  *   tampoco (ya registrado c.845/c.852) y queda en el título

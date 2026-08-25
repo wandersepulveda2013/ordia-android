@@ -1900,8 +1900,17 @@ object ContextIntentEngine {
             // objeto (documento/archivo/foto) a su destino; NOTE es
             // contenido capturado, no acción (criterio c.704). Anti-overreach:
             // `\s+\w` exige objeto, sustantivo "subida"/pasado "subí…"/suelto
-            // no casa.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )subir\s+\w""").containsMatchIn(lower)
+            // no casa. c.1038: guard anti-figurado `(?!de\s+peso\b)` —
+            // «subir de peso (este verano)» es ganar peso (condición
+            // corporal, no encargo con objeto transferible) y capturaba
+            // como TASK 0.45 (falso positivo medido G7, sonda persistida
+            // `EleventhClassDigitalProbe.kt` c.1026, clase UNDÉCIMA;
+            // mismo patrón que el G1 de la DÉCIMA → candidata S c.1009).
+            // Hermano de los lookaheads anti-figurado del piso dativo
+            // c.854 y del piso «traer» c.900. Acotado al figurado medido
+            // (una forma por ciclo): la lateral «subir de nivel» queda
+            // FUERA y sigue capturando (pin en la batería del guard).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )subir\s+(?!de\s+peso\b)\w""").containsMatchIn(lower)
             // c.725 (forma 12/19 tercera clase): "descargar <objeto>".
             // Lockstep piso+keyword (c.713). Kind decidido: TASK, en
             // deliberación contra NOTE — acción de traer el objeto
