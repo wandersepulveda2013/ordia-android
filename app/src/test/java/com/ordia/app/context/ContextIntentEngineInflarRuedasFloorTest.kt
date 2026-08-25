@@ -176,11 +176,19 @@ class ContextIntentEngineInflarRuedasFloorTest {
     }
 
     @Test
-    fun `candidata d ruedas del coche sigue fuera`() {
+    fun `candidata d ruedas del coche girada en c1105`() {
+        // c.1105: la candidata (d) pinzada en este archivo ya captura
+        // (rama «del/de mi coche|carro|auto» del piso + plantilla).
+        // Contrato pin girado de assertNull a captura TASK; la
+        // cobertura completa vive en
+        // ContextIntentEngineInflarRuedasCocheFloorTest.
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "inflar las ruedas del coche mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Inflar las ruedas del coche", intent.title)
+        assertNotNull(intent.dueAt)
     }
 
     // ---- Regresiones (pisos hermanos intactos) ----

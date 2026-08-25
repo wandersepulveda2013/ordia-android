@@ -2296,7 +2296,12 @@ object ContextIntentEngine {
             // «inflé…», la duda «quizá infle…», el decoy financiero
             // «inflar el saldo…» y el otro objeto «inflar globos…» no
             // casan; la keyword sola queda bajo el umbral.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )inflar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b""").containsMatchIn(lower)
+            // c.1105: extensión del objeto con la rama del vehículo de
+            // cuatro ruedas `(?:del\s+|de\s+(?:mi|tu|su)\s+)(?:coche|
+            // carro|auto)` (candidata (d), pin c.1097; la contracción
+            // «del» no la casaba el piso original — sonda PRE propia:
+            // D1-D3 NULL, regresión bici HIT, guards 6/6 NULL).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )inflar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+(?:de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b|(?:del\s+|de\s+(?:mi|tu|su)\s+)(?:coche|carro|auto)\b)""").containsMatchIn(lower)
             // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
             // c.750, candidato cívico "votar"): "votar <complemento/día>".
             // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
@@ -4143,7 +4148,11 @@ object ContextIntentEngine {
                 // piso propio de este ciclo — la keyword-OBJETO «ruedas»
                 // ya estaba desde c.1082; el match arranca en el verbo
                 // y preserva las palabras del usuario).
-                val matchInflarRuedas = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(inflar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // c.1105: misma extensión de objeto en la plantilla
+                // (rama «del/de mi coche|carro|auto», lockstep con el
+                // piso; el match arranca en el verbo y preserva las
+                // palabras del usuario, contracción «del» incluida).
+                val matchInflarRuedas = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(inflar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?ruedas?\s+(?:de\s+(?:la\s+)?(?:bicicleta|bici|moto)\b|(?:del\s+|de\s+(?:mi|tu|su)\s+)(?:coche|carro|auto)\b).*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchInflarRuedas != null) return "Inflar ${matchInflarRuedas.groupValues[2]}"
                 // c.752: misma plantilla para "votar" (ancla/guard idénticos
                 // al piso; verbo unívoco, complemento libre).

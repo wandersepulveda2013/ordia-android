@@ -18178,3 +18178,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 
 
+
+---
+## 2026-08-25 — run c.1105 (este lado, candidata (d) clase DUODÉCIMA: «inflar las ruedas del coche» ya captura TASK)
+
+- HEAD inicial: `cea218b` (mi marcador EN CURSO publicado tras 2 rebase no-destructivos; ver carrera abajo). HEAD final: ver commit fix.
+- Carrera de marcador (5.ª y 6.ª del día): OH3 fijó c.1104 CommitmentEngine (?iu) ×24 primero (`7b74fa4`) y en paralelo SensitiveSecretPatterns (?iu) P0 privacidad (`3d0aa36`, merge `f6e3d60`); mi marcador c.1104 renumerado a c.1105 (primer-marcador-gana, precedente c.1092/c.1096/c.1102), resolución UNIÓN en CURRENT_STATE.md (mis marcadores + los del hermano intactos, cero trabajo ajeno tocado). Push marcador OK `cea218b`.
+- Problema (P1, olvido del mantenimiento básico del coche — medido PRE con sonda efímera `/tmp/probe1105/InflarRuedasCochePreProbe.kt` sobre el motor real, HEAD `cea218b`): «inflar las ruedas del coche/carro/auto» caía a NULL (0.22 < 0.45) porque la contracción «del» (de+el) no la casaba el piso c.1097 «ruedas? de (la )?(bicicleta|bici|moto)». D1-D3 NULL; regresión bici HIT; canario «tengo que inflar…» HIT 0.45; guards 6/6 NULL.
+- Solución: rama `(?:del\s+|de\s+(?:mi|tu|su)\s+)(?:coche|carro|auto)` añadida al objeto del piso anclado c.1097 (hasStrongTaskImperative ~l.2304) + plantilla de título hermana (~l.4155) — lockstep 2 puntos; keyword-OBJETO «ruedas» intacta desde c.1082, CERO cambios en ContextIntent.kt. Kind TASK hermano c.1097/c.1082/c.710.
+- Tests: TDD estricto — 15 tests `ContextIntentEngineInflarRuedasCocheFloorTest.kt` (8 capturas + envolvente c.613 + 6 guards). RED exacto: EXACTAMENTE 8 fallos (8600 run; la 9.ª captura «de tu carro» verde desde RED por cobertura heredada — canario). GREEN: 1 iteración, cero ajustes. Giro legítimo del pin «candidata d…sigue fuera» del test hermano c.1097 (assertNull→captura; precedente c.1035/c.1041/c.1083/c.1094/c.1095/c.1097).
+- Verificación: Suite UNIÓN FINAL **OK (8616 = 8585 + 16 entrantes [hermano c.1103 parser] + 15 propios) — medida FINAL post-rebase sobre la base integrada (2 rebase: 1.ª carrera marcador c.1104→c.1105, 2.ª integración c.1102-bis/c.1103/marcadores c.1106 del hermano, conflictos solo docs resueltos UNIÓN)**; smoke dominio 25/25; automation 9/9.
+- Archivos: `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (M — piso + plantilla + comentarios), `app/src/test/java/com/ordia/app/context/ContextIntentEngineInflarRuedasCocheFloorTest.kt` (N — 15 tests), `app/src/test/java/com/ordia/app/context/ContextIntentEngineInflarRuedasFloorTest.kt` (M — giro de pin), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md` (M).
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). Nunca force, nunca `main`.
+- Próxima prioridad: clase DUODÉCIMA (a)-(d) COMPLETA → siguiente frontera: candidatas clase DECIMOTERCERA (salud, sonda c.1102, 7 gaps (a)-(g)); lateral (B) recurrencias parser «CADA MAÑANA…» caps es del hermano c.1103 (NO tocar NaturalTaskParser); clase (?i)→(?iu) en manos del hermano (c.1104 CommitmentEngine/SensitiveSecretPatterns).
