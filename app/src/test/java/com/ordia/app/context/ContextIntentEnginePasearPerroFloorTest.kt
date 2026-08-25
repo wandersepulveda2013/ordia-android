@@ -172,9 +172,18 @@ class ContextIntentEnginePasearPerroFloorTest {
         assertNull(analyze("salir a pasear esta tarde"))
     }
 
+    // c.1043: la lateral «pasear al gato» (abierta aquí como pin FUERA en
+    // c.1018, perro-only por la doctrina UNA por ciclo) se RESUELVE — la
+    // ancla de objeto del piso pasa a (?:perr[oa]|gat[oa])s? en lockstep
+    // (piso + cláusula de negación + plantilla de título); el pin «sacar
+    // al gato» sigue FUERA (piso hermano c.740 intacto, lateral abierta).
     @Test
-    fun `gato fuera lateral documentada piso hermano perro-only c740`() {
-        assertNull(analyze("pasear al gato mañana"))
+    fun `gato RESUELTO c1043 ancla extendida lockstep`() {
+        val i = analyze("pasear al gato mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Pasear al gato", i.title)
+        assertNotNull(i.dueAt)
     }
 
     // ---- Regresiones (HIT intactas) ----
