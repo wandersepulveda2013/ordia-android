@@ -3392,6 +3392,30 @@ object ContextIntentEngine {
             // c.616). Olvido silencioso P1: sellar el paro es periódico —
             // olvidarlo cuesta la prestación por desempleo.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(?:el\s+)?paro\b""").containsMatchIn(lower)
+            // c.1156: "empadronarme/empadronarnos…" ("empadronarme en el
+            // nuevo piso este mes"), lateral (d) de la clase DECIMOQUINTA
+            // burocracia (sonda persistida c.1132
+            // `tools/probe/FifteenthClassAdminProbe.kt` C2; NULL PRE
+            // re-medido sobre a1d8a643 con sonda efímera: 4/4 candidatas
+            // NULL, 7/7 guards NULL, 6/6 regresiones HIT). Hermano
+            // EXACTO del piso «cubrir el turno» c.1149 con la
+            // morfología reflexiva de c.1044/c.1115: kind TASK (trámite
+            // SIN desplazamiento explícito — hermana de «sellar el
+            // paro» c.1143; la doctrina ERRAND c.842/c.862 solo gobierna
+            // el desplazamiento), misma ancla ^|acuse|temporal y guard
+            // `(?<!no )`. El verbo reflexivo «empadronar(me|te|se|nos|os)»
+            // es monosemántico (padrón municipal, con plazo: su olvido
+            // cuesta multas y ayudas — P1); el pasado «me empadroné» no
+            // casa (regex exige infinitivo + pronombre enclítico), la
+            // duda «quizá me empadronen» no casa (morfología distinta),
+            // la nominal «el certificado de empadronamiento» no casa (ni
+            // la keyword por subcadena: rompe -a-/-ar), la negada la
+            // cubre el guard y la no-reflexiva «empadronar al niño»
+            // queda NULL deliberado (lateral; UNA forma por ciclo,
+            // anti-overreach). Lockstep: keyword-VERB «empadronar» en
+            // ContextIntent + plantilla matchEmpadronar en
+            // [extractTitle] (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empadronar(?:me|te|se|nos|os)\b""").containsMatchIn(lower)
             // c.1148: "echar el currículum" ("echar el currículum en la
             // oferta de infojobs"), candidata (a) FUERTE de la clase
             // DECIMOSÉPTIMA vida laboral (sonda persistida del hermano
@@ -4666,6 +4690,20 @@ object ContextIntentEngine {
                 // temporal de cola lo depura [sanitizeTitle]).
                 val matchSellarParo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sellar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchSellarParo != null) return "Sellar ${matchSellarParo.groupValues[1]}"
+
+                // "empadronarme en el nuevo piso X" → "Empadronarme en
+                // el nuevo piso X" (c.1156): lockstep con el piso
+                // reflexivo acotado «empadronar(me|te|se|nos|os)» —
+                // hermana de matchSellarParo (mismo ancla/guard,
+                // doctrina c.653: verbo-frase preservado CON el
+                // pronombre enclítico, que es parte del verbo tal como
+                // lo dijo el usuario — hermana de «apuntarse» c.856;
+                // solo capitalización inicial; el residuo temporal de
+                // cola lo depura [sanitizeTitle]). La no-reflexiva
+                // «empadronar al niño» no casa (exige pronombre
+                // enclítico + contenido tras él).
+                val matchEmpadronar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empadronar((?:me|te|se|nos|os)\s+.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEmpadronar != null) return "Empadronar${matchEmpadronar.groupValues[1]}"
 
                 // "cubrir el turno del sábado" → "Cubrir el turno del
                 // sábado" (c.1149): lockstep con el piso acotado

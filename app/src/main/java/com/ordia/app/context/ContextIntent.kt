@@ -284,6 +284,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // el piso exige el objeto «paro», así que esos bivalentes siguen
         // NULL deliberado (sonda `tools/probe/SellarParoProbe.kt`).
         "sellar el paro",
+        // c.1156: keyword-VERB «empadronar» (lockstep con el piso
+        // reflexivo acotado «empadronar(me|te|se|nos|os)», lateral (d)
+        // de la clase DECIMOQUINTA burocracia, NULL medida c.1132 C2;
+        // ver ContextIntentEngine.hasStrongTaskImperative). Verbo
+        // reflexivo monosemántico: padrón municipal (con plazo; su
+        // olvido cuesta multas y ayudas). 0.12 sola inerte < umbral
+        // (gate c.751, medido PRE con sonda efímera): «el certificado
+        // de empadronamiento» NO casa («empadronar» no es subcadena de
+        // «empadronamiento»: rompe en -a- vs -ar) y la no-reflexiva
+        // «empadronar al niño» sigue NULL deliberado (el piso exige el
+        // pronombre enclítico).
+        "empadronar",
         // c.1149: keyword-VERB «cubrir» (lockstep con el piso acotado
         // «cubrir (el|la|mi|tu|su|un|una)? turnos?», candidata (b) de la
         // clase DECIMOSÉPTIMA; ver ContextIntentEngine.hasStrongTaskImperative).
