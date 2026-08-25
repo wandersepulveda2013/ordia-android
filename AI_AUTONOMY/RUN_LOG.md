@@ -19044,3 +19044,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Tests: `run_filtered_test.sh ContextIntentEngineSalirAeropuertoFloorTest` OK (26 tests); suite UNIÓN post-integración **OK (9254 = 9252 punta remota + 2 míos — aritmética exacta)**; smoke `run_domain_checks.sh` 25/25. NO VERIFICADO: gradle/lint/assemble/UI/Room real (sin Android SDK).
 - LECCIÓN (anti-colisión, complementa c.1077 y la lección c.1146-colisión): el snapshot de contexto de una sesión relanzada puede describir trabajo que UNA SESIÓN PROPIA POSTERIOR ya completó y empujó. Antes de implementar (no solo antes de empujar), re-fetch y leer la cabecera de CURRENT_STATE/RUN_LOG: si el ciclo marcado aparece ya COMPLETADO por el propio lado, el run entero es duplicado — saltar directo a la verificación del canónico.
 - Nunca force, nunca main, cero pérdida de trabajo válido. Determinista, cero IA fingida.
+
+---
+
+### RUN 2026-08-25 (c.1162) — lateral (b-bis) DECIMOQUINTA: «dar de alta/baja el seguro»
+
+- HEAD inicial: `3a87bba6` (sincronizado origin, limpio); re-fetch pre-push: remoto avanzó a `ff044806` (c.1149 hermano, DISJUNTO) → rebase no destructivo con conflictos SOLO markdown (CURRENT_STATE/RUN_LOG), resueltos UNIÓN conservando ambos lados.
+- Sonda PRE efímera `/tmp/probe_dar_seguro.kt` (motor real via `tools/run_probe.sh`): **NULL 6/6** candidatas seguro (3 alta + 3 baja), guards 5/5 NULL, regresiones 3 HIT + pin «dar de alta el gimnasio» NULL.
+- RED: 6 fallos EXACTOS (las 6 capturas; guards y regresiones ya verdes).
+- Fix lockstep (lección c.616): extensión ADITIVA `|seguro` en la alternancia de objetos de AMBOS pisos (`ContextIntentEngine.kt`). CERO keywords nuevas (frases «dar de alta/baja» ya en ContextIntent c.1139/c.895c), CERO plantillas nuevas (las plantillas capturan `(.+)`).
+- Nuevo test: `ContextIntentEngineDarSeguroFloorTest.kt` (18 tests: 6 capturas + 6 guards + 6 regresiones/pins). Docstring c.1139 actualizado (lateral «seguro» RESUELTA).
+- Ajuste legítimo (NO degradación): test «esta semana» relajado a kind-only — residuo de cola temporal, familia de colas conocida (precedente «la semana que viene» c.1139).
+- GREEN: suite UNIÓN **OK (9321 = 9303 remoto `a2b94684` [9259 `ff044806` + 2 `dc239a7c` + 5 currículum `cd19464e` + 17 visado `a3631bf3` + 20 hacer-curso `a2b94684`] + 18 míos — medida EXACTA post-rebase)**, smokes dominio 25/25, automation 9/9. Sonda POST: 5/5 HIT («un seguro» indefinido sigue NULL acotado), guards 5/5 NULL, pin gimnasio-alta NULL intacto. Sonda borrada.
+- NO VERIFICADO: gradle/lint/assemble/Room/UI (sin Android SDK).
+- RENUMERADO c.1152→c.1162 por QUINTUPLICADA carrera (hermano fijó c.1152 «hacer el curso de prevención» y luego c.1155 «preparar la entrevista» y c.1156 «empadronarme» antes, lección c.1077). DISJUNTO de los marcadores del hermano (c.1154 «inscribí…ayer» EXERCISE, región guards scoreKind).
+- Próxima prioridad: laterales DECIMOQUINTA abiertas (b-ter «gimnasio» en alta, «empadronarme») o familia (c) DECIMOSEXTA si libre; consultar CURRENT_STATE antes de fijar marcador.

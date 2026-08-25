@@ -3285,7 +3285,10 @@ object ContextIntentEngine {
             // «di de baja…» no casa, «dar de alta» (acción opuesta) no casa
             // (artículo intermedio lo impide… el ancla exige «baja\s+»), el
             // sustantivo «la baja…» no casa (falta el verbo «dar de»).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?|luz|agua|gas|internet)\b""").containsMatchIn(lower)
+            // c.1162: extensión aditiva del objeto «seguro» (contrato,
+            // lateral (b-bis) abierta en c.1139 — póliza duplicada o
+            // cargo fantasma del seguro cancelado, olvido P1).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+baja\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:gimnasio|suscripci[oó]n(?:es)?|luz|agua|gas|internet|seguro)\b""").containsMatchIn(lower)
             // c.1139: "dar de alta <suministro>" ("dar de alta la luz del
             // piso nuevo mañana"), candidata (b) de la clase DECIMOQUINTA
             // burocracia/administración (sonda persistida del hermano
@@ -3295,17 +3298,18 @@ object ContextIntentEngine {
             // piso «dar de baja» c.895c: kind TASK (gestión administrativa
             // SIN desplazamiento; doctrina ERRAND c.842/c.862 solo gobierna
             // el desplazamiento), misma ancla ^|acuse|temporal y guard
-            // `(?<!no )`. El objeto-suministro (luz|agua|gas|internet)
-            // blinda la bivalencia médica («dar de alta a un paciente» no
-            // casa) y el acotado deliberado («dar de alta el gimnasio»
-            // sigue NULL, pin del test c.895c). La extensión aditiva de
+            // `(?<!no )`. El objeto-suministro (luz|agua|gas|internet,
+            // + «seguro» contrato c.1162 lateral (b-bis)) blinda la
+            // bivalencia médica («dar de alta a un paciente» no casa) y
+            // el acotado deliberado («dar de alta el gimnasio» sigue
+            // NULL, pin del test c.895c). La extensión aditiva de
             // objetos del piso «dar de baja» cubre las bajas de suministro
             // («dar de baja el internet del piso viejo»). Lockstep
             // keyword-frase «dar de alta» en ContextIntent + plantilla
             // matchDarDeAlta en [extractTitle] (lección c.616). Olvido
             // silencioso P1: mudanza sin luz/agua/gas/internet (alta) o
             // cargo mensual fantasma del piso viejo (baja).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet)\b""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet|seguro)\b""").containsMatchIn(lower)
             // c.1143: "sellar el paro" ("sellar el paro el día 4"),
             // candidata (c) de la clase DECIMOQUINTA burocracia/
             // administración (sonda persistida del hermano

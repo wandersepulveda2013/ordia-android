@@ -31,8 +31,10 @@ import org.junit.Test
  * Acotado deliberado: «dar de alta el gimnasio» sigue NULL (alta sólo
  * suministros; pin heredado del test c.895c), «dar de alta a un paciente»
  * (bivalente médico) NULL, «dar de baja la línea telefónica» NULL
- * (deliberado c.895c). Laterales ABIERTAS (UNA por ciclo): «seguro»
- * (contrato, no suministro), «empadronarme», «sellar el paro».
+ * (deliberado c.895c). Laterales «seguro» RESUELTA c.1162 (b-bis,
+ * extensión aditiva de objeto en ambos pisos) y «sellar el paro»
+ * RESUELTA c.1143. ABIERTAS (UNA por ciclo): «gimnasio» en alta,
+ * «empadronarme».
  */
 class ContextIntentEngineDarDeAltaSuministroFloorTest {
 
