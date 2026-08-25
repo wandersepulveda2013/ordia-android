@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * c.1029: forma «configurar <dispositivo>» («configurar el móvil nuevo por
+ * c.1032: forma «configurar <dispositivo>» («configurar el móvil nuevo por
  * la noche») — candidata (b) medida NULL por la sonda persistida
  * `tools/probe/EleventhClassDigitalProbe.kt` (c.1026, clase UNDÉCIMA: vida
  * digital cotidiana; C10 NULL sobre HEAD `8af00df1`, re-medido NULL en el

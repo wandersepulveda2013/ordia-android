@@ -168,7 +168,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NO contienen "fotocopiar"; 0.12 sola queda bajo el umbral.
         // "la fotocopia está en el cajón" sigue descartado.
         "fotocopiar",
-        // c.1029: keyword-VERBO "configurar" (lockstep con el piso acotado
+        // c.1032: keyword-VERBO "configurar" (lockstep con el piso acotado
         // "configurar <dispositivo>", ver ContextIntentEngine
         // .hasStrongTaskImperative; lección c.751: sin ella una notificación
         // "configurar el móvil nuevo mañana" sin palabra gatillo ni llega al

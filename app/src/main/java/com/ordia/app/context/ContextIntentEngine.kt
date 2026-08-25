@@ -2322,7 +2322,7 @@ object ContextIntentEngine {
             // está…" no casan. Negación sin cláusula dedicada: keyword 0.12
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reiniciar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b""").containsMatchIn(lower)
-            // c.1029: piso acotado «configurar <dispositivo>» — candidata
+            // c.1032: piso acotado «configurar <dispositivo>» — candidata
             // (b) medida NULL por la sonda persistida
             // tools/probe/EleventhClassDigitalProbe.kt (c.1026, clase
             // UNDÉCIMA: vida digital cotidiana; C10 «configurar el móvil
@@ -3755,7 +3755,7 @@ object ContextIntentEngine {
                 // ordenador…" nunca llega aquí porque el piso no lo captura).
                 val matchReiniciarRouter = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reiniciar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReiniciarRouter != null) return "Reiniciar ${matchReiniciarRouter.groupValues[2]}"
-                // c.1029: plantilla «configurar <dispositivo>» (ancla/guard
+                // c.1032: plantilla «configurar <dispositivo>» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
                 // verbo, así acuse/prefijo temporal se despojan; el residuo
                 // temporal de cola lo depura [sanitizeTitle]; el resto de la
