@@ -18736,3 +18736,55 @@ a un permiso persistente frágil y silencioso ante fallos.
   verificación). HEAD final: abajo.
 - Verificación c.1145: suite UNIÓN `OK (9053 tests)` + smoke 25/25 pre-rebase; tras DOBLE rebase (gemelo: marcadores c.1145/c.1142 + fix c.1139 «dar de alta» que tocó el engine — lección c.1014) con conflictos RUN_LOG/CURRENT_STATE resueltos UNIÓN: suite UNIÓN final `OK (9074 tests)` = 9061 (gemelo c.1139) + 13 míos, smoke 25/25. HEAD final: `518821d` (fix) + `aa376e8` (verificación) + `191b6b1` (nota numeración).
 - NOTA carrera de NUMERACIÓN c.1145: el hermano fijó un marcador «c.1145» distinto (guard declarativo «empieza(n)» EXERCISE, c.1135-ii) DESPUÉS de mi marcador c.1145 ya empujado (`7f49cbb`) — primer-marcador-gana: mi c.1145 («ropa de recambio») conserva el número; el hermano debe renumerar su marcador (precedente c.1126→c.1127). Su marcador queda intacto en CURRENT_STATE (no toco marcadores ajenos).
+
+## c.1147 — 2026-08-25 (este lado) — AUDITORÍA DECIMOSÉPTIMA (vida laboral) — DESCUBIERTAS (JVM)
+
+- HEAD inicial: `2dbb0ae` → base integrada `7de9143` (el remoto avanzó durante el setup: 8 commits hermanos
+  — c.1139 «dar de alta/baja suministro» FIXED VERIFIED `4871fe7`, c.1141 «ropa de recambio» FIXED VERIFIED
+  `f07e534`, + docs; rebase con conflicto SOLO markdown CURRENT_STATE resuelto UNIÓN, cero pérdida, lección c.1014).
+- TRIPLE carrera de numeración resuelta (precedente c.1077/c.1127, primer-marcador-gana): mi marcador decía
+  c.1143 pero el hermano fijó «c.1143: sellar el paro» primero (`8eba7fe`) → renumeré a c.1144; al ir a
+  pusher el cierre, el remoto avanzó otra vez y el hermano fijó «c.1144: proyecto de ciencias al cole»
+  primero (`ab717b0`) → renumeré a c.1145; en el push final el remoto avanzó OTRA vez y el hermano fijó
+  «c.1145: guard declarativo EXERCISE» (renumerado desde su c.1141, `de09ddf`) y «c.1146: extraescolares»
+  (`72dcc77`) → renumeré a c.1147. Marcador EN CURSO pusheado primero (`dcfab43`). El marcador c.1143 del
+  hermano («sellar el paro») desapareció en la reescritura de su cierre c.1145 y se restaura en el
+  marcador EN CURSO de CURRENT_STATE (preservación UNIÓN, precedente «pérdida accidental de docs c37f62c»).
+  Lección: en rama compartida con hermano activo, el número de ciclo solo se fija al pusher el
+  marcador — asumir renumeración como paso normal del cierre.
+- Ciclo de DESCUBRIMIENTO puro (convención c.1127/c.1132/c.1137): CERO cambios de producto. Elegido por
+  anti-colisión: TODAS las regiones del engine están bajo marcador EN CURSO activo del hermano (c.1142
+  copulativas MEETING, c.1141 declarativo-empieza EXERCISE, c.1140 facturar-vuelo, c.1143 sellar-paro).
+  «Auditoría vida laboral» ya sugerida como próxima prioridad en el cierre de c.1132.
+- Sonda NUEVA persistida `tools/probe/SeventeenthClassWorkProbe.kt` (36 casos: 20 candidatas + 8 regresiones
+  + 8 controles; motor real `ContextIntentEngine.analyze` vía `tools/run_probe.sh` sobre HEAD `7de9143`):
+  - CAPTURAS: 12/20 candidatas HIT por cobertura HEREDADA (pisos enviar c.692/entregar c.693/revisar c.691/
+    cambiar/pedir/firmar/contestar/mandar/confirmar + hablar-con→CALL 0.52 + quedar→MEETING c.847).
+  - 8 NULL en CINCO familias — CANDIDATAS (UNA por ciclo, anti-overreach):
+    (a) «echar el currículum en la oferta de infojobs» [FUERTE: plazo de oferta, olvido = oportunidad
+    perdida; «echar» bivalente c.829, «currículum» no keyword → piso NUEVO acotado + keyword, lockstep c.616];
+    (b) «cubrir el turno del sábado» [turno descubierto, ventana corta];
+    (c) «hacer el curso de prevención antes del día 30» [formación obligatoria con plazo; hermana del
+    «hacer el check-in» c.1137; evaluar frontera con STUDY];
+    (d) «preparar la entrevista de mañana» [objeto «entrevista» fuera del piso «preparar»];
+    (e) «llevar el portátil al trabajo mañana» [HALLAZGO hermano de c.1137: objeto «portátil» fuera del
+    piso «llevar <objeto>»].
+  - OBSERVACIONES NO-gap: C17 nominal «turno de noche esta semana» (familia sustantivo+fecha documentada);
+    C18 «empiezo el turno de noche el lunes» (declarativo fronterizo de la familia FP «empieza el
+    campamento» c.1135/c.1141 — marcador hermano activo, NO TOCADO); C13 «hacer horas extra» (compromiso
+    débil, NO candidata fuerte).
+  - REGRESIONES 8/8 intactas; CONTROLES 8/8 NULL correctos (incl. negación gobernada por c.1009/c.1136 y
+    copulativa pretérito NO-MEETING «la entrevista fue ayer» limpia).
+  - Resultados completos anotados en el docblock de la sonda.
+- Tests: suite UNIÓN `bash tools/run_domain_tests.sh` → **OK (9074 tests)** en base `7de9143` pre-rebase;
+  tras el TERCER rebase (conflictos CURRENT_STATE/RUN_LOG resueltos UNIÓN: conservado marcador c.1146 del
+  hermano + restaurado su c.1143 perdido + mi cierre renumerado) re-verificada en base `72dcc77` →
+  **OK (9090 tests)** (= 9074 + 16 del fix c.1145 del hermano, aritmética exacta, 0 fallos); smoke dominio
+  `run_domain_checks.sh` → **25/25** re-verificado post-rebase. **NO VERIFICADO** Android/gradle/lint/
+  assemble/UI/Room (sin SDK en el entorno).
+- Docs: BACKLOG.md fila NUEVA al frente (clase DECIMOSÉPTIMA, 5 candidatas); CURRENT_STATE.md marcador
+  EN CURSO → ✅ CERRADO. Sin entradas nuevas en DECISIONS.md (ciclo de medición, sin decisión de diseño).
+- Commits: `dcfab43` (marcador EN CURSO, renumerado en contenido) + docs/sonda (hash en el HEAD final abajo).
+- HEAD final: abajo. Próxima prioridad: UNA candidata de clase DECIMOSÉPTIMA (sugerida (a) «echar el
+  currículum») o atacar marcadores del hermano cuando se cierren; siempre verificar marcadores activos
+  antes de tocar el engine.
