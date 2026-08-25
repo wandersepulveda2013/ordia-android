@@ -18716,3 +18716,4 @@ a un permiso persistente frágil y silencioso ante fallos.
   c.1134) pisa la cola `TASK` si toma esas laterales — coordenar por marcador.
 - Commits: `7f49cbb` (docs colisión + marcador) + fix (hash en línea de
   verificación). HEAD final: abajo.
+- Verificación c.1141: suite UNIÓN `OK (9053 tests)` + smoke 25/25 sobre commit fix `ceee19f`; HEAD final `ceee19f` (+ docs cierre en el mismo commit).
