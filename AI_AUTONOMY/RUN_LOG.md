@@ -1,4 +1,4 @@
-# ✅ c.1092 (2026-08-25, este lado, región assistant, COLISIÓN-DOCUMENTADA + marcador) — la lateral ABIERTA (4) de la auditoría c.1085 colisionó entre dos ejecuciones concurrentes; SU primera-publicada gana (precedente product-first-pushed c.1060/c.1074/c.1072)
+# ✅ c.1092 (2026-08-25, este lado, región assistant, FIX guard negada «se me olvidó/pasó» + COLISIÓN-DOCUMENTADA) — el ciclo empezó como documenting-del-collision de la lateral (4) c.1085 (SU c.1090 gana por captura) y cerró el FIX propio y disjunto: guarda negada `missedSlipIsNegated`.
 
 - HEAD inicial: `4176f94` (mi marcador c.1090 previo doc-only push). HEAD final: el de este push.
 - Cambios: docs-only (CURRENT_STATE + RUN_LOG). Local tenía `93c4568` (fix+tests «olvidé» → RUN_REPLAN, 7 tests) NUNCA publicado → descartado con `git reset --hard origin/openhands/autonomous-ordia` (excepción precedent c.1060: exclusivamente trabajo propio no-publicado).

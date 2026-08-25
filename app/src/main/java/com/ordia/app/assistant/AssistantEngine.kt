@@ -1181,8 +1181,19 @@ object AssistantEngine {
     // olvidó?") que caía al menú genérico (mentira por omisión).
     private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas", "se me olvid", "se nos olvid")
 
+    // c.1092: guarda negada espejo a c.1091 (planWrapperIsNegated). «no se me
+    // olvidó …»/«nada se me olvidó» NEGAN un olvido; sin guarda, la frase
+    // contenía la cabecera y la rama de recuperación nombraba una vencida
+    // (mentira por omisión en dirección contraria). La negación es local:
+    // sólo «no»/«nada» preposicional-token, nunca corta otros vocabularios.
+    private fun missedSlipIsNegated(query: String): Boolean {
+        val words = query.split(" ")
+        val neg = listOf("no", "nada", "nadie")
+        return words.any { it in neg } && MISSED_SLIP_HEADS.any { it in query }
+    }
+
     private fun isMissedSlipQuery(query: String): Boolean =
-        MISSED_SLIP_HEADS.any { it in query }
+        MISSED_SLIP_HEADS.any { it in query } && !missedSlipIsNegated(query)
 
     // Notas fijadas: "nota(s)" + participio de "fijar" por palabra exacta
     // (vocabulario propio de notas: nunca "marcadas", que es de tareas). En
