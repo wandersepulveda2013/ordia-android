@@ -1449,7 +1449,8 @@ object ContextIntentEngine {
         // genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el
         // paso 3 (insultos), por lo que llegar aquí es contenido permitido.
         if (kind == ContextIntentKind.TASK && hasStrongTaskImperative(lower) &&
-            !wrapperNegationLacksInfinitive(lower)
+            !wrapperNegationLacksInfinitive(lower) &&
+            !obligationModalLacksInfinitive(lower)
         ) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -1698,6 +1699,34 @@ object ContextIntentEngine {
         val m = WRAPPER_NEGATION_SPAN.find(lower) ?: return false
         val verb = m.groupValues[1]
         return verb.isEmpty() || !INFINITIVE_LIKE.matches(verb)
+    }
+
+    // c.1068: junk AFIRMATIVO de «modal de obligación + NO infinitivo»
+    // (sub-lateral medida por SU c.1064, doctrina aparte). El piso de
+    // envolvente (c.613/c.835) sólo exige `\s+\w` tras el wrapper, así
+    // «tengo que es eso», «tengo que mañana», «hay que eso», «habría que
+    // eso», «debería eso»… se persistían como TASK 0.45 basura («Es eso»,
+    // «Mañana», «Eso»). Doctrina aparte: NO se exige infinitivo tras TODO
+    // envolvente — «no olvides las llaves», «recuérdame tu cumpleaños» y
+    // «cancelar la cita» aceptan complemento NOMINAL legítimo, y el piso
+    // REMINDER (c.619) acepta complemento temporal/relativo («avísame
+    // mañana de la reunión», «avisame cuando llegue el paquete», pin
+    // c.1067). Los modales de obligación («tengo que/q», «hay que»,
+    // «habría/tendría que», «debería (que)») exigen INFINITIVO por
+    // gramática: complemento no-infinitivo = ruido conversacional y se
+    // suprime (NULL conservador). El «no» opcional se salta: la captura
+    // FIEL de prohibición («tengo que no llamar a mamá») se conserva —
+    // su hermano junk «tengo que no mañana» ya lo cubre
+    // [wrapperNegationLacksInfinitive] y esta guard lo confirma.
+    private val OBLIGATION_MODAL_SPAN = Regex(
+        """\b(?:tengo (?:que|q)|hay que|""" +
+            """(?:habr[ií]a|tendr[ií]a)(?:s|mos|is|n)?\s+que|""" +
+            """deber[ií]a(?:s|mos|is|n)?(?:\s+que)?)\s+(?:no\s+)?([a-záéíóúñü]+)"""
+    )
+
+    private fun obligationModalLacksInfinitive(lower: String): Boolean {
+        val m = OBLIGATION_MODAL_SPAN.find(lower) ?: return false
+        return !INFINITIVE_LIKE.matches(m.groupValues[1])
     }
 
     /**
