@@ -17756,3 +17756,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM, ciclo de descubrimiento — medición real sobre el motor real). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: candidatas DUODÉCIMA (UNA por ciclo): (a) «poner las ruedas de invierno», (b) «cargar el carro», (c) «inflar las ruedas de la bici». Laterales: colas en títulos; parser residual c.1077 EN CURSO del hermano — NO tocar (HEDGE modal plural 1ª pers. plural c.1078 RESUELTA por el hermano `8c57d7a9` durante este run; SU c.1080 3ª persona plural modal EN CURSO — NO tocar HEDGE_PATTERN).
 - COMPLETADO
+
+## Ciclo c.1081 — 2026-08-25 (docs-close convergencia c.1078 + verificación independiente)
+
+- HEAD inicial: `df67fcd` (marcador EN CURSO c.1078 propio, continuación). HEAD final: `a1f1580` (UNIÓN del hermano: `0e60996` SU c.1079 marcador + `8c57d7a` SU c.1078 fix + `a1f1580` SU c.1080 marcador) + commit docs propio.
+- Unidad: modal PLURAL de la duda «no sabemos si deberíamos/podríamos/tendríamos que/habríamos que + infinitivo» (lateral ABIERTA c.1076). Ciclo TDD propio completado sobre `df67fcd`: PRE efímera 9 capturas; delta 25 tests (RED exacto EXACTAMENTE 9 fallos → GREEN 25/25, 1 iteración, cero ajustes); sonda POST propia 26/26; suite local OK (8234 = 8209 + 25).
+- Colisión convergente en re-fetch pre-push: el hermano resolvió la misma unidad (`8c57d7a`, regex byte-idéntica — `(?:mos)?` ×4 formas). Descarte NO-destructivo del duplicado (cero código propio; precedente c.1074).
+- Verificación INDEPENDIENTE de la UNIÓN `a1f1580`: suite **OK (8229)**; smokes 25/25 y 9/9; sonda POST del hermano 19/19; sonda efímera propia de convergencia 26/26 (casos extra verificados: mixta «no sé si deberíamos…» → NULL; terceros-singular «ella debería…» → CALL 0.57 estable).
+- Tests: todos JVM. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: marcadores activos del hermano (SU c.1080 context, SU c.1077 parser, SU c.1079 auditoría) — evitar laterales documentadas (2ª carrera convergente en la familia); región fría o esperar cierre de c.1080.
+- COMPLETADO (docs-close; integración NO-destructiva de SU c.1079 `302bef4`+merge `900e086` durante el docs-close: stash → ff-only → pop, conflicto append RUN_LOG resuelto conservando AMBAS entradas)
