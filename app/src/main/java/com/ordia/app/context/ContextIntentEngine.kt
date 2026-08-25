@@ -1462,6 +1462,27 @@ object ContextIntentEngine {
         // ("recuérdame que tenía que…" → TASK) no se toca.
         if (pastObligationGoverns(lower, kind)) return 0f
 
+        // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
+        // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
+        // la pastilla al perro», «cómo llamar a mamá», «cómo ir al médico»)
+        // pide INSTRUCCIONES, no expresa compromiso: los pisos de posición
+        // libre (mascota c.740/c.1011/c.1012/c.1015/c.1059/c.1066, bonus
+        // CALL/APPOINTMENT, SHOPPING «hacer la compra» c.758, EXERCISE «ir al
+        // gimnasio», ERRAND «cortarse el pelo» c.662) casaban el verbo
+        // subordinado y persistían la pregunta como tarea firme (medición PRE
+        // c.1071: 15 capturas en toda la familia, HOUSEHOLD 0.45/CALL 0.57/
+        // APPOINTMENT 0.67/EXERCISE 0.59/SHOPPING/ERRAND 0.45) — bandeja
+        // degradada con items que el usuario nunca se comprometió a hacer
+        // (misma clase P1/P2 que la duda c.649, pero la pregunta NO expresa
+        // intención: se BLOQUEA, no se penaliza — hermano de
+        // [obligationWrapperIsNegated] c.681, se descarta TODA la
+        // clasificación). Acotado posicionalmente: sólo «cómo» AL INICIO
+        // (tras «¿» opcional) + infinitivo; el «cómo» subordinado de
+        // contenido («recuérdame cómo hacer la compra» → TASK) es compromiso
+        // legítimo y no se toca. Los pisos anclados `^` (comprar pan c.626,
+        // tomar la pastilla humana c.859) ya eran NULL estructuralmente.
+        if (howToQuestionGoverns(lower)) return 0f
+
         var score = 0f
         val words = lower.split(Regex("\\s+"))
 
@@ -1742,6 +1763,22 @@ object ContextIntentEngine {
         val verb = m.groupValues[1]
         return verb.isEmpty() || !INFINITIVE_LIKE.matches(verb)
     }
+
+    // c.1071: interrogativa how-to «cómo + infinitivo» AL INICIO del mensaje
+    // (tras «¿» opcional). La pregunta pide instrucciones, no expresa
+    // compromiso, así que el guard de [scoreKind] descarta TODA la
+    // clasificación (NULL conservador). El infinitivo inline es hermano de
+    // [INFINITIVE_LIKE] (con enclíticos y tildes ár/ér/ír) y exige frontera
+    // de palabra final: «cómo estás»/«cómo llego al trabajo» (presente) y
+    // «cómo va el proyecto» (sustantivo) no casan y siguen su camino (chat /
+    // NULL estructural). El ancla `^` protege el «cómo» subordinado de
+    // contenido («recuérdame cómo hacer la compra» → TASK legítimo).
+    private val HOW_TO_QUESTION_SPAN = Regex(
+        """^¿?\s*c[óo]mo\s+[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}(?!\p{L})"""
+    )
+
+    private fun howToQuestionGoverns(lower: String): Boolean =
+        HOW_TO_QUESTION_SPAN.containsMatchIn(lower)
 
     // c.1068: junk AFIRMATIVO de «modal de obligación + NO infinitivo»
     // (sub-lateral medida por SU c.1064, doctrina aparte). El piso de
