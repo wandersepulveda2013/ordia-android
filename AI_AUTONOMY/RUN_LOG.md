@@ -17824,3 +17824,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: candidata (c) clase DUODÉCIMA «inflar las ruedas de la bici» (UNA por ciclo, medida previa de sonda; evaluar compartir keyword «ruedas» con (a)).
 - COMPLETADO
+## RUN c.1083 — 2026-08-25 (este lado) — narrativa «ya» SIN comas con parte del día RESUELTA
+- HEAD inicial: `c127027` (mi marcador EN CURSO). HEAD final: el commit de este push.
+- Problema (P1, doble daño): «ya por la mañana me tomé la pastilla» → due=falsa 09:00 + título «me tomé la pastilla». Medida PRE con sonda efímera `/tmp/probe1083/Probe.kt` (zone America/Santo_Domingo, now=sábado 2026-08-22 08:00).
+- Causa raíz: guard c.1035 exigía comas EXACTAS; `weekdayPreteriteNarrativeSuffix` no admitía terminador puro de parte del día sin comas.
+- Solución: nueva alternativa del sufijo + guard hermano `yaNoCommaPreteriteNarrativeStandalonePartOfDay` («ya/ahora/ahorita», coma-cierre excluida) + flag RENOMBRADO `yaPreteriteNarrative` disyuntivo (parse + 2 borradores + `mananaOccurrenceIsContent`).
+- TDD: 29 tests nuevos `NaturalTaskParserYaSinComaParteDiaNarrativaTest` — RED EXACTAMENTE 10 fallos → GREEN 29/29 (1 ajuste). Re-pin legítimo del pin c.1077 (forma sin comas pasa a narrativa íntegra).
+- Verificación: UNIÓN FINAL **OK (8334 = 8302 [mi base] + 32 [deltas del hermano integradas, conflicto sólo en docs resuelto UNIÓN] — post-integración)**; smokes 25/25 y 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Bugs: ninguno nuevo. Features: parser — 1 lateral narrativa más cortada. Commits: el de este push.
+- Próxima prioridad: laterales ABIERTAS parser — «ya/ahora/ahorita» con UNA sola coma; colas relativas en títulos; familia «contar» c.950.

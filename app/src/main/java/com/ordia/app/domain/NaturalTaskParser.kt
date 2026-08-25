@@ -4840,10 +4840,18 @@ object NaturalTaskParser {
         val standalonePartOfDayCandidate = standalonePartOfDayPattern.find(working)
             ?.takeUnless { sm -> ordinalNarrativeRanges.any { it.containsRange(sm.range) } }
             ?.takeUnless { sm -> weekdayPreteriteNarrativeIntercalatedRanges.any { it.containsRange(sm.range) } }
-        val yaCommaPreteriteNarrative = standalonePartOfDayCandidate
-            ?.let { sm -> yaCommaPreteriteNarrativeIntercalatedPartOfDay(working, sm) } == true
+        // c.1083: el MISMO flag cubre la forma SIN comas («ya por la mañana
+        // me tomé la pastilla» — lateral FUERA pineada en c.1077, ahora
+        // resuelta con la tercera alternativa de [yaPreteriteNarrativeSuffix]
+        // que conserva la marca en `working`). Renombrado de
+        // yaCommaPreteriteNarrative a yaPreteriteNarrative.
+        val yaPreteriteNarrative = standalonePartOfDayCandidate
+            ?.let { sm ->
+                yaCommaPreteriteNarrativeIntercalatedPartOfDay(working, sm) ||
+                    yaNoCommaPreteriteNarrativeStandalonePartOfDay(working, sm)
+            } == true
         val standalonePartOfDayOccurrence = standalonePartOfDayCandidate
-            ?.takeUnless { yaCommaPreteriteNarrative }
+            ?.takeUnless { yaPreteriteNarrative }
         // c.955: «hoy/ayer» + conector + parte del día + predicado en pretérito
         // («ayer en la mañana llegó el paquete») ES cadena narrativa, hermano
         // de c.950 weekday: la decisión se toma sobre el texto original y el
@@ -5736,7 +5744,7 @@ object NaturalTaskParser {
             // c.954: borrado por rangos con flag de narrativa en pretérito —
             // la parte del día de «hoy/ayer en la mañana llegó…» se conserva
             // íntegra cuando la fecha no la ancló; ver eraseRelativeDayToken.
-            .let { value -> eraseStandalonePartOfDayToken(value, dayPreteriteNarrative, yaCommaPreteriteNarrative) }
+            .let { value -> eraseStandalonePartOfDayToken(value, dayPreteriteNarrative, yaPreteriteNarrative) }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             // c.930: borrado por rangos con guard anti-robo narrativo — las
             // apariciones de ordinal que son CONTENIDO («la primera hora de
@@ -5805,7 +5813,7 @@ object NaturalTaskParser {
             // con su conector "de/del/desde" como hacía la alternativa de arriba.
             // c.954: con flag — la «mañana» de la parte del día narrativa en
             // pretérito («hoy en la mañana llegó…») se conserva íntegra.
-            .let { value -> eraseMananaDateToken(value, dayPreteriteNarrative, yaCommaPreteriteNarrative) }
+            .let { value -> eraseMananaDateToken(value, dayPreteriteNarrative, yaPreteriteNarrative) }
             // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
             // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
             // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
@@ -7793,7 +7801,7 @@ object NaturalTaskParser {
     private fun eraseMananaDateToken(
         title: String,
         forceDayPreteriteNarrative: Boolean = false,
-        forceYaCommaPreteriteNarrative: Boolean = false
+        forceYaPreteriteNarrative: Boolean = false
     ): String {
         val token = Regex("""(?i)\bma[nñ]ana\b""")
         val connector = Regex("""(?i)\b(?:de|del|desde)\s+$""")
@@ -7811,10 +7819,15 @@ object NaturalTaskParser {
                     ?.let { dayPreteriteNarrativeOccurrence(result, it) } == true
             // c.1077 (G5'): ídem el «mañana» de la parte del día intercalada de
             // la narrativa «ya, …, <pretérito>» — mismo flag tomado en [parse].
-            val protectedYaComma = forceYaCommaPreteriteNarrative &&
+            // c.1083: el MISMO flag cubre la forma SIN comas («ya por la
+            // mañana me tomé…»).
+            val protectedYaComma = forceYaPreteriteNarrative &&
                 standalonePartOfDayPattern.findAll(result)
                     .firstOrNull { m.range.first in it.range }
-                    ?.let { yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, it) } == true
+                    ?.let {
+                        yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, it) ||
+                            yaNoCommaPreteriteNarrativeStandalonePartOfDay(result, it)
+                    } == true
             if (mananaOccurrenceIsContent(result, m.range) || protectedStandalone || protectedYaComma) {
                 idx = m.range.last + 1
                 continue
@@ -8509,7 +8522,7 @@ object NaturalTaskParser {
     private fun eraseStandalonePartOfDayToken(
         title: String,
         forceDayPreteriteNarrative: Boolean = false,
-        forceYaCommaPreteriteNarrative: Boolean = false
+        forceYaPreteriteNarrative: Boolean = false
     ): String {
         var result = title
         var idx = 0
@@ -8521,9 +8534,12 @@ object NaturalTaskParser {
             // en pretérito, SÓLO bajo flag (la decisión se tomó en [parse]
             // sobre el texto original; aquí el título ya pudo perder el
             // calificador «de hoy» que distingue la variante anclada).
+            // c.1083: el MISMO flag cubre la forma SIN comas («ya por la
+            // mañana me tomé…»).
             if (ordinalHoraNarrativeRanges(result).any { it.containsRange(m.range) } ||
                 weekdayPreteriteNarrativeIntercalatedPartOfDayRanges(result).any { it.containsRange(m.range) } ||
-                (forceYaCommaPreteriteNarrative && yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, m)) ||
+                (forceYaPreteriteNarrative && yaCommaPreteriteNarrativeIntercalatedPartOfDay(result, m)) ||
+                (forceYaPreteriteNarrative && yaNoCommaPreteriteNarrativeStandalonePartOfDay(result, m)) ||
                 (forceDayPreteriteNarrative && dayPreteriteNarrativeOccurrence(result, m))
             ) {
                 idx = m.range.last + 1
@@ -8719,8 +8735,20 @@ object NaturalTaskParser {
     // («ya, a primera hora, sonó la alarma» — pin FUERA c.1027 resuelto):
     // `[^,.;:!?]{1,60},` salta el adverbial sin tragar puntuación ni desbordar.
     // Mismo conservadurismo: el predicado sigue exigiendo pretérito inequívoco.
+    // c.1083: TERCERA alternativa — el adverbial de parte del día SIN comas
+    // («ya por la mañana me tomé la pastilla», «ahora en la tarde llegó el
+    // paquete»): la misma cadena narrativa sin puntuación (lateral FUERA
+    // pineada en c.1077, medida 10/10 con ancla falsa + título mutilado en
+    // sonda /tmp/probe1083/Probe.kt). La reestructura en alternativas es
+    // conservadora: la coma de apertura sólo vale en la PRIMERA rama (con la
+    // cláusula adverbial cerrada en coma de c.1035), así que las formas con
+    // una sola coma («ya, por la mañana me tomé…» / «ya por la mañana, me
+    // tomé…») NO ganan nada aquí — quedan byte-idénticas (pins FUERA). La
+    // parte del día sin comas exige el pretérito INMEDIATO tras ella (como
+    // la intercalada de c.1006): «ya por la mañana siguiente/de hoy…» no
+    // casa (el modificador rompe la inmediatez) y sigue anclando.
     private val yaPreteriteNarrativeSuffix = Regex(
-        """(?i)^\s*,?\s*(?:[^,.;:!?]{1,60},\s*)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
+        """(?i)^\s*(?:,\s*(?:[^,.;:!?]{1,60},\s*)?|[^,.;:!?]{1,60},\s*|(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la|para\s+la)\s+(?:tarde|noche|madrugada|ma[nñ]ana)|de\s+(?:tarde|noche|madrugada)|durante\s+la\s+(?:tarde|noche|madrugada))\s+)?(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$|[,.;:!?)])"""
     )
 
     /**
@@ -8997,6 +9025,40 @@ object NaturalTaskParser {
         // título ya parcialmente borrado no puede simular la coma intercalada
         // (doble cierre con el chequeo del calificador dentro del match).
         if (!Regex("""^,""").containsMatchIn(suffix)) return false
+        return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
+    }
+
+    /**
+     * c.1083: hermano SIN comas de [yaCommaPreteriteNarrativeIntercalatedPartOfDay]
+     * (lateral FUERA pineada en c.1077, medida 10/10 con ancla falsa + título
+     * mutilado en sonda /tmp/probe1083/Probe.kt): la parte del día es el
+     * adverbial intercalado de la misma cadena narrativa «ya/ahora/ahorita
+     * <clíticos> <pretérito>» sin puntuación («ya por la mañana me tomé la
+     * pastilla»). Misma doctrina c.1077: la decisión se toma sobre el texto
+     * ORIGINAL en [parse] (no sobre la copia de fecha con la marca ya
+     * borrada) y se propaga por el MISMO flag (forceYaPreteriteNarrative) a
+     * [eraseStandalonePartOfDayToken] y [eraseMananaDateToken] — fecha y
+     * título nunca divergen. Conservador (espejo N1/N2/N3 de c.1077):
+     *  (N1) el prefijo es EXACTAMENTE la marca narrativa («ya», «ahora» o
+     *      «ahorita» — la familia c.1027/c.1037 trata las tres uniformemente)
+     *      SIN su coma: la forma con coma de apertura («ya, por la mañana me
+     *      tomé…») es lateral FUERA pineada byte-idéntica;
+     *  (N3) el predicado NO abre con coma de cierre: la forma con una sola
+     *      coma («ya por la mañana, me tomé…») también queda FUERA pineada
+     *      (su «ya» ya se conservaba vía [yaPreteriteNarrativeSuffix] rama
+     *      adverbial-cerrada-en-coma; aquí sólo el ancla/título de la parte
+     *      del día sigue intacto byte-idéntico);
+     *  (N2) idénticas exclusiones: «siguiente» y el calificador de día
+     *      explícito («de hoy/mañana/ayer») convierten la frase en ancla
+     *      real y ganan (doctrina c.955/c.1077).
+     */
+    private fun yaNoCommaPreteriteNarrativeStandalonePartOfDay(text: String, match: MatchResult): Boolean {
+        if (match.value.lowercase().contains("siguiente")) return false
+        if (Regex("""(?i)\bde\s+(?:hoy|ma[nñ]ana|ayer)\b""").containsMatchIn(match.value)) return false
+        val prefix = text.substring(0, match.range.first).trim().lowercase()
+        if (prefix != "ya" && prefix != "ahora" && prefix != "ahorita") return false
+        val suffix = text.substring(match.range.last + 1)
+        if (Regex("""^\s*,""").containsMatchIn(suffix)) return false
         return weekdayPreteriteNarrativeSuffix.containsMatchIn(suffix)
     }
 
