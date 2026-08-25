@@ -516,7 +516,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "ir a ver", "recibir")),
     EXERCISE("Ejercicio", listOf("ejercicio", "gimnasio", "entrenar", "entreno",
         "yoga", "correr", "natación", "pesas", "rutina",
-        "hacer deporte", "ir al gimnasio")),
+        "hacer deporte", "ir al gimnasio",
+        // c.1135: «campamento» (actividad escolar/estival de los hijos —
+        // «inscribir al niño en el campamento en julio» era NULL aunque las
+        // hermanas con keyword como «natación» capturaban). Lockstep con el
+        // bono EXERCISE de ContextIntentEngine.scoreKind.
+        "campamento")),
     HABIT("Hábito", listOf("hábito", "rutina", "diario", "todos los días",
         "cada día", "semanal", "mañana", "lectura")),
     REMINDER("Recordatorio", listOf("recordatorio", "avísame", "notifícame",

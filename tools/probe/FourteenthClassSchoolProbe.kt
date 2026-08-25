@@ -157,4 +157,34 @@ fun main() {
     show("G6", "los niños van al colegio")
     show("G7", "el niño hizo los deberes ayer")
     show("G8", "la excursión del colegio es en octubre")
+
+    // --- Pines de cierre C19 (c.1135, VERDE): el piso EXERCISE
+    // «campamento» (EXERCISE_VERBS, fuente única, lockstep c.616/c.751 con
+    // la keyword en ContextIntent.EXERCISE) cerró el gap medido arriba.
+    // exitProcess(1) si la realidad difiere del pin (canario de regresión,
+    // mismo patrón que los cierres hermanos de esta sonda).
+    run {
+        fun pin(desc: String, t: String, wantHit: Boolean) {
+            val i = ContextIntentEngine.analyze(
+                ContextEvent(ContextCaptureSource.NOTIFICATION, t, 1000)
+            )
+            val got = i != null
+            val estado = if (got) "HIT ${i!!.kind}" else "NULL"
+            println("  $desc → $estado")
+            if (got != wantHit) {
+                val esperado = if (wantHit) "HIT" else "NULL"
+                println("  INESPERADO: se esperaba $esperado")
+                kotlin.system.exitProcess(1)
+            }
+        }
+        pin("C19a", "inscribir al niño en el campamento en julio", true)
+        pin("C19b", "inscribir a los niños en el campamento la semana que viene", true)
+        pin("C19c", "inscribir a la niña en el campamento en agosto", true)
+        pin("C19d", "inscribir a mi niño en el campamento mañana", true)
+        pin("C19e", "no inscribir al niño en el campamento", false)
+        pin("C19f", "quizá inscriba al niño en el campamento en julio", false)
+        // Desnuda sin cola temporal: NULL (mismo perfil que la hermana
+        // «inscribir al niño en natación») — NADA roto en recorte.
+        pin("C19g", "inscribir al niño en el campamento", false)
+    }
 }

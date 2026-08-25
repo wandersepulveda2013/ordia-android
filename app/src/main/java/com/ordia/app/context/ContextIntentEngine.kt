@@ -109,7 +109,14 @@ object ContextIntentEngine {
         // c.730, que exigió piso propio con guardia). Lockstep c.639:
         // keyword en ContextIntent.kt + bonus 0.15f + extractTitle.
         "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender|vaciar"
-    private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas"
+    // c.1135: «campamento» (objeto-actividad de la clase DECIMODUARTA —
+    // «inscribir al niño en el campamento en julio» era NULL medido en la
+    // sonda c.1127 C19 mientras la hermana «natación» capturaba por el piso
+    // de posición libre [EXERCISE_FLOORS]). Fuente única: fluye al piso, a
+    // la negación y al guard de envolvente (lección c.648). Lockstep
+    // c.616/c.751: keyword «campamento» en ContextIntent.EXERCISE (alimenta
+    // TRIGGER_WORDS; sin ella la notificación ni llega al análisis).
+    private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas|campamento"
     // c.831: "repostar" (P1 olvido silencioso; monosémico — proveer de
     // combustible —, así posición libre como c.727 "tender"/c.828 "vaciar",
     // sin acotamiento al objeto; a diferencia del bivalente "echar" c.829).
