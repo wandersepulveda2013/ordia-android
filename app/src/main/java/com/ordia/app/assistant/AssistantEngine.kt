@@ -1243,10 +1243,14 @@ object AssistantEngine {
     // menú): hermano no-enclítico «haz una nota» capturaba desde c.974 y el
     // enclítico quedaba al menú genérico. El verbo sigue exigiendo la palabra
     // «nota»: «hazme un favor»/«hazme la comida»/«hazme un café» nunca entran.
-    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$)|(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)(?=\\s*:|\\s*$))\\b")
+    // c.1085: el conjunto «una nota» admite además guarda[r]/toma[r]/haceme
+    // (voseo)/d[eé]jame; la palabra «nota» sigue siendo obligatoria, así
+    // «guarda el recuerdo»/«toma la pastilla»/«déjame el paquete»/«haceme
+    // favor» nunca entran (sonda persistente tools/probe/AssistantNotaVerboAlternativoProbe.kt).
+    private val TAKE_NOTE_PREFIX = Regex("(?i)^(?:toma(?:r)?\\s+notas?|apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame|(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?|(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o|(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)(?=\\s*:|\\s*$)|(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)(?=\\s*:|\\s*$))\\b")
     private val TAKE_NOTE_WITH_CONTENT = Regex("(?i)^toma(?:r)?\\s+notas?\\s*(?::|\\bde\\b)\\s*(.+)$")
     private val JOT_NOTE_WITH_CONTENT = Regex("(?i)^(?:apunta(?:r)?|anota(?:r)?|ap[uú]ntame|an[oó]tame)\\s*(?::\\s*|\\besto\\s*:\\s*|\\s+)(.+)$")
-    private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
+    private val WRITE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]beme|escribeme|escribe|escribir|crear?|haz|hazme|guarda(?:r)?|t[óo]ma(?:r)?|haceme|d[eé]jame)\\s+(?:una\\s+)?notas?\\s*(?::\\s*|\\besto\\s*:\\s*|\\bde\\b\\s*|\\s+)(.+)$")
     private val DICTATE_NOTE_WITH_CONTENT = Regex("(?i)^(?:escribe|escr[ií]beme|escribeme|guarda|gu[aá]rdame)\\s+es(?:t)?o\\s*:\\s*(.+)$")
     private val MELO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]melo|ap[uú]nt[ae]melo|an[oó]t[ae]melo|gu[aá]rd[ae]melo)\\s*:\\s*(.+)$")
     private val LO_NOTE_WITH_CONTENT = Regex("(?i)^(?:escr[ií]b[ae]lo|ap[uú]nt[ae]lo|an[oó]t[ae]lo|gu[aá]rd[ae]lo)\\s*:\\s*(.+)$")
