@@ -268,6 +268,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // la línea telefónica» sigue descartado (NULL deliberado, sonda
         // `tools/probe/DarDeBajaProbe.kt`).
         "dar de baja", "suscripción", "suscripcion",
+        // c.1139: keyword-frase «dar de alta» (lockstep con el piso
+        // acotado «dar de alta <suministro>», candidata (b) de la clase
+        // DECIMOQUINTA; ver ContextIntentEngine.hasStrongTaskImperative).
+        // Cuasi-monosemántica: alta administrativa; el bivalente médico
+        // «dar de alta a un paciente» queda fuera por el piso exigiendo
+        // objeto-suministro (luz/agua/gas/internet). «dar» solo NO se
+        // añade (extremadamente polivalente).
+        "dar de alta",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
