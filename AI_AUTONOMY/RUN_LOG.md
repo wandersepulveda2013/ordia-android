@@ -18379,3 +18379,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Codificación**: todas las resoluciones vía python `open(..., encoding="utf-8")` (regla AGENTS §7); 0 marcadores de conflicto restantes verificado con grep.
 - **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno).
 - **Próxima prioridad**: nueva candidata DECIMOTERCERA/c.1102 (UNA por ciclo) — reclamar ciclo-ID ≥ c.1123 respetando marcadores EN CURSO c.1119 (hermano), c.1120→FIXED, c.1121 (HEDGE «no sabéis si deberíais…» hermano). Regions libres: mis pisos ~l.2430/~l.4303 DISJUNTOS de hermanos ~l.604/~l.4924/~l.760/~l.5006.
+
+## Run c.1120 — 2026-08-25 (este lado) — lateral c.1118: destino «psicólog[oa]» del piso c.776
+
+- HEAD inicial: `d5bd2d7` (mi marcador c.1119 local no empujado); base efectiva tras renum/push/rebases: `7b983f8` → integración `1ee3d71` (c.1115 del hermano).
+- Problema: lateral ABIERTA registrada al cerrar c.1118 — «llevar al niño al psicólogo el jueves» → NULL (olvido silencioso P1: terapia infantil del hijo no se capturaba pese a que «psicólog[oa]» es keyword/listas APPOINTMENT de larga data para la forma propia «ir al psicólogo»).
+- Carrera de marcador: el hermano fijó c.1119 («sacar la muela», `97bbb1d`) primero → mi marcador renumerado c.1119→c.1120 (primer-marcador-gana, `7b983f8`, docs-only).
+- PRE (sonda efímera /tmp/probe1120/Probe.kt, motor real vía tools/run_probe.sh, base 7b983f8): 5/5 targets NULL; 5/5 guards NULL (negada, duda, pasado, deseo ajeno, objeto bivalente otra persona); 4/4 pines correctos (dermatólogo/pediatra ERRAND c.1118/c.1116, «ir al psicólogo» APPOINTMENT 0.77, envolvente TASK 0.54).
+- Fix (lockstep piso↔plantilla, lección c.616; hermana EXACTA de c.1116/c.1118): `psicólog[oa]` añadido a la alternancia de destino de `ERRAND_MEDICAL_RUN_FLOOR` (l.613) y a la plantilla `matchMedicalRun` de `extractTitle` (l.4930). CERO keywords nuevas (keyword-OBJETO «niños» preexistente c.773). UNA forma por ciclo: ginecólogo como destino queda lateral.
+- TDD estricto: archivo NUEVO `ContextIntentEngineLlevarPsicologoFloorTest.kt` (14 tests: 5 capturas + envolvente + 4 guards + 4 pines/regresiones) — RED EXACTO 5 fallos (las 5 capturas; resto verde desde RED) → GREEN en 1 iteración, cero ajustes.
+- POST (sonda efímera, post-fix): 5/5 N→HIT ERRAND 0.45 con títulos limpios («Llevar al niño al psicólogo», etc.) y dueAt anclado; guards 5/5 NULL; pines 4/4 byte-idénticos.
+- Integración NO-destructiva: remoto avanzó `7b983f8`→`1ee3d71` durante mi verificación (hermano cerró c.1115 «hacerme las analíticas» piso reflexivo `ERRAND_BLOOD_TEST_FLOOR` l.760/l.5016, región DISJUNTA de la mía) — `git rebase` auto-merge limpio en ContextIntentEngine.kt.
+- Verificación: suite UNIÓN FINAL medida sobre HEAD final **OK (8801 = 8787 [1ee3d71] + 14 míos — aritmética exacta)**; smoke dominio 25/25; smoke AutomationEngine 9/9.
+- Commits: `7b983f8` (renum. marcador docs) + `1a20b84` (fix c.1120 + 14 tests). HEAD final: `1a20b84`.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: lateral ABIERTA «ginecólogo» como destino del piso c.776 (UNA por ciclo, respetando marcadores activos del hermano: c.1119 «sacar la muela» FLOORS nuevos [NO TOCAR] / c.1117 «sacar cita» / c.1113 fisioterapia / c.1108 parser).
+
