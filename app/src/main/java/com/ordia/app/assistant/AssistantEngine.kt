@@ -2764,7 +2764,13 @@ object AssistantEngine {
         val needle = extractEntityNeedle(query) ?: return AssistantAnswer(
             "No encuentro a qué te refieres. Prueba «a qué hora tengo la reunión» o «cuándo pago la luz»."
         )
-        val matches = tasks.filter { it.title.foldForSearch().contains(needle) }
+        // Paridad de envoltorio (c.1109): el usuario también puede titular
+        // «Lo del dentista». Sin recortar el casefold, limpiar la AGUJA de la
+        // consulta rompía la coincidencia exacta que ya funcionaba (sonda
+        // (A): «¿a qué hora es lo del dentista?» vs título «Lo del dentista»).
+        val matches = tasks.filter {
+            ENTITY_NEEDLE_FILLER_PATTERN.replace(it.title.foldForSearch(), "").contains(needle)
+        }
         if (matches.isEmpty()) {
             return AssistantAnswer("No encuentro nada que sea «$needle» entre tus tareas.")
         }
@@ -2818,6 +2824,12 @@ object AssistantEngine {
      * recorta puntuación final. Mantiene el orden de markers (más específicos
      * primero) para que «a que hora tengo la» se case antes que «a que hora ».
      */
+    // c.1109: relleno interrogativo superviviente de la aguja (y del casefold
+    // del título). Anclado a INICIO y en bucle para cadenas («es lo del »).
+    // Solo determinantes de la entidad preguntada; jamás sustantivos.
+    private val ENTITY_NEEDLE_FILLER_PATTERN =
+        Regex("""^(?:es |lo del |lo de la |lo de |del |de la |de |la |las |el |los |lo )+""")
+
     private fun extractEntityNeedle(query: String): String? {
         val markers = listOf(
             "a que hora tengo el ", "a que hora tengo la ", "a que hora tengo ",
@@ -2837,7 +2849,26 @@ object AssistantEngine {
                 val rest = query.substring(idx + m.length)
                     .trim(' ', '¡', '¿', '?', '.', ',', '!', ':')
                     .trim()
-                return rest.takeIf { it.isNotBlank() }
+                // c.1109: tras quitar el marcador de pregunta, la aguja aún
+                // puede arrastrar el ENVOLTORIO de la entidad («¿cuándo es
+                // la reunión?» → «es la reunion»; «…lo del dentista?» →
+                // «lo del dentista»). La búsqueda es por SUBCADENA del
+                // título, así que cualquier relleno superviviente envenena
+                // la coincidencia y el asistente contesta «No encuentro
+                // nada que sea …» aunque la tarea EXISTA (mentira por
+                // omisión, medido con sonda efímera: 7/7 preguntas de esta
+                // familia fallaban pese a existir la tarea). Es el mismo
+                // motivo por el que SearchEngine trata de/del/la/el/lo como
+                // STOP_WORDS (también se cortan al cabeza). Se recorta en
+                // bucle: «es lo del »→«lo del »→contenido; marcadores con
+                // artículo ya comido («a que hora es la cena») se limpian
+                // igual en la 1ª vuelta. La aguja queda limpia de verdad:
+                // la rama «sin coincidencias» ya no cita el relleno al
+                // usuario.
+                val needle = ENTITY_NEEDLE_FILLER_PATTERN.replace(rest, "")
+                    .trim(' ', '¡', '¿', '?', '.', ',', '!', ':')
+                    .trim()
+                return needle.takeIf { it.isNotBlank() }
             }
         }
         return null
