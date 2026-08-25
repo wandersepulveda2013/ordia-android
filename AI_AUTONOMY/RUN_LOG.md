@@ -1,3 +1,12 @@
+# ✅ c.1050 [renumerado c.1048→c.1050 por colisión cycle-ID con SU c.1048 parser `4f2fd28` y SU c.1049 parser `b2b0a47`, fijadas en re-fetch pre-push; regiones DISJUNTAS context vs parser; integración NO-destructiva stash -u + pull --ff-only + stash pop] — feat(context): imperativo «dale la(s) pastilla(s) al perro/gato» (lateral ABIERTA c.1012 RESUELTA)
+
+- HEAD inicial `b89a1cd` (mi c.1047) → HEAD final base `b2b0a47` (UNIÓN SU c.1048/c.1049 parser, auto-merge limpio, código disjunto context/parser). Toolchain heredada /tmp; `JAVA_OPTS=-Xmx6g` requerido (OOM del compilador resuelto).
+- Lateral: imperativo 2ª persona «dale la pastilla al perro» (documentada ABIERTA c.1012; pin FUERA en la clase del piso dativo). Medida PRE sonda efímera: 6/6 NULL. Fix: alternancia verbal del piso `HOUSEHOLD_PILL_DATIVE_FLOOR` de `dar(?:le|les)` a `(?:dar(?:le|les)|dale?s?)` — lockstep 3 puntos (piso + cláusula negación + plantilla título; doctrina c.653), CERO keywords.
+- TDD estricto: 20 tests nuevos `ContextIntentEngineDalePastillaImperativeFloorTest` — RED exacto EXACTAMENTE 6 fallos → GREEN 20/20; re-pin legítimo en la clase c.1012. Pin FUERA nuevo: «dale una pastilla al perro» (indefinido, lateral ABIERTA).
+- Suite UNIÓN FINAL OK (7772 = 7752 UNIÓN SU c.1048/c.1049 + 20, aritmética exacta); smokes 25/25 y 9/9; sonda POST 6/6 HIT HOUSEHOLD 0.45 + 8/8 guards NULL + 6/6 regresiones intactas. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: «dale una pastilla…» (indefinido, pin FUERA), plural «los pelos» (c.842), «sacar al gato» (SU c.1046), «no vais/van a…» plural (SU c.1044), parser (a)/(c)/(d).
+
 # 🔄 c.1049 — DELTA candado «quedar con» extendido a weekday y hora numérica: lateral ABIERTA (b) de c.1048 RESUELTA (guard compartido `narrativePreteritePrefix` + idiom `ordinalHoraQuedarConArrangement` en 2 consumidores más)
 
 - **Rama**: openhands/autonomous-ordia. HEAD inicial `4f2fd280` (mi c.1048). Toolchain heredada /tmp (JDK 21, kotlinc 2.1.20, jars `/tmp/libs`, `JAVA_OPTS=-Xmx6g`).

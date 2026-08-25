@@ -46,10 +46,11 @@ import org.junit.Test
  * la negación inmediata la bloquean el lookbehind del piso Y la
  * cláusula; el guard c.1009 descarta «no voy a darle…» antes del
  * piso (pin); el pasado («le di la pastilla…») no casa el infinitivo
- * literal; el hedge «quizá…» sigue NULL; el imperativo 2ª persona
- * «dale la pastilla al perro» queda FUERA (lateral documentada —
- * los pisos dativos hermanos tampoco la cubren; el quick-capture
- * propio se habla en infinitivo). Acotado deliberado (UNA forma por
+ * literal; el hedge «quizá…» sigue NULL. El imperativo 2ª persona
+ * «dale la pastilla al perro» quedó FUERA pineado aquí y fue
+ * RESUELTO en c.1050 (re-pin legítimo — la alternancia del piso
+ * admite «dale/dales»; la captura pasiva de la delegación familiar
+ * es la vía real del motor). Acotado deliberado (UNA forma por
  * ciclo): (c)–(e) quedan FUERA — candidatas documentadas c.1007.
  */
 class ContextIntentEngineDarlePastillaFloorTest {
@@ -140,8 +141,11 @@ class ContextIntentEngineDarlePastillaFloorTest {
     }
 
     @Test
-    fun `imperativo segunda persona fuera lateral documentada`() {
-        assertNull(analyze("dale la pastilla al perro"))
+    fun `imperativo segunda persona RESUELTO c1050`() {
+        val i = analyze("dale la pastilla al perro")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Dale la pastilla al perro", i.title)
     }
 
     // ---- Regresiones (HIT intactas) ----
