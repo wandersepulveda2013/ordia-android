@@ -4922,13 +4922,16 @@ object ContextIntentEngine {
             }
         }
 
-        // "el [día]" → ejemplo: "el 25", "el 25 de mayo"
+        // "el [día]" → ejemplo: "el 25", "el día 25", "el 25 de mayo"
         // El prefijo "el" o un mes explícito es OBLIGATORIO para evitar tratar como
         // fecha cualquier número suelto del texto (p.ej. "comprar 2 kilos de arroz").
         // Igual que con la hora, el primer `.find()` puede casar un número suelto
         // anterior ("comprar 2 kilos el 25") y descartarlo por guard sin examinar
         // la fecha válida posterior: se itera hasta el primer match con "el" o mes.
-        val dayPattern = Regex("""(el\s+)?(\d{1,2})(?:\s+de\s+(\w+))?""")
+        // c.1043: «día» opcional entre «el» y el número («pagar la luz el día 5»),
+        // paridad con NaturalTaskParser.dayOfMonthPattern — antes nacía SIN dueAt
+        // (sin recordatorio ni What Now) aunque la captura manual SÍ anclaba.
+        val dayPattern = Regex("""(el\s+(?:d[ií]a\s+)?)?(\d{1,2})(?:\s+de\s+(\w+))?""")
         val dayMatch = dayPattern.findAll(lower).firstOrNull { m ->
             val hasEl = m.groupValues[1].isNotBlank()
             val dayNum = m.groupValues[2].toIntOrNull() ?: return@firstOrNull false

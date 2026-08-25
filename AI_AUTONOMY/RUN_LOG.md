@@ -17322,3 +17322,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Laterales FUERA registradas (pins byte-idénticos, UNA por ciclo): prefijo con SUJETO nominal («el paquete llegó el lunes» — ABIERTA); infinitivo embebido («salí a comprar el lunes» — pin conservador).
 - HEAD final: (commit tras este bloque). Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: prefijo con SUJETO nominal («el paquete llegó el lunes», pin FUERA c.1041); residual narrativa con expresión temporal interna (SU c.1035, cambio mayor — medir antes); «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2); nuevas oportunidades de producto. Re-fetch OBLIGATORIO pre-implementación y pre-push.
+
+## Ciclo c.1043 (2026-08-25, este lado, DISJUNTO context) — fix(context): ancla «el día N» en captura pasiva (lateral medida R3 de `EleventhClassDigitalProbe` c.1026 RESUELTA)
+- HEAD inicial y final de base: `f0018b3` (mi c.1042, pull --ff-only limpio SIN colisión).
+- Cambios: `ContextIntentEngine.kt` (UN punto: `dayPattern` local de `extractDateTime` admite «día» opcional entre «el» y el número — `(el\s+(?:d[ií]a\s+)?)?`; guard «el»/mes y resolución byte-idénticos), `ContextIntentEngineElDiaTest.kt` (NUEVO, 10 tests), `tools/probe/EleventhClassDigitalProbe.kt` (KDoc lateral R3 → RESUELTA), docs AI_AUTONOMY.
+- Bugs: «pagar la luz el día 5» (artículo + «día» + número) nacía SIN dueAt en la captura pasiva (sin recordatorio ni What Now — P1 evitar olvidos), mientras la captura manual SÍ anclaba (`NaturalTaskParser.dayOfMonthPattern`, l.825) — paridad perdida entre motores. Causa raíz: el `dayPattern` no contemplaba la palabra «día» tras «el».
+- Features: ninguna (fix de lateral registrada).
+- Tests: TDD estricto — RED exacto (7655 run, EXACTAMENTE 5 fallos = las 5 capturas «el día N» sin mes; la 6.ª «el día 5 de septiembre» ya anclaba por la ruta de mes explícito preexistente → guard byte-idéntica; 4 guards/regresiones verdes desde RED) → GREEN. Sonda efímera PRE `/tmp/probe1042/DiaNProbe.kt`: 4 PAYMENT + 1 APPOINTMENT dueAt=false con parser due=true → POST 5/5 dueAt=true; guards «el día de la madre»/«trabajo el día completo»/número suelto intactos. Suite FINAL: **OK (7655 = 7645 [c.1042] + 10 — aritmética exacta)**; smoke 25/25; automation 9/9. Determinista (regex), cero random.
+- Commits: 1 commit fix+docs (hash abajo). HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO): parser «ya, <narrativa>» con coma (pin FUERA c.1027); residual «ahora/ahorita + pretérito» (P2); context: 2ª persona «no vas a…» c.1009, «ponerme la vacuna» c.1011, «dale la pastilla…» c.1012, «pasear al gato» c.1018, plural «los pelos» c.842, colas relativas en títulos.
+- COMPLETADO

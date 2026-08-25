@@ -80,7 +80,12 @@ import com.ordia.app.context.ContextIntentEngine
  *   `ContextIntentEngine.extractDateTime`, paridad con
  *   `NaturalTaskParser.standalonePartOfDayPattern`; C6/R8 dueAt=true
  *   POST; «este mes» tampoco (ya registrado c.845/c.852) y queda en
- *   el título (C8 — lateral de colas ABIERTA de la familia de pisos).
+ *   el título (C8 — lateral de colas ABIERTA de la familia de pisos);
+ *   «el día 5» tampoco anclaba dueAt (R3 dueAt=false)
+ *   → RESUELTA c.1043 («día» opcional entre «el» y el número en el
+ *   `dayPattern` local de `ContextIntentEngine.extractDateTime`;
+ *   paridad con `NaturalTaskParser.dayOfMonthPattern`; R3 dueAt=true
+ *   POST, guards/regresiones byte-idénticas).
  */
 fun main() {
     fun a(t: String) = ContextIntentEngine.analyze(
