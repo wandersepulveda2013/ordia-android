@@ -31,8 +31,10 @@ import org.junit.Test
  * inmediata bloqueada por lookbehind + cláusula, «no voy a…» por el
  * guard c.1009, pasado/hedge no casan el infinitivo literal,
  * sintagma nominal NULL. Acotado deliberado (UNA por ciclo): el
- * piso hermano «sacar al perro» c.740 sigue perro-only — «sacar al
- * gato» queda FUERA (lateral documentada, pin byte-idéntico abajo).
+ * piso hermano «sacar al perro» c.740 quedó perro-only en ESTE ciclo
+ * — «sacar al gato» fue lateral documentada y se RESUELVE en c.1050
+ * (hermana simétrica; re-pin abajo, mismo acotamiento perro→perro+gato
+ * en lockstep 3 puntos).
  */
 class ContextIntentEnginePasearGatoDeltaTest {
 
@@ -137,10 +139,16 @@ class ContextIntentEnginePasearGatoDeltaTest {
         assertEquals("Pasear al perro", i.title)
     }
 
-    // ---- Pin FUERA byte-idéntico (lateral documentada, UNA por ciclo) ----
+    // ---- Re-pin c.1050: la lateral «sacar al gato» se RESUELVE en el
+    // ciclo hermano simétrico (ancla de objeto del piso [HOUSEHOLD_PET_FLOOR]
+    // c.740 extendida perro→perro+gato, lockstep 3 puntos) ----
 
     @Test
-    fun `sacar al gato fuera lateral documentada piso hermano perro-only c740`() {
-        assertNull(analyze("sacar al gato mañana"))
+    fun `sacar al gato RESUELTO c1050 piso hermano c740 extendido`() {
+        val i = analyze("sacar al gato mañana")
+        assertNotNull(i)
+        assertEquals(ContextIntentKind.HOUSEHOLD, i!!.kind)
+        assertEquals("Sacar al gato", i.title)
+        assertNotNull(i.dueAt)
     }
 }

@@ -231,10 +231,16 @@ object ContextIntentEngine {
     // añadida a las formas "al"/"a+(el|la|...)" (variante conversacional
     // "sacar la perra", hermano de "sacar al perro"; cero keywords nuevas,
     // acotamiento al mascota conservado).
-    // `\b` final: "perrito(s)" (diminutivo) no casa (forma OPEN en sonda);
+    // `\b` final: "perrito(s)"/"gatito(s)" (diminutivo) no casa (forma
+    // OPEN en sonda; hermano simétrico c.1050, lateral documentada);
     // guard de negación explícito heredado de la familia (?<!no ).
+    // c.1050: la lateral «sacar al gato» (UNA por ciclo, hermana
+    // simétrica de c.1046 «pasear al gato») se RESUELVE: el objeto
+    // mascota del piso pasa de perro-only a perro+gato (lockstep con
+    // [imperativeIsNegated] y la plantilla de título; cero keywords
+    // nuevas — gato/gata ya existen c.744).
     private val HOUSEHOLD_PET_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
+        Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]|gat[oa])s?\b""")
     // Piso mascota "pasear al perro" (c.1018, renumerada c.1017->c.1018
     // por colisión de cycle-ID con SU c.1017 «desparasitar» — candidata (e) de la fila
     // clase DÉCIMA mascotas c.1007, sonda fuente `TenthClassPetProbe.kt`;
@@ -3114,7 +3120,8 @@ object ContextIntentEngine {
             Regex("""\bno\s+sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""").containsMatchIn(lower)
         ) return true
         if (kind == ContextIntentKind.HOUSEHOLD &&
-            Regex("""\bno\s+sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""").containsMatchIn(lower)
+            // c.1050: objeto mascota extendido perro+gato (lockstep).
+            Regex("""\bno\s+sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]|gat[oa])s?\b""").containsMatchIn(lower)
         ) return true
         // "pasear al perro" (HOUSEHOLD, piso acotado c.1018 — sinónimo del
         // hermano "sacar al perro" c.740) es imperativo multi-palabra: la
@@ -4283,10 +4290,12 @@ object ContextIntentEngine {
                     return "${capitalizeFirst(matchQuitarMesa.groupValues[1])} ${matchQuitarMesa.groupValues[2]}"
                 }
                 // Piso "sacar al perro" (c.740; c.756 añade artículo
-                // directo): titular lo acotado al objeto mascota
+                // directo; c.1050 extiende el objeto mascota a gato,
+                // lockstep hermana simétrica de c.1046): titular lo
+                // acotado al objeto mascota
                 // (alineado con [HOUSEHOLD_PET_FLOOR]).
                 val matchSacarPerro = Regex(
-                    """\b(sacar) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) perr[oa]s?.*)""",
+                    """\b(sacar) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) (?:perr[oa]|gat[oa])s?.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSacarPerro != null) {
