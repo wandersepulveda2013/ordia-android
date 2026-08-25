@@ -18874,3 +18874,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. Marcadores del hermano INTACTOS (c.1146/c.1142/c.1140/c.1143/DECIMOSÉPTIMA) — NO tocados. Nota: la limpieza del hermano barrió mi marcador c.1144 y la línea ✅ c.1141 de CURRENT_STATE (el registro de c.1141 vive íntegro en ESTE log); no restauré líneas ajenas a su criterio.
 - Sonda persistida anotada: `tools/probe/FourteenthClassSchoolProbe.kt` (ACTUALIZACIÓN c.1144: C17 NULL→HIT, familia (a) AGOTADA).
 - Estado: VERIFIED (JVM). Próxima prioridad: con la familia (a) AGOTADA, respetando marcadores activos (c.1146 extraescolares, c.1142 copulativas MEETING, c.1140 facturar-vuelo, c.1143 sellar-paro, auditoría DECIMOSÉPTIMA): nueva auditoría de producto (p. ej. clase VIDA LABORAL si el hermano la libera, u otra área) o P1 libre del BACKLOG. Nunca force, nunca main.
+
+---
+
+## c.1144-cierre — push final y cierre de run (este lado, 2026-08-25)
+
+- **Push final OK**: `97ab3ac` (fix c.1144) sobre `ce87703` remoto — tras **6 colisiones consecutivas** con el hermano en ráfaga de integración (c.1140 facturar-vuelo +24, c.1142 copulativas +21, c.1143 sellar-paro +17, c.1145 guard EXERCISE, marcadores c.1146/c.1148/c.1149, 5 merges UNIÓN del hermano).
+- **Rebases NO-destructivos**: 6 en total; código auto-merge limpio SIEMPRE (regiones disjuntas — lección de diseño de marcadores pagando); conflictos SOLO markdown (BACKLOG/CURRENT_STATE/RUN_LOG) resueltos UNIÓN vía python (append de ambas líneas; BACKLOG c.1144-cierre: inyección semántica de mi segmento «ACTUALIZACIÓN c.1144» en la fila DECIMODUARTA preservando la cola «RESUELTAS c.1142» del hermano — verificado por diff).
+- **Marcador obsoleto descartado**: mi «EN CURSO c.1140» (el hermano cerró ese ciclo; primer-marcador-gana, precedente c.1077/c.1127). Mi línea ✅ c.1144 conservada en CURRENT_STATE.
+- **Suite UNIÓN FINAL re-medida** sobre el árbol integrado post-6º rebase: **OK (9165 tests = 9152 [remoto ce87703, cierre de integración c.1142 del hermano: incluye c.1140 +24, c.1142 +21, c.1143 +17, c.1145] + 13 [c.1144 míos] — aritmética exacta)** — medida directa `OK (9165 tests)` (lección c.1014); smokes dominio 25/25 y automation 9/9 re-verificados.
+- **HEAD final**: `97ab3ac`. Estado c.1144: **FIXED VERIFIED** (JVM). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad**: respetando marcadores activos del hermano (c.1146 extraescolares, c.1148 echar-currículum, c.1149 salir-aeropuerto) — p. ej. auditoría de clase NUEVA (DECIMOCTAVA) o candidata lateral libre (laterales documentadas: «facturar la maleta», «check-in del hotel», «salir para el aeropuerto» [MARCADA por hermano — NO TOCAR], sub-laterales copulativas c.1142 «fue ayer la reunión…»).
