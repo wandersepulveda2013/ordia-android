@@ -2367,6 +2367,31 @@ object ContextIntentEngine {
             // humana (el dativo de mascota exige «darle/dale», verbo
             // disjunto); «tomar una copa»/«una decisión» no casan.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:tomar|tomarme)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+|unos\s+|unas\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b""").containsMatchIn(lower)
+            // c.1111: «empezar (con )?(la )?dieta» — candidata (n) del
+            // complemento c.1102 (clase DECIMOTERCERA, salud/autocuidado;
+            // medida NULL por la sonda persistida
+            // `tools/probe/ThirteenthClassHealthProbeComplement.kt`, C20)
+            // y re-medida PRE en este ciclo con sonda efímera propia
+            // (N1-N8 8/8 NULL, pines 9/9 NULL, regresiones 8/8 HIT,
+            // HEAD a7fa35e): empezar una dieta es EL compromiso de
+            // autocuidado con fecha de inicio (coste real de olvido: el
+            // propósito se desinfla) y caía a NULL — «empezar» no tenía
+            // piso y «dieta» no era keyword (lockstep de TRES puntos,
+            // lección c.713/c.751: keyword-OBJETO en ContextIntent.kt +
+            // este piso + plantilla de [extractTitle]). El verbo es
+            // bivalente (el libro/la serie/la carrera), así el piso se
+            // ACOTA al objeto `dieta` — «empezar el régimen…» queda
+            // FUERA como candidata lateral propia (una forma por ciclo,
+            // pin en el test). Kind decidido: TASK, hermano de «tomar la
+            // medicina» c.765 (mismo autocuidado de vida; deliberación
+            // contra HABIT — no es rutina recurrente enunciada, es un
+            // inicio concreto). Anti-overreach: `(?<!no )` bloquea la
+            // negada directa; el pasado «empecé…», la 3ª persona «mi
+            // madre empieza…», la duda «quizá empiece…», el envolvente
+            // de plan «voy a empezar…» (lateral registrada, pin) y los
+            // objetos bivalentes («el libro», «la serie», «a estudiar»)
+            // no casan; la keyword sola queda bajo el umbral.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empezar\s+(?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b""").containsMatchIn(lower)
             // c.860 (candidata 2/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD bebc7c2,
@@ -4212,6 +4237,20 @@ object ContextIntentEngine {
                 // doctrina c.653).
                 val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar|tomarme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+|unos\s+|unas\s+)?(?:medicinas?|medicamentos?|pastillas?|medicaci[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTomarMedicina != null) return "${matchTomarMedicina.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchTomarMedicina.groupValues[2]}"
+                // c.1111: plantilla «empezar (con )?(la )?dieta» (lockstep
+                // con el piso propio de este ciclo; el verbo gobierna el
+                // contenido y se PRESERVA capitalizado, alineación piso↔
+                // título lección c.616, grafía del usuario conservada
+                // doctrina c.653 — «Empezar con la dieta»/«Empezar mi
+                // dieta»; el match arranca en el verbo, así acuse/prefijo
+                // temporal se despojan; el residuo temporal de cola lo
+                // depura [sanitizeTitle]). Los objetos bivalentes («el
+                // libro», «a estudiar») nunca llegan aquí porque el piso
+                // no los captura; la envolvente condicional («debería
+                // empezar la dieta…», c.835) tampoco casa el ancla y
+                // sigue su propia vía (pin byte-idéntica R8 en el test).
+                val matchEmpezarDieta = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(empezar)\s+((?:con\s+)?(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?dieta\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEmpezarDieta != null) return "Empezar ${matchEmpezarDieta.groupValues[2]}"
                 // c.766: plantilla "ponerse la insulina" (ancla/guard
                 // idénticos al piso; el residuo temporal lo depura
                 // sanitizeTitle).

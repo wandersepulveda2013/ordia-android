@@ -86,6 +86,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword (precedente c.772 «tensión»): el piso sí la admite por
         // `[oó]` cuando el texto llega al análisis vía otra keyword.
         "medicación",
+        // c.1111: keyword-OBJETO "dieta" (lockstep con el piso acotado
+        // "empezar (con )?(la )?dieta", lección c.713/c.751/c.765: sin
+        // ella la notificación sin palabra gatillo ni llega al análisis).
+        // NO se añade el verbo "empezar": bivalente (el libro/la serie/
+        // la carrera). Cubre el plural por subcadena ("dietas"); no es
+        // subcadena de "dietética"/"dietista" (é/i rompen). 0.12 sola
+        // queda bajo el umbral: "la dieta mediterránea es sana" sigue
+        // descartado; con bono temporal 0.22 < 0.45 (pin en el test).
+        "dieta",
         // c.861: keyword-FRASE "contestar a" (lockstep con el piso acotado
         // «contestar a <persona>», ver ContextIntentEngine.hasStrongTaskImperative;
         // lección c.751: sin ella la notificación "contestar a Juan esta
