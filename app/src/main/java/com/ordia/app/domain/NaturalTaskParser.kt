@@ -3664,8 +3664,17 @@ object NaturalTaskParser {
         // Guard narrativo c.1027: «ya» suelto seguido de pretérito inequívoco
         // («ya sonó la alarma») NO es inmediatez sino relato de un hecho
         // cumplido: el ancla se suprime (sin fecha falsa ni título mutilado).
+        // c.1037: la MISMA guard (misma regex de sufijo, sin duplicarla —
+        // doctrina c.1016) cubre «ahora»/«ahorita» + pretérito, acabativo
+        // («ahora llegó el cartero» = recién llegó). Los comandos en
+        // presente/imperativo/infinitivo («ahora llamo», «hazlo ahora») y la
+        // frase completa «ahora mismo» siguen anclando.
         val nowMatch = nowPattern.find(working)?.takeUnless { match ->
-            match.value.trim().equals("ya", ignoreCase = true) &&
+            match.value.trim().let {
+                it.equals("ya", ignoreCase = true) ||
+                    it.equals("ahora", ignoreCase = true) ||
+                    it.equals("ahorita", ignoreCase = true)
+            } &&
                 yaPreteriteNarrativeSuffix.containsMatchIn(working.substring(match.range.last + 1))
         }
         val nowDueAt = nowMatch?.let { now }
