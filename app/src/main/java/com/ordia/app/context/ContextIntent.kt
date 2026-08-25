@@ -308,7 +308,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
         "especialista", "consulta", "revisión", "chequeo", "terapia",
-        "psicólogo", "nutricionista", "pediatra", "dermatólogo")),
+        "psicólogo", "nutricionista", "pediatra", "dermatólogo",
+        // c.1126: keyword-frase «limpieza dental» (candidata (f) clase
+        // DECIMOTERCERA; lockstep con MEDICAL/GO/FUTURE, lección
+        // c.682/c.1110). Frase de DOS palabras: «limpieza» a secas (de
+        // casa/del piso/del coche) jamás entra (anti-overreach).
+        "limpieza dental")),
     MEETING("Reunión", listOf("reunión con", "reunión de", "junta", "encuentro",
         "quedar con", "vernos", "nos vemos", "quedamos",
         // c.847: lockstep del piso «quedar con|para» (lección c.751).

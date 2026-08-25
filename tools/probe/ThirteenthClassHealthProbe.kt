@@ -77,6 +77,10 @@ import com.ordia.app.context.ContextIntentEngine
  *     f) «ir a la limpieza dental la semana que viene» — «limpieza
  *        dental» sin keyword; «ir a <sustantivo>» no es piso.
  *        CANDIDATA.
+ *        RESUELTA c.1126 (keyword-frase «limpieza dental» en
+ *        lockstep CUATRO puntos: keyword APPOINTMENT + patrones
+ *        MEDICAL/GO/FUTURE; hermana EXACTA de c.1110 dermatólogo;
+ *        ver C12 abajo).
  *     g) «hacerse la ecografía el miércoles» — «ecografía» sin
  *        keyword; «hacerse» reflexivo sin piso. CANDIDATA.
  *        RESUELTA c.1123 (objeto «ecograf[ií]as?» en el piso
@@ -130,6 +134,10 @@ fun main() {
     show("C9",  "hacerme la revisión de la vista este mes")
     show("C10", "recoger la medicación en la farmacia esta tarde")
     show("C11", "comprar los medicamentos mañana")
+    // c.1126: C12 RESUELTA → APPOINTMENT 0.77 «Ir a la limpieza
+    // dental», dueAt=true (keyword-frase «limpieza dental» en
+    // lockstep keyword+MEDICAL+GO+FUTURE; frase de dos palabras: el
+    // doméstico «limpieza de casa» jamás casa).
     show("C12", "ir a la limpieza dental la semana que viene")
     // c.1123: C13 RESUELTA → ERRAND 0.45 «Hacerse la ecografía»,
     // dueAt=true (objeto «ecograf[ií]as?» en ERRAND_BLOOD_TEST_FLOOR

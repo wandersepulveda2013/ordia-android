@@ -1137,8 +1137,13 @@ object ContextIntentEngine {
     // cerradas (keyword del kind + MEDICAL + GO + MEDICAL_FUTURE), misma
     // asimetría que «pediatra» (c.1106): «ir al dermatólogo el viernes» se
     // descartaba (NULL, olvido silencioso P1) pese a «cita con» ya capturando.
+    // c.1126: «limpieza dental» añadida (lockstep con keyword + GO +
+    // FUTURE; candidata (f) clase DECIMOTERCERA, medida NULL en la sonda
+    // persistida c.1102 caso C12 y re-medida PRE en la sonda efímera
+    // c.1126). Frase de dos palabras: el doméstico («limpieza de casa»)
+    // no casa.
     private val APPOINTMENT_MEDICAL_PATTERN =
-        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa])""")
+        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental)""")
     // Desplazamiento a destino médico inequívoco (c.682, hallazgo c.681):
     // "ir al médico mañana" se DESCARTABA (NULL, olvido silencioso P1): las
     // evidencias sueltas (keyword + patrón médico + bono de fecha ≈ 0.42) no
@@ -1152,8 +1157,10 @@ object ContextIntentEngine {
     // por el guard vía la fuente única [APPOINTMENT_SPECIFIC] (lección c.653).
     // Se aplica como BONO (no piso), así la duda (c.649) y la condición (c.650)
     // penalizan DESPUÉS y siguen descartando ("quizá ir al médico" → NULL).
+    // c.1126: «limpieza dental» añadida como destino (lockstep; «ir a la
+    // limpieza dental» es tan inequívoco como «ir al dentista»).
     private val APPOINTMENT_GO_PATTERN =
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa])\b""")
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta|pediatra|dermatólog[oa]|limpieza dental)\b""")
     // Futuro declarativo de 1ª persona (c.663): "tendré (una |la )?cita" y "tendré
     // <sustantivo médico>" son promesas explícitas (no infinitivo condicionable),
     // evidencia MÁS firme que el presente — mismo olvido P1 que c.656 cerró para
@@ -1162,8 +1169,11 @@ object ContextIntentEngine {
     // [APPOINTMENT_SPECIFIC] (c.653) alimenta el bono y el guard de envolvente.
     private val APPOINTMENT_CITA_FUTURE_PATTERN =
         Regex("""\b(?<!no )tendré\s+(?:una\s+|la\s+)?cita\b""")
+    // c.1126: «limpieza dental» añadida (lockstep). A diferencia de
+    // «tendré dentista» (desnudo), la forma natural lleva artículo:
+    // «tendré LA limpieza dental» — artículo opcional propio.
     private val APPOINTMENT_MEDICAL_FUTURE_PATTERN =
-        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|pediatra|dermatólog[oa])\b""")
+        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|pediatra|dermatólog[oa]|(?:la\s+)?limpieza dental)\b""")
     private val APPOINTMENT_SPECIFIC =
         listOf(
             APPOINTMENT_CITA_PATTERN,
