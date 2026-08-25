@@ -137,13 +137,19 @@ class ContextIntentEngineLlevarMeriendaColegioFloorTest {
     }
 
     @Test
-    fun `objeto almuerzo sigue fuera`() {
-        // Lateral (a-bis) medida NULL en la sonda c.1127: UNA forma por
-        // ciclo — sólo «merienda» entra en ESTE ciclo.
+    fun `objeto almuerzo captura desde c1129`() {
+        // RE-PIN legítimo (precedente c.1035/c.1041/c.1094): era pin NULL
+        // «objeto almuerzo sigue fuera» (lateral a-bis, UNA forma por ciclo
+        // en c.1128); c.1129 resolvió la lateral (a-bis) y esta forma pasa
+        // a capturar ERRAND con título limpio — ver el test hermano
+        // ContextIntentEngineLlevarAlmuerzoColegioFloorTest.
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar el almuerzo al colegio mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar el almuerzo al colegio", intent.title)
+        assertNotNull(intent.dueAt)
     }
 
     @Test

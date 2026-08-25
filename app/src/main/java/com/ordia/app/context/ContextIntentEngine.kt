@@ -575,11 +575,13 @@ object ContextIntentEngine {
     // la lista cerrada. Lockstep con la plantilla matchSchoolRun (lección
     // c.616); CERO keywords nuevas (el piso da MINIMUM_CONFIDENCE por sí
     // solo vía [hasStrongErrandImperative]). UNA forma por ciclo: los
-    // objetos hermanos medidos NULL («almuerzo», «dinero de la excursión»,
-    // «ropa de recambio», «proyecto de ciencias») quedan FUERA como
-    // laterales (a-bis … a-quinquies).
+    // objetos hermanos medidos NULL quedan FUERA como laterales —
+    // c.1129: lateral (a-bis) «el almuerzo» (NULL PRE medido sonda c.1127
+    // C18, re-pin legítimo del pin c.1128, precedente c.1035/c.1041/c.1094);
+    // restan laterales (a-ter) «dinero de la excursión», (a-quater) «ropa
+    // de recambio», (a-quinquies) «proyecto de ciencias».
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -5042,13 +5044,14 @@ object ContextIntentEngine {
                 // diagonal coloquial «cole» c.850, destino de ocio
                 // familiar «parque» c.852, objeto de acarreo escolar «la
                 // merienda» c.1128 → "Llevar la merienda al colegio",
-                // lockstep con [ERRAND_SCHOOL_RUN_FLOOR]): verbo
+                // lateral «el almuerzo» c.1129 → "Llevar el almuerzo al
+                // colegio", lockstep con [ERRAND_SCHOOL_RUN_FLOOR]): verbo
                 // preservado con su
                 // persona (doctrina c.653), residuo temporal de cola depurado
                 // por [sanitizeTitle]; el match arranca en el verbo, así el
                 // acuse/prefijo temporal no ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {
