@@ -1,3 +1,9 @@
+## 2026-08-25 — run c.1112 (EN CURSO, este lado — marcador anti-carrera c.1066): lateral (a) de c.1109 — paridad sustantivo/verbo en entity-lookup del asistente («¿cuándo es el pago de la luz?» vs título «Pagar luz»)
+
+- Área: **assistant** (`AssistantEngine.extractEntityNeedle`/`entityLookupAnswer`) — DISJUNTA de los marcadores hermanos activos: c.1111 (FLOORS ContextIntent «empezar la dieta»), c.1108 (parser weekdayPattern caps — NO TOCAR NaturalTaskParser), c.1110 (dermatólogo ContextIntent).
+- Unidad (UNA por ciclo): la aguja ya sale limpia (c.1109) pero la coincidencia por subcadena exige forma literal; «pago de la luz» no casa con «Pagar luz» aunque es la MISMA tarea (P1 recuperación de información / mentira por omisión — pin honesto en la sonda c.1109).
+- Plan: sonda PRE efímera (motor real vía tools/run_probe.sh) → TDD estricto (RED medido → GREEN) → sonda POST persistida → suite dominio + smokes. Determinista (sin lematizador fingido, sin random, sin IA fingida).
+
 ## 2026-08-25 — run c.1111 (este lado, renumerado c.1110→c.1111 por carrera de marcador con el hermano 2d1392be — primer-marcador-gana): colisión duplicada c.1105 resuelta NO-destructiva + complemento (pin camión)
 
 - HEAD inicial (sync): `1ea434e9` (tras push rechazado de mi fix propio c.1105 `2e8105ff`: el hermano había pusheado primero `644b2c55` — MISMA unidad «inflar las ruedas del coche», rama estrictamente más amplia `(?:del|de mi/tu/su) (coche|carro|auto)` + archivo de tests propio de 15 tests).
