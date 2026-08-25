@@ -82,6 +82,8 @@ object AssistantEngine {
         val noOlvidesCapture = noOlvidesCapture(clean)
         val remindMeLoGuide = remindMeLoGuide(clean)
         val remindMeLoCapture = remindMeLoCapture(clean)
+        // c.1090: «olvidé/olvide <contenido>» declaración pasada (lateral (4)).
+        val olvideCapture = olvideCapture(clean)
         val markDoneCapture = markDoneCapture(clean, tasks)
         // c.999: captura «pospón/aplaza <tarea>» (acción). Debe evaluarse ANTES
         // de la consulta de posposición («qué puedo posponer»): «pospón la
@@ -544,6 +546,9 @@ object AssistantEngine {
             // (la guía c.996 conserva las peladas; auditoría c.1085
             // lateral ABIERTA (3)).
             remindMeLoCapture != null -> remindMeLoCapture
+            // c.1090: «olvidé/olvide <contenido>» — hermana de creación
+            // (auditoría c.1085, lateral ABIERTA (4), la última restante).
+            olvideCapture != null -> olvideCapture
             // c.997: sonda DiscoveryProbe — «marca como hecha …» con
             // coincidencia única → COMPLETE_TASK (el botón confirma).
             markDoneCapture != null -> markDoneCapture
@@ -1466,6 +1471,30 @@ object AssistantEngine {
     private val REMIND_ME_LO_PREFIX = Regex("(?i)^recu[ée]rdamelo(?:\\s*:)?(?:\\s+|$)")
     private val REMIND_ME_LO_WITH_CONTENT =
         Regex("(?i)^recu[ée]rdamelo\\s*:?\\s*([^:].*)$")
+
+    // c.1090: lateral (4) — última restante de la auditoría c.1085.
+    // «olvidé/olvide (de) <contenido>» DECLARATIVO pasado caía al MENÚ
+    // (medido). Hereda el contrato de la familia creación (c.987..c.1087):
+    // payload = título crudo; la UI confirma. Sin tildes tolerada (teclado
+    // laxo) y sin «de». Pelada («olvidé»/«olvidé algo») y negativo
+    // («no olvidé…») → guía honesta SIN acción (NUNCA a ciegas).
+    private val OLVIDE_PAST_PREFIX =
+        Regex("(?i)^olvid[ée](?:\\s+de)?(?:\\s|:|$)")
+    private val OLVIDE_PAST_WITH_CONTENT =
+        Regex("(?i)^olvid[ée](?:\\s+de)?\\s*:?\\s*([^:].*)$")
+    // Huecas: «olvidé algo/nada» no basta (NUNCA tarea basura a ciegas).
+    private val OLVIDE_BARE_WORDS = setOf("algo", "nada")
+
+    private fun olvideCapture(clean: String): AssistantAnswer? {
+        val trimmed = clean.trim()
+        if (!OLVIDE_PAST_PREFIX.containsMatchIn(trimmed)) return null
+        val content = OLVIDE_PAST_WITH_CONTENT.matchEntire(trimmed)?.groupValues?.get(1)?.trim()?.trimEnd('.', '!', '?')
+        if (content == null || content.foldForSearch().split(' ').all { it in OLVIDE_BARE_WORDS }) {
+            return AssistantAnswer("¿Qué se te olvidó? Escríbelo y lo preparo como tarea pendiente.")
+        }
+        if (content.lowercase().startsWith("no ")) return null // «olvidé no …» raro — por seguridad nulo
+        return AssistantAnswer("Preparado: «${content}» — confírmalo en los pendientes.", AssistantAction.CREATE_TASK, content)
+    }
 
     private fun remindMeLoCapture(clean: String): AssistantAnswer? {
         val trimmed = clean.trim()

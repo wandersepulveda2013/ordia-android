@@ -17880,3 +17880,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Verificación: UNIÓN FINAL **OK (8334 = 8302 [mi base] + 32 [deltas del hermano integradas, conflicto sólo en docs resuelto UNIÓN] — post-integración)**; smokes 25/25 y 9/9. NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Bugs: ninguno nuevo. Features: parser — 1 lateral narrativa más cortada. Commits: el de este push.
 - Próxima prioridad: laterales ABIERTAS parser — «ya/ahora/ahorita» con UNA sola coma; colas relativas en títulos; familia «contar» c.950.
+
+## c.1090 — 2026-08-25 — fix(assistant): «olvidé/olvide <contenido>» declaración pasada → CREATE_TASK (lateral (4) final de c.1085)
+
+- HEAD inicial: `4176f94` (marcador EN CURSO c.1090 pushed).
+- Base remota en re-fetch: limpia (fast-forward posible, no colisiones).
+- PRE sonda efímera `/tmp/probe1090/Probe.kt` (motor real): 5 frases — 2 candidatas de captura al MENÚ (mentira por omisión). Guards byte-idénticos: pelada y negativo al MENÚ; imperativo «no olvides» ya capturaba (honesto, conserva).
+- TDD RED: `AssistantEngineOlvideCaptureTest.kt` (9 tests) — RED EXACTAMENTE 5 fallos (3 capturas + 2 huecas).
+- Implementación: `OLVIDE_PAST_PREFIX` `^olvid[ée](?:\s+de)?(?:\s|:|$)` + `OLVIDE_PAST_WITH_CONTENT` + `OLVIDE_BARE_WORDS` («algo»/«nada») en `olvideCapture`; wire en `when` tras `remindMeLoCapture`. Pelada → guía honesta SIN acción («¿Qué se te olvidó?…»); negativo «no olvidé …» MENÚ; imperativo conserva c.1087.
+- GREEN: suite UNIÓN OK (8388 = 8379 + 9, aritmética exacta); smoke 25/25 OK.
+- Sonda persistida `tools/probe/AssistantOlvideCaptureProbe.kt` — POST 8/8.
+- Archivos: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (M), `app/src/test/java/com/ordia/app/assistant/AssistantEngineOlvideCaptureTest.kt` (A), `tools/probe/AssistantOlvideCaptureProbe.kt` (A), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (M).
+- Hallazgo: el guard imperativo «no olvides …» ya capturaba por routing previo (sonda PRE: byte-idéntico correcto).
+- NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
+- Próxima prioridad: auditoría progresiva (C→E: recapitulación honesta del menú; laterales documentadas en sondas).
