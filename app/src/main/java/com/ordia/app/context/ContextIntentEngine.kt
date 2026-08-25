@@ -566,8 +566,20 @@ object ContextIntentEngine {
     // c.717); keyword-OBJETO «niños» ya existe (c.773) → lockstep
     // coste-cero. Acotado deliberado: otros destinos de ocio («al cine»)
     // quedan FUERA como candidatas propias.
+    // c.1128: objeto de ACARREO ESCOLAR «la merienda» (candidata (a) de la
+    // sonda persistida c.1127 `tools/probe/FourteenthClassSchoolProbe.kt` —
+    // NULL PRE verificado: «llevar la merienda al colegio mañana» caía a
+    // NULL porque el piso sólo admitía el objeto `niñ[oa]s?`; «llevar» es
+    // bivalente y está deliberadamente fuera de [ERRAND_VERBS]). La
+    // alternancia de objeto admite «la merienda»; el destino sigue siendo
+    // la lista cerrada. Lockstep con la plantilla matchSchoolRun (lección
+    // c.616); CERO keywords nuevas (el piso da MINIMUM_CONFIDENCE por sí
+    // solo vía [hasStrongErrandImperative]). UNA forma por ciclo: los
+    // objetos hermanos medidos NULL («almuerzo», «dinero de la excursión»,
+    // «ropa de recambio», «proyecto de ciencias») quedan FUERA como
+    // laterales (a-bis … a-quinquies).
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -5018,13 +5030,15 @@ object ContextIntentEngine {
                 // "llevar a los niños al colegio/cole/escuela/guardería/
                 // parque" → "Llevar a los niños al colegio" (c.773,
                 // diagonal coloquial «cole» c.850, destino de ocio
-                // familiar «parque» c.852, lockstep con
-                // [ERRAND_SCHOOL_RUN_FLOOR]): verbo preservado con su
+                // familiar «parque» c.852, objeto de acarreo escolar «la
+                // merienda» c.1128 → "Llevar la merienda al colegio",
+                // lockstep con [ERRAND_SCHOOL_RUN_FLOOR]): verbo
+                // preservado con su
                 // persona (doctrina c.653), residuo temporal de cola depurado
                 // por [sanitizeTitle]; el match arranca en el verbo, así el
                 // acuse/prefijo temporal no ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {
