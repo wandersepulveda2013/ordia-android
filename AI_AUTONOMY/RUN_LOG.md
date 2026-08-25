@@ -17809,3 +17809,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: candidatas DUODÉCIMA restantes (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): (b) «cargar el carro» (diagonal LatAm, hermana de «cole» c.850/«móvil» c.851), (c) «inflar las ruedas de la bici» (piso «inflar» + keyword «ruedas» ya en su sitio). Laterales: colas relativas en títulos; parser — residual c.1035 «ya, por la mañana/noche, <pretérito>» (SU c.1077 potencialmente activo — NO tocar si hay marcador del hermano); context — 2ª persona plural de la duda «no sabéis si deberíais…» (CALL 0.57 medida c.1080).
 - COMPLETADO
+
+---
+
+## Ciclo c.1084 — candidata (b) clase DUODÉCIMA «cargar el carro» (diagonal LatAm) RESUELTA (este lado, c.1084)
+
+- HEAD inicial: `0ddeb09` (mi marcador EN CURSO, publicado tras integración NO-destructiva del marcador SU c.1083). HEAD final del producto: `1952a7a`.
+- Problema: P1 — «cargar el carro (esta noche)» caía a NULL: «carro» es LA forma LatAm de «coche» (hermana de «cole» c.850/«móvil» c.851). PRE medido con sonda efímera `/tmp/probe1084/Probe.kt` sobre HEAD `fe17a58`: 4/5 capturas NULL (la quinta «tengo que cargar…» ya casaba por piso modal), 5/5 guards NULL, 3/3 regresiones HIT.
+- Solución (lockstep 3 puntos, lección c.616/c.717/c.751): (1) piso acotado «cargar» admite `carros?` en `ContextIntentEngine.hasStrongTaskImperative`; (2) keyword-OBJETO «carro» en `ContextIntentKind.TASK` (subcadena «carrocería»/«carrito» inerte 0.12 < umbral); (3) plantilla de título acotada preserva la grafía del usuario. Bivalencia heredada de c.853.
+- Pruebas: TDD estricto 13 tests `ContextIntentEngineCargarCarroFloorTest.kt` — RED exacto EXACTAMENTE 4 fallos (las 4 capturas; guards/pin/regresiones verdes desde RED) → GREEN 13/13 en 1 iteración. Sonda eliminada tras medir.
+- Anti-overreach medido: negada simple/compuesta, duda «quizá…», pasado «cargué…», keyword sola bajo umbral («el carro nuevo es eléctrico»), pin «cargar la tarjeta» FUERA, regresiones «coche»/«celular»/«móvil» intactas.
+- Integración NO-destructiva: stash -u → pull --ff-only → pop para SU c.1085 (`08521c9`, solo docs); suite re-verificada sobre la unión: **OK (8305 = 8292 + 13, aritmética exacta)**, smoke 25/25.
+- Commits: 1 commit feat (`1952a7a`) + este docs-close. HEAD final: el de este push.
+- Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: candidata (c) clase DUODÉCIMA «inflar las ruedas de la bici» (UNA por ciclo, medida previa de sonda; evaluar compartir keyword «ruedas» con (a)).
+- COMPLETADO

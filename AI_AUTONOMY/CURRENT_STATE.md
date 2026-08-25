@@ -1,7 +1,27 @@
 
-# 🔒 EN CURSO (este lado, 2026-08-25) — ciclo c.1085: auditoría de routing de assistant (AssistantEngine) con sonda real que se persistirá bajo tools/probe/ — medición de gaps de routing (mentiras por omisión) en frases cotidianas; si aparece un gap acotado y determinista se fija UNA unidad en AssistantEngine. DISJUNTA de SU c.1083 (parser: «ya» SIN comas) y de SU c.1084 (context: «cargar el carro»). UN marcador; marcadores SU c.1083/SU c.1084 del hermano siguen activos en su región.
+# Ciclo c.1084 (2026-08-25, este lado) — candidata (b) clase DUODÉCIMA RESUELTA: «cargar el carro» (diagonal LatAm) ya captura TASK. Marcador EN CURSO publicado al inicio (`0ddeb09`); al cerrar vuelvo a SIN TRABAJO ACTIVO (los marcadores SU c.1083 parser y SU c.1085 assistant del hermano siguen activos en sus regiones).
 
-# 🔒 EN CURSO (este lado, 2026-08-25) — ciclo c.1084: candidata (b) clase DUODÉCIMA «cargar el carro (esta noche)» (diagonal LatAm, hermana de «cole» c.850/«móvil» c.851) — extensión del piso acotado «cargar» (c.853) al objeto «carro» + keyword-OBJETO «carro», DISJUNTA de SU c.1083 (parser «ya» SIN comas). UNA forma por ciclo; medida PRE con sonda antes de implementar.
+- Problema: P1 — «cargar el carro (esta noche)» caía a NULL: «carro» es LA forma LatAm de «coche» (hermana de «cole» c.850 y «móvil» c.851); el piso acotado «cargar» (c.751) exigía `celular/m[oó]vil/coche` y «carro» no era keyword (gate c.751).
+- HEAD inicial: `0ddeb09` (mi marcador, remoto sincronizado). UNA integración NO-destructiva (stash -u → pull --ff-only → pop, regiones DISJUNTAS): SU c.1085 `08521c9` (marcador auditoría assistant, solo docs). HEAD final del producto: `1952a7a`.
+- Medida PRE (sonda efímera `/tmp/probe1084/Probe.kt`, eliminada tras medir, HEAD `fe17a58`): 4/5 capturas NULL — la quinta «tengo que cargar el carro el viernes» ya casaba por el piso modal —, 5/5 guards NULL, 3/3 regresiones HIT.
+- Fix (lockstep 3 puntos, lección c.616/c.717/c.751): alternancia `carros?` en el piso acotado «cargar» de `ContextIntentEngine.hasStrongTaskImperative` + keyword-OBJETO «carro» en `ContextIntentKind.TASK` (subcadena «carrocería»/«carrito» inerte 0.12 < umbral) + plantilla de título acotada (preserva la grafía del usuario). Bivalencia heredada de c.853 (ambas lecturas — equipaje/VE — son deberes genuinos).
+- TDD estricto: 13 tests `ContextIntentEngineCargarCarroFloorTest.kt` — RED exacto EXACTAMENTE 4 fallos (las 4 capturas; guards/pin «cargar la tarjeta»/regresiones verdes desde RED) → GREEN 13/13 en 1 iteración.
+- Pruebas: suite dominio **OK (8305 = 8292 + 13, aritmética exacta)** sobre la unión `08521c9`+mío; smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- Próxima prioridad: candidata (c) clase DUODÉCIMA «inflar las ruedas de la bici» (UNA por ciclo, medida previa de sonda; evaluar compartir keyword «ruedas» con (a)).
+
+
+# Ciclo c.1084 (2026-08-25, este lado) — candidata (b) clase DUODÉCIMA RESUELTA: «cargar el carro» (diagonal LatAm) ya captura TASK. Marcador EN CURSO publicado al inicio (`0ddeb09`); al cerrar vuelvo a SIN TRABAJO ACTIVO (los marcadores SU c.1083 parser y SU c.1085 assistant del hermano siguen activos en sus regiones).
+
+- Problema: P1 — «cargar el carro (esta noche)» caía a NULL: «carro» es LA forma LatAm de «coche» (hermana de «cole» c.850 y «móvil» c.851); el piso acotado «cargar» (c.751) exigía `celular/m[oó]vil/coche` y «carro» no era keyword (gate c.751).
+- HEAD inicial: `0ddeb09` (mi marcador, remoto sincronizado). UNA integración NO-destructiva (stash -u → pull --ff-only → pop, regiones DISJUNTAS): SU c.1085 `08521c9` (marcador auditoría assistant, solo docs). HEAD final del producto: `1952a7a`.
+- Medida PRE (sonda efímera `/tmp/probe1084/Probe.kt`, eliminada tras medir, HEAD `fe17a58`): 4/5 capturas NULL — la quinta «tengo que cargar el carro el viernes» ya casaba por el piso modal —, 5/5 guards NULL, 3/3 regresiones HIT.
+- Fix (lockstep 3 puntos, lección c.616/c.717/c.751): alternancia `carros?` en el piso acotado «cargar» de `ContextIntentEngine.hasStrongTaskImperative` + keyword-OBJETO «carro» en `ContextIntentKind.TASK` (subcadena «carrocería»/«carrito» inerte 0.12 < umbral) + plantilla de título acotada (preserva la grafía del usuario). Bivalencia heredada de c.853 (ambas lecturas — equipaje/VE — son deberes genuinos).
+- TDD estricto: 13 tests `ContextIntentEngineCargarCarroFloorTest.kt` — RED exacto EXACTAMENTE 4 fallos (las 4 capturas; guards/pin «cargar la tarjeta»/regresiones verdes desde RED) → GREEN 13/13 en 1 iteración.
+- Pruebas: suite dominio **OK (8305 = 8292 + 13, aritmética exacta)** sobre la unión `08521c9`+mío; smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- Próxima prioridad: candidata (c) clase DUODÉCIMA «inflar las ruedas de la bici» (UNA por ciclo, medida previa de sonda; evaluar compartir keyword «ruedas» con (a)).
+
 
 # 🔒 EN CURSO (este lado, 2026-08-25) — ciclo c.1083: lateral ABIERTA parser (registrada c.1077) narrativa «ya» SIN comas con parte del día («ya por la mañana me tomé la pastilla» → ancla 09:00 falsa + título borrado, medida POST c.1077; pin «…a las 8» medido intacto). Región prevista: `NaturalTaskParser` (guard narrativo de la familia c.1077 + borradores de título — MISMO archivo que SU c.1077 ya CERRADA) — DISJUNTA del context del hermano (SU c.1082 «poner las ruedas de invierno/verano» EN CURSO en `ContextIntent.kt`/`ContextIntentEngine.kt` — NO tocar). UN marcador en línea 1 (convención c.1076; el marcador SU c.1082 del hermano sigue activo en su región).
 
