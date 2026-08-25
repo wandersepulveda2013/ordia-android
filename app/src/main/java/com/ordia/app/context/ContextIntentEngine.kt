@@ -400,9 +400,15 @@ object ContextIntentEngine {
     // sola queda bajo el umbral — medido PRE); objeto "uñas" NO se
     // añade como keyword para no capturar el sintagma nominal "las
     // uñas del gato". `\b` final sin derrame nominal; guard de
-    // negación heredado (?<!no ).
+    // negación heredado (?<!no ). c.1061: la alternancia de artículo
+    // admite también el INDEFINIDO `(?:un|una|unos|unas)` ("cortarle
+    // una uña al gato" — una uña rota; "cortarle unas uñas al perro"),
+    // paridad con los hermanos estructurales vacuna c.1014 y pastilla
+    // c.1059 (lockstep con la cláusula de negación y la plantilla de
+    // título); el destinatario humano indefinido ("cortarle una uña
+    // al niño") sigue FUERA por el ancla mascota.
     private val HOUSEHOLD_NAIL_DATIVE_FLOOR =
-        Regex("""\b(?<!no )cortar(?:le|les)?\s+(?:(?:el|la|los|las)\s+)?uñas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|del\s+|de\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+        Regex("""\b(?<!no )cortar(?:le|les)?\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?uñas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|del\s+|de\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
     // Piso faena doméstica "podar el jardín" (c.748 provisional, hogar no
     // cubierto — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela
     // a Chore c.734): la jardinería canónica tras el césped (c.731).
@@ -3183,7 +3189,7 @@ object ContextIntentEngine {
         // pero la cláusula se añade por cinturón y tirantes simétrico
         // (precedente hermano c.1012 dativo "darle la pastilla").
         if (kind == ContextIntentKind.HOUSEHOLD &&
-            Regex("""\bno\s+cortar(?:le|les)?\s+(?:(?:el|la|los|las)\s+)?uñas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|del\s+|de\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
+            Regex("""\bno\s+cortar(?:le|les)?\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?uñas?\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|del\s+|de\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
         ) return true
         // "bañar al perro/gato" (HOUSEHOLD, piso acotado c.761) es
         // imperativo multi-palabra: la keyword-verbo "bañar" (lockstep
@@ -4414,7 +4420,7 @@ object ContextIntentEngine {
                 // el objeto mascota es el ANCLA (no se despoja) y la cola
                 // temporal la depura [sanitizeTitle].
                 val matchCortarleUnas = Regex(
-                    """\b(cortar(?:le|les)?\s+(?:(?:el|la|los|las)\s+)?uñas?) ((?:al|a (?:el|la|los|las|mi|tu|su)|del|de (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
+                    """\b(cortar(?:le|les)?\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?uñas?) ((?:al|a (?:el|la|los|las|mi|tu|su)|del|de (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCortarleUnas != null) {
