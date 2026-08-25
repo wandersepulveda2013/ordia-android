@@ -139,12 +139,17 @@ class ContextIntentEngineLlevarAlmuerzoColegioFloorTest {
     }
 
     @Test
-    fun `objeto dinero sigue fuera`() {
-        // Lateral (a-ter): UNA forma por ciclo.
+    fun `objeto dinero captura desde c1133`() {
+        // Re-pin legítimo (precedente c.1035/c.1041/c.1094): la lateral
+        // (a-ter) «el dinero de la excursión» se cierra en c.1133 — el pin
+        // «sigue fuera» gira a HIT documentado.
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar el dinero de la excursión al colegio mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar el dinero de la excursión al colegio", intent.title)
+        assertNotNull(intent.dueAt)
     }
 
     @Test
