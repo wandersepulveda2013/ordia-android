@@ -17730,3 +17730,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Estado: VERIFIED (JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Próxima prioridad: laterales ABIERTAS (UNA por ciclo, medida previa, re-fetch OBLIGATORIO, marcador EN CURSO con push inmediato): context — plural «no sabemos si…» (CALL 0.57 medido c.1070, última variante de la duda), colas relativas en títulos; parser — familia «contar» c.950 (CONVERGENTE SU c.1048), «ya, <narrativa>» con coma c.1027; opción: auditoría clase DUODÉCIMA.
 - COMPLETADO
+
+## Ciclo c.1079 (2026-08-25, este lado, DISJUNTO TOTAL — auditoría de descubrimiento, CERO cambios de producto; marcador EN CURSO `0e60996a` publicado al iniciar; re-fetch inicial integró SU c.1078 docs-only `df67fcd8`, ff-only limpio) — audit(context): clase DUODÉCIMA VIDA CON VEHÍCULO descubierta con sonda NUEVA persistida `tools/probe/TwelfthClassVehicleProbe.kt` — 11/14 capturas HIT por cobertura heredada, 3 gaps NULL → candidatas (a)/(b)/(c)
+
+- HEAD inicial: `df67fcd8` (SU c.1078 marcador). HEAD final: el de este push.
+- Cambios: A sonda persistida (30 casos: 14 candidatas + 8 regresiones + 8 controles, motor real). CERO código de producto.
+- Medición: 11/14 HIT (cobertura HEREDADA: keyword-verbo «lavar» de la familia de quehaceres, pisos abiertos «cambiar»/«renovar»/«revisar»/«pagar», «llevar a revisión», «comprar», interop aspiradora c.742) + 3 gaps: (a) «poner las ruedas de invierno» (gate keyword «ruedas» c.751), (b) «cargar el carro» (lateral documentada c.853, diagonal LatAm), (c) «inflar las ruedas de la bici» (verbo «inflar» sin piso/keyword). Regresiones 8/8 intactas; controles 8/8 NULL correctos (guard c.1009 alcanza el dominio vehículo; figurado «coche sin frenos» NULL).
+- Observaciones laterales: colas «este mes»/«en marzo»/«de tráfico esta semana» en títulos (lateral ABIERTA de colas); dueAt=false «este mes»/«en marzo»/«esta semana» (consistente c.845/c.852).
+- Tests: suite JVM **OK (8209)** (sin cambio — ciclo de descubrimiento); `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9.
+- Archivos: A `tools/probe/TwelfthClassVehicleProbe.kt`, docs AI_AUTONOMY (BACKLOG fila clase DUODÉCIMA, CURRENT_STATE cierre c.1079, RUN_LOG). Eliminados: ninguno.
+- Commits: marcador `0e60996a` + 1 commit audit/docs (hash en el push). HEAD final: el de este push.
+- Estado: VERIFIED (JVM, ciclo de descubrimiento — medición real sobre el motor real). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad: candidatas DUODÉCIMA (UNA por ciclo): (a) «poner las ruedas de invierno», (b) «cargar el carro», (c) «inflar las ruedas de la bici». Laterales: colas en títulos; parser residual c.1077 y HEDGE modal plural c.1078 EN CURSO del hermano — NO tocar.
+- COMPLETADO
