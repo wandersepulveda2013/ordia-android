@@ -3442,6 +3442,31 @@ object ContextIntentEngine {
             // 1ª persona «cubro el turno» queda lateral (UNA forma por
             // ciclo, doctrina anti-overreach).
             Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+(?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?\b""").containsMatchIn(lower) ||
+            // c.1152: «hacer (el)? curso(s)» (candidata (c) FUERTE de la
+            // clase DECIMOSÉPTIMA vida-laboral, medida NULL 6/6 en la
+            // sonda efímera PRE sobre HEAD 39417de — gate c.751
+            // satisfecho: «hacer» keyword TASK y «curso» keyword
+            // EVENT/STUDY llevan la frase al análisis pero todo queda
+            // < 0.45). Formación obligatoria con plazo (prevención de
+            // riesgos, manipulador de alimentos…): el olvido cuesta la
+            // habilitación. Hermano EXACTO de c.1140 «hacer el
+            // check-in del vuelo» (mismo verbo «hacer», objeto EXIGIDO
+            // acotado): «curso» como objeto de «hacer» es
+            // monosemántico-formación (sin acepción bivalente
+            // frecuente), así que no hace falta lista de objetos.
+            // Determinantes/posesivos/indefinidos/demostrativos/plural
+            // casan («un curso», «este curso», «cursos»). La negada la
+            // cubre el lookbehind `(?<!no )`; el pasado «hice», el
+            // futuro «haré», el subjuntivo «haga», el presente «hago»
+            // y la 3ª persona «hace» no casan (forma EXACTA infinitivo;
+            // laterales, UNA forma por ciclo). La duda-hedge la cubre
+            // [HEDGE_PENALTY] (0.45−0.3 → NULL, medido PRE «no sé si
+            // hacer el curso»). Kind TASK (gestión administrativa con
+            // plazo, hermana de sellar-paro c.1143/check-in c.1140;
+            // STUDY gobierna el estudio continuo, no la obligación
+            // puntual — criterio c.704). Lockstep: plantilla
+            // matchHacerCurso en [extractTitle] (lección c.616).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
             // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
             // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
             // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
@@ -4568,6 +4593,18 @@ object ContextIntentEngine {
                 // ancla/guard que el piso (lección c.616/c.751).
                 val matchCubrirTurno = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+((?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCubrirTurno != null) return "Cubrir ${matchCubrirTurno.groupValues[1]}"
+
+                // "hacer el curso X" → "Hacer el curso X" (c.1152): lockstep
+                // con el piso acotado «hacer (det)? cursos?» — hermana de
+                // matchCubrirTurno/matchHacerCheckIn (mismo ancla/guard,
+                // doctrina c.653: verbo-frase preservado, solo
+                // capitalización inicial; el residuo temporal de cola lo
+                // depura [sanitizeTitle]). Objeto EXIGIDO «curso»:
+                // «hacer el check-in» (c.1140), «hacer deberes» (c.898)
+                // y «hacer la compra/maleta» no casan (tienen plantilla
+                // propia o ruta previa).
+                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerCurso != null) return "Hacer ${matchHacerCurso.groupValues[1]}"
                 // "echar el currículum X" → "Echar el currículum X"
                 // (c.1148): lockstep con el piso acotado «echar (el)?
                 // curr[ií]culums?» — hermana de matchSellarParo (mismo
