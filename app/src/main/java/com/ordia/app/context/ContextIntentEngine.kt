@@ -1675,6 +1675,10 @@ object ContextIntentEngine {
         // tomar la pastilla humana c.859) ya eran NULL estructuralmente.
         if (howToQuestionGoverns(lower)) return 0f
 
+        // c.1145: enunciado declarativo anclado «<actividad> empieza/comienza…»
+        // (hecho sobre la actividad, sin compromiso del usuario) no es EXERCISE.
+        if (declarativeActivityStartGoverns(lower, kind)) return 0f
+
         var score = 0f
         val words = lower.split(Regex("\\s+"))
 
@@ -3612,6 +3616,33 @@ object ContextIntentEngine {
         val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
         val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         return PAST_MEETING_NARRATIVE_PATTERN.findAll(lower).any { it.range.last < matchStart }
+    }
+
+    /**
+     * Enunciado declarativo ANCLADO al inicio cuyo sujeto es una actividad
+     * EXERCISE medida (campamento/natación/pesas) gobernada por
+     * «empieza/empiezan/comienza/comienzan»: «el campamento de los niños
+     * empieza en julio» (c.1145). La tercera persona convierte el texto en
+     * hecho sobre la actividad, sin compromiso del usuario; el camino
+     * keyword+bono temporal lo persistía como EXERCISE 0.45 (misma corrupción
+     * P1 que el pretérito+MEETING c.1138, pero por bono, no por piso).
+     */
+    private val DECLARATIVE_ACTIVITY_START_PATTERN = Regex(
+        """^(?:¿\s*)?(?:(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus)\s+)?(?:[a-záéíóúñü]+\s+){0,3}?(?:campamento|nataci[oó]n|pesas)\b(?:\s+(?:de|del|al|a)\s+[a-záéíóúñü]+(?:\s+[a-záéíóúñü]+){0,2})?\s+(?:empieza|empiezan|comienza|comienzan)\b"""
+    )
+
+    /**
+     * c.1145: descarta EXERCISE cuando el texto es un enunciado declarativo
+     * anclado «<actividad> empieza/comienza…» (hecho, no compromiso). Sólo
+     * toca EXERCISE (familia medida); lo NO anclado queda intacto: las
+     * imperativas envolventes («apúntate a natación que empieza…», «inscríbete
+     * en el campamento que empieza…») siguen capturando EXERCISE y la
+     * envolvente de recordatorio («recuérdame que el campamento empieza…»)
+     * sigue TASK.
+     */
+    private fun declarativeActivityStartGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.EXERCISE) return false
+        return DECLARATIVE_ACTIVITY_START_PATTERN.containsMatchIn(lower)
     }
 
     /**

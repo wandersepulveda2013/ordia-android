@@ -132,21 +132,17 @@ class ContextIntentEngineInscribirCampamentoFloorTest {
         assertNull(intent)
     }
 
-    // Consecuencia medida y familiar-consistente: el declarativo
-    // «<actividad> empieza en <mes>» captura EXERCISE por el piso de
-    // posición libre — IDÉNTICO perfil medido en la hermana natación
-    // («la natación del niño empieza en octubre» → EXERCISE 0.45). Cerrar
-    // este hueco declarativo es familiar (afecta a TODOS los verbos
-    // EXERCISE) y queda registrado en BACKLOG como hallazgo propio.
+    // RE-PIN c.1145 (precedente c.1035/c.1041/c.1094): este pin capturaba el
+    // falso positivo declarativo documentado aquí mismo como hallazgo
+    // BACKLOG — c.1145 lo cerró con el guard `declarativeActivityStartGoverns`
+    // (enunciado de hecho «<actividad> empieza/comienza…», sin compromiso del
+    // usuario ⇒ NULL; la envolvente imperativa no anclada sigue capturando).
     @Test
-    fun `pin declarativo empieza captura como la hermana natacion`() {
+    fun `pin declarativo empieza queda NULL tras guard c1145`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "el campamento de verano del colegio empieza en julio", 1000)
         )
-        assertNotNull(intent)
-        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
-        assertEquals("El campamento de verano del colegio empieza en julio", intent.title)
-        assertNull(intent.dueAt)
+        assertNull(intent)
     }
 
     // ---- Pines de kinds vecinos (byte-exactos) ----
