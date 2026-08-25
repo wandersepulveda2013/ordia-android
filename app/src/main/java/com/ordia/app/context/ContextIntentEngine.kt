@@ -649,6 +649,32 @@ object ContextIntentEngine {
     // keywords nuevas. UNA forma por ciclo: familia de destinos AGOTADA.
     private val ERRAND_MEDICAL_RUN_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])\b""")
+    // Piso transportativo de VIAJE familiar (c.1158, candidata (d) de la
+    // auditoría c.1137, clase DECIMOSEXTA — HALLAZGO inesperado R8 de la
+    // sonda persistida `tools/probe/SixteenthClassTravelProbe.kt`): «llevar
+    // a los niños al aeropuerto mañana» caía a NULL porque el piso escolar
+    // c.773 cierra destino con lista educativa y el médico c.776 con lista
+    // sanitaria. La diligencia de acompañar a la familia al
+    // aeropuerto/estación es el mismo desplazamiento familiar (olvidarla
+    // cuesta el vuelo/tren del familiar — P1). Se ACOTA a objeto de
+    // parentesco en lista cerrada + destino `aeropuerto|estaci[oó]n`:
+    // los nombres propios («llevar a María a la estación») quedan FUERA
+    // (bivalentes sin acotar — una forma por ciclo, doctrina de la sonda).
+    // Interop: destinos disjuntos colegio/parque (c.773) vs médico/...
+    // (c.776) vs aeropuerto/estación — sin solape; «llevar a los niños a
+    // la estación de esquí» captura como consecuencia deliberada (el
+    // compromiso de desplazamiento es real, precedente c.1135). Kind
+    // deliberado: ERRAND (hermano EXACTO de c.773/c.776). Lockstep con la
+    // plantilla matchStationRun (lección c.616); CERO keywords nuevas (el
+    // piso da MINIMUM_CONFIDENCE por sí solo vía
+    // [hasStrongErrandImperative], hermano c.1128). Negación sin cláusula
+    // dedicada: guard `(?<!no )` de la familia (hermana c.765→c.772).
+    // La alternativa final `\s+` del grupo de artículo admite el parentesco
+    // DESNUDO sin artículo («a mamá», «a papá» — LA forma coloquial): sin
+    // ella el espacio entre «a» y el objeto quedaba sin consumir y la forma
+    // caía a NULL (defecto medido con sonda RegexCheck en c.1158).
+    private val ERRAND_STATION_RUN_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+|\s+)?(niñ[oa]s?|hij[oa]s?|padres?|abuel[oa]s?|herman[oa]s?|familia|mam[áa]|pap[áa]|madre|padre|mujer|marido|suegr[oa]s?)\s+a(?:l| la)\s+(aeropuerto|estaci[oó]n)\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -1052,6 +1078,7 @@ object ContextIntentEngine {
         ERRAND_STOPBY_FLOOR,
         ERRAND_SCHOOL_RUN_FLOOR,
         ERRAND_MEDICAL_RUN_FLOOR,
+        ERRAND_STATION_RUN_FLOOR,
         ERRAND_FUEL_FLOOR,
         ERRAND_HAIRCUT_FLOOR,
         ERRAND_BLOOD_TEST_FLOOR,
@@ -5784,6 +5811,19 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchMedicalRun != null) {
                     return "${capitalizeFirst(matchMedicalRun.groupValues[1])} ${matchMedicalRun.groupValues[2]}"
+                }
+                // "llevar a los niños al aeropuerto / a la estación" →
+                // "Llevar a los niños al aeropuerto" (c.1158, lockstep con
+                // [ERRAND_STATION_RUN_FLOOR]): verbo preservado con su
+                // persona (doctrina c.653), residuo temporal de cola
+                // depurado por [sanitizeTitle]; el match arranca en el
+                // verbo (lección c.616).
+                val matchStationRun = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+|\s+)?(?:niñ[oa]s?|hij[oa]s?|padres?|abuel[oa]s?|herman[oa]s?|familia|mam[áa]|pap[áa]|madre|padre|mujer|marido|suegr[oa]s?)\s+a(?:l| la)\s+(?:aeropuerto|estaci[oó]n)).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchStationRun != null) {
+                    return "${capitalizeFirst(matchStationRun.groupValues[1])} ${matchStationRun.groupValues[2]}"
                 }
                 // "echar gasolina" → "Echar gasolina" (c.829, lockstep con
                 // [ERRAND_FUEL_FLOOR]): verbo preservado (alineación
