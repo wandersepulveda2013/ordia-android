@@ -3485,7 +3485,28 @@ object ContextIntentEngine {
             // presente declarativo «salgo» no casan (forma EXACTA
             // infinitivo). Kind TASK (partida con hora crítica, hermana
             // de «preparar la maleta» c.715 y «facturar el vuelo» c.1140).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )salir\s+para\s+(?:el\s+aeropuerto|la\s+estaci[oó]n)\b""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )salir\s+para\s+(?:el\s+aeropuerto|la\s+estaci[oó]n)\b""").containsMatchIn(lower) ||
+            // c.1151: candidata (c) clase DECIMOSEXTA — «sacar el visado
+            // antes del viaje» (medida NULL 1/1 en la sonda c.1137 C11 y
+            // re-medida PRE sobre b614c5b: 4/4 candidatas desnudas/acuse/
+            // temporal NULL — «sacar» está acotado a basura c.717,
+            // mascota c.740, dinero c.893 y cita/turno/hora c.1117, y
+            // «visado» NO era keyword, gate c.751). Sin visado no hay
+            // viaje: el olvido de mayor coste de la clase junto a
+            // salir-aeropuerto c.1150. Objeto EXIGIDO «el visado»
+            // (anti-overreach: el bivalente «sacar el pasaporte» queda
+            // FUERA — lateral; «sacar» es el verbo con más pisos
+            // acotados del motor, todos con objeto-ancla). Hermano
+            // EXACTO de «salir para el aeropuerto» c.1150. Lockstep
+            // keyword-frase en ContextIntent.TASK + plantilla en
+            // extractTitle (lección c.616). La negada la cubre el
+            // lookbehind `(?<!no )`; el pasado «saqué» y el sustantivo
+            // «el visado de turista» no casan (verbo EXIGIDO en
+            // infinitivo). Kind TASK (trámite previo al viaje, hermano
+            // de «facturar el vuelo» c.1140; las envolventes «tengo que
+            // sacar el visado»/«recuérdame sacar el visado» ya ruteaban
+            // TASK 0.45 vía candado c.613 — convergencia de kind medida).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sacar\s+el\s+visado\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -5092,6 +5113,18 @@ object ContextIntentEngine {
                 // nunca llegan aquí porque el piso no los captura.
                 val matchSalirAeropuerto = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(salir)\s+(para\s+(?:el\s+aeropuerto|la\s+estaci[oó]n)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchSalirAeropuerto != null) return "Salir ${matchSalirAeropuerto.groupValues[2]}"
+                // c.1151: plantilla hermana del piso «sacar el visado»
+                // (ancla/guard idénticos; lección c.616: el match arranca
+                // en el verbo, así acuse/prefijo temporal se despojan).
+                // Captura SOLO «el visado» (+ calificador opcional «de
+                // turista»): la cola «antes del viaje» NO es temporal
+                // parseable y quedaría en el título (familia documentada
+                // c.1137); el objeto extendido «de turista» se conserva
+                // (grafía del usuario, doctrina c.653). El bivalente
+                // «sacar el pasaporte» nunca llega aquí porque el piso
+                // no lo captura.
+                val matchSacarVisado = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sacar)\s+(el\s+visado(?:\s+de\s+\w+)?)\b""", RegexOption.IGNORE_CASE).find(original)
+                if (matchSacarVisado != null) return "Sacar ${matchSacarVisado.groupValues[2]}"
 
                 null
             }

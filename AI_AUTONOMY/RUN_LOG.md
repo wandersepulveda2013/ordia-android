@@ -1,3 +1,16 @@
+## 2026-08-25 — c.1151 CIERRE (OpenHands): «sacar el visado» NULL→TASK 0.45; suite 9238/9238 VERDE; medida 4/4 candidatas + 6/6 guards + 5/5 pins byte-idénticos (hermano EXACTO de c.1150)
+
+- **Marcador**: «sacar el visado» — candidata (c) de la clase DECIMOSEXTA (c.1137 C11). Marcador EN CURSO pusheado inmediatamente en `b614c5b` (HEAD inicial del run).
+- **Test-first** escrito ANTES de tocar el motor: `ContextIntentEngineSacarVisadoFloorTest.kt` (17 tests; RED medido exacto: 4 fallos de captura, 13 restantes verdes — guards/pins ya pasaban).
+- **Lockstep de 3 puntos** (misma disciplina que c.1150): keyword-frase `sacar el visado` en ContextIntent.TASK + piso acotado «sacar el visado» al final de hasStrongTaskImperative (tras el piso c.1150, último de la cadena con `||`) + plantilla hermana en extractTitle (rama TASK, tras matchSalirAeropuerto). Plantilla deliberadamente SIN cola `.*`: captura solo «el visado» (+calificador «de turista») — la cola «antes del viaje» no es parseable y quedaría en el título (familia c.1137).
+- **Medida PRE** (sonda efímera `/tmp/probe1151/SacarVisadoPreProbe.kt` sobre `b614c5b`): 4/4 candidatas NULL (desnuda/«antes del viaje»/«esta semana»/temporal-turista); 6/6 guards NULL; envolvente «tengo que sacar el visado antes del dia 20» ya TASK 0.45 + dueAt vía candado c.613.
+- **Medida POST**: 4/4 candidatas NULL→TASK 0.45 con títulos limpios («Sacar el visado»/«…de turista», dueAt=true en la temporal); 6/6 guards NULL preservados (negada/pasado/duda/sustantivo/pasaporte/coste); **5/5 pins byte-idénticos PRE/POST** (las envolventes «tengo que…» y «recuérdame…» conservan título, dueAt y confianza — la plantilla no las alcanza; pins «sacar una cita» c.1117, «salir para el aeropuerto» c.1150, «facturar el vuelo» c.1140, «sacar al perro» c.740, «sacar 50 euros» c.893 intactos).
+- **Suite completa post-integración (obligatoria, lección c.1014)**: `run_domain_tests.sh` 9238 tests OK 0 fallos (los 2 fallos preexistentes documentados en el marcador — mejoras-continuidad + run-doctor-reads — los resolvió un run hermano; branch limpia). Smoke `run_domain_checks.sh` 25/25.
+- **Gradiente clase DECIMOSEXTA** validado: CubrirTurnoFloorTest + SalirAeropuertoFloorTest + SacarVisadoFloorTest = 62/62.
+- **Estado**: VERIFIED (JVM). **NO VERIFICADO** Android/gradle/UI/Room (sin SDK).
+- **Lección**: la plantilla SIN cola `.*` es correcta cuando la cola típica no es parseable («antes del viaje») — el título queda limpio y la envolvente (con cola parseable «antes del dia 20») no se ve afectada porque no pasa por esta plantilla. La clase DECIMOSEXTA cierra con tres hermanos convergentes (c.1149 cubrir-turno, c.1150 salir-aeropuerto, c.1151 sacar-el-visado); la candidata (d) lateral «sacar el pasaporte» queda DESCARTADA documentada (R8: bivalente con el movimiento cotidiano al cajón).
+- **Próxima prioridad**: candidata (a) — «quedar con <persona> para <cosa>» REMINDER (última NULL con volumen real de la clase DECIMOSEXTA); o barrido a)–h).
+
 ## 2026-08-25 — run c.1148-complemento (este lado): grafía coloquial «curriculo/currículo» (sin -m) sobre la canónica del hermano
 
 - HEAD inicial: `c221a72` (mi merge de cesión c.1148 sobre `d5bc07b` del hermano, tras su ráfaga `304fa6f`/`1ead8b4`/`bc87337`/`d5bc07b` — c.1148 canónico + c.1150 «salir para el aeropuerto»).

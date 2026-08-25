@@ -318,6 +318,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // «[ou]m?s?» del piso — la canónica exigía la -m). Misma
         // inercia: 0.12 sola < umbral; el piso exige «echar».
         "curriculo", "currículo",
+        // c.1151: keyword-frase «sacar el visado» (lockstep con el piso
+        // acotado «sacar el visado», candidata (c) de la clase
+        // DECIMOSEXTA, NULL medida c.1137 C11; ver
+        // ContextIntentEngine.hasStrongTaskImperative). Monosemántica:
+        // trámite de viaje (sin visado no hay viaje). «sacar» solo NO
+        // se añade (bivalente consolidado: basura c.717, mascota c.740,
+        // dinero c.893, cita/turno/hora c.1117); «visado» solo tampoco
+        // (sustantivo declarativo: «el visado cuesta 80 euros» sigue
+        // NULL deliberado). Sin la keyword la notificación ni llega al
+        // análisis (gate c.751).
+        "sacar el visado",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
