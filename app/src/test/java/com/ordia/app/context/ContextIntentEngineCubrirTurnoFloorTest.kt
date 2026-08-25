@@ -196,4 +196,55 @@ class ContextIntentEngineCubrirTurnoFloorTest {
         assertNotNull(intent)
         assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
+
+    // --- Cobertura adicional (carrera de implementación c.1149: este lado
+    // retiró su implementación duplicada y aporta estos pines VERDES contra
+    // la implementación canónica del hermano, b10cb5f) ---
+
+    @Test
+    fun cubrirTurnoSinFecha_capturesTaskWithoutDueAt() {
+        val intent = analyze("cubrir el turno")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertTrue(intent.title.startsWith("Cubrir el turno"))
+        assertNull(intent.dueAt)
+    }
+
+    @Test
+    fun cubrirTurnoElLunes_capturesTaskWeekdayVariant() {
+        val intent = analyze("cubrir el turno el lunes")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertTrue(intent.title.startsWith("Cubrir el turno"))
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun quizasCubrirTurno_isNull() {
+        assertNull(analyze("quizá cubrir el turno mañana"))
+    }
+
+    @Test
+    fun negadaImperativoNoCubras_isNull() {
+        assertNull(analyze("no cubras el turno todavía"))
+    }
+
+    @Test
+    fun bivalenteCubrirPastel_isNull() {
+        assertNull(analyze("cubrir el pastel con chocolate"))
+    }
+
+    @Test
+    fun sellarElParo_remainsTask() {
+        val intent = analyze("sellar el paro el día 4")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
+
+    @Test
+    fun darDeAltaLuz_remainsTask() {
+        val intent = analyze("dar de alta la luz en el piso nuevo")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
 }
