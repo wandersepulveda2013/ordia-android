@@ -1299,8 +1299,15 @@ object ContextIntentEngine {
     // idea, llamaré a mamá» (la duda gobierna «es buena idea») fiel;
     // «no sé si sé la respuesta» (presente) y «no sabemos si
     // llamaremos…» (plural, lateral hermana) NULL estables.
+    // c.1076: el marcador admite el PLURAL «no sabemos si…» (ÚLTIMA
+    // variante registrada de la familia de la duda — «no sabemos si
+    // llamar a mamá» → CALL 0.57 firme medido PRE con sonda efímera;
+    // 6 capturas medidas). El lookahead (infinitivo/modal/futuro 1ª
+    // persona) se reutiliza sin tocar. FUERA (laterales hermanas,
+    // medidas): modal plural «no sabemos si deberíamos…» (CALL 0.57)
+    // y futuro plural «no sabemos si llamaremos…» (NULL estable).
     private val HEDGE_PATTERN = Regex(
-        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+s[ée]\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}|[a-záéíóúñü]+ré)(?!\p{L})))(?!\p{L})"""
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si|no\s+(?:s[ée]|sabemos)\s+(?:muy\s+bien\s+)?si(?=\s+(?:(?:(?:deber[ií]a(?:\s+que)?|podr[ií]a|tendr[ií]a\s+que|habr[ií]a\s+que)\s+)?[a-záéíóúñü]*(?:ar|er|ir|ár|ér|ír)(?:me|te|se|le|les|nos|os|lo|la|los|las){0,2}|[a-záéíóúñü]+ré)(?!\p{L})))(?!\p{L})"""
     )
 
     // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto
