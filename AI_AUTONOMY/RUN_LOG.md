@@ -18588,6 +18588,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 
 ## RUN 2026-08-25 (tarde-noche UTC) — ciclo c.1131: candidata (m) «operar la rodilla» (clase DECIMOTERCERA, salud) — FIXED VERIFIED
+- Integración final con `67b7e7e` (hermano c.1136 «empaste»): rebase, 1 conflicto BACKLOG resuelto UNIÓN (fila c.1136 + mis filas). Suite UNIÓN post-integración: **OK (8999 = 8980 + 19 empaste)** (2026-08-25). Hashes finales: feat `80ec944`, docs `fdc0d11`/`b4e1080`.
+
 
 - HEAD inicial del ciclo: `988c1ae` → integraciones remotas `d20f6ae`/`3d9782d` (marcadores hermanos c.1130) → marcador propio `a9dca02`; base de código PRE `3d9782d`.
 - Problema: «operar la rodilla en enero» (sonda persistida `ThirteenthClassHealthProbeComplement.kt` C24) caía a NULL — «operar» sin piso y «rodilla» sin keyword (gate c.751: sin palabra gatillo ni llegaba al análisis). Olvido silencioso P1: operación programada.
