@@ -3508,8 +3508,16 @@ object NaturalTaskParser {
                 Regex(
                     """(?i)\bhasta\s+(?!(?:las\s+\d{1,2}|la\s+(?:una|\d)))(?=(?:el|la|los|las)\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|primer|primero|segundo|tercer|tercero|cuarto|[uú]ltim[oa]?|semana|mes(?:es)?|a[ñn]os?|\d{1,2}\b)|fin(?:es)?\s+de\b|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b|dentro\s+de\b|en\s+(?:\d|un|una|unos|unas))""",
                 ),
-                " ",
-            )
+            ) { m ->
+                // c.1075: «hasta ayer/anteayer/antier» al INICIO del texto es
+                // genitivo de rango narrativo («hasta ayer trabajé en el
+                // proyecto»), nunca un plazo (nadie manda algo "hasta ayer"):
+                // se conserva íntegro; fecha y título fluyen del flag
+                // [ayerRangeGenitiveNarrative]. «hasta ayer» NO inicial sigue
+                // consumiéndose como plazo vencido (doctrina vigente).
+                val tail = working.substring(m.range.last + 1)
+                if (m.range.first == 0 && ayerRangeGenitiveDayHead.containsMatchIn(tail)) m.value else " "
+            }
             // Conector de plazo "antes/después de/del" + fecha/hora: simétrico a "hasta"/c.134. La
             // fecha subyacente se resuelve bien, pero el conector sobrevivía como residuo en
             // el título ("enviar antes", "llamar las", "llegar después de") porque el patrón de
@@ -4834,6 +4842,14 @@ object NaturalTaskParser {
         // parte del día intercalada ya no llega aquí.
         val dayPreteriteNarrative = standalonePartOfDayOccurrence != null &&
             dayPreteriteNarrativeOccurrence(working, standalonePartOfDayOccurrence)
+        // c.1075: genitivo de RANGO con día relativo PASADO («desde/hasta/de +
+        // ayer/anteayer/antier») en posición de contenido — abre el enunciado
+        // («desde ayer no duermo bien») o sigue a una cópula («el informe es
+        // desde/de ayer») — NO es ancla de fecha: anclarlo fabricaba una fecha
+        // PASADA falsa y mutilaba el título (doble daño P1, medida 10/10). El
+        // flag se propaga al borrador del título ([eraseRelativeDayToken]) para
+        // que fecha y título nunca diverjan (doctrina c.930/c.950).
+        val ayerRangeGenitiveNarrative = ayerRangeGenitiveRanges(working).isNotEmpty()
         val standalonePartOfDayMatch = standalonePartOfDayOccurrence
             ?.takeUnless { dayPreteriteNarrative }
         val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
@@ -4900,12 +4916,16 @@ object NaturalTaskParser {
             // "antier" = variante coloquial hispanoamericana de "anteayer".
             // c.957: EXCEPTO cuando la cadena es narrativa en pretérito con parte
             // del día («anteayer por la noche sonó la alarma») — no anclar.
-            Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) && !dayPreteriteNarrative ->
+            Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) && !dayPreteriteNarrative &&
+                !ayerRangeGenitiveNarrative ->
                 base.toLocalDate().minusDays(2)
             // c.954: si «hoy/ayer» introduce una cadena narrativa en pretérito
             // con parte del día («ayer en la mañana llegó el paquete»), no hay
             // ancla de fecha: la narrativa queda sin dueAt y el título íntegro.
-            Regex("""(?i)\bayer\b""").containsMatchIn(working) && !dayPreteriteNarrative ->
+            // c.1075: tampoco ancla el genitivo de rango narrativo («desde
+            // ayer no duermo bien», «el informe es desde/de ayer»).
+            Regex("""(?i)\bayer\b""").containsMatchIn(working) && !dayPreteriteNarrative &&
+                !ayerRangeGenitiveNarrative ->
                 base.toLocalDate().minusDays(1)
             // "antepasado mañana" = dentro de 3 días (mañana+2). Debe ir ANTES que
             // "pasado mañana" y que "mañana" suelto: la palabra "mañana" dentro de la
@@ -5768,7 +5788,7 @@ object NaturalTaskParser {
             // el «hoy/ayer» cabeza de «hoy/ayer en la mañana llegó…» se
             // conserva íntegro cuando la fecha no la ancló; ver
             // [eraseRelativeDayToken].
-            .let { value -> eraseRelativeDayToken(value, dayPreteriteNarrative) }
+            .let { value -> eraseRelativeDayToken(value, dayPreteriteNarrative, ayerRangeGenitiveNarrative) }
             // c.927: el «mañana» suelto se borra con guard anti-robo — las apariciones
             // que son CONTENIDO ("la mañana del accidente", "esa misma mañana") se
             // conservan íntegras (ver [mananaOccurrenceIsContent]); el resto se borra
@@ -8499,13 +8519,17 @@ object NaturalTaskParser {
      */
     private fun eraseRelativeDayToken(
         title: String,
-        forceDayPreteriteNarrative: Boolean = false
+        forceDayPreteriteNarrative: Boolean = false,
+        forceRangeGenitiveNarrative: Boolean = false
     ): String {
         var result = title
         var idx = 0
         while (true) {
             val m = relativeDayErasePattern.find(result, idx) ?: return result
-            if (forceDayPreteriteNarrative && dayPreteriteNarrativeGuard(result, m)) {
+            if ((forceDayPreteriteNarrative && dayPreteriteNarrativeGuard(result, m)) ||
+                (forceRangeGenitiveNarrative &&
+                    ayerRangeGenitiveRanges(result).any { it.containsRange(m.range) })
+            ) {
                 idx = m.range.last + 1
                 continue
             }
@@ -8517,6 +8541,26 @@ object NaturalTaskParser {
     private val relativeDayErasePattern = Regex(
         """(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""
     )
+
+    // c.1075: genitivo de RANGO con día relativo PASADO en posición de
+    // contenido: «desde/hasta/de + ayer/anteayer/antier» ABRIENDO el enunciado
+    // («desde ayer no duermo bien», «hasta ayer trabajé en el proyecto») o
+    // inmediatamente tras una CÓPULA («el informe es desde/de ayer»).
+    // Evidencia gramatical inequívoca (doctrina c.927/c.930): un encargo real
+    // jamás abre con un límite de rango pasado ni lo predica con cópula.
+    // Conservador: «cita de ayer» (genitivo de posesión temporal sin cópula),
+    // «trabajo desde hoy»/«estudio desde mañana» (día presente/futuro) y
+    // «hasta ayer» NO inicial siguen anclando byte-idénticos.
+    private val ayerRangeGenitivePattern = Regex(
+        """(?i)(?:^\s*|(?<=\b(?:es|era|son|eran)\s))(?:desde|hasta|de)\s+(?:ayer|anteayer|antier)\b"""
+    )
+
+    private fun ayerRangeGenitiveRanges(text: String): List<IntRange> =
+        ayerRangeGenitivePattern.findAll(text).map { it.range }.toList()
+
+    // c.1075: día pasado relativo inmediatamente tras un «hasta» de rango (el
+    // reescritor de plazos lo consulta con la cola que sigue al conector).
+    private val ayerRangeGenitiveDayHead = Regex("""(?i)^(?:anteayer|antier|ayer)\b""")
 
     // c.954: para el borrado genérico de días relativos, ¿es esta aparición de
     // «hoy/ayer» la cabeza protegida de una cadena narrativa en pretérito con
