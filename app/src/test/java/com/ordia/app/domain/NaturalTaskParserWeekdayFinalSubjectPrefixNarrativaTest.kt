@@ -103,6 +103,40 @@ class NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest {
     @Test fun salimosElLunes_ambiguaPretéritoPresenteSigueAncla() =
         assertAnchors("salimos el lunes", monday, "salimos")
 
+    // ---- c.1229 F2 (complemento hermano): «quedar con» con SUJETO nominal ----
+    // Candado c.1023 de clíticos ([ordinalHoraQuedarConArrangement]) sólo admite
+    // clíticos; con sujeto nominal inequívoco la CITA real se suprimía en silencio.
+    // Nueva cabeza nominal [weekdayNominalSubjectQuedarCon] está pinada aquí.
+
+    @Test fun misPadresQuedaronConAnaElLunes_citaNominalAncla() =
+        assertAnchors("mis padres quedaron con Ana el lunes", monday, "mis padres quedaron con Ana")
+
+    @Test fun tuHermanaQuedoConMisPrimosElMartes_citaNominalAncla() =
+        assertAnchors("tu hermana quedó con mis primos el martes", LocalDate.of(2026, 8, 25), "tu hermana quedó con mis primos")
+
+    @Test fun miTiaQuedoConElDentistaElViernes_citaNominalAncla() =
+        assertAnchors("mi tía quedó con el dentista el viernes", LocalDate.of(2026, 8, 28), "mi tía quedó con el dentista")
+
+    @Test fun elPaqueteLlegoElLunes_narrativaNominalGuardSigueIntacta() =
+        assertNarrativeIntact("el paquete llegó el lunes")
+
+    @Test fun losResultadosLlegaronElMartes_narrativaNominalGuardSigueIntacta() =
+        assertNarrativeIntact("los resultados llegaron el martes")
+
+    @Test fun quedeConAnaAPrimeraHora_rutaOrdinalHermanaAncla() {
+        val r = parse("quedé con Ana a primera hora")
+        // ordinal «a primera hora» ancla hoy 09:00 (ruta historial c.1023 intacta; valor medido de la sonda)
+        assertEquals(1787490000000L, r.dueAt)
+        assertEquals("quedé con Ana", r.title)
+    }
+
+    @Test fun misPadresQuedaronConAnaElLunesPorLaTarde_citaConParteDelDiaAncla() {
+        val r = parse("mis padres quedaron con Ana el lunes por la tarde")
+        // parte del día «por la tarde» desplaza a 15:00 del weekday anclado (valor medido de la sonda)
+        assertEquals(1787598000000L, r.dueAt)
+        assertEquals("mis padres quedaron con Ana", r.title)
+    }
+
     // ---- Regresiones (rutas hermanas intactas) ----
 
     @Test fun lunesLlegoElPaquete_rutaSufijoNarrativa() =
