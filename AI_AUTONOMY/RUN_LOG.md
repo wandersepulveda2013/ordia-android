@@ -41622,3 +41622,15 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **HEAD final**: dbfcf16 (sincronizado hoy con los 3 commits del hermano).
 - **Estado**: mi marcador EN CURSO c.1236 CERRADO por convergencia — el hermano audito la misma clase XXXI en paralelo y ganó primer-push (`d0e5759`; su fila «AUDIT-CERRADA» + su sonda persistida `tools/probe/TecnologiaClassXXXIProbe.kt` son canónicas). Mi sonda duplicada descartada no-destructivo.
 - **Medida propia incidental (re-validación independiente)**: 14 D + 8 G + 8 R con frases distintas a las del hermano: «instalar la app de banca», «pasar el antivirus», «apagar/encender <dispositivo>», «sincronizar el calendario», «vaciar la papelera» [HIT HOUSEHOLD por «vaciar» heredado — falso gap]. 9/14 HIT (incl. «actualizar» c.722, «reiniciar router» c.771, «copia de seguridad/backup» c.774, «escanear» c.864, «imprimir» c.708, «configurar» c.1032, «formatear» c.1036), 5/14 NULL (gaps coincidentes con el hermano: «apagar/encender» y «sincronizar» medidos NULL en ambos lados — convergencia de evidencia), 8/8 guards NULL (negación/pretérito/declarativa/nominal/subjuntivo/suelto), 8/8 regresiones HIT (mi c.1234 «salir en bici» + hermanas c.1230/c.1231 del hermano).
+
+## c.1240 (este lado, 2026-08-26) — nueva keyword-VERBO «instalar» (app|software)
+
+- HEAD inicial: `820246e` (sincronizada con origin al iniciar; verenóido con sonda PRE).
+- Unidad: nueva keyword-VERBO «instalar» en TASK acotada al objeto `apps?|software` (audit-ciclo cl-XXXI; gate c.751 monosemántico — precedente c.752 votar / c.864 escanear / c.1032 configurar / c.1036 formatear). DISJUNTO del trabajo del hermano (su c.1239 «clase de yoga»/c.1238 «sincronizar»).
+- PRE (sonda `tools/probe/InstalarAppProbe.kt`): D1–D5 NULL, G1–G5 NULL, R1–R5 HIT.
+- TDD RED: 4 fallos (capturas) → implementación lockstep 3 puntos (keyword en `ContextIntent.kt`; floor acotado en `hasStrongTaskImperative`; plantilla en `extractTitle`).
+- POST: suite UNIÓN OK (10215 tests, exit 0); smoke dominio 25/25; AutomationEngine smoke 9/9. Sonda: D1/D2/D4/D5 HIT, G1–G5 NULL, R1–R5 HIT; D3 imperativo «instala la app» se queda NULL (lateral de FORMA abierta, documentada — mejora posible: alias «instala|instalar» en UN solo punto).
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura). Nunca force, nunca main.
+- UNIÓN re-medida tras rebase sobre c.1241/c.1242 del hermano (apagar/encender + conectar-wifi): **OK (10224 tests, exit 0)**.
+- HEAD final: este commit (tras rebase limpio sobre `5042bea`).
+

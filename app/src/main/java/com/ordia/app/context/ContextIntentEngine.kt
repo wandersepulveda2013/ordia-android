@@ -3482,6 +3482,21 @@ object ContextIntentEngine {
             // ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
             // "pasé…" y el sustantivo suelto "la ITV del coche" no casan.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pasar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?itv\b""").containsMatchIn(lower)
+            // c.1240: piso acotado «instalar <app/software>» — candidata
+            // FUERTE de la auditoría cl.XXXI tecnología (medida propia
+            // incidental del descarte convergente c.1236; sonda persistida
+            // tools/probe/InstalarAppProbe.kt: D1–D5 NULL en PRE). Gate
+            // c.751: «instalar» monosemántico (instalación de app/software;
+            // precedente c.752 votar/c.864 escanear/c.1032 configurar/
+            // c.1036 formatear) → keyword-VERBO en TASK con el piso acotado
+            // al objeto (app/software), CERO keywords-OBJETO. Ancla
+            // ^/ACK/temporal, `(?<!no )` bloquea la negada; el pretérito
+            // «instalé…», el suelto «instalar», el sustantivo «instalación…»
+            // y el subjuntivo dudoso «quizá instale…» no casan. Negación
+            // sin cláusula dedicada: keyword «instalar» 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral (aritmética hermana c.771/c.1036).
+            // Lockstep plantilla de título (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )instalar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:apps?|software)\b""").containsMatchIn(lower)
             // Piso "reiniciar el router" (c.771, quinta clase — hogar-
             // tecnología; dispersión epoch-day 20685 % 6 = 3 sobre el pool
             // OPEN). El verbo "reiniciar" es bivalente (el ordenador/la
@@ -5704,6 +5719,14 @@ object ContextIntentEngine {
                 // queda tal cual.
                 val matchFormatearDispositivo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(formatear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:ordenador|computadora|port[áa]til|m[óo]vil|celular|tablet)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchFormatearDispositivo != null) return "Formatear ${matchFormatearDispositivo.groupValues[2]}"
+                // c.1240: plantilla «instalar <app/software>» (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; el resto de la
+                // frase —«de banca»— se conserva: es la misma gestión. La
+                // grafía del usuario se preserva, doctrina c.653).
+                val matchInstalarApp = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(instalar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:apps?|software)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchInstalarApp != null) return "Instalar ${matchInstalarApp.groupValues[2]}"
                 // c.772: plantilla "medir la tensión" (ancla/guard idénticos
                 // al piso; lección c.616: el match arranca en el verbo, así
                 // acuse/prefijo temporal se despojan; el residuo temporal de

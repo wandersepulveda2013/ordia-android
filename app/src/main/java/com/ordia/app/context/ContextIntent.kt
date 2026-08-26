@@ -34,6 +34,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
     TASK("Tarea", listOf("tengo que", "debo", "toca", "hay que", "pendiente", "recuérdame",
         "no olvides", "necesito", "preparar", "terminar", "hacer", "completar",
         "organizar", "redactar", "leer", "escribir", "corregir", "traducir",
+        // c.1240: keyword-VERBO "instalar" (lockstep con el piso acotado al
+        // objeto app/software; gate c.751 monosemántico, precedente c.752
+        // votar/c.864 escanear/c.1032 configurar/c.1036 formatear)
+        "instalar",
         "actualizar", "archivar", "subir", "descargar", "llenar", "donar", "entregar", "enviar", "llamar", "avisar", "confirmar", "reservar",
         "comprar", "traer", "llevar", "conseguir", "buscar", "pedir", "solicitar",
         "coger", "publicar", "recordar a", "acordarme de", "acordarse de",

@@ -1379,3 +1379,24 @@ Laterales restantes de MI auditoría c.1236 (UNA por ciclo, anti-overreach): (b)
 ### ✅ FIXED VERIFIED — c.1238 (este lado, OpenHands)
 Lateral (e) de MI auditoría c.1236: gate previo de las 4 DÉBILES restantes ((b) conectar el wifi, (c) apagar el ordenador, (d) encender la tablet, (e) sincronizar archivos/fotos/documentos/drive) medidas en sonda `SincronizarLateralesProbe.kt`. Implementado (e) como floor-only SIN keyword nueva («sincronizar» monosemántico; gate c.751, precedente c.752). Objeto acotado (archivos?/fotos?/informes?/documentos?/drive) + plantilla de título hermana. Sonda persistida `SincronizarFloorProbe.kt`. Suite **OK (10173)**; smokes 25+9.
 
+### ✅ FIXED VERIFIED — c.1240 (este lado, OpenHands)
+
+Unidad: candidata FUERTE «instalar + (app|software)» de MI auditoría c.1236
+(clase XXXI tecnología — medida propia incidental; precede a la sonda
+canónica del hermano). PRE medido NULL en sonda persistida
+`tools/probe/InstalarAppProbe.kt` (D1–D5 NULL, G1–G5 NULL, R1–R5 HIT).
+Gate c.751: «instalar» monosemántico (instalación de app/software;
+precedente c.752 votar / c.864 escanear / c.1032 configurar / c.1036
+formatear) → keyword-VERBO «instalar» NUEVA en TASK (c.1240 SÍ
+introduce keyword, al ser monosemática; CERO keywords-OBJETO). Floor
+acotado `(...)(?<!no )instalar\s+(artículo)?(apps?|software)` +
+plantilla «Instalar X» (lockstep, lección c.616/c.713/c.751). Puesto
+alfabético junto al piso (b).Tecnología (pre-c.771 reiniciar-router).
+TDD RED exacto 4 fallos → GREEN 12/12; suite completa OK (10215);
+smokes 25+9 verdes. Controles NULL re-pineados: negada, pretérito
+«instalé…», sustantivo «instalación…», suelto «instalar», subjuntivo
+dudoso «quizá instale…». Lateral de FORMA ABIERTA (documentada, NO
+fija): imperativo 2ª pers. «instala la app» (D3 NULL — se queda NULL
+ilegítimo al aislar, hermandad con «paga»/«conecta»; mejora: ampliar el
+piso a alias «instala|instalar» en UN solo punto).
+
