@@ -784,8 +784,11 @@ object ContextIntentEngine {
     // [extractTitle] (lección c.616; grafía «CV» preservada en el
     // título, doctrina c.653). CERO keywords nuevas (gate c.751
     // satisfecho: «llevar» ya es keyword histórica).
+    // c.1204 — lateral ABIERTA (destino-posesivo) documentada en
+    // c.1174/c.1185/c.1192: destino «a mi entrevista». El objeto sigue
+    // exigido (guard «llevarme a mi entrevista» → NULL).
     private val ERRAND_INTERVIEW_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevarme|llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv|informe|portfolio)\b\s+a\s+la\s+entrevista\b""")
+        Regex("""\b(?<!no )(llevarme|llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv|informe|portfolio)\b\s+a\s+(?:la|mi)\s+entrevista\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -6178,8 +6181,10 @@ object ContextIntentEngine {
                 // [ERRAND_INTERVIEW_RUN_FLOOR]); IGNORE_CASE casa «CV»
                 // y la grafía del usuario se preserva intacta en el
                 // título («Llevar el CV a la entrevista», c.653).
+                // c.1204: destino-posesivo «a (la|mi) entrevista»
+                // (lockstep con [ERRAND_INTERVIEW_RUN_FLOOR]).
                 val matchInterviewRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevarme|llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv|informe|portfolio)\b\s+a\s+la\s+entrevista).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevarme|llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv|informe|portfolio)\b\s+a\s+(?:la|mi)\s+entrevista).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchInterviewRun != null) {
