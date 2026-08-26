@@ -385,6 +385,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // cadenas, hermanas).
         "sacar el billete",
         "sacar los billetes",
+        // c.1208: tercera hermana, plural PELADO «sacar billetes» (sin
+        // artículo — la forma usuaria coloquial; lockstep con el piso y
+        // la plantilla hermanos que hacen el determinante opcional).
+        "sacar billetes",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver

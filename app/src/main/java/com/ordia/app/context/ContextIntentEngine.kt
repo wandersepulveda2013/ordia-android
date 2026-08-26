@@ -3903,7 +3903,10 @@ object ContextIntentEngine {
             // al viaje, hermana de «facturar el vuelo» c.1140; las
             // envolventes «tengo que sacar el billete» ya ruteaban TASK
             // 0.45 vía candado c.613 — convergencia de kind medida).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sacar\s+(?:el|los)\s+billetes?\b""").containsMatchIn(lower)
+            // c.1208: plural PELADO «sacar billetes» — determinante
+            // «(el|los)» hecho OPCIONAL (lateral ABIERTA del hermano;
+            // sin keyword-frase la notificación gatea, gate c.751).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sacar\s+(?:(?:el|los)\s+)?billetes?\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -5622,8 +5625,10 @@ object ContextIntentEngine {
                 // cola temporal va a dueAt, no al título; la no-temporal
                 // queda en el título como residuo (familia documentada
                 // c.1137). El bivalente «sacar el pasaporte» nunca llega
-                // aquí porque el piso no lo captura.
-                val matchSacarBillete = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sacar)\s+((?:el|los)\s+billetes?(?:\s+(?:de|del)\s+\w+)?)\b""", RegexOption.IGNORE_CASE).find(original)
+                // aquí porque el piso no lo captura. c.1208: plural
+                // PELADO «sacar billetes» — determinante opcional como
+                // el piso (lockstep TRES puntos, lección c.616).
+                val matchSacarBillete = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sacar)\s+((?:(?:el|los)\s+)?billetes?(?:\s+(?:de|del)\s+\w+)?)\b""", RegexOption.IGNORE_CASE).find(original)
                 if (matchSacarBillete != null) return "Sacar ${matchSacarBillete.groupValues[2]}"
 
                 null
