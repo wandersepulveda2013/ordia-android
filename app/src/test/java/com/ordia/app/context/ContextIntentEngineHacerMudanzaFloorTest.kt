@@ -160,8 +160,15 @@ class ContextIntentEngineHacerMudanzaFloorTest {
     }
 
     @Test
-    fun presenteHagoMudanza_isNull() {
-        assertNull(analyze("hago la mudanza esta semana"))
+    fun presenteHagoMudanza_capturesTaskLateral() {
+        // Pin c.1171 (lateral (d-bis) de este piso): el presente 1ª
+        // persona «hago la mudanza» quedó NULL en c.1169 (una-forma-
+        // por-ciclo) y este lateral lo habilita con la extensión
+        // aditiva del verbo (hacer|hago). Pin medido POST con sonda
+        // efímera (motor real, HEAD con lockstep aplicado).
+        val intent = analyze("hago la mudanza esta semana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 
     @Test
