@@ -8,7 +8,7 @@
 - TDD: 21 tests NUEVOS `ContextIntentEngineSacarBilleteFloorTest.kt` (6 capturas + 7 guards + 8 pines) GREEN 21/21. RED documentado vía sonda PRE (las 6 capturas NULL exactas — la familia intent-tests exige RED por sonda de captura cuando el fix precede al test).
 - Suite UNIÓN FINAL re-medida completa: **OK (9819 = 9798 base + 21 — aritmética exacta)**, 0 failures; smoke dominio 25/25 OK.
 - Commits: `60db0be` feat + AI_AUTONOMY docs.
-- HEAD final: se fija en el siguiente run (docs primer-run-hash).
+- HEAD final: `42bf71c` (feat `60db0be` + docs carrera + dos merges no-destructivos por doble colisión cycle-ID; renumerado c.1201→c.1203). Smoke 25/25.
 - Laterales ABIERTAS documentadas (UNA por ciclo): «sacar el pasaporte» (bivalente NULL deliberado), «sacar la entrada» (eventos), «echar el billete», plural pelado «sacar billetes».
 - Próxima prioridad: próxima candidata accionable del BACKLOG (auditoría clase XXVI o lateral UNA).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (entorno JVM puro, sin Android SDK). Nunca force, nunca main.
