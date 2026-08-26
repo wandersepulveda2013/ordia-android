@@ -690,16 +690,21 @@ object ContextIntentEngine {
     // determinante opcional el/la/mi/tu/su: «la portátil» es la forma
     // femenina latinoamericana) + destino laboral EXIGIDO «al trabajo»
     // (anti-overreach: «a la playa»/«al salón»/sin destino quedan FUERA —
-    // UNA forma por ciclo; «a la oficina»/«al curro» y el plural «los
-    // portátiles» son laterales ABIERTAS). Interop: objetos y destinos
-    // disjuntos del resto de pisos «llevar» — sin solape. Kind deliberado:
-    // ERRAND (acarreo físico, doctrina de la familia c.1144). Lockstep
-    // con la plantilla matchWorkDeviceRun de [extractTitle] (lección
-    // c.616); CERO keywords nuevas («llevar» ya es keyword TASK histórica
-    // → gate c.751 satisfecho; 0.12 + bono temporal 0.1 = 0.22 < umbral
-    // sin el piso, así la negación/declarativo siguen descartados).
+    // UNA forma por ciclo; «al curro» y el plural «los portátiles» son
+    // laterales ABIERTAS). c.1157b (colisión convergente c.1157, lado
+    // perdedor primer-push-gana): lateral declarada abierta «a la oficina»
+    // integrada en el mismo alternador de destino (`al trabajo | a la
+    // oficina`, lockstep con la plantilla — lección c.616), PRE medido
+    // sonda efímera sobre 62e34ba0: 4/4 capturas NULL, 10/10 guards NULL,
+    // 3/3 regresiones HIT. Interop: objetos y destinos disjuntos del resto
+    // de pisos «llevar» — sin solape. Kind deliberado: ERRAND (acarreo
+    // físico, doctrina de la familia c.1144). Lockstep con la plantilla
+    // matchWorkDeviceRun de [extractTitle] (lección c.616); CERO keywords
+    // nuevas («llevar» ya es keyword TASK histórica → gate c.751
+    // satisfecho; 0.12 + bono temporal 0.1 = 0.22 < umbral sin el piso,
+    // así la negación/declarativo siguen descartados).
     private val ERRAND_WORK_DEVICE_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+al\s+trabajo\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+(?:al\s+trabajo|a\s+la\s+oficina)\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -5893,7 +5898,7 @@ object ContextIntentEngine {
                 // acuse ("vale, …") y el prefijo temporal ("mañana …") no
                 // ensucian el título (lección c.616).
                 val matchWorkDeviceRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+al\s+trabajo).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+(?:al\s+trabajo|a\s+la\s+oficina)).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchWorkDeviceRun != null) {
