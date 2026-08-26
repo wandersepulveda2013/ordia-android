@@ -41488,7 +41488,6 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: ContextIntentEngine (+EXERCISE_MATCH_SPORT_FLOOR +matchPartido), test nuevo 11 pins, sonda persistida, BACKLOG (c.1231 FIXED + laterales restantes d/e/f/g), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
 - **Commits**: d0419f7 (implementación completa c.1231).
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL; (g) «clase de yoga mañana» DÉBIL (con-keyword-bajo-umbral). Nunca force, nunca main.
-<<<<<<< HEAD
 ## 2026-08-26 — STALE_RUN (este lado, OpenHands)
 
 - **HEAD local inicial**: `8f8970f` (el marcador EN CURSO c.1228 ya estaba tomado por otra ejecución paralela).
@@ -41496,10 +41495,19 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Acción**: `git pull --ff-only` → remoto `5519dfc`; duplicados descartados.
 - **Verificación**: `bash tools/run_domain_tests.sh` → **OK (10140 tests)**, 0 failures (re-verificado en este run).
 - **Estado**: STALE_RUN (sin cambios destructivos). **Próxima prioridad sugerida**: laterales ABIERTAS restantes de MI auditoría c.1227 — (c) «pilates» / (d) «bici» / (e) «entrenamiento de fútbol» / (f) «apuntarme al gimnasio» (familia enroll) — o auditoría clase XXXI si el hermano las toma. Nunca force, nunca main.
-=======
-- c.1232 CERRADO (lateral (d) «ir a pilates» MEDIA): keyword-OBJETO
-  mono «pilates» (gate c.751), piso acotado (ir/empezar/hacer), plantilla
-  título; guard (?<!no ). PRE sonda = NULL en T1/T2/T4; POST T1/T2/T4 HIT;
-  guardas NULL; suite 10148/25. COMMITTED. Próxima: (e) «gim~gym» MEDIA
-  o (g) «clase de <ejercicio>» MEDIA/MEDIO.
->>>>>>> 3c110e0 (feat(context): lateral (d) «ir a pilates» (c.1232) — lockstep piso+keyword+título, guards NULL)
+
+## 2026-08-26 — c.1232 — CIERRE hermano [OpenHands]
+
+- c.1232 CERRADO (lateral (d) «ir a pilates» MEDIA): keyword-OBJETO mono «pilates» (gate c.751), piso acotado (ir/empezar/hacer), plantilla título; guard `(?<!no )`. PRE sonda: NULL en T1/T2/T4; POST T1/T2/T4 HIT; guardas NULL; suite 10148/25. COMMITTED. Próxima: (e) «gim~gym» MEDIA o (g) «clase de <ejercicio>» MEDIA/MEDIO. (Conflicto de merge cometido en 2eabbf0 resuelto — ambas entradas preservadas).
+
+
+## 2026-08-26 — c.1233 — Sesión [OpenHands]
+
+- **HEAD inicial**: 2eabbf0 (grafted merge hermano; conflicto RUN_LOG —HEAD vs 3c110e0— resuelto y cometido en este run).
+- **Problema**: lateral (e) «salir en (bici|bicicleta)» de MI auditoría c.1227 (clase XXX deporte) — analyze SILENT-NULL (P1 olvido silencioso).
+- **Causa raíz**: verbo «salir» no-piso (verb-de-posición-libre); objeto bici|bicicleta cerrado, sin keyword (gate c.751 → piso verb-scoped, CERO keywords nuevas); sin plantilla en extractTitle.
+- **Solución**: lockstep DOS puntos (lección c.616): (1) piso NUEVO `EXERCISE_BIKE_OUT_FLOOR` `\b(?<!no )salir\s+en\s+(bici|bicicleta)\b` en lista maestra EXERCISE_FLOORS; (2) plantilla `matchSalirEnBici` en extractTitle rama EXERCISE (título arranca en «salir en»).
+- **Tests**: sonda PRE re-medida `tools/probe/SalirEnBiciProbe.kt` (T1–T5 NULL, G1–G4 NULL, R1–R2 HIT). TDD RED exacto 5 fallos de 10153 → GREEN 10/10 (`tools/run_filtered_test.sh` no existía en banda; filter via run_domain_tests.sh --filter). Suite UNIÓN **OK (10158, exit 0)**; smoke dominio 25/25. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Archivos**: ContextIntentEngine (+EXERCISE_BIKE_OUT_FLOOR en lista maestra +matchSalirEnBici), test nuevo 10 pins, sonda persistida, BACKLOG (c.1233 FIXED), CURRENT_STATE (FIXED VERIFIED + hermano parseado), RUN_LOG (este append). Incidental: resolución de conflicto cometida en el merge 2eabbf0 (marcadores <<< >>>) en RUN_LOG — ambas entradas (c.1232 cierre hermano + STALE_RUN) preservadas.
+- **Commits**: hash post-commit (ver `git log -1`).
+- **Próxima prioridad**: laterales de MI auditoría c.1227 — (f) «entrenamiento de (fútbol|deporte)» DÉBIL; (g) «clase de (yoga|pilates)» DÉBIL (gate vía keyword existente). Herman ellas pueden tomarse si DISJUNTO. Nunca force, nunca main.

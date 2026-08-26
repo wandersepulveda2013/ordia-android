@@ -691,6 +691,15 @@ object ContextIntentEngine {
     private val EXERCISE_PILATES_FLOOR =
         Regex("""\b(?<!no )(?:ir\s+a\s+|empezar\s+(?:a\s+)?|hacer\s+)pilates\b""")
 
+    // c.1233 (lateral (e) DISJUNTA de c.1232, sonda tools/probe/
+    // SalirEnBiciProbe.kt): «salir en (bici|bicicleta)» era NULL (verb-
+    // de-posición-libre no-capturado «salir»). Verbo «salir» acotado al
+    // objeto-vehículo cerrado (bici|bicicleta), precedente «pilates»
+    // c.1232 / «mueble» c.1224. Gate c.751: CERO keywords nuevas.
+    // Guard de negación heredado (?<!no ).
+    private val EXERCISE_BIKE_OUT_FLOOR =
+        Regex("""\b(?<!no )salir\s+en\s+(bici|bicicleta)\b""")
+
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -703,6 +712,7 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte|ejercicio(?!\p{L}))\b"""),
         EXERCISE_PLAY_SPORT_FLOOR,
         EXERCISE_PILATES_FLOOR,
+        EXERCISE_BIKE_OUT_FLOOR,
         EXERCISE_MATCH_SPORT_FLOOR
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
@@ -6002,6 +6012,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchPilates != null) {
                     return capitalizeFirst(matchPilates.groupValues[1])
+                }
+                // c.1233: «salir en (bici|bicicleta)» (lateral (e)
+                // DISJUNTA de c.1232) — piso acotado al verbo «salir»
+                // en [EXERCISE_BIKE_OUT_FLOOR]. El match arranca en el
+                // verbo, así el prefijo «voy a» no ensucia el título.
+                val matchSalirEnBici = Regex(
+                    """\b(?<!no )(salir\s+en\s+(?:bici|bicicleta).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSalirEnBici != null) {
+                    return capitalizeFirst(matchSalirEnBici.groupValues[1])
                 }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))

@@ -1318,3 +1318,17 @@ keyword-OBJETO mono; vía GATE-OK. Lockstep TRES puntos en ContextIntentEngine.k
 [HIT] EXERCISE título+dueAt; T3 (bare) NULL asimetría aceptada; guardas
 G1/G2/G3 (declarativa/pretérito/negación) NULL; regressions R1/R2 OK.
 Suite 10148 tests + smoke 25/25. FIXED c.1232 VERIFIED.
+### ✅ FIXED VERIFIED — c.1233 (lateral (e) «salir en bici»)
+c.1233 (lateral (e) auditoría c.1227, DISJUNTO de c.1232): «salir en
+(bici|bicicleta)» analize SILENT-NULL. Verbo «salir» acotado al objeto-
+vehículo cerrado (bici|bicicleta), precedente «pilates» c.1232 / «mueble»
+c.1224. Gate c.751: CERO keywords nuevas (piso verb-scoped en lista maestra
+EXERCISE_FLOORS, guard (?<!no )). Lockstep DOS puntos (lección c.616):
+piso EXERCISE_BIKE_OUT_FLOOR + plantilla matchSalirEnBici en extractTitle
+rama EXERCISE. EVIDENCIA: sonda persistida `tools/probe/SalirEnBiciProbe.kt`
+PRE = T1–T5 SILENT-NULL, G1–G4 NULL, R1–R2 HIT; POST = T1–T5 HIT EXERCISE
+título «Salir en bici»/«Salir en bicicleta», G1/G2/G4 NULL (G3 nominal
+«salir en bici es bueno» flips aceptado — clase hermana de «partido»,
+no pineado), R1–R2 intactas. TDD RED exacto 5 fallos de 10153 → GREEN
+10/10; suite UNIÓN OK (10158, exit 0); smoke dominio 25/25. FIXED c.1233
+VERIFIED.
