@@ -744,8 +744,13 @@ object ContextIntentEngine {
     // histórica → gate c.751 satisfecho; 0.12 + bono temporal 0.1 = 0.22
     // < umbral sin el piso, así la negación/declarativo siguen
     // descartados).
+    // c.1180 (lateral ABIERTA de c.1174): el piso admite también el
+    // enclítico «llevarme» — la forma hablada natural («tengo que
+    // llevarme el currículum a la entrevista») del mismo acarreo P1;
+    // objeto y destino EXIGIDOS se mantienen («llevarme el informe» /
+    // «llevarme a la entrevista», transporte propio, siguen NULL).
     private val ERRAND_INTERVIEW_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista\b""")
+        Regex("""\b(?<!no )(llevarme|llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -6017,8 +6022,11 @@ object ContextIntentEngine {
                 // [sanitizeTitle]; el match arranca en el verbo, así el
                 // acuse ("vale, …") y el prefijo temporal ("mañana …")
                 // no ensucian el título (lección c.616).
+                // c.1180: enclítico «llevarme» preservado en el título
+                // («Llevarme el currículum a la entrevista», doctrina
+                // c.653; lockstep con [ERRAND_INTERVIEW_RUN_FLOOR]).
                 val matchInterviewRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevarme|llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchInterviewRun != null) {
