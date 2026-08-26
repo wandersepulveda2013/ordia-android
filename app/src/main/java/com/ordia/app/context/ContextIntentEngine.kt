@@ -700,6 +700,15 @@ object ContextIntentEngine {
     private val EXERCISE_BIKE_OUT_FLOOR =
         Regex("""\b(?<!no )salir\s+en\s+(bici|bicicleta)\b""")
 
+    // c.1235 (lateral (f) DISJUNTA de c.1231, sonda tools/probe/
+    // EntrenamientoDeporteProbe.kt): «(el )entrenamiento de <deporte>»
+    // era NULL (objeto-deporte no era keyword-OBJETO). Nominal positivo
+    // con negación-guard heredado (?<!no ). Gate c.751: el nominal es
+    // inequívoco y no asociativo (las compuestas «pádel»/«fútbol» son
+    // prácticas seguras).
+    private val EXERCISE_TRAINING_FLOOR =
+        Regex("""\b(?<!no )(?:el\s+)?entrenamiento\s+de\s+(fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf|deporte)\b""")
+
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -720,7 +729,8 @@ object ContextIntentEngine {
         // "apuntarse" (c.856, NOTE hermana) y de sujeto explicito
         // "inscribir al nino" (EXERCISE hermano c.1228). Encliticos
         // me/te/nos (NO se) + prep a|al|en + objeto gimnasio(s).
-        Regex("""\b(?<!no )(apuntar|inscribir)(me|te|nos)\s+(?:a|al|en)\s+(?:(?:el|un|una)\s+)?gimnasios?(?![a-z])""")
+        Regex("""\b(?<!no )(apuntar|inscribir)(me|te|nos)\s+(?:a|al|en)\s+(?:(?:el|un|una)\s+)?gimnasios?(?![a-z])"""),
+        EXERCISE_TRAINING_FLOOR
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
     // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
@@ -1737,6 +1747,15 @@ object ContextIntentEngine {
     private val PAST_MEETING_COPULA_AFTER_PATTERN = Regex(
         """\b(?:fue|era)\s+(?:ayer|anteayer|anoche)(?!\p{L})"""
     )
+
+    // Copulativa PASADA para el nominal EXERCISE (c.1235, hermano
+    // posicional de c.1142 MEETING): «el entrenamiento de fútbol fue
+    // ayer» capturaba por el piso nominal y persistía como compromiso
+    // futuro. El pretérito va POSPUESTO al match nominal con marcador
+    // de pasado inmediato (ayer|anteayer|anoche) en la misma cláusula.
+    private val PAST_EXERCISE_COPULA_PATTERN = Regex(
+        """\b(?:fue|era)\s+(?:ayer|anteayer|anoche)(?!\p{L})"""
+    )
     // Copulativa pretérito ANTEPUESTA al match MEETING (c.1142): «ayer fue
     // la reunión de padres». La lista cerrada de artículos/poseedores y la
     // ADYACENCIA estricta hasta el inicio del match (verificada en
@@ -2098,6 +2117,13 @@ object ContextIntentEngine {
         // por el pretérito; la envolvente presente legítima («recuérdame
         // inscribir…» → TASK) y el presente/infinitivo no se tocan.
         if (pastExerciseEnrollGoverns(lower, kind)) return 0f
+
+        // Guard de copulativa PASADA nominal EXERCISE (c.1235). Ver
+        // [PAST_EXERCISE_COPULA_PATTERN]: «el entrenamiento de fútbol
+        // fue ayer» activaba el piso nominal y persistía el hecho
+        // cumplido. Se descarta sólo el candidato EXERCISE (envoltorio
+        // presente «recuérdame que» sigue TASK, candado c.613).
+        if (pastExerciseCopulaGoverns(lower, kind)) return 0f
 
         // Guard TRANSVERSAL de interrogativa how-to (c.1071 anti-overreach).
         // Una pregunta «cómo + infinitivo» al inicio del mensaje («cómo darle
@@ -4428,6 +4454,28 @@ object ContextIntentEngine {
             .mapNotNull { lower.indexOf(it, ignoreCase = true).takeIf { idx -> idx >= 0 } }
             .minOrNull() ?: return false
         return PAST_EXERCISE_ENROLL_PATTERN.findAll(lower).any { it.range.last < kwStart }
+    }
+
+    /**
+     * Detecta si el nominal EXERCISE «(el )entrenamiento de <deporte>»
+     * está GOBERNADO por una copulativa en pretérito pospuesta con
+     * marcador de pasado inmediato (c.1235 anti-overreach — hermano
+     * posicional de c.1142, ver [PAST_EXERCISE_COPULA_PATTERN]):
+     * «el entrenamiento de fútbol fue ayer». La cúpula «(fue|era)
+     * (ayer|anteayer|anoche)» debe estar DESPUÉS del match y en la
+     * MISMA cláusula — sin corte [.!?,;:] entre el fin del match y la
+     * cúpula, lección c.1142. Sólo gobierna el kind EXERCISE: la
+     * envolvente presente legítima («recuérdame que el entrenamiento
+     * fue ayer» → TASK, candado c.613) sobrevive al descarte.
+     */
+    private fun pastExerciseCopulaGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        if (kind != ContextIntentKind.EXERCISE) return false
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val match = patterns.mapNotNull { it.find(lower) }.minByOrNull { it.range.first } ?: return false
+        return PAST_EXERCISE_COPULA_PATTERN.findAll(lower).any { m ->
+            m.range.first > match.range.last &&
+                lower.substring(match.range.last + 1, m.range.first).none { it in ".!?,;:" }
+        }
     }
 
     /**
