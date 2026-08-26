@@ -1210,6 +1210,31 @@ object ContextIntentEngine {
     // (lockstep c.914) para que los TRES puntos no puedan divergir.
     private val IR_A_DESTINATIONS =
         "banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro|cajero|atm|biblioteca"
+    // c.1216 (lateral (c) ABIERTA de la auditoría clase VIGESIMOCTAVA
+    // ROPA/VESTIMENTA c.1209): dirección ENTREGA (drop-off) del
+    // dry-cleaner — «llevar (el/la/los … <obj> a)? (la)? tintorería».
+    // NULL PRE medido (sonda efímera 16 casos: 5/5 targets NULL, 5/5
+    // guards NULL; R1 «recoger la tintorería» HIT heredado ERRAND vía
+    // [ERRAND_VERBS] c.639; R4 «llevar el gato al veterinario» NULL
+    // base — sin robar). El verbo «llevar» es bivalente (lección c.684:
+    // coche al taller / niños al colegio / a María al cine), así el
+    // piso se ACOTA al destino `tintorer[ií]as?`; el objeto es
+    // OPCIONAL (la forma desnuda «llevar a la tintorería» es la más
+    // cotidiana, hermana de «recoger la tintorería» ya capture).
+    // Objeto desnudo con determinante opcional: el retroceso del regex
+    // deja el grupo vacío ante «llevar a la tintorería» («a» no roba
+    // el objeto porque tras él debe venir el propio destino literal).
+    // Kind ERRAND 0.45 (diligencia de ida, hermano de colegio c.773 /
+    // médico c.776 / estación c.1158). Negación sin cláusula dedicada:
+    // keyword 0.12 + bono temporal 0.1 = 0.22 < umbral (hermana
+    // c.765→c.772), más el guard `(?<!no )` de la familia. Lockstep con
+    // keyword-OBJETO literal «tintorería» en [ContextIntentKind.ERRAND]
+    // (lección c.751: subcadena cubre plural; 0.12 sola < umbral) y con
+    // la plantilla matchDryclean en [extractTitle] (lección c.616).
+    // UNA forma por ciclo: la recogida ya capture vía c.639; el
+    // débito «debo dinero en la tintorería» queda lateral ABIERTA.
+    private val ERRAND_DRYCLEAN_FLOOR =
+        Regex("""\b(?<!no )(?:llevar|llevo)\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?\w+\s+)?a(?:\s+la)?\s+tintorer[ií]as?\b""")
     private val ERRAND_FLOORS = listOf(
         // c.893: destino «ir al cajero/atm»; c.914: «biblioteca» (lockstep
         // con la cláusula de negación de destino en [imperativeIsNegated]
@@ -1229,7 +1254,8 @@ object ContextIntentEngine {
         ERRAND_DATIVE_FLOOR,
         ERRAND_BRING_FLOOR,
         ERRAND_CASH_FLOOR,
-        ERRAND_DEPOSIT_FLOOR
+        ERRAND_DEPOSIT_FLOOR,
+        ERRAND_DRYCLEAN_FLOOR
     )
     // c.898 (familia NOVENA 5/8): «hacer (los|mis|tus) deberes» — acotado
     // al objeto (lockstep con keyword «deberes» y plantilla de título en
@@ -6168,6 +6194,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSchoolRun != null) {
                     return "${capitalizeFirst(matchSchoolRun.groupValues[1])} ${matchSchoolRun.groupValues[2]}"
+                }
+                // "llevar (…) a (la) tintorería" → "Llevar a la
+                // tintorería"/"Llevar el traje a la tintorería" (c.1216,
+                // lateral (c) ABIERTA de la auditoría c.1209, lockstep
+                // con [ERRAND_DRYCLEAN_FLOOR]): verbo preservado con su
+                // persona (doctrina c.653), objeto opcional, residuo
+                // temporal de cola depurado por [sanitizeTitle]; el
+                // match arranca en el verbo, así el acuse/prefijo
+                // temporal no ensucia el título (lección c.616). La
+                // proscripción de «no » cubre la negación aquí también.
+                val matchDryclean = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:llevar|llevo)\s+(?:(?:(?:el|la|los|las|un|una|mi|tu|su)\s+)?\S+\s+)?a(?:\s+la)?\s+tintorer[ií]as?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDryclean != null) {
+                    return capitalizeFirst(matchDryclean.groupValues[1])
                 }
                 // "llevar a la niña al médico" → "Llevar a la niña al
                 // médico" (c.776, lockstep con [ERRAND_MEDICAL_RUN_FLOOR]):

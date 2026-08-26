@@ -471,6 +471,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // auditoría c.1173 — «responder el mail» NULL mientras «correo» HIT).
         "correo", "email", "mail", "mensaje", "paquete", "devolver", "recoger",
         "dejar", "pagar", "factura", "recibo",
+        // c.1216: keyword-OBJETO "tintorería" (lockstep con el piso acotado
+        // `ERRAND_DRYCLEAN_FLOOR` «llevar (…) a (la) tintorería», lección
+        // c.751/c.773). Literal singular — subcadena cubre el plural
+        // («tintorerías» contiene «tintorería»). NO el verbo «llevar»:
+        // bivalente (precedente c.773). 0.12 sola queda bajo el umbral:
+        // «la tintorería me llamó» (declarativo) sigue descartado; con
+        // bono temporal 0.22 < 0.45. Además alimenta [TRIGGER_WORDS],
+        // sin lo cual la notificación ni llegaría al análisis.
+        "tintorería",
         // c.718: parada de trámite (lockstep keyword↔piso `ERRAND_STOPBY_FLOOR`,
         // lección c.639/c.717). El destino lo acota el piso; el keyword sólo
         // suma base y permanece por debajo del umbral sin piso, así no roba
