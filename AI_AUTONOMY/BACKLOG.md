@@ -1241,3 +1241,8 @@
   2. **Pretérito de acompañamiento** — «llevé a mamá al aeropuerto ayer» ya queda NULL (guard `(?<!no )` + ancla de infinitivo lo cubren; verificado G2), pero la FAMILIA de hechos cumplidos con keyword propia (hermana de c.1138/c.1142/c.1154) conviene auditarla cuando otro piso de «llevar» aterrice con pasado distinto.
 
 - [FIXED-NO-AUDIT-AGAIN][measured c.1199 vía sonda efímera] «hacer la limpieza» NULL por diseño — dependiente «hacer (la)? + término», descarte documentado; pin de no-re-auditar (precedente c.1194 «sacar»/«presentar» ambiguos). Lección c.1167 pivot verbo-fuerte → no reintroducir genérico «hacer» sin acuse-keyword fuerte.
+
+### EN CURSO (marcada, primera-escritura-gana) — c.1216 (este lado, OpenHands)
+
+Unidad: lateral (c) ABIERTA de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VESTIMENTA): «llevar a (la) tintorería» / «llevar el <obj> a la tintorería» — NULL PRE medido (sonda efímera 16 casos: 5/5 targets NULL, 5/5 guards NULL, R1 «recoger la tintorería» HIT heredado ERRAND, R4 «llevar el gato al veterinario» NULL base). Plan: lockstep TRES puntos (lección c.616/c.751): piso `ERRAND_DRYCLEAN_FLOOR` + keyword-OBJETO literal «tintorería» + plantilla `matchDryclean`; TDD RED exacto → GREEN; sonda persistida.
+
