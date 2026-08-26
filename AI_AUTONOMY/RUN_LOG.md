@@ -39383,3 +39383,5 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Verificación: suite UNIÓN OK (9730), smoke 25/25
 - Head final: pending
 - Lección: alcance genitivo-only después de rollback over-strip; TDD-first documenta decisiones productivas
+
+- 2026-08-26 · c.1196 · RESUMEN: «haré (el)? curso(s)» (futuro 1ª persona) — GREEN tras fix piso (hacer|hago|haré) + plantilla matchHacerCurso; re-pin legítimo del pin NULL ´haré´ del hermano; sonda POST persistida HareCursoProbe 0 misses; suite UNION 9766 OK; smokes 25+9 OK. NO VERIFICADO Android. PRÓXIMO: revisión de producto (clase siguiente no se auto-auditada).

@@ -3730,7 +3730,7 @@ object ContextIntentEngine {
             // futuro «haré» y subjuntivo «haga» siguen FUERA,
             // laterales). El pasado «hice» y la 3ª persona «hace»
             // tampoco casan.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago)\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago|haré)\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
             // c.1169: «hacer (la)? mudanza(s)» (lateral (d-bis) del
             // cierre c.1156 — forma C20 de la sonda persistida c.1132,
             // clase DECIMOQUINTA; NULL medido allí y re-medido PRE con
@@ -4954,7 +4954,7 @@ object ContextIntentEngine {
                 // propia o ruta previa). c.1188: el verbo se CAPTURA
                 // del match para conservar la forma («hacer»/«hago»),
                 // precedente c.1171 matchHacerMudanza (c.903).
-                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago)\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago|haré)\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCurso != null) return "${matchHacerCurso.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchHacerCurso.groupValues[2]}"
                 // "hacer (la)? mudanza(s) X" → "Hacer la mudanza X" (c.1169):
                 // lockstep con el piso (lección c.616); grafía preservada
