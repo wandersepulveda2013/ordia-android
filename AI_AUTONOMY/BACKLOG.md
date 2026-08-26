@@ -1,3 +1,4 @@
+c.1241 FIXED+VERIFIED (este lado): lateral (a) «apagar/encender <electrónica>» de MI auditoría c.1240 — piso floor-only + plantilla lockstep (c.616, c.751). Suite 10211. «conectar wifi» ABIERTA.
 c.1240 AUDITORÍA-CERRADA clase XXXI tecnología (CERO producto — descubrimiento). Sonda persistida `tools/probe/TecnologiaClassXXXIProbe.kt`: 10/14 HIT heredado; NULL en (a) «conectar wifi» / «apagar/encender <dispositivo>» [FUERTE — abierta], (b) nominal «mi copia de seguridad» [DÉBIL — descartada por gate de necesidad]. Próxima prioridad sugerida: lateral (a) piso TASK acotado objecto-electrónico (apagar|encender|conectar), evaluar gate c.751 floor-only.
 c.1233 CERRADO gate-NOIMPLEMENTAR: «colgar las fotos de la boda» DÉBIL — sonda PRE título íntegro, due=null esperado. NO implementar.
 

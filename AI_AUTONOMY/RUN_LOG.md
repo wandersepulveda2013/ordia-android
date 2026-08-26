@@ -1,3 +1,9 @@
+## RUN 2026-08-26 — c.1241 CERRADO «apagar/encender <dispositivo>» (lateral (a) de MI auditoría c.1240)
+- HEAD inicial: `6757652` (docs auditoría XXXI propia). HEAD final: pendiente commit feat.
+- Fix lockstep DOS puntos (oleación c.616; gate c.751 floor-only, CERO keywords): piso `(apagar|encender)` acotado objeto-electrónico + plantilla `matchApagarDispositivo`.
+- TDD 7 tests GREEN (`ContextIntentEngineApagarDispositivoFloorTest.kt`); suite UNIÓN OK (10211); smoke 25/25. POST sonda D7/D8 HIT TASK 0.45; «conectar wifi» ABIERTA (verb bivalente).
+- Determinista, cero random, cero IA fingida. **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
+
 ## RUN 2026-08-26 — c.1240 AUDITORÍA clase XXXI TECNOLOGÍA/INFORMÁTICA (descubrimiento, CERO producto)
 
 - HEAD inicial: `a481989` (post-push enroll-gimnasio UNION); HEAD final: pendiente commit docs.
