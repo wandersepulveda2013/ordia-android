@@ -361,7 +361,7 @@ object ContextIntentEngine {
     // veterinaria; el destinatario humano queda FUERA (anti-overreach).
     private val HOUSEHOLD_DEWORM_FLOOR =
         Regex("""\b(?<!no )desparasitar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
-    // Piso mascota transitivo "castrar al perro/gato" (c.1202 —
+    // Piso mascota transitivo "castrar/esterilizar al perro/gato" (c.1202
     // candidata (a) DESCUBIERTA c.1195, clase VIGESIMOSEGUNDA mascotas;
     // sonda persistida `tools/probe/CastrarMascotaProbe.kt`, PRE 4/4 NULL — olvido
     // silencioso): verbo monosemántico veterinario (esterilización,
@@ -371,7 +371,7 @@ object ContextIntentEngine {
     // FUERA (anti-overreach, hermano estructural c.1017 — sin
     // keyword-verb, gate c.751 intacto).
     private val HOUSEHOLD_NEUTER_FLOOR =
-        Regex("""\b(?<!no )castrar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+        Regex("""\b(?<!no )(?:castrar|esterilizar)\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
     // Piso mascota DATIVO "ponerle/ponerles la(s) vacuna(s) al perro/gato"
     // (c.1011 — candidata (a) de la fila clase DÉCIMA c.1007, sonda
     // `TenthClassPetProbe.kt`): la forma transitiva "vacunar" ya captura
@@ -6004,13 +6004,13 @@ object ContextIntentEngine {
                 if (matchDesparasitarMascota != null) {
                     return "${capitalizeFirst(matchDesparasitarMascota.groupValues[1])} ${matchDesparasitarMascota.groupValues[2]}"
                 }
-                // Piso "castrar al perro/gato" (c.1202 — candidata (a) de
+                // Piso "castrar/esterilizar al perro/gato" (c.1202/c.1205 — candidata (a) de
                 // la clase VIGESIMOSEGUNDA mascotas, sonda persistida
                 // `tools/probe/CastrarMascotaProbe.kt`): titular lo acotado al
                 // objeto mascota (alineado con [HOUSEHOLD_NEUTER_FLOOR];
                 // hermano estructural de [HOUSEHOLD_DEWORM_FLOOR] c.1017).
                 val matchCastrarMascota = Regex(
-                    """\b(castrar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
+                    """\b(castrar|esterilizar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchCastrarMascota != null) {

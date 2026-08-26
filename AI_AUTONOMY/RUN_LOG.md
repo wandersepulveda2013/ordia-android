@@ -1609,6 +1609,21 @@ Base original `a3694c4` (c.786; fetch pre-commit sin colisión). Tras el push re
 - Archivos: `ContextIntentEngine.kt`, `ContextIntent.kt`, prueba TDD nueva, sonda Verb regresión, `AI_AUTONOMY/` ledgers. Commits pendientes (fetch pre-commit final).
 - Estado: FIXED → VERIFIED (dominio JVM).
 - Próxima prioridad: 2 OPEN en Verb depurada ("bañar al perro" reservada c.740 / "pintar la casa") + "hacer la compra/colada" + pago residual; dispersión con chequeo PRE; re-fetch obligatorio.
+
+## Run c.1205 (2026-08-26) [OpenHands] — FIX «esterilizar al perro/gato» + dedupe BACKLOG
+
+- **HEAD inicial:** `37648e0` (habiendo c.1206 audit + marcador c.1207 del hermano en rebase posterior) (después de c.1202 marcador de ciclo f60e394 removido propio, remoto no adelantado).
+- **Problema elegido (P1 olvido silencioso):** lateral ABIERTA de MI auditoría c.1195 (clase VIGESIMOSEGUNDA mascotas) — «esterilizar al perro/gato», sinónimo terminante de «castrar» (c.1202, fix anterior de esta rama).
+- **Investigación/sonda PRE:** 3/3 targets NULL, 5/5 guards NULL (G5 nominalización), 3/3 regresiones HIT, envolventes TASK 0.45 preexistentes, T4 canario «castrar».
+- **TDD RED exacto:** 4 fallos entre 9865 (targets) → ajuste plural al alcance («a los perros»).
+- **Fix lockstep DOS puntos (gate c.751 intacto, CERO keyword):** piso `HOUSEHOLD_NEUTER_FLOOR` alternando `(?:castrar|esterilizar)` + plantilla `matchCastrarMascota` (grafía preservada c.653).
+- **Verificación:** suite unión 9865 OK (= 9854 base + 11 míos), smoke dominio 25/25, sonda POST 14/14 persistida `tools/probe/EsterilizarMascotaProbe.kt`.
+- **Limpieza BACKLOG:** retiradas 2 filas duplicadas de auditorías c.1195/c.1197 (precedente c.1146) y anotación «esterilizar» ✅ CERRADO en fila de auditoría c.1195.
+- **Commits:** `docs(marker)` f60e394 + `feat` 4aead7a (único commit de cierre tras rebase sobre c.1206/c.1207 del hermano).
+- **HEAD final:** 4aead7a empujado sin fuerza; marcador "EN CURSO" retirado en propio commit de cierre.
+- **Próxima prioridad:** laterales ABIERTOS restantes compatibles lockstep («sacar la entrada» del hermano u residual de recarga si aplica), siempre marcador primero.
+
+
 ## Run c.756 — 2026-08-20 — STALE_RUN (mi "sacar la perra al parque" duplicó la c.756 publicada por run hermano durante mi ciclo: convergencia total, segunda tras c.745/c.749) + verificación independiente de `accffee`
 - **HEAD inicial**: `18246d0` (c.755). Fetch de inicio limpio. Dispersión epoch-day (`20685 mod 3 = 0`) sobre pool Verb OPEN (excluida RESERVA "bañar al perro" c.740) → "sacar la perra al parque mañana". TDD completo local: RED exacto 4/10 → GREEN 4615 (alternancia de artículo directo en piso+plantilla, probe actualizado).
 - **Convergencia total**: re-fetch final → remoto `accffee` (c.756 hermano) = LA MISMA unidad, mismo nombre de piso/plantilla (el suyo `ContextIntentEngineSacarLaPerraFloorTest`). Mi duplicado descartado íntegro (checkout -- tracked + rm test propio) → ff-only a `accffee`. Cero destructivo/force.
