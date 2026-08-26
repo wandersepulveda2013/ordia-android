@@ -1269,6 +1269,25 @@ object ContextIntentEngine {
     // lookbehind `(?<!no )` + [imperativeIsNegated] bloquean la negación.
     private val PAYMENT_FLOOR =
         Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )($PAYMENT_VERBS)\s+\w""")
+    // Piso PAYMENT acotado al objeto (c.1199 — lateral (b) de la auditoría
+    // c.1197 finanzas domésticas, clase VIGESIMOTERCERA): «recargar la
+    // tarjeta» (recarga prepago/tarjeta). PRE medido NULL 5/5 en sonda
+    // efímera `/tmp/FinanzasProbePRE.kt` (desnudas/temporales/acuse; la
+    // envolvente «tengo que recargar la tarjeta» ya casaba por el ancla
+    // modal c.613 — canario). Causa: keyword «recarga» (0.12, subcadena de
+    // «recargar») + bono temporal 0.1 = 0.22 < [MINIMUM_CONFIDENCE]. Gate
+    // c.751: la keyword «recarga» YA existe, el piso eleva SIN keyword nueva
+    // (mismo razonamiento c.613/c.1140/c.1149). Objeto EXIGIDO «tarjeta(s)»
+    // (anti-overreach: «recargar la página web» / «recargar el arma» siguen
+    // NULL, medidos PRE). La negada la cubre el lookbehind `(?<!no )`
+    // (keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace falta cláusula
+    // dedicada en [imperativeIsNegated], mismo argumento c.895b/c.895c); el
+    // pretérito «recargué», la duda-hedge y la declarativa «la recarga de la
+    // tarjeta tardó…» no casan. TRES puntos lockstep (lección c.616/c.648):
+    // piso + registro en [WRAPPABLE_PATTERNS] de PAYMENT (envolvente no
+    // roba el kind) + plantilla «recargar» en [extractTitle].
+    private val RECARGA_TARJETA_FLOOR =
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )recargar\s+(?:(?:el|la|los|las|mi|tu|su|un|una|este|esta|ese|esa)\s+)?tarjetas?\b""")
     // Piso de compra acotado al objeto (c.758, forma 7/7 de la CUARTA clase de
     // quehaceres, sonda `FourthClassChoreProbe.kt` c.734): "hacer la compra" es
     // LA compra doméstica canónica con el verbo bivalente "hacer" (≠ cama
@@ -1416,7 +1435,10 @@ object ContextIntentEngine {
         ContextIntentKind.CALL to CALL_SPECIFIC,
         ContextIntentKind.DEADLINE to DEADLINE_FLOORS,
         ContextIntentKind.NOTE to listOf(NOTE_FLOOR),
-        ContextIntentKind.PAYMENT to listOf(PAYMENT_FLOOR),
+        // c.1199: RECARGA_TARJETA_FLOOR registrado para que la envolvente
+        // («avísame mañana recargar la tarjeta») active TASK/REMINDER y no
+        // robe el kind a PAYMENT (lección c.648/c.652).
+        ContextIntentKind.PAYMENT to listOf(PAYMENT_FLOOR, RECARGA_TARJETA_FLOOR),
         ContextIntentKind.SHOPPING to SHOPPING_BOUNDED_FLOORS
     )
 
@@ -3966,7 +3988,9 @@ object ContextIntentEngine {
      * (c.650) penalizan DESPUÉS del piso. Determinista (regex), sin IA fingida.
      */
     private fun hasStrongPaymentImperative(lower: String): Boolean =
-        PAYMENT_FLOOR.containsMatchIn(lower)
+        PAYMENT_FLOOR.containsMatchIn(lower) ||
+            // c.1199: «recargar la tarjeta» acotada a objeto «tarjeta(s)».
+            RECARGA_TARJETA_FLOOR.containsMatchIn(lower)
 
     /**
      * Imperativos de hogar inequívocos (c.638, c.643). Coincide con los verbos de

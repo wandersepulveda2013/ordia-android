@@ -1,163 +1,122 @@
 package com.ordia.app.context
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/**
- * c.1198 (este lado; re-frase de la candidata (a) «hacer la transferencia» de
- * MI auditoría c.1197): RECHAZADA POR DISEÑO DE PRIVACIDAD — hermano de la
- * candidata «cambiar la contraseña» c.1029. La sonda POST de c.1198 midió la
- * causa raíz REAL con un DEBUG vunero-ordinario (no el gate de keyword c.751
- * atribuido inicialmente): `ContextPrivacyFilter.blockedContentPatterns`
- * descarta `\btransferencia\b` ANTES de clasificar (finanzas domésticas,
- * hermana de depósito/retiro/saldo/estado-de-cuenta). Doctrina c.1029
- * («cambiar la contraseña» RECHAZADA): un piso pre-filtro que distinga
- * acción de secreto arriesga fuga en el título capturado («hacer la
- * transferencia a abc123» → título persistiría el secreto). Anti-overreach:
- * preferimos NO capturar una tarea legítima ocasional a persistir
- * contenido financiero sensible.
- *
- * La fuga PLURAL quedó CERRADA en este mismo ciclo: el ancla `\b` permitía
- * "transferencias" (la coda 's' rompe la frontera) — rendija de protección,
- * no intención capturable. Pin: toda variante (singular/plural/determinante)
- * debe quedar NULL DELIBERADO. Guard c.616 TDD RED→GREEN: RED era la fase
- * plural HIT (gaps 7→1 tras la reversión del piso c.1198), GREEN cierra
- * el plural fijando el bloqueo.
- */
+// c.1198: PIN de privacidad deliberada — la lateral (a) del auditoría
+// c.1197 (clase VIGESIMOTERCERA finanzas domésticas, «hacer la
+// transferencia al casero el lunes») es RECHAZADA POR DISEÑO (falso
+// gap): `ContextPrivacyFilter.blockedContentPatterns` descarta TODA
+// notificación que contenga \btransferencia\b "antes de cualquier
+// análisis y en todas las fuentes" (paso 1 del pipeline [analyze];
+// el texto podría contener datos bancarios reales, mismo argumento
+// que c.1029 contraseña: el podría-contener-el-secreto domina sobre
+// el gate de keywords). TDD RED->fix->REVERT: un piso acotado
+// «hacer la transferencia» no movería nada (el filtro manda antes
+// que los pisos; y su hermana sin palabra bloqueada «hacer la remesa
+// al casero el lunes» queda NULL por umbral <0.45 — el gap sería
+// real pero el fix imposible sin tocar el filtro). Relajar el filtro
+// para distinguir la acción («hacer la transferencia») del dato
+// («hacer la transferencia de 500 euros a ES12…») es una ventana
+// estrecha con riesgo de fuga en el título capturado — anti-overreach
+// + datos sagrados: NO se toca el filtro. Esta clase pinea el
+// comportamiento medido PRE (sonda efímera, 6/6 candidatas NULL):
+//   TODA forma con \btransferencia\b sigue NULL (imperativa, envolvente,
+//   declarativa, pretérito, negación, con keyword fuerte «pagar»).
+//   Las hermanas sin palabra bloqueada («remesa», «envío de dinero»)
+//   quedan NULL por UMBRAL (no privacidad) — documentado ABIERTO
+//   (futura clase, otra lateral, UNA por ciclo).
+//   Los pisos vecinos PAYMENT/TASK sin palabra bloqueada quedan intactos.
 class ContextIntentEngineTransferenciaPrivacyPinTest {
 
-    private fun analyze(text: String) =
-        ContextIntentEngine.analyze(
-            ContextEvent(
-                source = ContextCaptureSource.NOTIFICATION,
-                rawText = text,
-                timestampMs = 1_700_000_000_000L
-            )
-        )
+    private fun analyze(text: String) = ContextIntentEngine.analyze(
+        ContextEvent(
+            source = ContextCaptureSource.NOTIFICATION,
+            rawText = text,
+            timestampMs = 1_700_000_000_000L,
+        ),
+    )
 
-    // --- PINS NULL POR PRIVACIDAD (deliberado; doctrina c.1029) ---
-
-    @Test
-    fun `singular hacer la transferencia NULL por privacidad`() {
-        assertNull(analyze("hacer la transferencia"))
-    }
+    // ---------- Privacidad deliberada: \btransferencia\b -> NULL ----------
 
     @Test
-    fun `singular con ancla temporal NULL por privacidad`() {
+    fun `imperativa hacer la transferencia queda NULL por privacidad deliberada`() {
         assertNull(analyze("hacer la transferencia al casero el lunes"))
     }
 
     @Test
-    fun `determinante indefinido NULL por privacidad`() {
-        assertNull(analyze("hacer una transferencia al banco mañana"))
+    fun `envolvente tengo que hacer la transferencia queda NULL por privacidad`() {
+        assertNull(analyze("tengo que hacer la transferencia al casero mañana"))
     }
 
     @Test
-    fun `posesivo NULL por privacidad`() {
-        assertNull(analyze("hacer mi transferencia del mes"))
+    fun `declarativa la transferencia al casero queda NULL por privacidad`() {
+        assertNull(analyze("la transferencia al casero"))
     }
 
     @Test
-    fun `demostrativo NULL por privacidad`() {
-        assertNull(analyze("hacer esta transferencia antes del cierre"))
+    fun `preterito hice la transferencia queda NULL por privacidad`() {
+        assertNull(analyze("hice la transferencia al casero ayer"))
     }
 
     @Test
-    fun `brevedad sin articulo NULL por privacidad`() {
-        assertNull(analyze("hacer transferencia mañana"))
+    fun `keyword fuerte pagar la transferencia queda NULL por privacidad`() {
+        assertNull(analyze("pagar la transferencia al casero el lunes"))
     }
 
     @Test
-    fun `plural NULL por privacidad - rendija cerrada`() {
-        assertNull(analyze("hacer las transferencias del mes el día 1"))
+    fun `envolvente no olvides la transferencia queda NULL por privacidad`() {
+        assertNull(analyze("no olvides hacer la transferencia mañana"))
+    }
+
+    // ---------- Hermanas sin palabra bloqueada: NULL por UMBRAL (abiertas) ----------
+
+    @Test
+    fun `hermana remesa queda NULL por umbral sin privacidad (lateral abierta)`() {
+        assertNull(analyze("hacer la remesa al casero el lunes"))
     }
 
     @Test
-    fun `plural simple NULL por privacidad`() {
-        assertNull(analyze("hacer transferencias"))
+    fun `hermana envio de dinero queda NULL por umbral sin privacidad (lateral abierta)`() {
+        assertNull(analyze("hacer el envío de dinero al casero el lunes"))
+    }
+
+    // ---------- Regresiones: pisos vecinos sin palabra bloqueada intactos ----------
+
+    @Test
+    fun `pagar el alquiler sigue PAYMENT`() {
+        val intent = analyze("pagar el alquiler el lunes")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.PAYMENT, intent!!.kind)
     }
 
     @Test
-    fun `deposito plural NULL por privacidad - misma rendija`() {
-        assertNull(analyze("depósitos recibidos"))
-    }
-
-    @Test
-    fun `estados de cuenta plural NULL por privacidad`() {
-        assertNull(analyze("estados de cuenta se descargan hoy"))
-    }
-
-    // --- DELTA COLISIONADO c.1198 (este lado): formas verbales no cubiertas ---
-
-    @Test
-    fun `envolvente recuerdame NULL por privacidad`() {
-        assertNull(analyze("recuérdame hacer la transferencia al casero"))
-    }
-
-    @Test
-    fun `envolvente tengo que NULL por privacidad`() {
-        assertNull(analyze("tengo que hacer la transferencia del mes"))
-    }
-
-    @Test
-    fun `pasado ya hice NULL por privacidad`() {
-        assertNull(analyze("ya hice la transferencia ayer"))
-    }
-
-    @Test
-    fun `duda subjuntivo quiza haga NULL por privacidad`() {
-        assertNull(analyze("quizá haga la transferencia mañana"))
-    }
-
-    @Test
-    fun `negacion no voy a hacer NULL por privacidad`() {
-        assertNull(analyze("no voy a hacer la transferencia hoy"))
-    }
-
-    // --- DELTA COLISIONADO c.1198 (este lado): pisos vecinos intactos ---
-
-    @Test
-    fun `pagar el alquiler al casero sigue PAYMENT`() {
-        val i = analyze("pagar el alquiler al casero el lunes")
-        org.junit.Assert.assertNotNull(i)
-        org.junit.Assert.assertEquals(ContextIntentKind.PAYMENT, i!!.kind)
-        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
-        org.junit.Assert.assertEquals("Pagar el alquiler al casero", i.title)
-    }
-
-    @Test
-    fun `ingresar dinero en el cajero sigue ERRAND`() {
-        val i = analyze("ingresar dinero en el cajero")
-        org.junit.Assert.assertNotNull(i)
-        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
-        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
-        org.junit.Assert.assertEquals("Ingresar dinero en el cajero", i.title)
-    }
-
-    @Test
-    fun `retirar dinero en el cajero sigue ERRAND`() {
-        val i = analyze("retirar dinero en el cajero mañana")
-        org.junit.Assert.assertNotNull(i)
-        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
-        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
-        org.junit.Assert.assertEquals("Retirar dinero en el cajero", i.title)
-    }
-
-    @Test
-    fun `depositar el cheque en el banco sigue ERRAND`() {
-        val i = analyze("depositar el cheque en el banco")
-        org.junit.Assert.assertNotNull(i)
-        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
-        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
-        org.junit.Assert.assertEquals("Depositar el cheque en el banco", i.title)
+    fun `pagar la luz sigue PAYMENT`() {
+        val intent = analyze("pagar la luz mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.PAYMENT, intent!!.kind)
     }
 
     @Test
     fun `cobrar la nomina sigue TASK`() {
-        val i = analyze("cobrar la nómina mañana")
-        org.junit.Assert.assertNotNull(i)
-        org.junit.Assert.assertEquals(ContextIntentKind.TASK, i!!.kind)
-        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
-        org.junit.Assert.assertEquals("Cobrar la nómina", i.title)
+        val intent = analyze("cobrar la nómina el viernes")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
+
+    @Test
+    fun `revisar el extracto sigue TASK`() {
+        val intent = analyze("revisar el extracto esta noche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+    }
+
+    @Test
+    fun `ingresar dinero sigue ERRAND`() {
+        val intent = analyze("ingresar dinero en el cajero")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
     }
 }

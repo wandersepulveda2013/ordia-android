@@ -39363,8 +39363,7 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 ## 2026-08-26 run — c.1190 CIERRE/post-merge recuperación + LIMPIEZA + VALIDACIÓN
 - HEAD inicial: 17d6a95; HEAD final: bb19e9f
 - Trabajo: recuperación de merge (RUN_LOG inflado a 126MB por union bidireccional): re-sincronizado sobre remoto (HEAD remoto ya contenía c.1188/c.1190/c.1191 integrados por el hermano), rama local obsoleta descartada.
-- Limpieza: marcadores literales (<<<<<<< / >>>>>>>) eliminados de BACKLOG/RUN_LOG/CURRENT_STATE (lección c.1078). Commit bb19e9f.
-- Tests: tools/run_domain_tests.sh OK (9765 tests) sobre HEAD remoto integrado.
+- Limpieza: marcadores literales (- Tests: tools/run_domain_tests.sh OK (9765 tests) sobre HEAD remoto integrado.
 - NO VERIFICADO SDK/Gradle/UI.
 - c.1191 (b) FIXED+VERIFIED en backlog remoto. Sin código nuevo.
 - Estado: VERIFIED (tests), NO VERIFICADO SDK/Gradle/UI.
@@ -39453,6 +39452,7 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - **Archivos:** `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (+9 tests), `ContextIntentEngineTransferPrivacyPinTest.kt` (eliminado), `tools/probe/TransferPrivacyPinProbe.kt` (contrato actualizado), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (dedup fila stale c.1197 ABIERTA + marcadores delta). CERO producto de este lado.
 - NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK). Nunca force, nunca main.
 ---
+<<<<<<< HEAD
 
 ## c.1201 — 2026-08-26 (este lado) — CIERRE finanzas unidad (c)
 
@@ -39488,3 +39488,14 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - **Cambios**: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (PAYMENT_VERBS + lockstep); app/src/test/java/com/ordia/app/context/ContextIntentEngineAdelantarMensualidadTest.kt (nuevo, 6 tests); app/src/test/.../ContextIntentEngineRecargarTarjetaTest.kt (marcador ABIERTA→CERRADA); tools/probe/AdelantarMensualidadProbe.kt (nuevo); AI_AUTONOMY/*.
 - **Próxima prioridad**: (a) «sacar el billete de tren mañana» ABIERTA (auditoría c.1200, clase XXV viajes; verbo-fuerte + objeto concreto; precedente «sacar basura c.717» intacto).
 - **Estado**: FIXED+VERIFIED (JVM).
+## 🔄 Run — 2026-08-26 (ciclo c.1199 — cierre lockstep «recargar la tarjeta» → PAYMENT)
+
+- HEAD inicial: `d358e3c`; re-base post-continuación (entrega previa c.1199 RED+verificación del hermano)
+- Ciclo: c.1199 — lateral (b) auditoría c.1197 (clase VIGESIMOTERCERA finanzas domésticas/gestión bancaria) — «recargar la tarjeta»
+- Problema: keyword PAYMENT «recarga» es sustantivo; infinitivo «recargar» quedaba fuera
+- Fix TDD estricto: RECARGA_TARJETA_FLOOR regex (~line 1261), 15 tests nuevos `ContextIntentEngineRecargaTarjetaFloorTest` (RED exacto 4 fallos → GREEN 28/28 con `TransferenciaPrivacyPin`); lockstep 3 puntos (piso + WRAPPABLE_PATTERNS PAYMENT + plantilla «recargar» extractTitle); SIN keyword nueva (gate c.751)
+- Verificación: suite UNIÓN OK (9805 = 9777+15+13 exactos), smokes 25/25; sonda POST `tools/probe/FinanzasRecargaProbe.kt` 23 casos byte-exactos (4 HIT PAYMENT 0.45, 6 guards NULL, 2 envuelto no robado, 2 pin privacidad NULL, 2 umbral «adelantar mensualidad» NULL, regresiones 5/5)
+- Lateral: colas temporales «esta semana» persisten (c.845/c.852/c.1079/c.1102/c.1125) — documentado de familia, no de este ciclo
+- Colisiones: ninguna — cambio disjunto por dominio, canario `RunContextIntentEngineRecargaTarjetaFloorTest` verde
+- Lección: pre-commit pin del hermano me habría exitado por misma clase; gate c.751 fue la clave que CAMP ciertas formas monoléxicas
+- Head final: pending
