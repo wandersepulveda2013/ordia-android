@@ -80,4 +80,29 @@ class ContextIntentEnginePodarRosalSetosFloorTest {
         Assert.assertEquals(ContextIntentKind.TASK, r!!.kind)
         Assert.assertEquals("Podar el rosal", r.title)
     }
+
+    // c.1211 una re-pin aditiva (STALE_RUN convergente): singular-el-seto;
+    // acuse «vale,»; prefijo temporal; diminutivo-abortado.
+    @Test fun podarElSeto_hit() {
+        val r = a("podar el seto")
+        Assert.assertNotNull(r)
+        Assert.assertEquals("Podar el seto", r!!.title)
+    }
+
+    @Test fun valePodarElRosal_accuseHit() {
+        val r = a("vale, podar el rosal")
+        Assert.assertNotNull(r)
+        Assert.assertEquals("Podar el rosal", r!!.title)
+    }
+
+    @Test fun manaPodarLosSetosTemporalPrefix_hit() {
+        val r = a("mañana podar los setos")
+        Assert.assertNotNull(r)
+        Assert.assertTrue(r!!.dueAt != null)
+    }
+
+    @Test fun podarElSetitoDiminutivo_null() {
+        val r = a("podar el setito")
+        Assert.assertNull(r)
+    }
 }

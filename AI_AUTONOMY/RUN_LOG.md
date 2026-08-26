@@ -1,3 +1,14 @@
+## 2026-08-26 — run c.1211 STALE_RUN CONVERGENTE + re-pin aditiva (este lado; OpenHands)
+
+- HEAD inicial `e56897b` (mi marker EN CURSO). Implementación completa duplicada del fix (a) «podar el rosal/los setos» (lockstep DOS puntos; el hermano «2166cfd» la empujó primero — primer-push-gana c.1077, precedente c.1187 STALE_RUN).
+- Duplicado LOCAL `758ca5d` retirado con `git reset --mixed origin/... && git checkout -- .` (solo trabajo propio; cero pérdida ajena; sin force, sin rebase, sin reset --hard).
+- Aportación retenida: 4 tests ADITIVOS dentro del archivo de test bed del hermano (cubren hueco medible): singular «el seto» HIT, acuse «vale, …» HIT, prefijo temporal «mañana…» HIT+dueAt, diminutivo «el setito» NULL.
+- Re-medida: filtrado 16/16; suite UNIÓN FINAL **OK (9924 = 9920 hermano + 4 — aritmética exacta)**; smokes dominio 25/25, automation 9/9; toolsoca toolchain (kotlinc 2.1.20, JAVA_OPTS=-Xmx4g pregov run_domain_tests.sh l.129).
+- Nota: «JAVA_TOOL_OPTIONS» no funciona para la heap de kotlinc, usar JAVA_OPTS (documentado en el script).
+- Commits: 1 aditivo (test re-pin + docs STALE_RUN).
+- Próxima prioridad: laterales ABIERTAS clase XXVII pineadas en BACKLOG («plantar los tomates», «quitar (las) (malas) hierbas», «trasplantar», «echar fertilizante», «cubrir del frío», «muebles de terraza») — elegir UNO por ciclo con PRE medida.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (JVM pura). Nunca force, nunca main.
+
 ## 2026-08-26 — run c.1201→c.1203 (doble renumerado: c.1201 SU mensualidad, c.1202 SU marcador castrar-perro) — «sacar el billete (de tren)» NULL→TASK 0.45 — FIXED VERIFIED (este lado)
 
 - HEAD inicial: 3fa210f (cierra auditoría c.1200 clase XXV viajes — candidata (a) ABIERTA p/ c.1201).
