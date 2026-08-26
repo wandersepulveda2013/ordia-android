@@ -147,11 +147,11 @@ class ContextIntentEngineHagoMudanzaFloorTest {
         assertNull(analyze("la mudanza del piso nuevo"))
     }
 
-    @Test
-    fun futuroHareMudanza_isNull() {
-        // Lateral documentada de c.1169: UNA forma por ciclo.
-        assertNull(analyze("haré la mudanza en octubre"))
-    }
+    // c.1175: el futuro 1ª persona «haré la mudanza» CAPTURA ahora
+    // (lateral (d-ter) habilitada deliberadamente por MI ciclo c.1175;
+    // este pin NULL era correcto cuando se fijó — re-pin legítimo,
+    // precedente c.1035/c.1041/c.1094/c.1171; la captura y sus pines
+    // viven en ContextIntentEngineHareMudanzaFloorTest).
 
     // --- Regresiones (formas que YA capturan — pin byte-idéntico) ---
 

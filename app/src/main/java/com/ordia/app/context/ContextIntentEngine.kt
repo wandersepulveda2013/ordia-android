@@ -3667,7 +3667,11 @@ object ContextIntentEngine {
             // [HEDGE_PENALTY]. c.1171: extensión aditiva del verbo al
             // presente 1ª persona «hago» («el sábado hago la mudanza»
             // = plan comprometido; olvido silencioso P1 medido PRE
-            // 5/5 NULL sobre HEAD ec8c5c21). El piso c.613 eleva con
+            // 5/5 NULL sobre HEAD ec8c5c21). c.1175: extensión aditiva
+            // al futuro 1ª persona «haré» («haré la mudanza en
+            // octubre» = plan diferido comprometido; olvido silencioso
+            // P1 medido PRE 5/5 NULL sobre HEAD e3915fb2). El piso
+            // c.613 eleva con
             // maxOf(score, MINIMUM_CONFIDENCE) sin exigir keyword:
             // CERO keywords nuevas (gate c.751 intacto).
             // Kind TASK (logística puntual con plazo, hermana de
@@ -3675,7 +3679,7 @@ object ContextIntentEngine {
             // Lockstep: plantilla matchHacerMudanza en [extractTitle]
             // (lección c.616). Gate c.751: CERO keywords nuevas
             // («hacer» keyword TASK; «mudanza» no hace falta).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago)\s+(?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago|haré)\s+(?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?\b""").containsMatchIn(lower) ||
             // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
             // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
             // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
@@ -4869,7 +4873,8 @@ object ContextIntentEngine {
                 // c.1171: el verbo se CAPTURA del match para preservar la
                 // forma («hacer»/«hago»), precedente c.903 (solo
                 // capitalización inicial; grafía del usuario intacta).
-                val matchHacerMudanza = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago)\s+((?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?.+)""", RegexOption.IGNORE_CASE).find(original)
+                // c.1175: misma captura para el futuro «haré».
+                val matchHacerMudanza = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago|haré)\s+((?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerMudanza != null) return "${matchHacerMudanza.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchHacerMudanza.groupValues[2]}"
                 // "echar el currículum X" → "Echar el currículum X"
                 // (c.1148): lockstep con el piso acotado «echar (el)?

@@ -132,10 +132,11 @@ class ContextIntentEngineHacerMudanzaFloorTest {
         assertNull(analyze("hice la mudanza ayer"))
     }
 
-    @Test
-    fun futuroHareMudanza_isNull() {
-        assertNull(analyze("haré la mudanza en octubre"))
-    }
+    // c.1175: el futuro 1ª persona «haré la mudanza» CAPTURA ahora
+    // (lateral (d-ter) habilitada deliberadamente por MI ciclo c.1175;
+    // el pin NULL era correcto cuando se fijó — re-pin legítimo,
+    // precedente c.1035/c.1041/c.1094/c.1171; la captura y sus pines
+    // viven en ContextIntentEngineHareMudanzaFloorTest).
 
     @Test
     fun dudaSubjuntivoHagaMudanza_isNull() {
