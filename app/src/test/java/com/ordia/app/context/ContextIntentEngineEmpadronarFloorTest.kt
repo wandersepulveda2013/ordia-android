@@ -111,9 +111,16 @@ class ContextIntentEngineEmpadronarFloorTest {
         assertNull(analyze("empadronar al niño en el colegio"))
     }
 
+    // Lateral (d-bis) ATERRIZADO en c.1169 (mi propio ciclo lateral del
+    // cierre c.1156): «hacer la mudanza» ya captura vía el piso acotado
+    // «hacer (det)? mudanzas?». Pin byte-idéntico medido POST con sonda
+    // efímera (motor real, tools/run_probe.sh): TASK 0.45, título con
+    // grafía preservada, sin dueAt («el fin de semana» no resuelve).
     @Test
-    fun `guard lateral - hacer la mudanza sigue NULL (ciclo aparte)`() {
-        assertNull(analyze("hacer la mudanza del piso el fin de semana"))
+    fun `lateral aterrizado - hacer la mudanza captura TASK (c1169)`() {
+        val r = analyze("hacer la mudanza del piso el fin de semana")!!
+        assertEquals(ContextIntentKind.TASK, r.kind)
+        assertEquals("Hacer la mudanza del piso el fin de semana", r.title)
     }
 
     // ---------- regresiones HIT esperadas (pines byte-idénticos) ----------

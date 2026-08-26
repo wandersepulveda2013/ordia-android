@@ -3606,6 +3606,30 @@ object ContextIntentEngine {
             // puntual — criterio c.704). Lockstep: plantilla
             // matchHacerCurso en [extractTitle] (lección c.616).
             Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
+            // c.1169: «hacer (la)? mudanza(s)» (lateral (d-bis) del
+            // cierre c.1156 — forma C20 de la sonda persistida c.1132,
+            // clase DECIMOQUINTA; NULL medido allí y re-medido PRE con
+            // sonda efímera sobre HEAD 1bd44e21: 4/4 candidatas NULL
+            // —incluso «…el sábado» con temporal explícito—, guards
+            // 6/6 NULL, pines 6/6 estables). Hermano EXACTO de c.1152
+            // «hacer el curso» (mismo verbo «hacer», objeto EXIGIDO
+            // acotado): «mudanza» como objeto de «hacer» es
+            // monosemántico-traslado (sin acepción bivalente frecuente),
+            // así que no hace falta lista de objetos. La mudanza es la
+            // gestión doméstica de mayor coste de coordinación: perder
+            // el día acordado cuesta dinero y semanas. Determinantes/
+            // posesivos/indefinidos/demostrativos/plural casan («una
+            // mudanza», «esta mudanza»). La negada la cubre el
+            // lookbehind `(?<!no )`; pasado «hice», futuro «haré»,
+            // subjuntivo «haga», presente «hago» y 3ª persona «hace»
+            // no casan (forma EXACTA infinitivo; laterales, UNA forma
+            // por ciclo). La duda-hedge la cubre [HEDGE_PENALTY].
+            // Kind TASK (logística puntual con plazo, hermana de
+            // «hacer la maleta» c.715 y «hacer el curso» c.1152).
+            // Lockstep: plantilla matchHacerMudanza en [extractTitle]
+            // (lección c.616). Gate c.751: CERO keywords nuevas
+            // («hacer» keyword TASK; «mudanza» no hace falta).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?\b""").containsMatchIn(lower) ||
             // c.1140: «facturar el vuelo» / «hacer el check-in del vuelo»
             // (candidata (a) FUERTE de la clase DECIMOSEXTA viajes/reservas,
             // medida NULL 2/2 en la sonda persistida c.1137 C3/C4 y
@@ -4782,6 +4806,11 @@ object ContextIntentEngine {
                 // propia o ruta previa).
                 val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCurso != null) return "Hacer ${matchHacerCurso.groupValues[1]}"
+                // "hacer (la)? mudanza(s) X" → "Hacer la mudanza X" (c.1169):
+                // lockstep con el piso (lección c.616); grafía preservada
+                // (c.653) y residuo temporal depurado por sanitizeTitle.
+                val matchHacerMudanza = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+((?:(?:el|la|mi|tu|su|un|una|este|esta|ese|esa)\s+)?mudanzas?.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerMudanza != null) return "Hacer ${matchHacerMudanza.groupValues[1]}"
                 // "echar el currículum X" → "Echar el currículum X"
                 // (c.1148): lockstep con el piso acotado «echar (el)?
                 // curr[ií]culums?» — hermana de matchSellarParo (mismo
