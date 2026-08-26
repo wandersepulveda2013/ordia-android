@@ -158,9 +158,18 @@ class ContextIntentEngineHacerCursoFloorTest {
         assertNull(analyze("el curso de prevención es obligatorio"))
     }
 
+    // c.1188: el presente 1ª persona «hago el curso» CAPTURA ahora
+    // (lateral habilitada deliberadamente por MI ciclo c.1188; este
+    // pin NULL era correcto cuando se fijó — re-pin legítimo,
+    // precedente c.1035/c.1041/c.1094/c.1171; la captura y sus pines
+    // viven en ContextIntentEngineHagoCursoFloorTest). Residuo
+    // «esta semana» pin medido (familia conocida c.845/c.852).
     @Test
-    fun presenteHagoCurso_isNull() {
-        assertNull(analyze("hago el curso de prevención esta semana"))
+    fun presenteHagoCurso_capturesTaskResidue() {
+        val intent = analyze("hago el curso de prevención esta semana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Hago el curso de prevención esta semana", intent.title)
     }
 
     @Test

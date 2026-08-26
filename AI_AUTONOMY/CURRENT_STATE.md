@@ -1,3 +1,4 @@
+# ✅ FIXED VERIFIED (este lado, 2026-08-26) — ciclo c.1188 CERRADO («hago el curso» NULL→TASK, re-pin legítimo, TDD 22 tests GREEN)... (espejo c.1171). Marcadores hermano (c.1195 mascotas + otros) INTACTOS. **NO VERIFICADO** gradle.
 <<<<<<< HEAD
 # 🔒 EN CURSO (este lado, 2026-08-26) — ciclo c.1195: AUDITORÍA clase VIGESIMOSEGUNDA CUIDADO DE MASCOTAS (veterinario, alimentar, vacunas mascota, baño, paseo, plancha? guardias). Sonica efímera iniciadora; CERO producto si audit. DISJUNTO de marcador activo del hermano c.1193 «después de comer» (parser temporal). Primer-marcador-gana (c.1077).
 <<<<<<< HEAD

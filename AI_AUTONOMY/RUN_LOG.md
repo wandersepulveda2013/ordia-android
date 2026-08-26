@@ -39335,3 +39335,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 Nota c.1194: el commit  lleva mensaje con id c.1193, contenido renumerado c.1194 (re-num postened al rebase puede variar el mensaje; procedente, no es force amend post-push).
 Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumeado c.1194 (el rnum fue docs-only tras el rebase).
+
+## c.1188 (2026-08-26, este lado) — «hago el curso» FIXED VERIFIED
+**Ciclo:** c.1188. Lateral del piso c.1152 — presente 1ª persona «hago el curso…» NULL→TASK 0.45. Lockstep piso+plantilla matchHacerCurso (verbo capturado). TDD 22 tests RED 6 → GREEN 22/22. Re-pin legítimo del pin NULL del hermano c.1152 invertido a captura. Sonda POST persistida HagoCursoProbe.kt 0 misses. UNIÓN re-medida OK. Determinista, IA honesta. **NO VERIFICADO:** Android/gradle. Nunca force, nunca main.

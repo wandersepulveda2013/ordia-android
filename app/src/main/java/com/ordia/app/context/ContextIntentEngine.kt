@@ -3712,15 +3712,23 @@ object ContextIntentEngine {
             // casan («un curso», «este curso», «cursos»). La negada la
             // cubre el lookbehind `(?<!no )`; el pasado «hice», el
             // futuro «haré», el subjuntivo «haga», el presente «hago»
-            // y la 3ª persona «hace» no casan (forma EXACTA infinitivo;
-            // laterales, UNA forma por ciclo). La duda-hedge la cubre
+            // y la 3ª persona «hace» no casan (laterales, UNA forma
+            // por ciclo). La duda-hedge la cubre
             // [HEDGE_PENALTY] (0.45−0.3 → NULL, medido PRE «no sé si
             // hacer el curso»). Kind TASK (gestión administrativa con
             // plazo, hermana de sellar-paro c.1143/check-in c.1140;
             // STUDY gobierna el estudio continuo, no la obligación
             // puntual — criterio c.704). Lockstep: plantilla
             // matchHacerCurso en [extractTitle] (lección c.616).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
+            // c.1188: extensión aditiva «(hacer|hago)» — presente 1ª
+            // persona «hago el curso (de prevención)» (lateral
+            // documentada arriba; NULL medido PRE con sonda efímera
+            // C7/C8; espejo de c.1171 «hago la mudanza»; CERO keywords
+            // nuevas — el piso eleva sin keyword, gate c.751 intacto;
+            // futuro «haré» y subjuntivo «haga» siguen FUERA,
+            // laterales). El pasado «hice» y la 3ª persona «hace»
+            // tampoco casan.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago)\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
             // c.1169: «hacer (la)? mudanza(s)» (lateral (d-bis) del
             // cierre c.1156 — forma C20 de la sonda persistida c.1132,
             // clase DECIMOQUINTA; NULL medido allí y re-medido PRE con
@@ -4932,17 +4940,20 @@ object ContextIntentEngine {
                 val matchCubrirTurno = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cubrir\s+((?:(?:el|la|mi|tu|su|un|una)\s+)?turnos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCubrirTurno != null) return "Cubrir ${matchCubrirTurno.groupValues[1]}"
 
-                // "hacer el curso X" → "Hacer el curso X" (c.1152): lockstep
-                // con el piso acotado «hacer (det)? cursos?» — hermana de
+                // "hacer/hago el curso X" → "Hacer/Hago el curso X"
+                // (c.1152, c.1188): lockstep con el piso acotado
+                // «(hacer|hago) (det)? cursos?» — hermana de
                 // matchCubrirTurno/matchHacerCheckIn (mismo ancla/guard,
                 // doctrina c.653: verbo-frase preservado, solo
                 // capitalización inicial; el residuo temporal de cola lo
                 // depura [sanitizeTitle]). Objeto EXIGIDO «curso»:
                 // «hacer el check-in» (c.1140), «hacer deberes» (c.898)
                 // y «hacer la compra/maleta» no casan (tienen plantilla
-                // propia o ruta previa).
-                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchHacerCurso != null) return "Hacer ${matchHacerCurso.groupValues[1]}"
+                // propia o ruta previa). c.1188: el verbo se CAPTURA
+                // del match para conservar la forma («hacer»/«hago»),
+                // precedente c.1171 matchHacerMudanza (c.903).
+                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago)\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerCurso != null) return "${matchHacerCurso.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchHacerCurso.groupValues[2]}"
                 // "hacer (la)? mudanza(s) X" → "Hacer la mudanza X" (c.1169):
                 // lockstep con el piso (lección c.616); grafía preservada
                 // (c.653) y residuo temporal depurado por sanitizeTitle.
