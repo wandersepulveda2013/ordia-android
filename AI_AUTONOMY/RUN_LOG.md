@@ -41649,3 +41649,17 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - UNIÓN re-medida tras rebase sobre c.1241/c.1242 del hermano (apagar/encender + conectar-wifi): **OK (10224 tests, exit 0)**.
 - HEAD final: este commit (tras rebase limpio sobre `5042bea`).
 
+
+
+## c.1248 (2026-08-26, este lado) — AUDITORÍA-CERRADA clase TRIGÉSIMA QUINTA (XXXV) MÚSICA/INSTRUMENTOS/ENSAYOS
+
+- HEAD inicial: `1796593` (post-pull; hermano había cerrado c.1246/c.1247 — renumerado audit a XXXV disjunta).
+- Reclamo: marcador EN CURSO push inmediato `c849287` (anti-carrera c.1077).
+- Sonda efímera PRE /tmp (18 candidatas) → diseño final 14 D + 8 G + 8 R persistido `tools/probe/MusicaClassXXXVProbe.kt`.
+- MEDIDA: 8/14 HIT-heredado (cambiar-cuerdas TASK / comprar-baquetas SHOPPING / apuntar-conservatorio NOTE / recoger-saxofón ERRAND / estudiar-partitura STUDY / reservar-sala-ensayo TASK / devolver-teclado ERRAND / limpiar-trompeta HOUSEHOLD); 6/14 NULL: (a) «practicar el piano» y «afinar la guitarra» [FUERTE] — verbos acotados a instrumento; (b) «llevar violín a clase» / nominal «el ensayo» / «la audición» / «preparar el concierto» [DÉBIL — documentadas].
+- Hallazgo marginal: R4 inicial «instalar una app» NULL por artículo indefinido (lateral c.1240) — R4 reemplazada por «instalar la app» (HIT definido) sin degradar (curiosidad documentada).
+- Guards: 8/8 NULL correctos (negación/pretérito/duda/sustantivos/3a-persona/negación-floor-cercano). Regresiones: 8/8 HIT (incl. piso brico hermano c.1247).
+- Suite UNIÓN re-medida (bits de producto idénticos): **OK (10228 tests, exit 0)**; probe compilado con full-domain read.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura). Nunca force, nunca main.
+- Próxima prioridad: implementar (a) «practicar <instrumento>» floor-only con plantilla lockstep (lección c.616/c.751); gate c.751 floor-only CERO keyword. Una-lateral-por-ciclo.
+- HEAD final: commit docs(ai) c.1248 (siguiente).
