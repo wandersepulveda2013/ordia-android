@@ -1246,3 +1246,7 @@
 
 Unidad: lateral (c) ABIERTA de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VESTIMENTA): «llevar a (la) tintorería» / «llevar el <obj> a la tintorería» — NULL PRE medido (sonda efímera 16 casos: 5/5 targets NULL, 5/5 guards NULL, R1 «recoger la tintorería» HIT heredado ERRAND, R4 «llevar el gato al veterinario» NULL base). Plan EJECUTADO: lockstep TRES puntos — piso `ERRAND_DRYCLEAN_FLOOR` + keyword-OBJETO literal «tintorería» + plantilla `matchDryclean`; TDD RED exacto (7 targets) → GREEN; sonda POST persistida `tools/probe/LlevarTintoreriaProbe.kt` (9 HIT + 6 NULL => PROBE OK); suite 9965 OK; smokes ambos OK; test `ContextIntentEngineTintoreriaFloorTest` (16 pins); commit `55d5457`.
 
+
+### EN CURSO (marcada, primera-escritura-gana) — c.1217 (este lado, OpenHands)
+
+Unidad: lateral (b) ABIERTA de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VESTIMENTA): «coser (el|los)? botón(es)» («coser» no aparece en el motor: NULL total). Plan: lockstep TRES puntos — piso HOUSEHOLD_SEW_BUTTON_FLOOR (hermano de la familia ROPA c.1209 doblar/colgar) + keyword-OBJETO «botón»/«boton» (dos literales: tilde rompe subcadena — lección c.751 adaptada) + plantilla matchSewButton; TDD RED exacto → GREEN; UNA forma por ciclo.
