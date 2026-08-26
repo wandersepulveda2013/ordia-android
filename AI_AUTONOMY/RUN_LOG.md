@@ -41587,3 +41587,11 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Suite dominio COMPLETA (UNIÓN): OK (10151 + extras del hermano evidenciados en rebase — re-LOW de UNIÓn de código) exit 0 pre-rebase; `run_domain_checks.sh` 25/25. Re-span post-rebase reportado en el commit.
 - NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (JVM pura).
 - Próxima prioridad (UNA por ciclo): laterales c.1227 restantes — (e) «salir en bici», (f) «entrenamiento de fútbol», (g) «clase de yoga» (laterales (c)/(d) cerradas por hermano c.1231-c.1232). Nunca force, nunca main.
+## Ciclo c.1236 (este lado, OpenHands, re-numerado c.1231→c.1234→c.1236 por primer-push-gana) — FIXED VERIFIED
+
+- HEAD inicial al arranque de esta continuación: `98e2ed9` remoto + commits locales no pushados (marca c.1234 / rebase corrupto).
+- Unidad: lateral (b) enroll-gimnasio de MI auditoría c.1227 (clase XXX deporte) + «dar de alta» objeto gimnasio → TASK. Lockstep TRES puntos: piso `EXERCISE_ENROLL_FLOOR`, keyword-OBJETO «gimnasio», plantilla `matchApuntarGimnasio`. Test NUEVO `ContextIntentEngineApuntarGimnasioTest` 22, sonda persistida `tools/probe/ApuntarGimnasioProbe.kt`.
+- Colateral rebase: la integración local dejó fusión corrupta en `ContextIntentEngine.kt` (listOf con duplicado MATCH/sin comas; cierre `if (matchSalirEnBici)` abierto; return fusionado del bloque `matchApuntarGimnasio`). Resolución limpia aplicada por python: comas correctas, cierre de bloque, return separado; marcadores 3→0; balance de llaves 1→0.
+- Tests: `tools/run_domain_tests.sh` OK (**10187**, exit 0); `tools/run_domain_checks.sh` 25/25. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (JVM pura).
+- Commit: `c939c4c` (amend del commit roto tras rebase local). HEAD final: `c939c4c`.
+- Próxima prioridad (UNA por ciclo): laterales c.1227 restantes — (e) «salir en bici», (f) «entrenamiento de fútbol», (g) «clase de yoga». Nunca force, nunca main.
