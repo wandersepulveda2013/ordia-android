@@ -41301,3 +41301,30 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Commits**: 4b06749 (marcador, luego renum c29b794) → ahora cierre fix c.1219 (hash post-commit). HEAD final = HEAD inicial + 2.
 - **Próxima prioridad**: laterales ABIERTAS c.1211: «echar a tus plantas + (abono|fertilizante)» / «cubrir plantas + frío» / «sacar muebles + terraza». Tras plantar (c.1215 hermano EN CURSO → cerrar su lateral entonces).
 2026-08-27 (run 5) — CIERRA c.1217 VERDE «coser (el|los)? botón(es)» (HOUSEHOLD, lateral (b) c.1209 ROPA); commit f5518d7 (+ memoria docs commit pendiente). Suite 9978 OK, smoke 25+9 asserts OK; sonda persistida CoserBotonProbe.kt POST OK (5 HIT + 6 NULL + 2 regresiones). ESTADO 2026-08-26 07:12 UTC.
+
+
+## 2026-08-26 — STALE_RUN c.1215 + fix infra (heap determinista) — Sesión 3 [OpenHands]
+
+- **HEAD inicial**: b1e4def (marcador EN CURSO c.1215). Al implementar c.1215
+  «plantar (los) tomates/cultivo» descubro al primer push que el HERMANO la
+  cerró idéntica en `9cf2efe` (lockstep TRES puntos piso+keyword«plantar»+
+  plantilla; suite 9951 OK). Colisión convergente (primer-push-gana,
+  lección c.1077/c.1111).
+- **Acción STALE_RUN (sin cambios destructivos)**: stash propio descartado
+  (`git stash drop`, solo trabajo mío duplicado); base re-sincronizada
+  ff-only a la punta remota d1ec6c7. CERO pérdida de trabajo ajeno.
+- **Salvamento válido (no duplicado)**: el fix de heap determinista en
+  `tools/run_filtered_test.sh` (`JAVA_OPTS=-Xmx4g` por defecto, externo
+  prevalece) PARALELIZA con `run_domain_tests.sh` (líneas 128–129) y
+  evita los OOM intermitentes compilandolas ~533 fuentes. Confirmado
+  ausente en remoto antes de reaplicar.
+- **Tests**: full suite sobre base d1ec6c7 OK (9990 tests, exit 0); filtrado
+  PlantarCultivo|Trasplantar 25/25 OK con el fix aplicado; smoke de
+  dominio medido PRE-STALE 25/25 sobre base propia. NO VERIFICADO
+  gradle/lint/Android (sin SDK).
+- **Commits**: este fix infra (hash post-commit) push a openhands/autonomous-ordia.
+- **Próxima prioridad**: laterales ABIERTAS registradas (c.1220 del hermano
+  EN CURSO «echar abono»— NO tocar): «cubrir plantas + frío» /
+  «sacar muebles + terraza» su estrategia; yo quedo fuera de c.1211 familia.
+  Verificar marcadores `docs(EN CURSO)` antes de tomar.
+
