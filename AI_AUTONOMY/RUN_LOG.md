@@ -41395,4 +41395,14 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: `ContextIntentEngine.kt` (piso+plantilla+lista), `ContextIntentEngineCubrirPlantasFloorTest.kt` (nuevo, 12 tests), `tools/probe/CubrirPlantasProbe.kt` (nuevo), CURRENT_STATE (marcador→FIXED VERIFIED), RUN_LOG (este append).
 - **Colisión hermano**: ninguna — c.1222 «guardar la ropa» sigue siendo suyo (marcador intacto); archivos disjuntos en el mismo motor pero hunks no solapados.
 - **Próxima prioridad**: última lateral ABIERTA de c.1211: «sacar (los)? muebles a la terraza» (vigilar: «sacar» es bivalente pesado — sacar la basura ya captura; acotar a muebles+terraza).
+---
+## RUN c.1225 — 2026-08-26 (OpenHands autonomous) — AUDITORÍA cl.XXIX hogar+mascotas
 
+- **HEAD inicial**: 9965345 (mi c.1223 «cubrir plantas» integrado tras rebase no destructivo sobre hermano c74bbd2/363f277).
+- **Nota colisión numeración**: hermano renumeró su re-pin lavar-coche a c.1223 (mismo número que mi «cubrir plantas»); salto a c.1225+ para mantener cycle-IDs disjuntos. c.1224 «sacar muebles terraza» reclamado por el hermano (primer-marcador-gana c.1077) — NO tocar.
+- **Unidad**: auditoría clase VIGESIMONOVENA (hogar+mascotas) — sonda PRE `tools/probe/HogarMascotasClassXXIXProbe.kt`, 15 casos sobre HEAD integrado.
+- **Hallazgos**: 7 FALSOS GAPS descartados (pisos genéricos capturan: limpiar jaula/cristales, regar césped/balcón, barrer terraza, ordenar garaje); 2 capturan TASK 0.45 (no gap: cambiar agua al gato, llenar comedero); 2 gaps REALES → laterales ABIERTAS en BACKLOG: (a) «cepillar (al) gato|perro» (b) «sacar (al) conejo» DIFERIDA (zona «sacar» activa hermano c.1224).
+- **Regresiones sonda**: R1–R5 (sacar basura/poner lavadora/vaciar lavavajillas/quitar polvo/limpiar mesa) byte-idénticas HOUSEHOLD 0.45.
+- **Tests**: sin cambios de código (auditoría docs+sonda); Suite UNIÓN queda 10052 OK verificada en el commit anterior. Gradle/lint/UI/Room NO VERIFICADO (JVM puro).
+- **Archivos**: BACKLOG (sección cl.XXIX), CURRENT_STATE (marcador→FIXED), RUN_LOG (este append), `tools/probe/HogarMascotasClassXXIXProbe.kt` (nuevo).
+- **Próxima prioridad**: lateral (a) «cepillar (al) gato|perro» — marcador+sonda+TDD RED→GREEN, lockstep DOS puntos, sin keyword (gate c.751).

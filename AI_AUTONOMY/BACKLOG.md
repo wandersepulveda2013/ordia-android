@@ -1251,3 +1251,13 @@ Unidad: lateral (c) ABIERTA de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VE
 ### ~~EN CURSO~~ FIJADA — c.1217 (este lado, OpenHands)
 
 Unidad: lateral (b) ABIERTA de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VESTIMENTA): «coser (el|los)? botón(es)» («coser» no aparece en el motor: NULL total). Plan EJECUTADO: lockstep TRES puntos — piso `HOUSEHOLD_SEW_BUTTON_FLOOR` (hermano de la familia ROPA c.1209 doblar/colgar) + keyword-OBJETO «botón»/«boton» (dos literales: tilde rompe subcadena — lección c.751 adaptada) + plantilla `matchSew`; TDD RED exacto (5/13 target) → GREEN; sonda POST persistida `tools/probe/CoserBotonProbe.kt` (5 HIT + 6 NULL + 2 regresiones doblar/colgar => PROBE OK); suite 9978 OK; smokes 25+9 asserts OK; commit `f5518d7`.
+
+### ~~EN CURSO~~ FIJADA — c.1225 (este lado, OpenHands) — AUDITORÍA clase VIGESIMONOVENA hogar+mascotas
+
+Sonda PRE persistida `tools/probe/HogarMascotasClassXXIXProbe.kt` (15 casos: 5 regresiones + 5 mascotas + 5 hogar). Resultados medidos sobre HEAD 9965345:
+
+- **FALSOS GAPS (NO re-auditar)**: «limpiar la jaula» (piso genérico HOUSEHOLD_FLOOR vía verbo limpiar), «regar el césped», «regar las plantas del balcón», «limpiar los cristales», «barrer la terraza», «ordenar el garaje» — TODOS HIT HOUSEHOLD 0.45 con título limpio (verbos alineados c.638/c.639). Lección lavar-coche c.1223-hermano: medir antes de crear backlog.
+- **Capturan como TASK 0.45 (no es gap)**: «cambiar el agua al gato», «llenar el comedero del perro» — captura real con título correcto; kind TASK en vez de HOUSEHOLD es matiz de clasificación, NO pérdida.
+- **Gaps REALES (laterales ABIERTAS, UNA por ciclo, sonda primero)**:
+  - (a) «cepillar (al|a la) (gato|perro)» — NULL PRE. Verbo «cepillar» bivalente (dientes/reflexivo): acotación a objeto mascota; lockstep DOS puntos (sin keyword, gate c.751); familia VET/FEED/WALK_DOG vecina.
+  - (b) «sacar (al)? conejo (de la jaula)» — NULL PRE. **DIFERIDA**: toca la familia «sacar», zona activa del hermano en c.1224 («sacar muebles terraza», EN CURSO `c74bbd2`). No tomar hasta que c.1224 aterrice (anti-colisión, primer-marcador-gana c.1077).
