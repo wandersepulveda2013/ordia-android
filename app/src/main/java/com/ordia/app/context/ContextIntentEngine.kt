@@ -166,8 +166,13 @@ object ContextIntentEngine {
     // ("dinero/fotos/el perro") es demasiado genérico para posición libre, así
     // se acota al objeto "basura" (como `ERRAND_CARRY_FLOOR` acota a vehículos/
     // mantenimiento c.684). `\b` final: "basurilla" no casa.
+    // c.1179 (auditoría vigésima este lado, sonda persistida
+    // `tools/probe/TwentiethClassHouseholdProbe.kt`): extensión aditiva del
+    // mismo piso con el verbo hermano «tirar» — bivalente (la puerta/piedras/
+    // penales) igual que «sacar», así se acota al MISMO objeto «basura»
+    // (lockstep piso↔plantilla, lección c.616; CERO keywords nuevas).
     private val HOUSEHOLD_TRASH_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""")
+        Regex("""\b(?<!no )(?:sacar|tirar)\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""")
     // Piso faena doméstica acotado al objeto (c.728, forma 15/19 de la TERCERA
     // clase cotidiana, sonda `ThirdClassVerbDiscoveryProbe.kt` c.721): "hacer
     // la cama" es EL quehacer doméstico canónico con "hacer". El verbo suelto
@@ -4360,7 +4365,9 @@ object ContextIntentEngine {
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
         if (kind == ContextIntentKind.HOUSEHOLD &&
-            Regex("""\bno\s+sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""").containsMatchIn(lower)
+            // c.1179: extensión al verbo hermano «tirar» (misma familia que el piso; guard negación
+            // G1 «no voy a tirar la basura…» ya NULL correcto, sonda persistida)
+            Regex("""\bno\s+(?:sacar|tirar)\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""").containsMatchIn(lower)
         ) return true
         if (kind == ContextIntentKind.HOUSEHOLD &&
             // c.1050: objeto mascota extendido perro+gato (lockstep).
@@ -5693,13 +5700,13 @@ object ContextIntentEngine {
                 if (matchDescongelar != null) {
                     return "${capitalizeFirst(matchDescongelar.groupValues[1])} ${matchDescongelar.groupValues[2]}"
                 }
-                // "sacar (la) basura …" → "Sacar la basura …" (c.717): verbo
-                // preservado (alineación piso↔título, lección c.616) y objeto
-                // restringido como en [HOUSEHOLD_TRASH_FLOOR]; el match
-                // arranca en el verbo, así el prefijo temporal ("esta noche ")
-                // no ensucia el título.
+                // "sacar (la) basura …" → "Sacar la basura …" (c.717 + extensión
+                // «tirar» c.1179): verbo preservado (alineación piso↔título,
+                // lección c.616) y objeto restringido como en
+                // [HOUSEHOLD_TRASH_FLOOR]; el match arranca en el verbo, así el
+                // prefijo temporal ("esta noche ") no ensucia el título.
                 val matchSacar = Regex(
-                    """\b(?<!no )(sacar)\s+((?:el\s+|la\s+|los\s+|las\s+)?basura\b.*)""",
+                    """\b(?<!no )(sacar|tirar)\s+((?:el\s+|la\s+|los\s+|las\s+)?basura\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSacar != null) {

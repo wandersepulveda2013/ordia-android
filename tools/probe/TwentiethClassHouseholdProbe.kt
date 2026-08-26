@@ -34,11 +34,12 @@ import com.ordia.app.context.ContextIntentEngine
  *   al perro, ordenar el trastero — todos HOUSEHOLD 0.45; llevar el
  *   coche al taller ERRAND 0.45 vía piso taller c.684; comprar
  *   detergente SHOPPING 0.47) y 1 gap NULL:
- *     a) FUERTE «tirar la basura esta noche» (C4) — el olvido
- *        doméstico canónico (la basura sin bajar). El piso HOUSEHOLD
- *        cubre muchos verbos pero no «tirar»; «basura» no es keyword.
- *        El guard de negación G1 «no voy a tirar la basura…» ya es
- *        NULL correcto (guard c.1009 gobierna sin piso).
+ *     a) FUERTE — CERRADA c.1179 (extensión aditiva del piso
+ *        HOUSEHOLD_TRASH_FLOOR con «tirar» acotado al objeto «basura»,
+ *        lockstep piso↔plantilla↔guard-negación; CERO keywords nuevas):
+ *        C4 captura HOUSEHOLD 0.45, título «Tirar la basura», dueAt
+ *        resuelto. Re-pin del candidato (a) — el olvido doméstico
+ *        canónico (la basura sin bajar).
  *   REGRESIONES — 8/8 HITs intactos (leche SHOPPING, luz PAYMENT,
  *   médico APPOINTMENT 0.85, fiesta del cole ERRAND c.1170, «haré la
  *   mudanza» TASK 0.45 c.1175 propio, contestar el correo TASK, «mi
