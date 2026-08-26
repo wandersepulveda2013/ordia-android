@@ -89,14 +89,18 @@ class ContextIntentEngineQuitarPolvoFloorTest {
     }
 
     @Test
-    fun `quitar otro objeto no roba HOUSEHOLD`() {
+    fun `quitar otro objeto roba HOUSEHOLD MANCHA-DEDICADO c1221`() {
         // Objeto no doméstico ("quitar la mancha") — control kind-drift
-        // (familia c.728/c.731): el piso acotado no le da piso HOUSEHOLD por
-        // la keyword "polvo".
+        // (familia c.728/c.731). RE-PINEADO c.1221: el piso STAIN dedicado
+        // (lockstep TRES puntos con keyword-OBJETO «mancha») captura igual
+        // que sus hermanas polvo c.732 / mesa c.754 / hierbas c.1212.
+        // El piso polvo por sí solo sigue sin robar por la keyword "polvo".
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "quitar la mancha mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+        assertEquals("Quitar la mancha", intent.title)
     }
 
     @Test

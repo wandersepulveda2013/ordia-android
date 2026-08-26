@@ -41328,3 +41328,20 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
   «sacar muebles + terraza» su estrategia; yo quedo fuera de c.1211 familia.
   Verificar marcadores `docs(EN CURSO)` antes de tomar.
 
+## 2026-08-27 — c.1221 (renum. c.1218→c.1221 por primer-marcador-gana hermano «lavar el coche» c.1218) — Sesión 1 [OpenHands]
+
+- **HEAD inicial**: ae238b3. Marcador EN CURSO «d172d39» (y renum. pre-coder tras re-fetch frente a hermano c.1218 lavar-coche).
+- **Problema**: lateral ABIERTA (d) de MI auditoría c.1209 (clase VIGESIMOCTAVA ROPA/VESTIMENTA): «quitar mancha (de la camisa)» → analyze SILENT-NULL (P1, olvido silencioso).
+- **Causa raíz**: familia «quitar» por objeto disjunto carecía de cuarto piso dedicado (polvo c.732 / mesa c.754 / hierbas c.1212 / falta mancha); keyword-OBJETO «mancha» inexistente; plantilla match inexistente.
+- **Solución**: lockstep TRES puntos (lección c.616, gate c.751 — keyword-OBJETO monosemántica, doctrina c.653 grafía preservada):
+  1. keyword-OBJETO «mancha» en ContextIntent (regla c.732/c.754/c.1212 — el VERBO bivalente «quitar» NO se añade);
+  2. piso NUEVO HOUSEHOLD_STAIN_FLOOR (artículos/posesivos/indefinido «una»
+     opcionales, guard (?<!no ), \b anti-canaries) en lista maestra;
+  3. plantilla matchQuitarMancha en extractTitle.
+  Re-pin legítimo sister «quitar otro objeto no roba HOUSEHOLD» (QuitarPolvoFloorTest — precedente c.1035/c.1041/c.1082/c.1097 con verificación assert-not-null + título).
+- **Tests**: PRE sonda A1–A6 NULL; RED: 13 tests, 5 fallas (capturas A1–A4,A6);
+  POST: A1–A4+A6 HIT HOUSEHOLD 0.45 títulos limpios, A5-G1-G4 NULL pineados,
+  R1–R3 regresiones intactas; suite UNIÓN OK (10016 = 10003 + 13, exit 0);
+  smokes dominio 25/25 + automation 9/9. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Commits**: marcador d172d39; fix+closure: hash post-commit de este run.
+- **Próxima prioridad**: lateral (e) «guardar la ropa» restante de c.1209. Nunca force, nunca main.

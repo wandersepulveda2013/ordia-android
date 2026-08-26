@@ -759,8 +759,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // (canary en `ContextIntentEngineQuitarHierbasTest`). El verbo
         // «quitar» NO se añade (bivalente — el polvo/la mesa/el zapato;
         // piso ya acotado por objeto disjunto).
+        // c.1221: keyword-OBJETO «mancha» (lockstep con el piso
+        // `quitar (la|las|una)? mancha(s)` — lateral (d) ABIERTA de la
+        // auditoría clase VIGESIMOCTAVA ROPA c.1209; precedente «hierbas»
+        // c.1212). La subcadena cubre el plural («manchas»→«mancha»).
+        // 0.12 sola queda bajo el umbral: «la mancha de tinta no salió»
+        // sigue descartado (canary). El verbo «quitar» NO se añade
+        // (bivalente — la mesa/el polvo/la camisa; piso ya acotado por
+        // objeto disjunto).
         "cena", "comida", "almuerzo", "desayuno", "merienda", "descongelar",
         "basura", "cama", "lavadora", "césped", "polvo", "mesa", "hierbas",
+        "mancha",
         // c.758: objeto del piso `pintar la(s) casa(s)` (lockstep
         // keyword↔piso; "pintar" suelto es bivalente — un cuadro/la
         // veranda — así se alinea el OBJETO restringido, sonda

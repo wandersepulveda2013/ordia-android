@@ -270,6 +270,19 @@ object ContextIntentEngine {
     // «poda» c.1211).
     private val HOUSEHOLD_WEED_FLOOR =
         Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:malas?\s+)?hierbas?\b""")
+    // Piso faena doméstica "quitar (la|las|una)? mancha(s) (de la
+    // camisa/pantalón/vestido/sudadera/sofá)" (c.1221 — lateral (d)
+    // ABIERTA de la auditoría clase VIGESIMOCTAVA ROPA c.1209). Cuarto
+    // piso de la familia «quitar» por objeto disjunto: polvo c.732 /
+    // mesa c.754 / hierbas c.1212 / mancha aquí. Verbo bivalente
+    // «quitar» acotado al OBJETO vía keyword-OBJETO «mancha»
+    // (lockstep TRES puntos, precedente «hierbas» c.1212). Artículos,
+    // posesivos y el indefinido «una» como el piso de herramienta/planta
+    // (c.756/c.1215). Guard de negación heredado (?<!no ). El futuro
+    // «quitaré…» queda FUERA (pin en el test, misma lateral que
+    // «quitaré» c.1214).
+    private val HOUSEHOLD_STAIN_FLOOR =
+        Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|una\s+)?manchas?\b""")
     // Piso faena doméstica "plantar (los) tomates / plantar la orquídea"
     // (c.1215 — lateral ABIERTA de la auditoría clase VIGESIMOSÉPTIMA
     // hermano c.1211, tercera sonda del dominio a propósito). «plantar»
@@ -593,7 +606,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6041,6 +6054,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchQuitarHierbas != null) {
                     return "${capitalizeFirst(matchQuitarHierbas.groupValues[1])} ${matchQuitarHierbas.groupValues[2]}"
+                }
+                // "quitar (la|las|una)? mancha(s) (de la camisa…) …" →
+                // "Quitar la mancha de la camisa …" (c.1221): verbo
+                // preservado y objeto restringido como en
+                // [HOUSEHOLD_STAIN_FLOOR] (cuarto piso de la familia
+                // «quitar» por objeto disjunto: polvo c.732 / mesa c.754 /
+                // hierbas c.1212 / mancha aquí — no colisionan).
+                // Artículos + posesivos (c.756) + indefinido «una»
+                // (c.1215). Lateral ABIERTA (d) de la auditoría clase
+                // VIGESIMOCTAVA ROPA c.1209.
+                val matchQuitarMancha = Regex(
+                    """\b(?<!no )(quitar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|una\s+)?manchas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchQuitarMancha != null) {
+                    return "${capitalizeFirst(matchQuitarMancha.groupValues[1])} ${matchQuitarMancha.groupValues[2]}"
                 }
                 // "plantar (los) tomates / plantar la orquídea …" →
                 // "Plantar los tomates …" (c.1215): verbo preservado y
