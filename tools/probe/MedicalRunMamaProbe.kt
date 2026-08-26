@@ -54,8 +54,9 @@ fun main() {
     check("G3", "quizá lleve a mi madre al médico", false, misses)
 
     // Pines anti-overreach: NULL esperado (fuera del alcance acotado).
-    // P1: abuelos — FUERA este ciclo (UNA forma por ciclo).
-    check("P1", "llevar a mi abuela al médico mañana", false, misses)
+    // P1: abuelos — RE-PIN c.1184 (legítimo, doctrina c.1133/c.1141/
+    // c.1144/c.1172): la lateral cerró en c.1184; ahora HIT esperado.
+    check("P1", "llevar a mi abuela al médico mañana", true, misses)
     // P2: esposa — FUERA este ciclo.
     check("P2", "llevar a mi mujer al médico mañana", false, misses)
 

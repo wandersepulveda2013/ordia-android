@@ -663,11 +663,13 @@ object ContextIntentEngine {
         // una-forma-por-ciclo; P1: la cita médica del padre/madre es la
         // diligencia del cuidador adulto). Las ramas « mam[áa]»/« pap[áa]»
         // con espacio propio cubren el vocativo desnudo («a mamá») sin
-        // abrir el desnudo de niños/hijos (cero overreach). Abuelos/esposa
-        // FUERA pineados
-        // (anti-overreach, UNA forma por ciclo). Lockstep con
+        // abrir el desnudo de niños/hijos (cero overreach). c.1184: abuel[oa]s? (lateral P1/P2 de la sonda c.1178 — cuidado
+        // de mayores, tercera generación de la diligencia familiar; re-pin
+        // legítimo del pin c.1178, doctrina c.1133/c.1141/c.1144/c.1172).
+        // Esposa/marido/suegros FUERA pineados (anti-overreach, UNA forma
+        // por ciclo). Lockstep con
         // matchMedicalRun (lección c.616). CERO keywords nuevas.
-        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?|mam[áa]|pap[áa]|madre|padre| mam[áa]| pap[áa])\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?|mam[áa]|pap[áa]|madre|padre|abuel[oa]s?| mam[áa]| pap[áa])\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])\b""")
     // Piso transportativo de VIAJE familiar (c.1158, candidata (d) de la
     // auditoría c.1137, clase DECIMOSEXTA — HALLAZGO inesperado R8 de la
     // sonda persistida `tools/probe/SixteenthClassTravelProbe.kt`): «llevar
@@ -5984,7 +5986,7 @@ object ContextIntentEngine {
                 // c.1178: lockstep — parentesco adulto directo
                 // mamá|papá|madre|padre (ver piso).
                 val matchMedicalRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?|mam[áa]|pap[áa]|madre|padre| mam[áa]| pap[áa])\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?|mam[áa]|pap[áa]|madre|padre|abuel[oa]s?| mam[áa]| pap[áa])\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchMedicalRun != null) {

@@ -127,11 +127,17 @@ class ContextIntentEngineLlevarMamaMedicoFloorTest {
     // ---- Pines anti-overreach (NULL deliberado) ----
 
     @Test
-    fun `pin abuela fuera`() {
+    fun `pin abuela fuera re-pin c1184`() {
+        // c.1184: re-pin LEGITIMO (doctrina c.1133/c.1141/c.1144/c.1172):
+        // el pin original era deliberado por una-forma-por-ciclo, no por
+        // falsedad; la lateral se cierra en la clase c.1184
+        // (ContextIntentEngineLlevarAbuelaMedicoFloorTest).
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi abuela al médico mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertNotNull(intent.dueAt)
     }
 
     @Test
