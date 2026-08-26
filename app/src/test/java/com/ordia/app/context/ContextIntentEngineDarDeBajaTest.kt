@@ -99,8 +99,11 @@ class ContextIntentEngineDarDeBajaTest {
     // ─── Laterales deliberados NULL ───────────────────────────────
 
     @Test
-    fun `dar de alta accion opuesta no captura`() {
-        assertNull(analyze("dar de alta el gimnasio mañana"))
+    fun `dar de alta a un paciente no captura bivalencia médica`() {
+        // c.1232 de-scope: «gimnasio» es ahora objeto válido del piso
+        // «dar de alta» (TASK), así el pin de bivalencia activa usa
+        // «a un paciente» (precedente c.1033/c.1035).
+        assertNull(analyze("dar de alta a un paciente"))
     }
 
     @Test

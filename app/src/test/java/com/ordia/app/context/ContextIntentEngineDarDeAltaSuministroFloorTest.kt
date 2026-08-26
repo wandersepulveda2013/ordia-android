@@ -158,8 +158,11 @@ class ContextIntentEngineDarDeAltaSuministroFloorTest {
     }
 
     @Test
-    fun `dar de alta el gimnasio sigue NULL acotado`() {
-        assertNull(analyze("dar de alta el gimnasio mañana"))
+    fun `dar de alta a un paciente sigue NULL bivalencia médica`() {
+        // c.1232 de-scope: «gimnasio» es ahora objeto válido del piso
+        // (TASK); el pin de bivalencia activa usa «a un paciente»
+        // (precedente c.1033/c.1035).
+        assertNull(analyze("dar de alta a un paciente"))
     }
 
     @Test

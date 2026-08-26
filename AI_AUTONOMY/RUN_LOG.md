@@ -41507,7 +41507,6 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Commits**: hash post-commit (ver `git log -1`).
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (b) «apuntarme al gimnasio en enero» MEDIA (verificar solape con «gimnasio-alta» histórica); (c) «partido de tenis el domingo» MEDIA; (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL. Laterales de FORMA documentadas (NO fijas): imperativo CALL «llama a mamá»; residuo «los» en títulos D4/D5. Nunca force, nunca main.
 
-
 ## 2026-08-26 — c.1231 — Sesión 7 [OpenHands]
 
 - **HEAD inicial**: 4b2d976 (marcador EN CURSO doc).
@@ -41578,3 +41577,13 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 
 ## c.1238 (2026-08-26, OpenHands)
 - Trabajo: gate de las 4 laterales (b)-(e) DÉBILES de MI auditoría c.1236 con sonda `SincronizarLateralesProbe.kt` (12 enunciados NUL en PRE); elegida (e) «sincronizar»; implementado floor-only sin keyword nueva; suite **OK (10173)**; smokes 25+9 verdes. Restantes: (b) «conectar el wifi», (c) «apagar el ordenador», (d) «encender la tablet» — gate UNA por ciclo.
+## c.1236 — FIXED VERIFIED (2026-08-26 11:43 UTC, re-numerado c.1231 por primer-push-gana del hermano)
+
+- HEAD inicial: 4b2d976 (grafted). HEAD final: pendiente commit.
+- Unidad: enrollment «apuntar(se)/apuntarme (al|a la|a el) gimnasio» kind-shift NOTE→EXERCISE + «dar de alta el gimnasio» NULL→TASK (lateral (b) MEDIA de auditoría c.1227, clase XXX deporte). Renum: c.1231→c.1234 porque el hermano fijó c.1231 partido y c.1232 pilates antes de mi re-base (primer-push-gana).
+- Cambios (lockstep TRES puntos, gate c.751 sin keywords nuevas): piso `EXERCISE_ENROLL_FLOOR` (objeto gimnasio) + plantilla `matchApuntarGimnasio` en extractTitle + extensión «gimnasio» en piso «dar de alta» (TASK). ContextIntent.kt NO alterado (keywords heredadas: «apuntar» EXERCISE, «gimnasio» c.1228).
+- Tests: `ContextIntentEngineApuntarGimnasioTest.kt` 22 (RED 7 fallos → GREEN 22/22). Re-pins legítimos ×4: ApuntarseFloorTest (3 pines NOTE→EXERCISE), DarDeBajaTest, DarDeAltaSuministroFloorTest, DarSeguroFloorTest (pins acotado re-expresados como «dar de alta a un paciente» NULL — precedente c.1033/c.1035).
+- Sonda persistida `tools/probe/ApuntarGimnasioProbe.kt` POST: 6 targets HIT (EXERCISE/TASK 0.45), 6 guards NULL («dar de alta a un paciente» — bivalencia médica preservada), 6 regresiones HIT, 2 envolventes TASK 0.45.
+- Suite dominio COMPLETA (UNIÓN): OK (10151 + extras del hermano evidenciados en rebase — re-LOW de UNIÓn de código) exit 0 pre-rebase; `run_domain_checks.sh` 25/25. Re-span post-rebase reportado en el commit.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (JVM pura).
+- Próxima prioridad (UNA por ciclo): laterales c.1227 restantes — (e) «salir en bici», (f) «entrenamiento de fútbol», (g) «clase de yoga» (laterales (c)/(d) cerradas por hermano c.1231-c.1232). Nunca force, nunca main.

@@ -24,6 +24,11 @@ import org.junit.Test
  * NOTE, por paridad con la hermana transitiva c.714 (mismo verbo, mismo
  * kind; el usuario "se apunta" = se anota a sí mismo) y coherencia con el
  * downstream ([ConfirmExternalSuggestionUseCase] la convierte en nota).
+ * RE-PIN legítimo c.1232: el objeto «gimnasio» acota el piso
+ * EXERCISE_ENROLL_FLOOR, así «apuntarse al gimnasio» migra NOTE→EXERCISE
+ * en los pines gobernados («apuntarse a yoga», «a un curso de cocina»,
+ * «al club» siguen NOTE por el objeto no-gimnasio; precedente de re-pin
+ * c.1033/c.1035).
  * Acotado deliberado (candidatas propias si se miden, una por ciclo):
  *   - «anotarse a» (variante dialectal rioplatense del mismo reflexivo);
  *   - «apuntarme/apuntarte/apuntarnos» (otras personas gramaticales del
@@ -49,10 +54,10 @@ class ContextIntentEngineApuntarseFloorTest {
     // --- Capturas: «apuntarse a <actividad>» es un compromiso de inscripción ---
 
     @Test
-    fun apuntarseAlGimnasioManana_capturesNoteWithDueAt() {
+    fun apuntarseAlGimnasioManana_capturesExerciseWithDueAt() {
         val intent = analyze("apuntarse al gimnasio mañana")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.NOTE, intent!!.kind)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
         assertEquals("Apuntarse al gimnasio", intent.title)
         assertNotNull(intent.dueAt)
     }
@@ -90,18 +95,18 @@ class ContextIntentEngineApuntarseFloorTest {
     }
 
     @Test
-    fun acuseValeApuntarse_capturesNote() {
+    fun acuseValeApuntarse_capturesExercise() {
         val intent = analyze("vale, apuntarse al gimnasio mañana")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.NOTE, intent!!.kind)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
         assertEquals("Apuntarse al gimnasio", intent.title)
     }
 
     @Test
-    fun prefijoTemporalApuntarse_capturesNote() {
+    fun prefijoTemporalApuntarse_capturesExercise() {
         val intent = analyze("mañana apuntarse al gimnasio")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.NOTE, intent!!.kind)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
         assertEquals("Apuntarse al gimnasio", intent.title)
         assertNotNull(intent.dueAt)
     }

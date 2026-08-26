@@ -709,6 +709,22 @@ object ContextIntentEngine {
     private val EXERCISE_TRAINING_FLOOR =
         Regex("""\b(?<!no )(?:el\s+)?entrenamiento\s+de\s+(fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf|deporte)\b""")
 
+    // c.1234 (lateral (b) auditoría c.1227 — clase TRIGÉSIMA deporte,
+    // hermana de la histórica «gimnasio-alta» b-ter clase XV; re-numerado
+    // c.1231→c.1234 por primer-push-gana: el hermano fijó c.1231 partido y
+    // c.1232 pilates antes de mi re-base): «apuntar(se)/apuntarme
+    // (al|a la|a el) gimnasio» era NULL (media 0.22 = keyword 0.12 + bono
+    // temporal 0.1 < umbral; el acotado deliberado del piso c.1139 solo
+    // protege suministros, no la inscripción deportiva). La keyword-OBJETO
+    // «gimnasio» es la piedra angular (precedente «mueble» c.1224: el verbo
+    // «apuntar» es BIVALENTE — anotar c.714/c.856, transitiva-personas
+    // c.856 — así el gate c.751 prohibe keyword-VERBO y acota al objeto).
+    // Guard de negación heredado (?<!no ). El desempate NOTE vs EXERCISE
+    // sobre «apuntarse al gimnasio» lo gobierna el orden del enum (EXERCISE
+    // se declara antes de NOTE). Determinista (regex), sin random, sin IA
+    // fingida.
+    private val EXERCISE_ENROLL_FLOOR =
+        Regex("""\b(?<!no )(apuntar|apuntarse|apuntarme)\s+a(?:l\s+|la\s+)?(?:el\s+|la\s+)?gimnasio\b""")
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -723,13 +739,11 @@ object ContextIntentEngine {
         EXERCISE_PILATES_FLOOR,
         EXERCISE_BIKE_OUT_FLOOR,
         EXERCISE_MATCH_SPORT_FLOOR,
-        // Enroll propio al gimnasio (c.1230, abierto por la auditoria
-        // (b) c.1227): "apuntarme/inscribirme a(l|en) el gimnasio" medido
-        // 0.22 NULL (olvido silencioso P1). Distinto de la reflexiva
-        // "apuntarse" (c.856, NOTE hermana) y de sujeto explicito
-        // "inscribir al nino" (EXERCISE hermano c.1228). Encliticos
-        // me/te/nos (NO se) + prep a|al|en + objeto gimnasio(s).
+        // Enroll-gimnasio (union tras rebase c.1236, leccion c.1098):
+        // piso inline hermano (encliticos me/te/nos) + piso nombrado
+        // propio EXERCISE_ENROLL_FLOOR (apuntar/apuntarse/apuntarme).
         Regex("""\b(?<!no )(apuntar|inscribir)(me|te|nos)\s+(?:a|al|en)\s+(?:(?:el|un|una)\s+)?gimnasios?(?![a-z])"""),
+        EXERCISE_ENROLL_FLOOR,
         EXERCISE_TRAINING_FLOOR
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
@@ -3792,17 +3806,19 @@ object ContextIntentEngine {
             // SIN desplazamiento; doctrina ERRAND c.842/c.862 solo gobierna
             // el desplazamiento), misma ancla ^|acuse|temporal y guard
             // `(?<!no )`. El objeto-suministro (luz|agua|gas|internet,
-            // + «seguro» contrato c.1162 lateral (b-bis)) blinda la
-            // bivalencia médica («dar de alta a un paciente» no casa) y
-            // el acotado deliberado («dar de alta el gimnasio» sigue
-            // NULL, pin del test c.895c). La extensión aditiva de
-            // objetos del piso «dar de baja» cubre las bajas de suministro
-            // («dar de baja el internet del piso viejo»). Lockstep
+            // + «seguro» contrato c.1162 lateral (b-bis), + «gimnasio»
+            // enrollment c.1232) blinda la bivalencia médica («dar de
+            // alta a un paciente» no casa) y desactiva el acotado
+            // deliberado del piso original (re-pines legítimos en
+            // `ContextIntentEngineDarDeBajaTest` y
+            // `ContextIntentEngineDarDeAltaSuministroFloorTest`,
+            // precedente c.1031/c.1035). La extensión aditiva de
+            // objetos del piso «dar de baja» cubre las bajas. Lockstep
             // keyword-frase «dar de alta» en ContextIntent + plantilla
             // matchDarDeAlta en [extractTitle] (lección c.616). Olvido
             // silencioso P1: mudanza sin luz/agua/gas/internet (alta) o
             // cargo mensual fantasma del piso viejo (baja).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet|seguro)\b""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )dar\s+de\s+alta\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?(?:luz|agua|gas|internet|seguro|gimnasio)\b""").containsMatchIn(lower)
             // c.1143: "sellar el paro" ("sellar el paro el día 4"),
             // candidata (c) de la clase DECIMOQUINTA burocracia/
             // administración (sonda persistida del hermano
@@ -6108,6 +6124,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSalirEnBici != null) {
                     return capitalizeFirst(matchSalirEnBici.groupValues[1])
+                }
+                // c.1234: «apuntar(se)/apuntarme (al|a la|a el) gimnasio» —
+                // lockstep con [EXERCISE_ENROLL_FLOOR] (TRES puntos: piso +
+                // keyword-OBJETO + plantilla, lección c.616). El match arranca
+                // en el verbo, así el prefijo temporal («mañana »/«el lunes »)
+                // no ensucia el título (lección c.655-c.656).
+                val matchApuntarGimnasio = Regex(
+                    """\b(?<!no )(apuntar|apuntarse|apuntarme)\s+((?:a(?:l\s+|la\s+)?)?(?:el\s+|la\s+)?gimnasio\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchApuntarGimnasio != null) {
+                    return "${capitalizeFirst(matchApuntarGimnasio.groupValues[1])} ${matchApuntarGimnasio.groupValues[2]}"
                 }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))

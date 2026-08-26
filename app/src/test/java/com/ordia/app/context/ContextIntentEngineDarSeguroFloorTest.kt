@@ -153,8 +153,12 @@ class ContextIntentEngineDarSeguroFloorTest {
     }
 
     @Test
-    fun `dar de alta el gimnasio sigue NULL acotado c895c`() {
-        assertNull(analyze("dar de alta el gimnasio mañana"))
+    fun `dar de alta a un paciente sigue NULL bivalencia médica c1232`() {
+        // Re-pin legítimo c.1232: «gimnasio» es ahora objeto válido del
+        // piso «dar de alta» (TASK); el pin activo de bivalencia usa
+        // «a un paciente» (en los hermanos c.895c y c.1139 también se
+        // re-pineó igual; precedente c.1033/c.1035).
+        assertNull(analyze("dar de alta a un paciente"))
     }
 
     @Test

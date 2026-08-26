@@ -2604,3 +2604,20 @@ sonda persistida `tools/probe/CoserBotonProbe.kt` (5 HIT + 6 NULL +
 2 regresiones doblar/colgar => PROBE OK). HEAD `f5518d7`. NO VERIFICADO
 Android/gradle/assemble/UI. Laterales restantes de c.1209: (d) «quitar
 mancha de la camisa», (e) «guardar la ropa».
+
+
+## c.1236 (este lado, OpenHands; re-numerado c.1231 por primer-push-gana del hermano) — CERRADO
+
+«apuntar(se)/apuntarme (al|a la|a el) gimnasio» kind-shift NOTE→EXERCISE +
+«dar de alta el gimnasio» NULL→TASK (enrollment; lateral (b) MEDIA de la
+auditoría c.1227 clase XXX deporte). Lockstep TRES puntos (piso
+`EXERCISE_ENROLL_FLOOR` + plantilla `matchApuntarGimnasio` + extensión del
+piso «dar de alta» con objeto «gimnasio»); gate c.751 sin keywords nuevas.
+TDD RED exacto (7 fallos/22) → GREEN; re-pins legítimos en Apuntarse/
+DarDeBaja/DarDeAltaSuministro/DarSeguro tests (precedente c.1033/c.1035);
+suite UNIÓN **OK (10151)**; sonda persistida
+`tools/probe/ApuntarGimnasioProbe.kt` POST (6 targets HIT, 6 guards NULL,
+6 regresiones HIT, 2 envolventes TASK 0.45). HEAD pendiente commit.
+NO VERIFICADO Android/gradle/UI. Laterales c.1227 restantes (UNA por
+ciclo): (c) «partido de tenis», (d) «ir a pilates», (e) «salir en bici»,
+(f) «entrenamiento de fútbol», (g) «clase de yoga».
