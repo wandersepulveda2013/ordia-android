@@ -41663,3 +41663,17 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura). Nunca force, nunca main.
 - Próxima prioridad: implementar (a) «practicar <instrumento>» floor-only con plantilla lockstep (lección c.616/c.751); gate c.751 floor-only CERO keyword. Una-lateral-por-ciclo.
 - HEAD final: commit docs(ai) c.1248 (siguiente).
+
+## Run c.1250 (este lado, 2026-08-26) — lateral (g) auditoría c.1227 «clase(s) de <fitness>»
+
+- HEAD inicial: `2fcb623` (tras marcador EN CURSO c.1250 + mis rebase/soft-reset; base hermana `d87f2e3` c.1249).
+- Problema: «clase de yoga mañana» y familia (pilates|spinning|aeróbic|aerobic|zumba|gimnasia) → NULL (media 0.22 < umbral 0.45) medido PRE por sonda persistida `tools/probe/ClaseFitnessProbe.kt` — olvido silencioso P1 de la clase programada. Prioridad P1 (captura/evitar olvidos, área context analyzer).
+- Causa raíz: «clase» nominal bivalente (escuela) — score keyword «yoga» (0.12) + bono temporal (0.1) < 0.45; ningún piso EXERCISE la cubría. Gate c.751: vía piso acotado por objeto NOMINAL monosemántica (precedente «partido» c.1231); CERO keywords nuevas.
+- Fix (DOS puntos, lección c.616): piso `EXERCISE_CLASS_FLOOR` registrado en `EXERCISE_FLOORS` + plantilla `matchClase` en `extractTitle` rama EXERCISE (título arranca en «clase»; prefijos temporal/posesivo fuera). Guard negación heredado `(?<!no )`; pretérito copulativo gobernado por `PAST_EXERCISE_COPULA_PATTERN`.
+- TDD: `ContextIntentEngineClaseFitnessFloorTest.kt` 14 tests — GREEN 14/14 (7 capturas + 4 guards + 2 regresiones + 1 envolvente TASK).
+- POST sonda: T1–T7 HIT EXERCISE títulos exactos («Clase de yoga/pilates/spinning/aeróbic/zumba/Clases de gimnasia»); G1–G4 NULL (matemáticas/retórica/negación/pretérito-copulativo); R1–R5 regresiones HIT; E1 envolvente TASK «Clase de yoga».
+- Verificación: suite UNIÓN `tools/run_domain_tests.sh` **OK (10242)** exit 0; smoke dominio `tools/run_domain_checks.sh` 25/25; probe runner `tools/run_probe.sh`. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Incidentes: marcador primer-push-gana renumerado dos veces (c.1248→c.1249→c.1250) por colisión con el hermano (su c.1248 auditoría-música y c.1249 «practicar-instrumento»); mi replace() embarró SU línea en un amend impulsado (recuperado con `git reset --soft` + commit separado, doctrina no-destructiva).
+- **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura, sin SDK). Nunca force, nunca main.
+- Auditoría c.1227 AGOTADA (a)–(g). Próxima prioridad: clase nueva de descubrimiento (XXXI+ vía convención) o laterales de FORMA (imperativo CALL, residuo «los»).
+- HEAD final: commit feat(context) c.1250 (siguiente).

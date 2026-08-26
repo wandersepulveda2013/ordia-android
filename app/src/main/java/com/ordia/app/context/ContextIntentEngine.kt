@@ -725,6 +725,20 @@ object ContextIntentEngine {
     // fingida.
     private val EXERCISE_ENROLL_FLOOR =
         Regex("""\b(?<!no )(apuntar|apuntarse|apuntarme)\s+a(?:l\s+|la\s+)?(?:el\s+|la\s+)?gimnasio\b""")
+    // c.1250 (lateral (g) DISJUNTA de MI auditoría c.1227 — clase TRIGÉSIMA
+    // deporte): «clase(s) de <disciplina fitness>» era NULL (media 0.22 =
+    // keyword 0.12 + bono temporal 0.1 < umbral; medido PRE en
+    // tools/probe/ClaseFitnessProbe.kt 7/7 NULL — olvido silencioso P1:
+    // la clase programada suena a VAGA pese a ser compromiso determinista,
+    // y el envolvente TASK solo la cubre vía «recuérdame»). «clase» es
+    // nominal bivalente (escuela), pero con objeto acotado a disciplinas
+    // fitness es monosemántica → EXERCISE (gate c.751; CERO keyword nueva
+    // — «yoga» ya keyword heredada, precedente «partido» c.1231). Guard de
+    // negación heredado (?<!no ). La pretérito-copulativa la gobierna
+    // [PAST_EXERCISE_COPULA_PATTERN]. Determinista (regex), sin random,
+    // sin IA fingida.
+    private val EXERCISE_CLASS_FLOOR =
+        Regex("""\b(?<!no )clases?\s+de\s+(yoga|pilates|spinning|aeróbic|aerobic|zumba|gimnasia)\b""")
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -739,6 +753,7 @@ object ContextIntentEngine {
         EXERCISE_PILATES_FLOOR,
         EXERCISE_BIKE_OUT_FLOOR,
         EXERCISE_MATCH_SPORT_FLOOR,
+        EXERCISE_CLASS_FLOOR,
         // Enroll-gimnasio (union tras rebase c.1236, leccion c.1098):
         // piso inline hermano (encliticos me/te/nos) + piso nombrado
         // propio EXERCISE_ENROLL_FLOOR (apuntar/apuntarse/apuntarme).
@@ -6197,6 +6212,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchApuntarGimnasio != null) {
                     return "${capitalizeFirst(matchApuntarGimnasio.groupValues[1])} ${matchApuntarGimnasio.groupValues[2]}"
+                }
+                // c.1250: «clase(s) de <disciplina fitness>» — lockstep con
+                // [EXERCISE_CLASS_FLOOR] (dos puntos: piso + plantilla,
+                // lección c.616). El match arranca en «clase», así el
+                // prefijo temporal/posesivo («mi »/«la ») no ensucia el
+                // título (misma paridad que matchPartido c.1231).
+                val matchClase = Regex(
+                    """\b(?<!no )(clases?\s+de)\s+((?:yoga|pilates|spinning|aeróbic|aerobic|zumba|gimnasia)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchClase != null) {
+                    return "${capitalizeFirst(matchClase.groupValues[1])} ${matchClase.groupValues[2]}"
                 }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))
