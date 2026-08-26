@@ -1267,8 +1267,12 @@ object ContextIntentEngine {
     // "recuérdame mañana pagar el arriendo" robaría el kind a TASK. `\s+\w`
     // exige objeto ("mañana pagar" suelto, muletilla, no activa) y el
     // lookbehind `(?<!no )` + [imperativeIsNegated] bloquean la negación.
+    // «recargar» se excluye del piso general (c.1199/c.1201): vive en
+    // [RECARGA_TARJETA_FLOOR] con objeto acotado a «tarjeta(s)» — si
+    // volviera aquí como genérico, «recargar la página web/arma» casaría
+    // por `\s+\w` (guard bivalente roto, pin RecargaTarjetaFloorTest.104).
     private val PAYMENT_FLOOR =
-        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )($PAYMENT_VERBS)\s+\w""")
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:pagar|adelantar)\s+\w""")
     // Piso PAYMENT acotado al objeto (c.1199 — lateral (b) de la auditoría
     // c.1197 finanzas domésticas, clase VIGESIMOTERCERA): «recargar la
     // tarjeta» (recarga prepago/tarjeta). PRE medido NULL 5/5 en sonda

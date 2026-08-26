@@ -39452,7 +39452,6 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - **Archivos:** `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (+9 tests), `ContextIntentEngineTransferPrivacyPinTest.kt` (eliminado), `tools/probe/TransferPrivacyPinProbe.kt` (contrato actualizado), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (dedup fila stale c.1197 ABIERTA + marcadores delta). CERO producto de este lado.
 - NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK). Nunca force, nunca main.
 ---
-<<<<<<< HEAD
 
 ## c.1201 — 2026-08-26 (este lado) — CIERRE finanzas unidad (c)
 
@@ -39499,3 +39498,14 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Colisiones: ninguna — cambio disjunto por dominio, canario `RunContextIntentEngineRecargaTarjetaFloorTest` verde
 - Lección: pre-commit pin del hermano me habría exitado por misma clase; gate c.751 fue la clave que CAMP ciertas formas monoléxicas
 - Delta (post-empuje, colisión calculada): el remoto avanzó durante mi cierre (hermano fe13c4a4 «c.1198 recargar» + 84773ab4 «c.1198b consolidación pin»). Rebase seguro: putscolits el motor adopta su forma equivalente (lockstep conservado); pin privacidad mío ELIMINADO respetando su canalón (19 tests); re-verificado ESTADO FUSIONADO: suite UNIÓN OK (**9816**, JVM), smokes 25/25 + 9/9, sonda persistida 23/23 contrato exacto. Head final: pendiente de delta-commit docs
+
+## Delta — 2026-08-26 (c.1199 — segundo empuje: merge con c.1201 del hermano + re-tensión del guard bivalente)
+
+- Segundo `git push` rechazado (non-fast-forward): hermano aterrizó `035ab2a4` (c.1201 «adelantar la mensualidad») unificando `PAYMENT_VERBS = pagar|recargar|adelantar` y plantilla `(pagar|recargar|adelantar) (.+)` [forma equivalente; subsumido mi lockstep].
+- Rebase seguro completado (sin force): motor adopta la forma fusionada-unificada del hermano; union-resolution en RUN_LOG/CURRENT_STATE (marcadores literales purgados).
+- Regresión detectada en estado fusionado (suite 9822, 1 fallo): guard bivalente reabierto — «recargar la página web» volvía a PAYMENT (mi pin `RecargaTarjetaFloorTest.bivalente` RED). El refactor hermano trataba «recargar» como genérico por `\s+\w`.
+- Fix mínimo: «recargar» EXCLUIDO del `PAYMENT_FLOOR` general (queda en `RECARGA_TARJETA_FLOOR` acotado a «tarjeta(s)»); «pagar|adelantar» intactos. Comentario de bloqueo documentado.
+- Re-verificación estado fusionado: suite UNIÓN **OK (9822 tests, JVM)**; smokes 25/25 + 9/9; sonda persistida `tools/probe/FinanzasRecargaProbe.kt` 23/23 (C1–C4 PAYMENT HIT, G1–G3 + G4–G6 NULL guards restaurados, W1–W2 envolvente intacta, P1–P2 pin privacidad NULL, A1–A2 «adelantar» del hermano HIT, regresiones R1–R5 HIT).
+- Marcador del hermano «EN CURSO c.1201 sacar el billete de tren mañana» INTACTO (no tocar).
+- Head final: pendiente de este commit docs.
+
