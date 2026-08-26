@@ -19605,6 +19605,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: (este run) addendum test-only c.1178-colisión + este RUN_LOG.
 - **Próxima prioridad**: completar c.1186 (EN CURSO de este lado — «hacer el check-in del hotel» del piso c.1140, PRE medido por el run anterior, implementación pendiente) o c.1185 («el CV»). Después: laterales P2 de las filas c.1176/c.1178 (suegros/esposa, UNA por ciclo si demanda).
 - Nunca force, nunca main, cero pérdida de trabajo válido.
+
+
+---
+
+## 2026-08-26 — ciclo c.1192 «objeto whatsapp del piso responder»
+
+- HEAD inicial: ab4e253 (post-rebase+push de c.1187).
+- Fase PRE: sonda persistida `tools/probe/ResponderWhatsappObjectProbe.kt` medida NULL 5/5 candidatas (con guardas 5/5 NULL correctos: negación, pasado, 3ª persona recibida, sustantivo aislado, rama bivalente «responder a la pregunta») y regresiones 4/4 HIT (responder c.860/c.1182, contestar c.1177/c.1187).
+- TDD RED: clase `ContextIntentEngineResponderWhatsappObjectTest.kt` (13 tests) → RED exacto = 5 fallos / 9687 tests (9674+13).
+- GREEN: lockstep 2 puntos en `ContextIntentEngine.kt` — (1) objeto `whatsapps?` en el piso «responder…» de `hasStrongTaskImperative`; (2) mismo objeto en la plantilla `matchResponderCorreo`. Keyword-OBJETO «whatsapp» ya llegaba vía c.1177 — NULL por piso, no por keyword (lección c.751).
+- POST: suite UNIÓN (solicita nueva re-suite por los rebase mid-cycle) 9687/9687 OK + sonda POST 5/5 HIT + smokes 25/25 + automation 9/9.
+- Hermana ABIERTA registrada: grafías «wasap/wassap».
+- NO VERIFICADO: gradle/Android SDK/lint/assemble/UI/Room con DAOs reales.
+- Commit: pendiente (a continuación).
 ## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
 ## Cierre real c.1190 (renum de c.1185 propio) — push retrasado por colisión de numeración
 

@@ -2846,7 +2846,12 @@ object ContextIntentEngine {
             // SÍ capturaba c.860). Lockstep con plantilla + keyword-OBJETO «mail»
             // (subcadena; cubre plural; sola inerte < umbral, lección c.751).
             // Hermana NO implementada (UNA por ciclo): «contestar el mail».
-|| Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?)\b""").containsMatchIn(lower)
+            // c.1192: objeto «whatsapp» (hermana ABIERTA documentada en el
+            // KDoc; sonda PRE persistida `ResponderWhatsappObjectProbe.kt`
+            // medida NULL 5/5; keyword-OBJETO «whatsapp» llega desde c.1177,
+            // NULL por piso). Lockstep con la plantilla matchResponderCorreo.
+            // Hermana NO implementada (UNA por ciclo): grafías «wasap/wassap».
+|| Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?)\b""").containsMatchIn(lower)
             // c.861 (candidata 3/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD b4e12fb,
@@ -5374,7 +5379,7 @@ object ContextIntentEngine {
                 // bivalente "responder en el examen…" nunca llega aquí
                 // porque el piso no lo captura). La grafía del usuario se
                 // preserva (doctrina c.653).
-                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchResponderCorreo != null) return "Responder ${matchResponderCorreo.groupValues[2]}"
                 // c.861: plantilla «contestar a <persona>» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
