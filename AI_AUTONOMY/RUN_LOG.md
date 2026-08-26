@@ -39343,3 +39343,13 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: descubrimiento (a) ABIERTA → c.1196. Audit cerrada (c.822 docs-only).
 - Smoke dominio 25/25 re-medido; suite no aplicada (docs-only).
 - Próxima prioridad: c.1196 fix «castrar» mascota (disjunto hermano c.1193 temporal).
+
+---
+## 2026-08-26 run — c.1190 CIERRE/post-merge recuperación + LIMPIEZA + VALIDACIÓN
+- HEAD inicial: 17d6a95; HEAD final: bb19e9f
+- Trabajo: recuperación de merge (RUN_LOG inflado a 126MB por union bidireccional): re-sincronizado sobre remoto (HEAD remoto ya contenía c.1188/c.1190/c.1191 integrados por el hermano), rama local obsoleta descartada.
+- Limpieza: marcadores literales (<<<<<<< / >>>>>>>) eliminados de BACKLOG/RUN_LOG/CURRENT_STATE (lección c.1078). Commit bb19e9f.
+- Tests: tools/run_domain_tests.sh OK (9765 tests) sobre HEAD remoto integrado.
+- NO VERIFICADO SDK/Gradle/UI.
+- c.1191 (b) FIXED+VERIFIED en backlog remoto. Sin código nuevo.
+- Estado: VERIFIED (tests), NO VERIFICADO SDK/Gradle/UI.
