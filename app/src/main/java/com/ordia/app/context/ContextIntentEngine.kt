@@ -1545,6 +1545,26 @@ object ContextIntentEngine {
     private val NOTE_FLOOR =
         Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:(?:apuntar|anotar)\s+\w|apuntarse\s+a(?:l| la| los| las)?\s+\w)""")
 
+    // Rama CONJUGADA del piso de NOTA (c.1260, descubrimiento c.1255):
+    // imperativo 2ª persona «anota|apunta <objeto>» (la orden de captura más
+    // natural en dictado: «apunta este número», «anota la dirección»). Sonda
+    // PRE `tools/probe/AnotaApuntaImperativoProbe.kt`: 8/8 directas NULL
+    // («anota» recibe score por la keyword «nota» subcadena pero sin piso
+    // queda < [MINIMUM_CONFIDENCE]; «apunta» ni keyword tiene) → olvido
+    // silencioso P1. Ancla SOLO ^|ACUSE (a diferencia de la hermana
+    // infinitiva, el prefijo temporal queda FUERA: «el lunes anota todo» es
+    // 3ª-persona habitual ambigua, no imperativo). `\s+\w` exige objeto y el
+    // lookbehind `(?<!no )` bloquea la negación inmediata; las formas de
+    // pretérito («anoté»/«anotó»/«apunté»/«apuntó») y subjuntivo («anotes»)
+    // no casan por terminación. El sentido «apuntar = dirigir» («apunta al
+    // blanco») es FP-paridad heredada del infinitivo c.714 (misma forma ya
+    // casaba vía «apuntar\s+\w»). CERO keywords nuevas (gate c.751:
+    // floor-only, paridad c.1231/c.1256; «anota» recibe «nota» por subcadena
+    // gratis). Registrado en [WRAPPABLE_PATTERNS] por la lección
+    // c.648/c.652 (piso y guard de envolvente comparten patrón).
+    private val NOTE_IMPERATIVE_FLOOR =
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )(?:anota|apunta)\s+\w""")
+
     // Regex del piso de PAGO (c.630 inicio, c.651 acuse, c.746 prefijo
     // temporal): "pagar <objeto>" es un imperativo de pago inequívoco en
     // cualquiera de las tres posiciones. c.746 cerró un olvido silencioso
@@ -1732,7 +1752,7 @@ object ContextIntentEngine {
         ContextIntentKind.APPOINTMENT to APPOINTMENT_SPECIFIC,
         ContextIntentKind.CALL to CALL_SPECIFIC,
         ContextIntentKind.DEADLINE to DEADLINE_FLOORS,
-        ContextIntentKind.NOTE to listOf(NOTE_FLOOR),
+        ContextIntentKind.NOTE to listOf(NOTE_FLOOR, NOTE_IMPERATIVE_FLOOR),
         // c.1199: RECARGA_TARJETA_FLOOR registrado para que la envolvente
         // («avísame mañana recargar la tarjeta») active TASK/REMINDER y no
         // robe el kind a PAYMENT (lección c.648/c.652).
@@ -4504,9 +4524,11 @@ object ContextIntentEngine {
      * deliberación contra TASK — "apuntar"/"anotar" es el verbo canónico de la
      * nota útil y downstream se materializa como entidad NOTE, no como tarea.
      * c.856: el piso incluye la rama reflexiva «apuntarse a <actividad>».
+     * c.1260: y la rama conjugada «anota|apunta <objeto>»
+     * ([NOTE_IMPERATIVE_FLOOR], ancla solo ^|ACUSE).
      */
     private fun hasStrongNoteImperative(lower: String): Boolean =
-        NOTE_FLOOR.containsMatchIn(lower)
+        NOTE_FLOOR.containsMatchIn(lower) || NOTE_IMPERATIVE_FLOOR.containsMatchIn(lower)
 
     /**
      * Detecta si el imperativo del [kind] está SUBORDINADO a un imperativo
@@ -7140,6 +7162,12 @@ object ContextIntentEngine {
                 // el usuario (doctrina c.653) → "Apuntarse al gimnasio".
                 val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apuntar|anotar|apuntarse)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
+                // c.1260: plantilla lockstep de la rama conjugada
+                // ([NOTE_IMPERATIVE_FLOOR], lección c.616): MISMAS anclas del
+                // piso (^|ACUSE, temporal FUERA) y verbo preservado tal como
+                // lo dijo el usuario (doctrina c.653) → "Anota la dirección".
+                val matchConjugated = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )(anota|apunta)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchConjugated != null) return "${capitalizeFirst(matchConjugated.groupValues[1])} ${matchConjugated.groupValues[2]}"
                 null
             }
             else -> null
