@@ -131,12 +131,17 @@ class ContextIntentEngineLlevarMiHijoEscuelaFloorTest {
         assertNull(intent)
     }
 
+    // RE-PIN legítimo c.1176 (doctrina c.1133/c.1141/c.1144/c.1172): el
+    // pin NULL original se pineó cuando el objeto hij[oa]s? del piso
+    // médico aún no estaba cerrado; c.1176 cerró exactamente esa forma.
     @Test
-    fun `pin mi hijo al medico fuera`() {
+    fun `repin mi hijo al medico captura c1176`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi hijo al médico mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mi hijo al médico", intent.title)
     }
 
     @Test

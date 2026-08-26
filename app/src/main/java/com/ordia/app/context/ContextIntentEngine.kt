@@ -655,7 +655,13 @@ object ContextIntentEngine {
     // Lockstep piso↔plantilla matchMedicalRun (lección c.616); CERO
     // keywords nuevas. UNA forma por ciclo: familia de destinos AGOTADA.
     private val ERRAND_MEDICAL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])\b""")
+        // c.1176: objeto hij[oa]s? (lateral espejo registrada al cerrar
+        // c.1172 — el alternador ya admitía mi|tu|su desde c.776 pero el
+        // objeto era SOLO niñ[oa]s?; asimetría con el piso escolar c.1172
+        // y el aeropuerto c.1158). «llevar a mamá al médico» (otro
+        // parentesco) sigue FUERA pineado (c.776 deliberado). Lockstep
+        // con matchMedicalRun (lección c.616). CERO keywords nuevas.
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?)\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])\b""")
     // Piso transportativo de VIAJE familiar (c.1158, candidata (d) de la
     // auditoría c.1137, clase DECIMOSEXTA — HALLAZGO inesperado R8 de la
     // sonda persistida `tools/probe/SixteenthClassTravelProbe.kt`): «llevar
@@ -5921,8 +5927,10 @@ object ContextIntentEngine {
                 // mi niña…" — el piso admite el posesivo singular mi/tu/su),
                 // residuo temporal de cola depurado por [sanitizeTitle]; el
                 // match arranca en el verbo (lección c.616).
+                // c.1176: lockstep con el piso — objeto hij[oa]s?
+                // (sub-patrón c.1158 acotado a parentesco nuclear menor).
                 val matchMedicalRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?)\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta|pediatra|dermatólog[oa]|psicólog[oa]|ginec[oó]log[oa])).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchMedicalRun != null) {

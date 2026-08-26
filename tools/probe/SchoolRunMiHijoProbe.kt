@@ -65,7 +65,8 @@ fun main() {
 
     // Pines anti-overreach: NULL esperado (fuera del alcance acotado).
     check("P2", "llevar a mi hija a la fiesta de cumpleaños el sábado", false, misses)
-    check("P3", "llevar a mi hijo al médico mañana", false, misses)
+    // RE-PIN legítimo c.1176: cerrada exactamente esa forma.
+    check("R7", "llevar a mi hijo al médico mañana", true, misses)
     check("P6", "llevar a mi mujer al colegio mañana", false, misses)
 
     // Regresión PRE-existente: el piso aeropuerto c.1158 ya admite el
