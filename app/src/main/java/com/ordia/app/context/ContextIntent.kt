@@ -741,8 +741,17 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword↔piso↔título; verbos bivalentes acotados al OBJETO —
         // familia NOVENA 5/8) y el verbo inequívoco `descongelar`
         // (familia "cocinar" posición libre).
+        // c.1212: keyword-OBJETO «hierbas» (lockstep con el piso
+        // `quitar (las) (malas) hierba(s)` — gap (a) de la auditoría
+        // clase VIGESIMOSÉPTIMA; precedente c.717/c.728/c.729/c.732
+        // «polvo»/«mesa»). La subcadena cubre el singular
+        // («ruedas»→«rueda» c.1082). 0.12 sola queda bajo el umbral:
+        // «las hierbas aromáticas son ricas» sigue descartado
+        // (canary en `ContextIntentEngineQuitarHierbasTest`). El verbo
+        // «quitar» NO se añade (bivalente — el polvo/la mesa/el zapato;
+        // piso ya acotado por objeto disjunto).
         "cena", "comida", "almuerzo", "desayuno", "merienda", "descongelar",
-        "basura", "cama", "lavadora", "césped", "polvo", "mesa",
+        "basura", "cama", "lavadora", "césped", "polvo", "mesa", "hierbas",
         // c.758: objeto del piso `pintar la(s) casa(s)` (lockstep
         // keyword↔piso; "pintar" suelto es bivalente — un cuadro/la
         // veranda — así se alinea el OBJETO restringido, sonda

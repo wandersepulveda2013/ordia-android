@@ -250,6 +250,26 @@ object ContextIntentEngine {
     // no casa.
     private val HOUSEHOLD_CLEAR_TABLE_FLOOR =
         Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+)?mesas?\b""")
+    // Piso faena doméstica "quitar las malas hierbas / quitar la hierba"
+    // (c.1212 — gap (a) de la auditoría clase VIGESIMOSÉPTIMA, sonda
+    // PRE `QuitarHierbasProbe.kt`: NULL medido; segunda sonda del
+    // dominio a propósito, hermano de `PodarRosaSetosProbe.kt` c.1211):
+    // desherbar es la jardinería tras podar/cortar césped. "quitar"
+    // suelto es bivalente (el polvo piso DUST c.732 / la mesa piso
+    // CLEAR_TABLE c.754 / el zapato), así se ACOTA al objeto
+    // `(?:malas?\s+)?hierbas?` (familia de pisos «quitar» por objeto
+    // disjunto — interop: objetos mesa(s)/polvo(s)/hierba(s) sin solape).
+    // Lockstep c.751/c.829: keyword-OBJETO «hierbas» añadida en
+    // ContextIntent.HOUSEHOLD (sin ella la notificación sin palabra
+    // gatillo ni llega al análisis en producción; subcadena cubre el
+    // singular, precedente «ruedas»→«rueda» c.1082). El VERBO «quitar»
+    // NO se añade (bivalente — precedente c.732/c.754). `\b` final:
+    // "hierbajillo"/"hierbabuena" no casan (canaries en el test);
+    // guard de negación heredado de la familia (?<!no ). El futuro
+    // «quitaré…» queda FUERA (pin en el test, misma lateral que
+    // «poda» c.1211).
+    private val HOUSEHOLD_WEED_FLOOR =
+        Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:malas?\s+)?hierbas?\b""")
     // Piso faena doméstica "sacar al perro" (c.740, primera mascota del
     // dominio — sonda NUEVA `FourthClassVerbDiscoveryProbe.kt` c.740,
     // paralela a Chore c.734): el quehacer diario con mascota canónico.
@@ -540,7 +560,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -5933,6 +5953,19 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchQuitarMesa != null) {
                     return "${capitalizeFirst(matchQuitarMesa.groupValues[1])} ${matchQuitarMesa.groupValues[2]}"
+                }
+                // "quitar (las) (malas) hierba(s) …" → "Quitar las malas
+                // hierbas …" (c.1212): verbo preservado y objeto restringido
+                // como en [HOUSEHOLD_WEED_FLOOR] (tercer piso de la familia
+                // «quitar» por objeto disjunto: polvo c.732 / mesa c.754 /
+                // hierbas aquí — no colisionan). Alternancia de artículo
+                // ARTÍCULO DIRECTO como en el piso (mi|tu|su, c.756).
+                val matchQuitarHierbas = Regex(
+                    """\b(?<!no )(quitar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:malas?\s+)?hierbas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchQuitarHierbas != null) {
+                    return "${capitalizeFirst(matchQuitarHierbas.groupValues[1])} ${matchQuitarHierbas.groupValues[2]}"
                 }
                 // Piso "sacar al perro" (c.740; c.756 añade artículo
                 // directo; c.1050 extiende el objeto mascota a gato,

@@ -41219,3 +41219,13 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Commits**: 2 (marker docs + feat fix con tests + docs finales).
 - **HEAD final**: a fijar en el commit (push normal, sin force).
 - **Próxima prioridad (sugerida, la toma el siguiente run; discreta y disjunta)**: laterales ABIERTAS de MIS cierres (podar árbol(es)/arbusto(s) promocionable a candidata real, plantar/quitar-hierbas/trasplantar/echar-fertilizante/cubrir-del-frío/muebles-terraza) o nueva auditoría VIGESIMONOVENA (buscar clase sin audit). Determinista (regex), cero random, cero IA fingida, cero UI.
+- **2026-08-26 (c.1214 «quitar (las) (malas) hierbas» — lateral ABIERTA hermano c.1211, hiatus XXVII)**
+- **HEAD inicial**: e56897b (clon; marcador «plantar» huérfano no-commiteado retirado).
+- **Problema**: frases jardinería canónicas «quitar (las) (malas) hierba(s)» descendían a NULL silencioso mientras hermanas de la familia «quitar» («polvo» c.732, «mesa» c.754) capturaban — asimetría de objeto disjunto, olvido silencioso P1.
+- **Solución (lockstep TRES puntos, lección c.616/c.751, doctrina c.653)**: piso `HOUSEHOLD_WEED_FLOOR` (mi|tu|su artículos + cualificador «malas» opc. + `\b` final) en lista maestra `HOUSEHOLD_FLOORS`; keyword-OBJETO «hierbas» en ContextIntent (verbo «quitar» NO añadido por bivalente); plantilla `matchQuitarHierbas`.
+- **Evidencia**: sonda PRE/POST persistida `tools/probe/QuitarHierbasProbe.kt` — PRE 6/6 capturas A1–A6 NULL, guards G1–G4 NULL, regresiones R1–R3 HIT → POST A1–A4 HIT HOUSEHOLD 0.45 títulos limpios, A5 «quitaré…»/A6 «hierbajillo» laterales NULL pineados.
+- **Tests**: TDD estricto, 14 tests NUEVOS `ContextIntentEngineQuitarHierbasFloorTest.kt`; suite UNIÓN FINAL **OK (9938 = 9924 + 14 — aritmética exacta)**; smokes dominio 25/25. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Anti-colisión**: re-fetch detectó hermanos c.1212 «coser el botón» y c.1213 «podar árbol» (docs-only) — renumerado a c.1214; rebase seguro.
+- **Commits**: en el commit de cierre (push normal, sin force).
+- **HEAD final**: a fijar en el commit.
+- **Próxima prioridad (sugerida)**: laterales ABIERTAS del hermano c.1211 — «plantar tomates», «trasplantar», «echar fertilizante/abono», «cubrir plantas del frío», «sacar muebles a la terraza» (abrir marcador antes de tocar; discreta y disjunta).
