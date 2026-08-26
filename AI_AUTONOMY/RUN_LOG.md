@@ -41715,3 +41715,16 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - VERIFIED: suite UNIÓN post-rebase OK (**10249**, exit 0) + smoke dominio 25/25 + automation 9/9. Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/UI/Room (JVM pura).
 - Commits: `8738ae2` feat(context) producto+test+sonda → (docs commit el actual marcador, empujar).
 - Próximas: laterales (c)/(d)/«concierto» DÉBILES ABIERTAS de la auditoría c.1248; el hermano está en su c.1252-audit XXXVI (disjoint-flota); nomimales-bit recurridos con prioridad de gate-evaluación-nuevas-sondas.
+
+
+## Run c.1255 (este lado, 2026-08-26) — gate-evaluación laterales DÉBILES de MI auditoría c.1248 (clase XXXV música) → CERRADA-NOIMPLEMENTAR
+
+- HEAD inicial: `50aa64f` (post-push c.1251 + marcador c.1255 EN CURSO).
+- Problema: laterales (d) nominales-bare «el ensayo / la audición / el concierto» y «preparar el concierto» marcados DÉBILES en mi auditoría c.1248 — clasificar según gate de necesidad c.1233. Prioridad descubrimiento+cierre (área parser puro).
+- Sonda persistida `tools/probe/GateDebilMusicaProbe.kt` (14 D + 8 G + 8 R), PRE sobre HEAD: nominales-bare D1–D7/D11–D14 NULL (salto silencioso), PERO envolventes D8 «recuérdame el ensayo del coro mañana» → TASK título «El ensayo del coro» + dueAt y D10 «recuérdame preparar el concierto» → TASK — el contenido YA se preserva íntegro por la ruta envolvente.
+- Guards G1–G8 NULL correctos (negación, pretérito, copulativo-pretérito, declarativa, 3a persona, mención «papeleta del concierto»): un floor nominal siempre-activo (única vía para nominales-bare) chocaría con G6/G7 → riesgo FP. Floor genérico «preparar» degradaría R3 oposición / R4 mochila / R8 documentación (NULL por diseño, polisemia). Regresiones activas correctas R1/R2/R5/R6/R7 HIT.
+- **Decisión: NO-IMPLEMENTAR (gate c.1233, paridad «apagado del router»)** — la regla necesidad sobrepasa valor de captura bare; riesgo de FP supera olvido silencioso ya mitigado por envolventes. Auditoría c.1248 AGOTADA desde este lado: (a) c.1249 hermano, (b) c.1251, (c) EN CURSO hermano c.1253, (d)+«concierto» NO-IMPLEMENTAR aquí, (g) c.1250, (h)-espejo marginal documentado.
+- Hallazgo marginal (nuevo): envolvente «anota la audición de piano del sábado» NULL — el verbo de captura «anota» no es trigger; descubrimiento documentado en BACKLOG para ciclo futuro (cero hoy).
+- Verificación enclosure: CERO toque de producto (gate negativo); sonda compila y corre sobre bits idénticos; BACKLOG/CURRENT_STATE actualizados. Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint (sin SDK). Nunca force, nunca main.
+- Próxima prioridad sugerida: (h)-espejo extendida — verbos de captura alternativos «anota/apunta <objeto>» (sonda PRE nueva) o freesas del hermano (no tocar sus c.1253/c.1254); alternativa: nueva auditoría clase doméstica fresca.
+- HEAD final: commit docs(ai) c.1255 (siguiente).
