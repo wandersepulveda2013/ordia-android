@@ -19315,3 +19315,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Laterales ABIERTAS (BACKLOG/UNA por ciclo): subjuntivo «haga la mudanza», 3ª persona «hará la mudanza».
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK).
 - HEAD final: este commit.
+- POST-INTEGRACIÓN (2 rebases NO-destructivos, estrategia UNIÓN en docs; código del hermano c.1172/c.1176 DISJUNTO del mío): suite UNIÓN final OK (9565 = 9531 + 17 c.1172 + 17 c.1176, aritmética exacta), smoke 25/25. HEAD final tras push: `b4027576`.
