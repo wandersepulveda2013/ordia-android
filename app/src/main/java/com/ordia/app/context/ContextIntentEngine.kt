@@ -386,6 +386,16 @@ object ContextIntentEngine {
     // c.740); guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_FEED_CAT_FLOOR =
         Regex("""\b(?<!no )alimentar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)gat[oa]s?\b""")
+    // Piso faena doméstica "guardar (la|las|mis)? ropa(s)…" (c.1222 —
+    // lateral (e) de la auditoría c.1209 clase VIGESIMOCTAVA ROPA/
+    // VESTIMENTA). Verbo bivalente «guardar» (digital/TI: documentos,
+    // archivo) acotado al OBJETO vía keyword-OBJETO heredada «ropa»
+    // (c.743 → gate c.751 satisfecho; familia ROPA colgar/doblar/
+    // coser-botón/guardar). Artículos/posesivos como el piso colgar
+    // (c.756). Guard negación heredado (?<!no ). El pretérito
+    // «guardé…» queda FUERA (pin en el test).
+    private val HOUSEHOLD_STORE_CLOTHES_FLOOR =
+        Regex("""\b(?<!no )guardar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|mis\s+)?ropas?\b""")
     // Piso mascota "llevar al perro al veterinario" (c.747 provisional,
     // mascota 3/8 → 4/8 en c.755 con el gato — sonda
     // `FourthClassVerbDiscoveryProbe.kt` c.740,
@@ -626,7 +636,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6002,6 +6012,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchColgar != null) {
                     return "${capitalizeFirst(matchColgar.groupValues[1])} ${matchColgar.groupValues[2]}"
+                }
+                // "guardar (la|las|mis)? ropa(s)…" → "Guardar la ropa…"
+                // (c.1222, lateral (e) de la auditoría c.1209 clase
+                // VIGESIMOCTAVA ROPA/VESTIMENTA; lockstep con
+                // [HOUSEHOLD_STORE_CLOTHES_FLOOR]): verbo preservado,
+                // objeto restringido como en matchColgar arriba; el match
+                // arranca en el verbo, así el acuse/prefijo temporal no
+                // ensucia el título (lección c.616). La bivalencia
+                // digital («guardar documentos/archivo») queda fuera por
+                // objeto (keyword heredada c.743).
+                val matchGuardar = Regex(
+                    """\b(?<!no )(guardar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|mis\s+|tu\s+|su\s+)?ropas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchGuardar != null) {
+                    return "${capitalizeFirst(matchGuardar.groupValues[1])} ${matchGuardar.groupValues[2]}"
                 }
                 // "coser (el|los)? botón(es) …" → "Coser el botón…" (c.1217,
                 // lateral (b) ABIERTA de la auditoría c.1209 clase

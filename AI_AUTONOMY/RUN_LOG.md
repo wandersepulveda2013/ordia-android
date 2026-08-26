@@ -1,3 +1,17 @@
+## 2026-08-27 — c.1222 CERRADO «guardar la ropa» (lateral ABIERTA (e) de MI auditoría c.1209, clase VIGESIMOCTAVA ROPA/VESTIMENTA)
+
+- HEAD inicial: `0361607` (marcador EN CURSO propio ya empujado; cero divergencia en este ciclo).
+- PRE (sonda persistida `tools/probe/GuardarRopaProbe.kt`, compilada con kit local: /tmp/kotlinc-home/kotlinc + 8 fuentes): 6/6 capturas A1–A6 NULL (gap); 4/4 guards G1–G4 NULL (pretérito «guardé», negación «no guardar», bivalentes-digitales «guardar documentos»/«guardar el archivo pdf»); 3/3 regresiones R1–R3 HIT (colgar c.743, lavar c.862, coser-botón c.1217).
+- RED exacto (tools/run_filtered_test.sh GuardarRopa): 12 tests, EXACTAMENTE 4 fallos (solo las 4 capturas); 8 pines NULL verdes desde RED.
+- Fix lockstep TRES puntos (lección c.616, gate c.751 con keyword-OBJETO «ropa» heredada c.743 — CERO keyword nueva; doctrina c.653 grafía preservada):
+  1. Piso NUEVO `HOUSEHOLD_STORE_CLOTHES_FLOOR` acotado al OBJETO `ropas?` (artículos/posesivos el|la|los|las|mi|tu|su|mis; guard `(?<!no )`; pretérito «guardé» FUERA) en `ContextIntentEngine` + lista maestra `HOUSEHOLD_FLOORS`.
+  2. Keyword-OBJETO «ropa» heredada (gate c.751 pre-satisfecho).
+  3. Plantilla `matchGuardar` en `extractTitle` (match arranca en el verbo; prefijo temporal «mañana», acuse «por favor» y «voy a» strip).
+- GREEN: `GuardarRopa` filtrado 12/12; suite UNIÓN **re-medida tras rebase con hermano c.1224 (primer-push-gana, precedente c.1211)** `run_domain_tests.sh` **OK (10064 = 10052 unión previa + 12 hermano — aritmética exacta, doble rebase con primer-push-gana hermano)**; smoke `run_domain_checks.sh` 25/25.
+- POST sonda: A1–A6 HIT HOUSEHOLD 0.45 títulos limpios («Guardar la ropa [en el armario|del pasillo]»), G1–G4 NULL pineados, R1–R3 byte-idénticos.
+- **NO VERIFICADO** gradle/lint/Android/UI/Room (sin SDK).
+- Próxima sugerida: laterales ABIERTAS del hermano c.1211 jardinería («cubrir las plantas del frío», «sacar los muebles a la terraza» — UNA por ciclo, marcador propio primero) o nueva AUDITORÍA clase VIGESIMONOVENA. Nunca force, nunca main.
+
 ## 2026-08-26 — c.1215 CERRADO «plantar (los) tomates/cultivo» (lateral ABIERTA del hermano c.1211 — audit clase XXVII jardinería) + marcador c.1218 ABIERTO
 
 - HEAD inicial: `e56897b` → (marcador hermano c.1215 pre-push ya estaba en remoto `dfa7196`; base adoptada segura).
