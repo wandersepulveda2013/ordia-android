@@ -10,7 +10,7 @@
 - Fix lockstep (lección c.616): `(?:curr[ií]culum|cv|informe|portfolio)` en `ERRAND_INTERVIEW_RUN_FLOOR` (línea 766) + plantilla matchInterviewRun (línea 6058); grafía preservada (c.653).
 - Re-pin legítimo (c.1168/c.1185): 3 guards «informe» NULL → captura (c.1174, c.1190, clase reflexiva c.1185).
 - Persistido `tools/probe/LlevarInformeEntrevistaProbe.kt` POST: T1-T4 HIT (T2 dueAt=true), G1-G3 NULL, R1-R3 HIT.
-- Verde: suite OK (9707) UNIÓN | smoke dominio 25/25 | automation 9/9 | gradle/lint/assemble NO VERIFICADO (sin SDK).
+- Verde inicial: OK (9707) — tras remeasure del árbol integrado con la feat simultánea del hermano (`fb90338`, 28 tests suyos), UNIÓN FINAL **OK (9735)** | smoke dominio 25/25 | automation 9/9 | gradle/lint/assemble NO VERIFICADO (sin SDK).
 - Commit: (se actualiza tras push).
 - Próxima prioridad: lateral (c) «mi entrevista» destino posesivo (si no la toma el hermano), o nueva clase probe (P0 ahorita none).
 >>>>>>> 7c74411 (feat(context): piso entrevista captura «el informe|portfolio» (c.1191) — lockstep piso+plantilla, re-pin legítimo 3 pins invertidos a captura; POST probe persistido; RED 4 → GREEN 9707)
