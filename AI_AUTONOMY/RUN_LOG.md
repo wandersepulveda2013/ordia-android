@@ -19555,7 +19555,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 **Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
 **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
-<<<<<<< HEAD
 
 ## 2026-08-25 — ciclo c.1187 (este lado, OpenHands)
 
@@ -39343,6 +39342,7 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: descubrimiento (a) ABIERTA → c.1196. Audit cerrada (c.822 docs-only).
 - Smoke dominio 25/25 re-medido; suite no aplicada (docs-only).
 - Próxima prioridad: c.1196 fix «castrar» mascota (disjunto hermano c.1193 temporal).
+<<<<<<< HEAD
 
 ---
 ## 2026-08-26 run — c.1190 CIERRE/post-merge recuperación + LIMPIEZA + VALIDACIÓN
@@ -39369,3 +39369,11 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineWasapGrafiasFloorTest.kt (9 tests), tools/probe/WasapGrafiasProbe.kt, AI_AUTONOMY.
 - ABIERTAS que quedan: (b) «responder el mail» [lateral], (e) residual «ahora» en título contestar (coordinar con hermano c.1194 parser-residual).
 - NO VERIFICADO: gradle/Android/UI.
+## 2026-08-26 — ciclo c.1197 (AUDITORÍA — CERO producto) — este lado
+
+- HEAD base: 38e013b → (rebase + marcador) → audit c.1197 clase VIGESIMOTERCERA finanzas domésticas.
+- Sonda efímera /tmp/TwentyThirdClassFinanceProbe.kt (14 candidatas, 8 regresiones, 8 controles): 11/14 HIT cobertura heredada; gaps NULL: (a) FUERTE «hacer la transferencia al casero el lunes», (b) «recargar la tarjeta el lunes», (c) «adelantar la mensualidad del coche». Root-cause común: keyword único < gate c.751.
+- Regresiones UNIÓN 8/8 HIT (pagar-luz PAYMENT, hijo-médico ERRAND, haré-mudanza TASK, llamar-mamá CALL, leche SHOPPING, basura HOUSEHOLD, currículum-entrevista ERRAND, médico APPOINTMENT). Controles 8/8 NULL correctos.
+- Decision: (a),(b),(c) ABIERTAS → c.1198+ (UNA por ciclo). Audit CERRADA (convención c.822/c.1173).
+- Smoke dominio 25/25 re-medido; suite UNIÓN 9765 OK medida PRE-audit.
+- Próxima prioridad: (a) «hacer la transferencia» (del hermano o este lado) — piso «hacer X» acotado.
