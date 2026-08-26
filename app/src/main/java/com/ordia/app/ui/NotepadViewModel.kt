@@ -14,6 +14,7 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun save(title: String, content: String, existingId: Long? = null) {
+        if (existingId == null && title.isBlank() && content.isBlank()) return
         viewModelScope.launch {
             if (existingId != null) {
                 val current = repo.get(existingId)
@@ -29,6 +30,11 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
 
     fun delete(note: NoteEntity) {
         viewModelScope.launch { repo.delete(note) }
+    }
+
+    /** Reinserts a previously deleted note, keeping its original id. */
+    fun restore(note: NoteEntity) {
+        viewModelScope.launch { repo.save(note) }
     }
 
     fun togglePinned(note: NoteEntity) {
