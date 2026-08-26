@@ -41742,3 +41742,17 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca main.
 - Próxima prioridad: laterales ABIERTAS de MI auditoría c.1252 — (b) manicura/pedicura/uñas/cejas MEDIA, (c) depilación/cera MEDIA, (d) barba DÉBIL, (e) tinte/tratamiento facial DÉBIL; o toma de marcador hermano si se libera. Primer-marcador-gana (c.1077).
 - HEAD final: commit c.1256 (siguiente).
+
+## Run c.1257 (este lado, 2026-08-26) — FIXED+VERIFIED: MEDIA lateral (b) «manicura/pedicura» de MI auditoría c.1252 (clase XXXVI belleza/cuidado personal)
+
+- HEAD inicial: `bd1e850` (post-push c.1256).
+- Problema: nominal de servicio «(la |mi )?(manicura|pedicura)» («la manicura el viernes», «cita en la pedicura el jueves», «mi manicura») era NULL — olvido silencioso P1: la sesión de cuidado dicha como se habla no se persistía. Prioridad P1 (evitar olvidos; captura pasiva). Kind hermano de c.1256 → ERRAND (desplazamiento a la sesión).
+- Causa raíz: el nominal no era piso ni keyword (gate c.751: monosemántico-servicio — la manicura/pedicura es sesión inequívoca de cuidado; CERO keyword nueva — floor-only, paridad «partido» c.1231 / «peluquería» c.1256).
+- Solución (lockstep, lección c.616; determinista regex, cero random, cero IA fingida): el piso c.1256 se RENOMBRA a `ERRAND_BEAUTY_RUN_FLOOR` (la clase cubre ya lugar+servicio de belleza) y se EXTIENDE con `manicura|pedicura`; la plantilla `matchBeautyRun` (renombrada) se extiende (el match arranca en el nominal — el acuse/prefijo «cita en…» no ensucia el título; residuo temporal de cola depurado por `sanitizeTitle`); la guard `pastErrandCopulaGoverns` cubre los nuevos nominales por la MISMA constante: «la manicura fue ayer» → NULL. «Uñas»/«cejas» FUERA (partes corporales polisémicas — gate c.751, sonda G2 NULL).
+- Sonda persistida `tools/probe/ManicuraPedicuraProbe.kt` — PRE (HEAD bd1e850, sonda efímera /tmp/probe1257): T1–T6 NULL, G1–G4 NULL, R1–R7 HIT. POST: T1–T6 HIT ERRAND con título limpio («Manicura»/«La manicura»/«Mi manicura»/«La pedicura») y dueAt=true; G1 «no voy a la manicura mañana» NULL ([planWrapperIsNegated]); G2 «las uñas pintadas» NULL (corporal polisémico, excluido por diseño); G3 «la manicura fue ayer» NULL (guard c.1256 extendida por la misma constante); G4 «fui a la manicura ayer» HIT — FP ACEPTADA con paridad hermana c.1256 («fui a (la) peluquería ayer») — lateral ABIERTA documentada; R1–R7 HIT (regresiones intactas, incl. R7 hermana c.1256).
+- TDD estricto: 12 tests nuevos `ContextIntentEngineManicuraPedicuraFloorTest.kt` (6 capturas + 3 guards + 3 regresiones); RED exacto 6 fallos → GREEN; hermanas c.1256 12/12 intactas tras el renombre.
+- VERIFIED: `bash tools/run_filtered_test.sh ContextIntentEngine` → **OK (4610 tests, 326 clases, exit 0)**; `bash tools/run_domain_checks.sh` → 25/25; sonda POST compilada y ejecutada. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK, JVM pura).
+- Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca main.
+- Commits: `91c89d2` feat(context) c.1257 → (docs commit el actual marcador).
+- Próxima prioridad: laterales ABIERTAS de MI auditoría c.1252 — (c) depilación/cera MEDIA, (d) barba DÉBIL, (e) tinte/tratamiento facial DÉBIL; o toma de marcador hermano si se libera. Primer-marcador-gana (c.1077).
+- HEAD final: commit docs c.1257 (siguiente).
