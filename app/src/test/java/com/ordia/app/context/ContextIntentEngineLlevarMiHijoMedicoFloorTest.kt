@@ -137,12 +137,18 @@ class ContextIntentEngineLlevarMiHijoMedicoFloorTest {
 
     // ---- Pines anti-overreach (NULL deliberado) ----
 
+    // RE-PIN legítimo c.1178 (doctrina c.1133/c.1141/c.1144/c.1172): el
+    // pin NULL se pineó al cerrar c.1176 por anti-overreach (una forma
+    // por ciclo); c.1178 cerró exactamente esa forma (parentesco adulto
+    // directo mamá|papá|madre|padre).
     @Test
-    fun `pin otro parentesco mama fuera`() {
+    fun `repin mama medico captura c1178`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mamá al médico mañana", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mamá al médico", intent.title)
     }
 
     @Test

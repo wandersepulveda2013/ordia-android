@@ -57,7 +57,8 @@ fun main() {
 
     // Pines anti-overreach: NULL esperado (fuera del alcance acotado).
     // P1: otro parentesco — FUERA deliberado c.776 («llevar a mamá…»).
-    check("P1", "llevar a mamá al médico mañana", false, misses)
+    // RE-PIN legítimo c.1178: cerrada exactamente esa forma.
+    check("R7", "llevar a mamá al médico mañana", true, misses)
     // P2: destino no médico con objeto hijo (sin piso aplicable).
     check("P2", "llevar a mi hijo al banco mañana", false, misses)
 
