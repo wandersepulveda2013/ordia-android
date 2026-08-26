@@ -39338,3 +39338,11 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 
 ## c.1188 (2026-08-26, este lado) — «hago el curso» FIXED VERIFIED
 **Ciclo:** c.1188. Lateral del piso c.1152 — presente 1ª persona «hago el curso…» NULL→TASK 0.45. Lockstep piso+plantilla matchHacerCurso (verbo capturado). TDD 22 tests RED 6 → GREEN 22/22. Re-pin legítimo del pin NULL del hermano c.1152 invertido a captura. Sonda POST persistida HagoCursoProbe.kt 0 misses. UNIÓN re-medida OK. Determinista, IA honesta. **NO VERIFICADO:** Android/gradle. Nunca force, nunca main.
+
+## 2026-08-26 — ciclo c.1195 (AUDITORÍA — CERO producto) — este lado
+
+- HEAD: f17a7a9 → (rebase) → audit c.1195 clase VIGESIMOSEGUNDA cuidado de mascotas.
+- Sonda eh./tmp/MascotasAuditProbe2.kt (10 candidatas, 2 regresiones, 7 guards): 9/10 HIT cobertura heredada; D4 «castrar al gato» NULL único (FUERTE — verbo idóneo).
+- Decision: descubrimiento (a) ABIERTA → c.1196. Audit cerrada (c.822 docs-only).
+- Smoke dominio 25/25 re-medido; suite no aplicada (docs-only).
+- Próxima prioridad: c.1196 fix «castrar» mascota (disjunto hermano c.1193 temporal).
