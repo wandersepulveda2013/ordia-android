@@ -296,6 +296,19 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // «empadronar al niño» sigue NULL deliberado (el piso exige el
         // pronombre enclítico).
         "empadronar",
+        // c.1167: keyword-VERB «felicitar» (lockstep con el piso
+        // acotado «felicitar a(l| la| los| las)? <persona>», candidata
+        // (a) FUERTE de la clase DECIMOCTAVA vida social, NULL medida
+        // c.1165 C3 y re-medida PRE c.1167 con sonda efímera 6/6; ver
+        // ContextIntentEngine.hasStrongTaskImperative). La felicitación
+        // de cumpleaños olvidada es el coste social canónico (olvido
+        // silencioso P1). 0.12 sola inerte < umbral (gate c.751):
+        // «felicitación» NO casa por subcadena (rompe -r- vs -c-), el
+        // pretérito «felicité» tampoco (rompe -ar- vs -é), la duda
+        // «quizá felicite» tampoco; el verbo aislado «felicitar» y la
+        // forma sin-«a» «felicitar la Navidad» quedan NULL deliberado
+        // (el piso exige «a <persona>»).
+        "felicitar",
         // c.1149: keyword-VERB «cubrir» (lockstep con el piso acotado
         // «cubrir (el|la|mi|tu|su|un|una)? turnos?», candidata (b) de la
         // clase DECIMOSÉPTIMA; ver ContextIntentEngine.hasStrongTaskImperative).

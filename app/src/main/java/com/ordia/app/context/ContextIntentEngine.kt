@@ -3474,6 +3474,29 @@ object ContextIntentEngine {
             // ContextIntent + plantilla matchEmpadronar en
             // [extractTitle] (lección c.616).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empadronar(?:me|te|se|nos|os)\b""").containsMatchIn(lower)
+            // c.1167: «felicitar a <persona>» («felicitar a Laura
+            // mañana» / «felicitar al jefe el lunes»), candidata (a)
+            // FUERTE de la clase DECIMOCTAVA vida social (sonda
+            // persistida `tools/probe/EighteenthClassSocialProbe.kt`
+            // c.1165 C3; NULL PRE re-medido sobre 488bfe6 con sonda
+            // efímera: 6/6 candidatas NULL, 8/8 guards NULL, 8/8
+            // regresiones HIT). Hermano EXACTO del piso «empadronarme»
+            // c.1156: kind TASK (gestión social SIN desplazamiento ni
+            // llamada explícita — hermana de «enviar la invitación»
+            // TASK c.1165-C5; CALL gobierna solo llamar/hablar/
+            // telefonear), misma ancla ^|acuse|temporal y guard
+            // `(?<!no )`. La felicitación de cumpleaños olvidada es el
+            // coste social canónico (olvido silencioso P1). El objeto
+            // EXIGIDO «a(l| la| los| las)? <persona>» blinda la forma
+            // sin-«a» «felicitar la Navidad» (NULL deliberado, lateral);
+            // el pretérito «felicité» no casa (regex exige infinitivo
+            // «felicitar\s»), la duda «quizá felicite» no casa
+            // (morfología distinta), la negada inmediata la cubre el
+            // guard y la compuesta «no voy a felicitar…» el guard
+            // global c.1009. Lockstep: keyword-VERB «felicitar» en
+            // ContextIntent + plantilla matchFelicitar en [extractTitle]
+            // (lección c.616).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )felicitar\s+a(?:l| la| los| las)?\s+\w""").containsMatchIn(lower)
             // c.1148: "echar el currículum" ("echar el currículum en la
             // oferta de infojobs"), candidata (a) FUERTE de la clase
             // DECIMOSÉPTIMA vida laboral (sonda persistida del hermano
@@ -4789,6 +4812,17 @@ object ContextIntentEngine {
                 // enclítico + contenido tras él).
                 val matchEmpadronar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )empadronar((?:me|te|se|nos|os)\s+.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEmpadronar != null) return "Empadronar${matchEmpadronar.groupValues[1]}"
+
+                // "felicitar a Laura mañana" → "Felicitar a Laura"
+                // (c.1167): lockstep con el piso acotado «felicitar
+                // a(l| la| los| las)? <persona>» — verbo gobernante
+                // fijo y objeto capturado con grafía preservada
+                // (doctrina c.653); el residuo temporal de cola lo
+                // depura [sanitizeTitle]. Misma ancla/guard que el
+                // piso (lección c.616/c.751). La forma sin-«a»
+                // «felicitar la Navidad» no casa (exige «a»).
+                val matchFelicitar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )felicitar\s+(a(?:l| la| los| las)?\s+.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFelicitar != null) return "Felicitar ${matchFelicitar.groupValues[1]}"
 
                 // "cubrir el turno del sábado" → "Cubrir el turno del
                 // sábado" (c.1149): lockstep con el piso acotado
