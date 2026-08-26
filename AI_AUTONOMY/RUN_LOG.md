@@ -7,6 +7,52 @@
 - Archivos: `tools/probe/LlevarmeCurriculumEntrevistaProbe.kt` (NUEVA); docs AI_AUTONOMY. CERO producto (la implementación es la del hermano).
 - Próxima prioridad: marcador EN CURSO propio c.1189 — imperativo enclítico «llévame (el|mi|tu|su) curr[ií]culum a la entrevista» (NULL verificado 1/1 sobre la punta). Otras laterales NULL verificadas: «el CV» [marcador hermano c.1185], «el informe», destino posesivo.
 - **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). Nunca force, nunca main, cero pérdida de trabajo válido.
+## 2026-08-26 — run c.1186 (este lado): lateral del piso c.1140 (clase DECIMOSEXTA viajes) — «hacer el check-in del hotel» FIXED+VERIFIED
+
+- **HEAD inicial del run**: `c24b146` (post-rebase; marcador fijado en `f297903` tras rebase NO-destructivo).
+- **Marcador primero**: c.1186 fijado ANTES de escribir el test RED (disciplina
+  anti-carrera, primer-marcador-gana c.1077); el run continuó con el estado
+  intermedio persistido en USER_CONTEXT tras una re-animación de sesión.
+- **Selección**: lateral ABIERTA de MI cierre c.1140 (clase DECIMOSEXTA
+  viajes/estaciones) — objeto «hotel» del piso «hacer el check-in del»:
+  «hacer el check-in del hotel mañana» NULL medido. Mismo coste real que el
+  vuelo: check-in de hotel olvidado = no-show/habitación perdida. DISJUNTO de
+  los marcadores activos del hermano (c.1181 basura-HOUSEHOLD, c.1182
+  mail-comms, c.1184 abuelos-médico, c.1185 currículum-entrevista).
+- **Sonda PRE efímera** `/tmp/CheckInHotelPreProbe.kt` (motor real vía
+  `tools/run_probe.sh`, base `c24b146`): 100% OK — C1-C4 capturas condensadas
+  a TASK 0.45 en un solo caso-fila (guion/sin guion/espacio/acuse) + G1-G3
+  guards NULL (negación/negación tras temporal/pretérito) + P1-P3 pines NULL
+  (sin objeto/«facturar el hotel»/bivalente «hola a todos») + R1-R3
+  regresiones HIT («facturar el vuelo» c.1140, «mover la maleta» c.1168,
+  «reservar el hotel»).
+- **Fix** (lockstep 2 puntos, lección c.616; CERO keywords nuevas — «hacer»
+  TASK + «hotel» TRAVEL 0.12+0.1=0.22 < umbral libre/keyword, gate c.751):
+  (1) objeto del piso mover-checkin de `'(?:vuelo)'` a `'(?:vuelo|hotel)'`;
+  (2) MISMO objeto en la comentada plantilla `matchHacerCheckIn` (grafía
+      usuario preservada «checkin» sin guion, doctrina c.653); el binding
+      temporal residuente («mañana») queda fuera del título.
+- **TDD estricto**: clase NUEVA
+  `app/src/test/java/com/ordia/app/context/ContextIntentEngineCheckInHotelFloorTest.kt`
+  (17 tests: 5 capturas + 2 grafía-título + hermanas temporal/acuse/pelada,
+  3 guards, 3 pines-objeto, 4 regresiones). RED EXACTO 6 fallos (5 capturas
+  NULL + 1 residuo temporal «mañana» medido) → GREEN 17/17 (1 iteración).
+- **Re-pin documentado ×2** (precedente del propio c.1168, lección
+  c.1049/c.1080 — legítimo cuando un enfermo medido se convierte en sano):
+  guard «lateral check-in del hotel no captura» del archivo c.1140
+  (`ContextIntentEngineFacturarVueloFloorTest.kt`) y guard espejo del archivo
+  c.1168 (`ContextIntentEngineFacturarMaletaFloorTest.kt`).
+- **Suite UNIÓN OK (9639 tests)** — recuento plano porque los re-pins giran
+  NULL→captura; smokes dominio 25/25 y automation 9/9 en JVM puro
+  (`tools/run_domain_checks.sh`, `tools/run_automation_engine_checks.sh`).
+- **Integración**: commit propio `6203b17` sobre base en-sync; el hermano
+  marcó c.1187/c.1188 durante mi run — pull --rebase previo al push,
+  válidas regiones DISJUNTAS verificadas.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK — jamás
+  fingido). Determinista (regex), cero random, cero IA fingida, cero UI.
+- **Próxima prioridad**: laterales abiertas registradas o auditoría de clase
+  NUEVA — verificar marcadores antes de tomar. Nunca force, nunca main.
+
 
 ## 2026-08-25 — run c.1180 (este lado): lateral reflexiva de c.1174 — «llevarme el currículum a la entrevista» FIXED+VERIFIED
 
