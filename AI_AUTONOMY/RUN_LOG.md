@@ -41197,6 +41197,6 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 
 ## c.1210 — 2026-08-26 05:29 → 05:44
 
-HEAD inicial: `6ca4bf9` (marcador c.1210). HEAD final: `d009e9e`.
+HEAD inicial: `6ca4bf9` (marcador c.1210). HEAD final: `235210d` (post-rebase con unión de BACKLOG/CURRENT_STATE del hermano c.1211).
 
 Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + título mutilado). Fix: «contó|conté|contaste|contaron» añadidos a `preteriteNarrativeVerbAlternation` (UN punto). Re-pin legítimo: «ya me lo contó a primera hora» → «ya me lo avisó» (OrdinalFinalDeltaTest, método renombrado + docstrings). Sonda persistida `tools/probe/c1210-probe.kt` (PRE 4/4 daño; POST 4/4 due=null; guards/regresiones byte-idénticos). TDD: `NaturalTaskParserPreteritoNarrativoContarTest` 4 tests — RED exacto 1 fallo (método capturas) → GREEN. Suite UNION **OK (9908 = 9904 + 4)**; `run_domain_checks.sh` 25/25. NO VERIFICADO gradle/lint/Android/UI/Room (sin SDK). Estado: VERIFIED.
