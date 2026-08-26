@@ -3742,25 +3742,25 @@ object ContextIntentEngine {
             // perdido) y ventana corta (24-48 h). Verbo bivalente
             // acotado por objeto EXIGIDO «vuelo» (hermano EXACTO de
             // c.865 «reclamar la factura»): «facturar el proyecto»
-            // (mercantil) y «hacer el check-in del hotel» quedan
-            // FUERA (laterales medidas NULL, UNA forma por ciclo); la
-            // lateral de equipaje «facturar la(s) maleta(s)» se cierra
-            // en c.1168 (mismo piso, alternativa de objeto; maleta
-            // olvidada = cola/recargo en el aeropuerto, mismo coste
-            // que el check-in). La grafía «checkin»/«check in» sin guion casa
-            // y se preserva en el título (doctrina c.653). Kind TASK
-            // (gestión previa al viaje, hermana de «reservar» c.709 /
-            // «confirmar» c.700 / «imprimir las tarjetas» c.708 /
-            // «preparar la maleta» c.715); CERO keywords nuevas
-            // («vuelo» ya es keyword TRAVEL y «hacer» keyword TASK —
-            // gate c.751 satisfecho, medido PRE: TRAVEL 0.22 < umbral
-            // sin piso). La negada la cubre el lookbehind `(?<!no )`
-            // (la keyword 0.12 + bono 0.1 = 0.22 < umbral: no hace
-            // falta cláusula dedicada en [imperativeIsNegated], mismo
-            // argumento que c.895b/c.895c); el pasado «facturé/hice» y
-            // el subjuntivo «facture» no casan (forma EXACTA).
+            // (mercantil) queda FUERA (lateral medida NULL). Las
+            // laterales de equipaje «facturar la(s) maleta(s)» y de
+            // check-in «el hotel» se cierran en c.1168 y c.1186 (mismo
+            // piso, alternativa de objeto; check-in de hotel olvidado =
+            // no-show/habitación perdida, mismo coste que el vuelo).
+            // La grafía «checkin»/«check in» sin guion casa y se preserva
+            // en el título (doctrina c.653). Kind TASK (gestión previa
+            // al viaje, hermana de «reservar» c.709 / «confirmar» c.700 /
+            // «imprimir las tarjetas» c.708 / «preparar la maleta»
+            // c.715); CERO keywords nuevas («vuelo» y «hotel» ya son
+            // keywords TRAVEL y «hacer» keyword TASK — gate c.751
+            // satisfecho, medido PRE: TRAVEL 0.22 < umbral sin piso). La
+            // negada la cubre el lookbehind `(?<!no )` (la keyword 0.12 +
+            // bono 0.1 = 0.22 < umbral: no hace falta cláusula dedicada
+            // en [imperativeIsNegated], mismo argumento que c.895b/
+            // c.895c); el pasado «facturé/hice» y el subjuntivo
+            // «facture» no casan (forma EXACTA).
             Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+(?:el\s+vuelo|las?\s+maletas?)\b""").containsMatchIn(lower) ||
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+(?:vuelo|hotel)\b""").containsMatchIn(lower) ||
             // c.1150: candidata (b) clase DECIMOSEXTA — «salir para el
             // aeropuerto a las 5 del lunes» / «salir para la estación
             // mañana» (medida NULL 1/1 en la sonda c.1137 C9 y re-medida
@@ -5469,15 +5469,16 @@ object ContextIntentEngine {
                 // c.1140: plantillas hermanas del piso (lección c.616: el
                 // match arranca en el verbo, así acuse/prefijo temporal se
                 // despojan; el residuo temporal de cola lo depura
-                // [sanitizeTitle]). Objeto EXIGIDO «vuelo» (misma ancla
-                // que el piso); los bivalentes («facturar el proyecto»,
-                // «check-in del hotel») nunca llegan aquí porque el piso
-                // no los captura. La grafía del usuario se preserva
+                // [sanitizeTitle]). Objeto EXIGIDO (misma ancla
+                // que el piso); el bivalente («facturar el proyecto»)
+                // nunca llega aquí porque el piso no lo captura. La grafía
+                // del usuario se preserva
                 // («checkin» sin guion, doctrina c.653). c.1168: alternativa
                 // de objeto «las? maletas?» en lockstep con el piso.
                 val matchFacturarVuelo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(facturar)\s+((?:el\s+vuelo|las?\s+maletas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchFacturarVuelo != null) return "Facturar ${matchFacturarVuelo.groupValues[2]}"
-                val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // c.1186: objeto «(?:vuelo|hotel)» en lockstep con el piso.
+                val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+(?:vuelo|hotel)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCheckIn != null) return "Hacer ${matchHacerCheckIn.groupValues[2]}"
                 // c.1150: plantilla hermana del piso «salir para (el
                 // aeropuerto|la estación)» (ancla/guard idénticos; lección

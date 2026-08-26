@@ -24,8 +24,9 @@ import org.junit.Test
  * ancla de inicio/acuse/prefijo temporal, guard anti-negación
  * `(?<!no )` y objeto EXIGIDO «vuelo» («facturar el vuelo» |
  * «hacer el check-in del vuelo»). Los bivalentes quedan FUERA:
- * «facturar el proyecto/la maleta», «hacer el check-in del hotel»
- * (laterales medidas NULL, UNA forma por ciclo). Lockstep en DOS puntos
+ * «facturar el proyecto» (mercantil). Las laterales «maleta» y
+ * «hotel» se cerraron en c.1168 y c.1186 (mismo piso, objeto
+ * extendido, re-pin documentado). Lockstep en DOS puntos
  * (lección c.616; CERO keywords nuevas: «vuelo» ya es keyword TRAVEL y
  * «hacer» keyword TASK — la frase ya llega al análisis, medido PRE).
  * La grafía del usuario se preserva («checkin» sin guion, doctrina
@@ -41,9 +42,9 @@ import org.junit.Test
  * Cobertura: 5 capturas (facturar+fecha, check-in+fecha, acuse «ok,»,
  * prefijo temporal «el jueves», grafía «checkin») + 11 guards
  * (negación, negación tras temporal, duda subjuntivo, pasado
- * «facturé/hice», bivalente mercantil, lateral «maleta», lateral
- * «hotel», sustantivo «la facturación», declarativo «el vuelo sale…»,
- * negación check-in) + 8 regresiones (envolventes c.613, reservar
+ * «facturé/hice», bivalente mercantil, re-pin «maleta» c.1168, re-pin
+ * «hotel» c.1186, sustantivo «la facturación», declarativo «el vuelo
+ * sale…», negación check-in) + 8 regresiones (envolventes c.613, reservar
  * vuelo c.709, imprimir tarjetas c.708, reclamar factura c.865,
  * preparar maleta, cancelar, «ir al aeropuerto» NULL status quo).
  */
@@ -145,8 +146,16 @@ class ContextIntentEngineFacturarVueloFloorTest {
     }
 
     @Test
-    fun `lateral check-in del hotel no captura`() {
-        assertNull(analyze("hacer el check-in del hotel mañana"))
+    fun `lateral check-in del hotel captura desde c1186 (re-pin documentado)`() {
+        // Re-pin legítimo (precedente c.1168/c.1049/c.1080): la lateral
+        // «hotel» que c.1140 dejó FUERA se cierra en c.1186 extendiendo el
+        // objeto del piso «check-in» (misma ancla/guard, CERO keywords
+        // nuevas). Cobertura completa en
+        // [ContextIntentEngineCheckInHotelFloorTest].
+        val r = analyze("hacer el check-in del hotel mañana")
+        assertNotNull(r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Hacer el check-in del hotel", r.title)
     }
 
     @Test

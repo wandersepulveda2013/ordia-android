@@ -28,13 +28,13 @@ import org.junit.Test
  * CERO keywords nuevas (la frase ya llega al análisis: envolvente
  * medida TASK 0.49 PRE; gate c.751 satisfecho). El bivalente
  * mercantil «facturar el proyecto» sigue FUERA y la lateral «hacer el
- * check-in del hotel» sigue abierta (UNA forma por ciclo).
+ * check-in del hotel» se cierra en c.1186 (re-pin documentado).
  *
  * Cobertura: 5 capturas (mañana, plural+lunes, acuse «vale,», pelada,
  * prefijo temporal «el viernes») + 5 guards (negación, negación tras
  * temporal, pasado «facturé…ayer», duda, pasiva «está facturada») +
  * 5 pines (vuelo c.1140 intacto, check-in c.1140 intacto, «preparar
- * la maleta» c.715, bivalente mercantil FUERA, lateral hotel FUERA) +
+ * la maleta» c.715, bivalente mercantil FUERA, re-pin hotel c.1186) +
  * 1 envolvente (camino genérico intacto).
  */
 class ContextIntentEngineFacturarMaletaFloorTest {
@@ -151,8 +151,16 @@ class ContextIntentEngineFacturarMaletaFloorTest {
     }
 
     @Test
-    fun `lateral hacer el check-in del hotel sigue fuera`() {
-        assertNull(analyze("hacer el check-in del hotel mañana"))
+    fun `lateral hacer el check-in del hotel captura desde c1186 (re-pin documentado)`() {
+        // Re-pin legítimo (precedente del propio c.1168, lección
+        // c.1049/c.1080): la lateral «hotel» se cierra en c.1186
+        // extendiendo el objeto del piso «check-in» (misma ancla/guard,
+        // CERO keywords nuevas). Cobertura completa en
+        // [ContextIntentEngineCheckInHotelFloorTest].
+        val r = analyze("hacer el check-in del hotel mañana")
+        assertNotNull(r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Hacer el check-in del hotel", r.title)
     }
 
     // ---------- Envolvente (camino genérico intacto) ----------
