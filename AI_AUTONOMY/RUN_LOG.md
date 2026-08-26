@@ -41229,3 +41229,16 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Commits**: en el commit de cierre (push normal, sin force).
 - **HEAD final**: a fijar en el commit.
 - **Próxima prioridad (sugerida)**: laterales ABIERTAS del hermano c.1211 — «plantar tomates», «trasplantar», «echar fertilizante/abono», «cubrir plantas del frío», «sacar muebles a la terraza» (abrir marcador antes de tocar; discreta y disjunta).
+---
+
+## c.1213 — 2026-08-26 — FIX VERIFIED — «podar árbol(es)/arbusto(s)» objetos del piso jardín (clase VIGESIMOSÉPTIMA)
+
+- HEAD primero (star chart): aa95742c1e697c8855bc9cd7a97472fa9380cfb3 (c.1211 brother).
+- Lateral ABIERTA de MI auditoría c.1211 (clase VIGESIMOSÉPTIMA jardinería/plantas): objetos árbol(es)/arbusto(s) del piso jardín «podar». PRE medido con sonda efímera /tmp/probe1213.kt (tools/run_probe.sh): C1–C4 NULL hueco real; G1–G5 NULL (negación, pretérito, duda, nominalización, diminutivo byte-clean); R1–R3 regresión jardín/rosal/setos; E1 envoltura TASK.
+- RED exacto (tools/run_filtered_test.sh «PodarArbolArbusto»): 12 tests, 5 fallas = SOLO capturas; guardas/regresiones pasan. Clase nueva app/src/test/java/com/ordia/app/context/ContextIntentEnginePodarArbolArbustoFloorTest.kt (12).
+- Lockstep DOS punto (lección c.616): alternancia (?:árbol(?:es)?|arbustos?) en HOUSEHOLD_GARDEN_FLOOR + MISMA en matchPodarJardin (grafía preservada c.653). CERO keywords nuevas (gate c.751; «podar» histórica basta).
+- Re-pin conservador legítimo inflingido al canary in-file del hermano (ContextIntentEnginePodarRosalSetosFloorTest.podarElArbol_repinLateralResuelta): pin invertido NULL→HIT misma frase, precedente c.1196 «haré». Guarda (?<!no ) intacta.
+- VERIFIED POST through-run /tmp/post1213.log: C1–C4 HIT HOUSEHOLD 0.45 con títulos exactos («Podar el árbol|los árboles|el arbusto|los arbustos»); G1–G5 NULL byte-idénticos; R1–R3 intactos; E1 envoltura TASK intacta. PRE→POST byte-run.
+- Suite UNIÓN: OK (9936 tests, +12) pre-rebase; re-fetch pre-push detectó hermano c.1214/c.1215 → rebase no-destructivo auto-merge engine OK; POST-REBASE UNIÓN OK (9950 tests) tools/run_domain_tests.sh EXIT=0; smoke 25/25 OK (tools/run_domain_checks.sh).
+- Sonda persistida: tools/probe/PodarArbolArbustoProbe.kt (elimo /tmp/probe1213.kt efímera).
+- Cutoff de scope: lateral abierto filtrado a «árbol(es)/arbusto(s)» solo (como hermano hizo con «coser el botón»). Continuación de auditoría hogar (clase VIGESIMOSÉPTIMA jardinería/plantas) definida: las guardas byte-clean ahora documentadas in-file.

@@ -42,9 +42,16 @@ class ContextIntentEnginePodarRosalSetosFloorTest {
         Assert.assertTrue(r!!.dueAt != null)
     }
 
-    @Test fun podarElArbol_canaryLateralAbierta() {
+    // c.1213 re-pin conservador legítimo (este lado): lateral ABIERTA
+    // «árbol(es)/arbusto(s)» (canary NULL desde el pin original) RESUELTA por
+    // la alternancia extensa del piso jardín; pin invertido NULL→HIT con la
+    // misma frase (precedente c.1196 «haré»; mantiene guard de negación
+    // (?<!no ) y guardas de pretérito/duda/nominalización in-file intactas).
+    @Test fun podarElArbol_repinLateralResuelta() {
         val r = a("podar el árbol")
-        Assert.assertNull(r)
+        Assert.assertNotNull(r)
+        Assert.assertEquals(ContextIntentKind.HOUSEHOLD, r!!.kind)
+        Assert.assertEquals("Podar el árbol", r!!.title)
     }
 
     @Test fun noPodarLosSetos_null() {

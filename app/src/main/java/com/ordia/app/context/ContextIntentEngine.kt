@@ -488,13 +488,14 @@ object ContextIntentEngine {
     // lockstep añade el VERBO "podar" (precedente c.639/c.727/c.730).
     // c.1211: objetos `rosales?|setos?` (gap (a) de la auditoría clase
     // VIGESIMOSÉPTIMA — rosal/setos son la jardinería tras el jardín;
-    // laterales ABIERTAS árbol(es)/arbusto(s) FUERA, canary en
-    // `ContextIntentEnginePodarRosalSetosFloorTest`). Sin keyword nueva
+    // c.1213 lateral RESUELTA: árbol(es)/arbusto(s) añadidos al objeto
+    // (alternancia extensa, misma familia jardinería; canary re-pineado
+    // en `ContextIntentEnginePodarRosalSetosFloorTest`). Sin keyword nueva
     // (gate c.751 — «podar» histórica basta).
-    // `\b` final: "jardincito" (diminutivo) no casa (como "perrito"
-    // c.740); guard de negación heredado de la familia (?<!no ).
+    // `\b` final: "jardincito"/"arbolito" (diminutivo) no casa (como
+    // "perrito" c.740); guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_GARDEN_FLOOR =
-        Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:jard(?:ín|ines)|rosal(?:es)?|setos?)\b""")
+        Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:jard(?:ín|ines)|rosal(?:es)?|setos?|árbol(?:es)?|arbustos?)\b""")
     // Piso hogar "pintar la casa" (c.758 — sonda
     // `FourthClassVerbDiscoveryProbe.kt` c.740; selección por dispersión
     // determinista epoch-day tras descartar RESERVA "bañar al perro"
@@ -6116,8 +6117,9 @@ object ContextIntentEngine {
                 // [HOUSEHOLD_GARDEN_FLOOR]; familia jardinería c.731).
                 // c.1211: rosal(es)/seto(s) en la MISMA alternancia que el
                 // piso (lockstep piso↔plantilla, grafía preservada c.653).
+                // c.1213: árbol(es)/arbusto(s) en la MISMA alternancia.
                 val matchPodarJardin = Regex(
-                    """\b(podar) ((?:(?:el|la|los|las|mi|tu|su) )?(?:jard(?:ín|ines)|rosal(?:es)?|setos?).*)""",
+                    """\b(podar) ((?:(?:el|la|los|las|mi|tu|su) )?(?:jard(?:ín|ines)|rosal(?:es)?|setos?|árbol(?:es)?|arbustos?).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchPodarJardin != null) {
