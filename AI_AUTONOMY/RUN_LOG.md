@@ -1,3 +1,7 @@
+## RUN 2026-08-26 — c.1244 CERRADO «apagar/encender clima» (FUERTE lateral (b) auditoría c.1243 XXXII)
+- HEAD inicial: f964067. Lockstep DOS puntos (c.616; gate c.751 floor-only, objeto aire-acondicionado/calefacción/calefactor/estufa/chimenea).
+- TDD +2 tests → GREEN 11/11 (repino legítimo «por la noche»→«hoy» ancla temporal). Suite UNIÓN OK (10215); smoke 25/25. POST sonda D8–D11 HIT.
+- **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1243 AUDITORÍA-CERRADA clase XXXII luz/iluminación hogar
 - HEAD inicial: 5042bea (c.1242 push). Sonda persistida `IluminacionClassXXXIIProbe.kt` (14D+8G+8R): 6/14 HIT, 8/14 NULL en dos familias — (a) verbos-de-posición [DÉBIL], (b) «encender/apagar calefacción/aire/chimenea» [FUERTE; próxima lateral].
 - Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10213) medida. CERO producto (convención c.1127/c.1165/c.1194/c.1225).

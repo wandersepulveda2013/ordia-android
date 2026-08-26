@@ -3404,6 +3404,12 @@ object ContextIntentEngine {
             // gate c.751 — «conectar» bivalente → objeto EXIGIDO
             // acotado a red/conectividad; CERO keyword nueva).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )conectar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:wifi|bluetooth)\b""").containsMatchIn(lower)
+            // c.1244: piso acotado «encender/apagar clima»
+            // (FUERTE de MI auditoría c.1243 clase XXXII luz;
+            // gate c.751 — objeto EXIGIDO acotado calefacción/
+            // calefactor/estufa/chimenea/aire acondicionado;
+            // CERO keyword nueva).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:apagar|encender)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:calefacci[oó]n|calefactors?|estufas?|chimeneas?|aire\s+acondicionado)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5908,6 +5914,9 @@ object ContextIntentEngine {
                 // preservada c.653).
                 val matchConectarWifi = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(conectar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:wifi|bluetooth)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchConectarWifi != null) return "Conectar ${matchConectarWifi.groupValues[2]}"
+                // c.1244: plantilla «encender/apagar clima»
+                val matchClima = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apagar|encender)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:calefacci[oó]n|calefactors?|estufas?|chimeneas?|aire\s+acondicionado)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchClima != null) return "${matchClima.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchClima.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

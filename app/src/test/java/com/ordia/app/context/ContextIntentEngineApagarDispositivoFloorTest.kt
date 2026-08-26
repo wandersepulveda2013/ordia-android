@@ -118,4 +118,28 @@ class ContextIntentEngineApagarDispositivoFloorTest {
         assertNull(analyze("el wifi conectado"))
     }
 
+
+    @Test
+    fun `encender apagar clima captura task c1244`() {
+        val r1 = analyze("encender la calefacción")
+        assertNotNull(r1)
+        assertEquals(ContextIntentKind.TASK, r1!!.kind)
+        assertEquals("Encender la calefacción", r1.title)
+
+        val r2 = analyze("apagar el aire acondicionado")
+        assertNotNull(r2)
+        assertEquals(ContextIntentKind.TASK, r2!!.kind)
+        assertEquals("Apagar el aire acondicionado", r2.title)
+
+        val r3 = analyze("hoy apagar la chimenea")
+        assertNotNull(r3)
+        assertEquals(ContextIntentKind.TASK, r3!!.kind)
+    }
+
+    @Test
+    fun `guards clima NULL c1244`() {
+        assertNull(analyze("no encender la calefacción"))
+        assertNull(analyze("la chimenea está fría"))
+    }
+
 }
