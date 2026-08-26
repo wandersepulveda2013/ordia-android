@@ -19620,24 +19620,32 @@ a un permiso persistente frágil y silencioso ante fallos.
 - POST: suite UNIÓN (solicita nueva re-suite por los rebase mid-cycle) 9687/9687 OK + sonda POST 5/5 HIT + smokes 25/25 + automation 9/9.
 - Hermana ABIERTA registrada: grafías «wasap/wassap».
 - NO VERIFICADO: gradle/Android SDK/lint/assemble/UI/Room con DAOs reales.
-- Commit: pendiente (a continuación).
+- Commit: 3593001 (pushed).
 ## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
-## Cierre real c.1190 (renum de c.1185 propio) — push retrasado por colisión de numeración
+## Cierre real c.1192 (renum de c.1185 propio) — push retrasado por colisión de numeración
 
-- Al intentar push se descubrió que el hermano había asignado c.1185 (esposa-médico) en paralelo a mi reclamo c.1185 (CV-entrevista) publicado en `6f598fc/8349577`. Renumeré todo mi trabajo a **c.1190** y rebase no-destructivo (`git rebase origin/…` con union-merge solo en AI_AUTONOMY). Resolución: mis dos marcadores EN CURSO antiguos eliminados (trabajo propio cerrado); marcadores del hermano intactos.
+- Al intentar push se descubrió que el hermano había asignado c.1185 (esposa-médico) en paralelo a mi reclamo c.1185 (CV-entrevista) publicado en `6f598fc/8349577`. Renumeré todo mi trabajo a **c.1192** y rebase no-destructivo (`git rebase origin/…` con union-merge solo en AI_AUTONOMY). Resolución: mis dos marcadores EN CURSO antiguos eliminados (trabajo propio cerrado); marcadores del hermano intactos.
 - Re-medida la suite UNIÓN tras rebase: **OK (9684 tests)**; tras el segudo rebase por c.1186 del hermano (check-in hotel) la UNIÓN final es **OK (9699 tests)**, smoke dominio 25/25. Estado: FIXED+VERIFIED (JVM).
 
-## Run c.1190 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
->>>>>>> b2e4c5b (docs(autonomy): cierre c.1190 (renum de c.1185 propio) — «el CV» del piso entrevista FIXED+VERIFIED (RED 4/10 → GREEN 10/10; suite re-medida tras rebase ver RUN_LOG; pin c.1174 invertido a captura))
+## Run c.1192 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
 
-- HEAD inicial: `8349577` (marcador doble c.1190 de la unión anterior; base real del fix `d3f8669` (cierre c.1180).
+- HEAD inicial: `8349577` (marcador doble c.1192 de la unión anterior; base real del fix `d3f8669` (cierre c.1180).
 - Ciclo TDD completo: RED 4/10 exactos (4 targets) → fix lockstep piso+plantilla → GREEN 10/10 → suite UNIÓN re-medida 9634/9634 OK → smoke dominio 25/25. Pin de lateral-abierta de la clase c.1174 invertido a captura.
 - Sonda efímera PRE `/tmp/probe1185lat.kt` (vía `tools/run_probe.sh`): 10/10 targets NULL medidos (ejecutada dos veces en base + marcadores).
 - Commit feat: `f406bf3`; commit docs: el siguiente. Estado: **FIXED+VERIFIED (JVM)**. NO VERIFICADO: Android SDK/gradle/UI.
 - Próxima prioridad: laterales (b) «el informe/portfolio» y (c) destino poseedor «mi entrevista» (UNA por ciclo); verificar marcadores del hermano.
 - Nunca force, nunca main. Determinista, cero random, IA honesta.
->>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))
 
+## 2026-08-26 — ciclo c.1194 (AUDITORÍA — CERO producto) — este lado
+
+- HEAD inicial: 3593001 (cierre/push c.1192).
+- Ciclo: auditoría clase VIGESIMOPRIMERA «DOCUMENTACIÓN OFICIAL» (renovar/pedir/solicitar certificados, carnets, cita previa, SEPE, justificantes, permisos, empadronamiento) — sonda efímera `/tmp/DocOfficialProbe.kt` **efímera por diseño para candidatura inicial** (las sonidas persistidas solo se crean tras elegir un gap FUERTE; lección de flujo heredada).
+- PRE medido (14 formulas): 12 HIT TASK 0.45 por keywords heredadas (renovar/pedir/solicitar/descargar/actualizar/empadronar); 2 NULL: «sacar el carnet de conducir», «presentar el justificante en el ayuntamiento».
+- Decisión: **SIN FIX** — ambos gaps descartados por sobre-alcance de guardia («sacar» polisémico: dinero/basura/fotos; «presentar» bivalente: presentar a una persona; sub-umbral no compensa). Audit cierra sin descendencia, pin de no-re-auditar registrado en BACKLOG.
+- Smoke: dominio 25/25 re-medido; suite completa no aplica (CERO producto; docs-only rebase skip re-suite c.1162).
+- Commits: pendiente (docs-run).
+- HEAD final: pendiente del commit docs.
+- Próxima prioridad: integrar hermano si publica; siguiente auditoría clase nueva (VIGESIMOCUARTA sin nombre) o lateral de mis clases.
 
 ## Run c.1181 (2026-08-26) — CLOSED FIXED+VERIFIED (JVM)
 
@@ -19646,6 +19654,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Fix: piso HOUSEHOLD_TRASH sacar → (sacar|tirar) + plantilla matchSacar + guard negación directa (3 puntos lockstep c.616; CERO keywords nuevas, gate c.751)
 - Test NEW: ContextIntentEngineTirarBasuraFloorTest.kt (RED→GREEN)
 - Verificación: suite UNIÓN OK (9714), smoke 25/25, re-pin C4 HIT / G1 NULL
-- Colisiones: hermano puso c.1186/c.1187/c.1190/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
+- Colisiones: hermano puso c.1186/c.1187/c.1192/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
 - HEAD final: 319257b4 (push tras tercer fetch; la última rebase fue clean, sin re-medir suite full [smoke 25/25 re-verificado])
 - Lección: ante doble divergencia, pipeline fetch→rebase→test→push con union-merge assistido por python funciona

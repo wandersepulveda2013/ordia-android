@@ -756,7 +756,7 @@ object ContextIntentEngine {
     // llevarme el currículum a la entrevista») del mismo acarreo P1;
     // objeto y destino EXIGIDOS se mantienen («llevarme el informe» /
     // «llevarme a la entrevista», transporte propio, siguen NULL).
-    // c.1190 (lateral ABIERTA del cierre c.1174): objeto abreviado
+    // c.1192 (lateral ABIERTA del cierre c.1174): objeto abreviado
     // «cv» — el acrónimo hablado dominante («llevar el CV a la
     // entrevista») quedaba huérfano mientras su sinónimo «currículum»
     // capturaba (asimetría dentro del MISMO piso, olvido silencioso
@@ -6062,7 +6062,7 @@ object ContextIntentEngine {
                 // c.1180: enclítico «llevarme» preservado en el título
                 // («Llevarme el currículum a la entrevista», doctrina
                 // c.653; lockstep con [ERRAND_INTERVIEW_RUN_FLOOR]).
-                // c.1190: objeto abreviado «cv» (lockstep con
+                // c.1192: objeto abreviado «cv» (lockstep con
                 // [ERRAND_INTERVIEW_RUN_FLOOR]); IGNORE_CASE casa «CV»
                 // y la grafía del usuario se preserva intacta en el
                 // título («Llevar el CV a la entrevista», c.653).
