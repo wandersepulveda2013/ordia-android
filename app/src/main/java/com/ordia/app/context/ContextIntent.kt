@@ -369,6 +369,22 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NULL deliberado). Sin la keyword la notificación ni llega al
         // análisis (gate c.751).
         "sacar el visado",
+        // c.1219: keyword-frases «sacar el billete»/«sacar los billetes»
+        // (lockstep con el piso acotado «sacar (el|los) billete(s)»,
+        // candidata (a) de la clase VIGESIMOQUINTA viajes, NULL medida
+        // c.1200 y re-medida PRE con sonda persistida
+        // `tools/probe/SacarBilleteProbe.kt`; ver
+        // ContextIntentEngine.hasStrongTaskImperative). Monosemánticas:
+        // reserva/compra del desplazamiento (sin billete no hay viaje).
+        // «sacar» solo NO se añade (bivalente consolidado en 5 pisos:
+        // basura c.717, mascota c.740, dinero c.893, cita/turno/hora
+        // c.1117, visado c.1151); «billete» solo tampoco (sustantivo
+        // declarativo: «el billete cuesta 50 euros» sigue NULL
+        // deliberado). Sin la keyword la notificación ni llega al
+        // análisis (gate c.751). Plural en propia keyword-frase (dos
+        // cadenas, hermanas).
+        "sacar el billete",
+        "sacar los billetes",
         // c.901: keyword-frase «dar las gracias» (lockstep con el piso
         // acotado «dar las gracias a <persona>», candidata (b) y última
         // forma NULL de la clase NOVENA-b; ver
