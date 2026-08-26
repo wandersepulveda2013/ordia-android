@@ -19637,3 +19637,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: laterales (b) «el informe/portfolio» y (c) destino poseedor «mi entrevista» (UNA por ciclo); verificar marcadores del hermano.
 - Nunca force, nunca main. Determinista, cero random, IA honesta.
 >>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))
+
+
+## Run c.1181 (2026-08-26) — CLOSED FIXED+VERIFIED (JVM)
+
+- HEAD inicial: b063710f (hermano c.1186/c.1187 en su zona)
+- Ciclo: c.1181 — candidata (a) FUERTE de MI auditoría c.1179 (VIGÉSIMA, sonda persistida)
+- Fix: piso HOUSEHOLD_TRASH sacar → (sacar|tirar) + plantilla matchSacar + guard negación directa (3 puntos lockstep c.616; CERO keywords nuevas, gate c.751)
+- Test NEW: ContextIntentEngineTirarBasuraFloorTest.kt (RED→GREEN)
+- Verificación: suite UNIÓN OK (9714), smoke 25/25, re-pin C4 HIT / G1 NULL
+- Colisiones: hermano puso c.1186/c.1187/c.1190/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
+- HEAD final: 319257b4 (push tras tercer fetch; la última rebase fue clean, sin re-medir suite full [smoke 25/25 re-verificado])
+- Lección: ante doble divergencia, pipeline fetch→rebase→test→push con union-merge assistido por python funciona
