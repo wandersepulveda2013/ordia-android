@@ -41495,19 +41495,45 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Acción**: `git pull --ff-only` → remoto `5519dfc`; duplicados descartados.
 - **Verificación**: `bash tools/run_domain_tests.sh` → **OK (10140 tests)**, 0 failures (re-verificado en este run).
 - **Estado**: STALE_RUN (sin cambios destructivos). **Próxima prioridad sugerida**: laterales ABIERTAS restantes de MI auditoría c.1227 — (c) «pilates» / (d) «bici» / (e) «entrenamiento de fútbol» / (f) «apuntarme al gimnasio» (familia enroll) — o auditoría clase XXXI si el hermano las toma. Nunca force, nunca main.
+- c.1232 CERRADO (lateral (d) «ir a pilates» MEDIA): keyword-OBJETO
+  mono «pilates» (gate c.751), piso acotado (ir/empezar/hacer), plantilla
+  título; guard (?<!no ). PRE sonda = NULL en T1/T2/T4; POST T1/T2/T4 HIT;
+  guardas NULL; suite 10148/25. COMMITTED. Próxima: (e) «gim~gym» MEDIA
+  o (g) «clase de <ejercicio>» MEDIA/MEDIO.
 
-## 2026-08-26 — c.1232 — CIERRE hermano [OpenHands]
+## 2026-08-26 — c.1229 (bis) — Complemento convergente del PARSER [OpenHands]
 
-- c.1232 CERRADO (lateral (d) «ir a pilates» MEDIA): keyword-OBJETO mono «pilates» (gate c.751), piso acotado (ir/empezar/hacer), plantilla título; guard `(?<!no )`. PRE sonda: NULL en T1/T2/T4; POST T1/T2/T4 HIT; guardas NULL; suite 10148/25. COMMITTED. Próxima: (e) «gim~gym» MEDIA o (g) «clase de <ejercicio>» MEDIA/MEDIO. (Conflicto de merge cometido en 2eabbf0 resuelto — ambas entradas preservadas).
-
-
-## 2026-08-26 — c.1233 — Sesión [OpenHands]
-
-- **HEAD inicial**: 2eabbf0 (grafted merge hermano; conflicto RUN_LOG —HEAD vs 3c110e0— resuelto y cometido en este run).
-- **Problema**: lateral (e) «salir en (bici|bicicleta)» de MI auditoría c.1227 (clase XXX deporte) — analyze SILENT-NULL (P1 olvido silencioso).
-- **Causa raíz**: verbo «salir» no-piso (verb-de-posición-libre); objeto bici|bicicleta cerrado, sin keyword (gate c.751 → piso verb-scoped, CERO keywords nuevas); sin plantilla en extractTitle.
-- **Solución**: lockstep DOS puntos (lección c.616): (1) piso NUEVO `EXERCISE_BIKE_OUT_FLOOR` `\b(?<!no )salir\s+en\s+(bici|bicicleta)\b` en lista maestra EXERCISE_FLOORS; (2) plantilla `matchSalirEnBici` en extractTitle rama EXERCISE (título arranca en «salir en»).
-- **Tests**: sonda PRE re-medida `tools/probe/SalirEnBiciProbe.kt` (T1–T5 NULL, G1–G4 NULL, R1–R2 HIT). TDD RED exacto 5 fallos de 10153 → GREEN 10/10 (`tools/run_filtered_test.sh` no existía en banda; filter via run_domain_tests.sh --filter). Suite UNIÓN **OK (10158, exit 0)**; smoke dominio 25/25. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
-- **Archivos**: ContextIntentEngine (+EXERCISE_BIKE_OUT_FLOOR en lista maestra +matchSalirEnBici), test nuevo 10 pins, sonda persistida, BACKLOG (c.1233 FIXED), CURRENT_STATE (FIXED VERIFIED + hermano parseado), RUN_LOG (este append). Incidental: resolución de conflicto cometida en el merge 2eabbf0 (marcadores <<< >>>) en RUN_LOG — ambas entradas (c.1232 cierre hermano + STALE_RUN) preservadas.
+- **HEAD inicial**: 4b2d976 (docs-close del hermano de c.1229; mi base anterior e2ffbae/18bcdbc STALE tras re-fetch pre-push).
+- **Problema**: segunda cara del ticket c.1041 — candado conservador c.1023 ([ordinalHoraQuedarConArrangement]) sólo admite CLÍTICOS pegados a «quedar», por lo que con SUJETO NOMINAL inequívoco («mis padres quedaron con Ana el lunes») la CITA real se suprimía en silencio (ancla weekday FALSA eliminada PERO también la cita — due→null). P1 de captura: el plan social quedado-con no llegaba a la bandeja fechada.
+- **Colisión convergente**: mi implementación plena del gap hermano (`18bcdbc`, 24 tests, regex `weekdayNominalSubjectPreteriteHead`) resultó DUPLICADA del cierre del hermano (equivalente funcional, primer-marcador-gana, precedente c.1211 STALE_RUN CONVERGENTE/c.967/c.969): descarte NO-destructivo vía stash−u → `git checkout -- .` sobre `origin` 4b2d976. Conservado: complemento DISJUNTO (nueva regex) + sonda persistida propia.
+- **Fix (1 punto, re-uso sin duplicación)** — en `weekdayOccurrenceIsPreteriteNarrative`, fallback NUEVO en el ensamblado del head: tras el guard c.1023 de clíticos, la nueva cabeza nominal `weekdayNominalSubjectQuedarCon` (determinante opcional cerrado + UNA palabra de sujeto `\p{L}` + 1–2 clíticos opcionales + pretérito de «quedar» `qued(?:é|ó|aste|aron|asteis|aron)` pegado a «con»). Narrativa ordinaria NO afectada (el head vocab del hermano sigue primero; la nueva cabeza sólo habilita «quedar con» con sujeto nominal).
+- **Sonda persistida** `tools/probe/QuedarNominalSubjectProbe.kt` (9 checks, now=domingo 2026-08-23 12:00 America/Santo_Domingo): PRE — RED EXACTO 4 fallos (C1/C2/C3 capturas nominales + R2 parte-del-día, todas due→null con título intacto); G1 «el paquete llegó el lunes» ya correcto en PRE. POST — 9/9 OK: C1 «mis padres quedaron con Ana el lunes» → due=2026-08-24 09:00, título íntegro; C2 martes/C3 viernes anclan; G1–G2 narrativa intacta (due→null); G3 «quedé el lunes con Ana» y G4 «…a la una» anclan por la ruta de clíticos; R1 «quedé con Ana a primera hora» ancla por ordinal; R2 «…el lunes por la tarde» ancla.
+- **TDD estricto**: +7 tests en archivo canónico del hermano `NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest` (c.1229 F2 — 3 capturas nominales anclan, 2 guards narrativa re-pineadas, 2 regresiones ruta ordinal/parte-del-día).
+- **Tests**: suite UNIÓN dominio **OK (10147 = 10140 remoto re-medida + 7 míos — aritmética exacta re-medida tras unión, lección c.1014)**, 0 failures; smoke dominio 25/25. **NO VERIFICADO** gradle/lint/Android/UI/Room DAOs reales (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt` (nueva regex `weekdayNominalSubjectQuedarCon` + fallback en el guard), test canónico +7 pins, sonda persistida nueva, BACKLOG (resolución c.1229 corregida a CONVERGENTE + complemento CERRADO), CURRENT_STATE (línea c.1229 corregida), RUN_LOG (este append).
 - **Commits**: hash post-commit (ver `git log -1`).
-- **Próxima prioridad**: laterales de MI auditoría c.1227 — (f) «entrenamiento de (fútbol|deporte)» DÉBIL; (g) «clase de (yoga|pilates)» DÉBIL (gate vía keyword existente). Herman ellas pueden tomarse si DISJUNTO. Nunca force, nunca main.
+- **Estado**: FIXED VERIFIED (JVM). **Próxima prioridad**: laterales DISJUNTAS con marcador propio; verificar EN CURSO del hermano (su c.1230 enroll-gimnasio — NO TOCAR). Nunca force, nunca main.
+
+
+## 2026-08-26 — CIERRE gate-NOIMPLEMENTAR c.1233 (este lado, OpenHands)
+
+- **HEAD inicial**: `7e8c038` (post-push c.1229-bis).
+- **Unidad**: lateral DÉBIL ABIERTA de MI auditoría c.1227 «colgar las fotos de la boda» (área parser — DISJUNTA del hermano).
+- **PRE sonda persistida**: `tools/probe/ColgarLasFotosProbe.kt` → título preservado íntegro, `due=null` esperado (la frase no lleva fecha explícita). Negación y grafías erróneas también pasan limpias por su ruta.
+- **Decisión**: NO se implementa nada — gate de necesidad (menos es más; lección gate c.751). CIERRE sin implementación.
+- **Verificación**: re-run filtered 27 tests OK + smoke dominio 25/25 tras rebase.
+- **Commits**: 7e8c038 (c.1229-bis) + este cierre documental (ramas de docs individualizada).
+- **Estado**: NO-IMPLEMENTAR por diseño honesto. **Próxima prioridad sugerida**: auditoría clase XXXII parser con herramientas de pre-gate (sonda) antes de tocar código. Nunca force, nunca main.
+
+
+## 2026-08-26 — c.1234 — Sesión [OpenHands] (renum. c.1233→c.1234)
+
+- **HEAD inicial**: 2eabbf0 (grafted merge hermano; conflicto cometido en este run).
+- **Renumeración**: c.1233 → c.1234 — hermano tomó c.1233 (gate «colgar fotos de la boda» NOIMPLEMENTAR) en remoto mientras yo implementaba; primer-marcador-gana (c.1077), precedente c.1218→c.1221. Commit de implementación lleva c.1233 en el mensaje (no destructivo, no se amend; renum doc aquí).
+- **Problema**: lateral (e) «salir en (bici|bicicleta)» de MI auditoría c.1227 (clase XXX deporte) — analyze SILENT-NULL (P1 olvido silencioso).
+- **Causa raíz**: verbo «salir» no-piso; objeto bici|bicicleta cerrado, sin keyword (gate c.751 → piso verb-scoped, CERO keywords nuevas); sin plantilla en extractTitle.
+- **Solución**: lockstep DOS puntos (lección c.616): (1) piso NUEVO `EXERCISE_BIKE_OUT_FLOOR` `\b(?<!no )salir\s+en\s+(bici|bicicleta)\b` en lista maestra EXERCISE_FLOORS; (2) plantilla `matchSalirEnBici` en extractTitle rama EXERCISE (título arranca en «salir en»).
+- **Tests**: sonda PRE re-medida `tools/probe/SalirEnBiciProbe.kt` (T1–T5 NULL, G1–G4 NULL, R1–R2 HIT). TDD RED exacto 5 fallos de 10153 → GREEN 10/10. Suite UNIÓN **OK (10158, exit 0)**; smoke dominio 25/25. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Archivos**: ContextIntentEngine (+EXERCISE_BIKE_OUT_FLOOR +matchSalirEnBici), test nuevo 10 pins, sonda persistida, BACKLOG (c.1234 FIXED renum), CURRENT_STATE (FIXED VERIFIED renum), RUN_LOG (este append).
+- **Commits**: commit implementación marcado c.1233 (renum. a c.1234), post-hash ver `git log`.
+- **Próxima prioridad**: laterales de MI auditoría c.1227 — (f) «entrenamiento de (fútbol|deporte)»; (g) «clase de (yoga|pilates)» (gate vía keyword existente). Nunca force, nunca main.
