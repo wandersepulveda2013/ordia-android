@@ -1,3 +1,47 @@
+## 2026-08-25 — run c.1179 (este lado): AUDITORÍA de descubrimiento clase VIGÉSIMA (quehacer doméstico / mantenimiento del hogar) — sonda persistida, CERO producto
+
+- **HEAD inicial del run**: `b4027576` (mi c.1175 «haré la mudanza» ya pusheado
+  tras dos rebases NO-destructivos sobre el trabajo del hermano c.1172/c.1176;
+  addendum post-integración en `14e6097a`).
+- **Marcador primero**: c.1179 fijado (`e6f74681`) ANTES de sondear —
+  disciplina anti-carrera (lección c.1077).
+- **Sonda**: NUEVA persistida `tools/probe/TwentiethClassHouseholdProbe.kt`
+  (convención c.822/c.1007/c.1079/c.1165/c.1173): 14 candidatas domésticas +
+  8 regresiones + 8 controles, motor real vía `tools/run_probe.sh`.
+- **Medida** (PRE sobre `e6f74681` — punta integrada c.1175 propio +
+  c.1172/c.1176 hermano): 13/14 candidatas HIT por cobertura HEREDADA — el
+  piso HOUSEHOLD es robusto (arreglar el grifo, cambiar la bombilla, poner la
+  lavadora, limpiar el garaje, colgar la ropa, hacer la cama, fregar los
+  platos, pasar la aspiradora, regar las plantas, sacar al perro, ordenar el
+  trastero — todos HOUSEHOLD 0.45; llevar el coche al taller ERRAND 0.45 vía
+  piso c.684; comprar detergente SHOPPING 0.47). **1 gap NULL**:
+  (a) FUERTE «tirar la basura esta noche» (C4) — el olvido doméstico canónico
+  (la basura sin bajar); el piso HOUSEHOLD cubre muchos verbos pero no
+  «tirar», y «basura» no es keyword. El guard de negación «no voy a tirar la
+  basura…» ya es NULL correcto (guard c.1009 gobierna sin piso).
+- **Regresiones**: 8/8 HIT intactos — UNIÓN de ambos lados verificada en vivo:
+  R5 «haré la mudanza en octubre» TASK 0.45 (mi c.1175 recién integrado) y
+  R7 «llevar a mi hijo al médico mañana» ERRAND 0.45 (c.1176 del hermano).
+- **Controles**: 8/8 NULLs correctos (negación compuesta, duda subjuntivo,
+  pasado ×2, estado «la lavadora está rota», verbo aislado, estado-pasado
+  «el perro salió…», sustantivo-estado «la basura huele mal»).
+- **Laterales observadas** (NO de esta clase, registradas en BACKLOG):
+  «esta semana» / «después de comer» / «este finde» dueAt=false con residuo
+  en título (familia conocida c.845/c.852/c.1079/c.1102/c.1165); «ahora» no
+  ancla (consistente con clases anteriores).
+- **Tests**: suite UNIÓN OK (9565, medida sobre la misma base de código —
+  CERO cambios de producto en este ciclo), smoke dominio 25/25.
+- **Docs**: fila BACKLOG VIGÉSIMA (candidata (a) ABIERTA), CURRENT_STATE
+  cerrado, sonda documentada con la medida exacta.
+- **Commits**: `e6f74681` (marcador), `14e6097a` (addendum c.1175, previo),
+  este cierre. HEAD final: este commit.
+- **Próxima prioridad**: candidata (a) «tirar la basura» (extensión aditiva
+  del piso HOUSEHOLD, lockstep 2 puntos; región potencialmente activa —
+  marcar primero y verificar DISJUNCIÓN con c.1177/c.1178/c.1174 del hermano)
+  o lateral ABIERTA previa si el hermano la marca antes.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK — nunca
+  fingido). Determinista (regex), cero random, cero IA fingida.
+
 ## 2026-08-25 — run c.1170 (este lado): CIERRE candidata (b) FUERTE auditoría c.1165 «llevar a los niños a la fiesta del cole» — FIXED VERIFIED (JVM)
 
 - **HEAD inicial del run**: `b2c33f2` (marcador c.1157 propio, grafted); sync limpio `pull --ff-only`. Marcador EN CURSO c.1170 ya fijado en `900afc6` (run previo: TDD RED→GREEN ejecutado y suite verde; este run lo CONTINÚA y CIERRA, doctrina anti-carrera).
