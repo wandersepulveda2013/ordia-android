@@ -39408,3 +39408,21 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Lección: alcance genitivo-only después de rollback over-strip; TDD-first documenta decisiones productivas
 
 - 2026-08-26 · c.1196 · RESUMEN: «haré (el)? curso(s)» (futuro 1ª persona) — GREEN tras fix piso (hacer|hago|haré) + plantilla matchHacerCurso; re-pin legítimo del pin NULL ´haré´ del hermano; sonda POST persistida HareCursoProbe 0 misses; suite UNION 9766 OK; smokes 25+9 OK. NO VERIFICADO Android. PRÓXIMO: revisión de producto (clase siguiente no se auto-auditada).
+
+
+---
+
+## 🔄 Run — 2026-08-26 (ciclo c.1198 — este lado)
+
+- HEAD inicial: `59c492f3` (re-base tras higiene conflict-markers c.1193b); fase TDD RED→GREEN
+- Problema: (b) «recargar la tarjeta (el lunes)» NULL; (a) «hacer la transferencia al casero» pin privacidad POR DISEÑO
+- Causa raíz: keyword PAYMENT «recarga» sustantiva sin infinitivo «recargar» en `PAYMENT_VERBS` — gap silencioso < umbral
+- Fix lockstep DOS puntos (lección c.616/c.652; CERO keywords nuevas — gate c.751 satisfecho con «recarga» en keywords-OBJETO): (1) `PAYMENT_VERBS = "pagar|recargar"` ~l.63 (alimenta `PAYMENT_FLOOR` ~l.1265, guard negación compartido, bonus branch); (2) plantilla PAYMENT en `extractTitle` ~l.5656: `Regex("""(pagar|recargar) (.+)""")` — verbo preservado en título (doctrina c.653)
+- Sonda: PRE efímera `/tmp/probe1198/Sonda.kt` (recargar/transferencia/adelantar NULL; canarios «pagar la luz» PAYMENT 0.45/«ir al banco» ERRAND 0.45 HIT) → POST medido: «recargar la tarjeta el lunes» → PAYMENT «Recargar la tarjeta» (dueAt true, sanitizer c.606 corta temporal)
+- Privacidad por diseño (a): «transferencia» en blocklist `ContextPrivacyFilter` (paso 1 de analyze) — pin NULL documentado (precedente c.1029)
+- Laterales ABIERTAS documentadas: «recargar el saldo del móvil», «hacer la recarga de la tarjeta» (gate keyword, CERO-keywords nuevas)
+- TDD estricto: 12 tests NUEVOS `ContextIntentEngineRecargarTarjetaTest.kt` — RED exacto 5 fallos → GREEN 12/12
+- Verificación UNIÓN: suite **OK (9787 = 9775 base + 12)**; smoke dominio **25/25**; colisiones ninguna
+- Head final: pending; próxima prioridad: (c) «adelantar la mensualidad» (UNA por ciclo, gate de keyword — requiere decisión)
+- Nunca force, nunca main
+

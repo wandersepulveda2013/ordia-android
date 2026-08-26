@@ -60,7 +60,12 @@ object ContextIntentEngine {
     // de negación global (que protege cuando el bono temporal o un patrón
     // específico eleva el score por encima del umbral SIN pasar por el piso).
     private val SHOPPING_VERBS = "comprar"
-    private val PAYMENT_VERBS = "pagar"
+    // c.1198: «recargar» entra en la lista cerrada de verbos PAYMENT
+    // (lockstep con la plantilla de título en [extractTitle], lección
+    // c.616). El sustantivo «recarga» ya estaba en las keywords-OBJETO
+    // ([ContextIntentKind.PAYMENT], gate c.751) pero el infinitivo era
+    // NULL silencioso: la recarga de la tarjeta caía sin piso.
+    private val PAYMENT_VERBS = "pagar|recargar"
     // Verbos de CALL para el guard de negación (c.1063): alineados con
     // [CALL_SPECIFIC] (llamar/hablar + futuros declarativos c.656) y la
     // keyword «telefonear». Sin cláusula, CALL era el único kind de bono
@@ -5650,8 +5655,11 @@ object ContextIntentEngine {
             }
             ContextIntentKind.PAYMENT -> {
                 // Mismo criterio que SHOPPING: sin [capitalizeFirst] en el objeto.
-                val match = Regex("""pagar (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return "Pagar ${match.groupValues[1]}"
+                // c.1198: el verbo se preserva (no hardcoded «pagar») porque
+                // la lista [PAYMENT_VERBS] incluye «recargar» — alineación
+                // piso↔plantilla (lección c.616, doctrina c.653).
+                val match = Regex("""(pagar|recargar) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }
             ContextIntentKind.REMINDER -> {
