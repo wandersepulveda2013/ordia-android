@@ -41458,3 +41458,19 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: sonda persistida nueva `tools/probe/DeporteClassXXXProbe.kt`; BACKLOG (marcador c.1227 EN CURSO→FIJADA + resultados + laterales a–g + laterales de forma); CURRENT_STATE (línea c.1227); RUN_LOG (este append). CERO cambios de producto/test.
 - **Commits**: a4caa72 (marcador EN CURSO + sonda) + hash post-commit (cierre docs).
 - **Estado**: AUDITORÍA-CERRADA VERIFIED (JVM). **Próxima prioridad**: lateral (a) «jugar (al|a la) <deporte>» [FUERTE — requiere keyword nueva (gate c.751) + piso acotado + plantilla lockstep; verificar marcadores del hermano antes de tomar]. Nunca force, nunca main.
+
+
+## 2026-08-26 — c.1228 — Sesión 6 [OpenHands]
+
+- **HEAD inicial**: 8f8970f (marcador EN CURSO del run anterior).
+- **Problema**: lateral ABIERTA (a) FUERTE «jugar (al|a la|a) <deporte-equipo>» de MI auditoría c.1227 (clase XXX deporte) — analyze SILENT-NULL (P1 olvido silencioso; sesión deportiva semanal canónica del español hablado).
+- **Incidente**: run previo corrompió ambos fuentes por doble codificación (mojibake «Ăł») — sobrescritura total desde python. HEAD limpio; recuperación no-destructiva con `git checkout HEAD` + re-aplicación limpia vía python con escapes \uXXXX. Lección reforzada (doctrina §7): prohibido reescribir archivos enteros sin escapes.
+- **Causa raíz**: sin keyword-OBJETO-deporte; sin piso `jugar<objeto>` (gate c.751 prohibía keyword-VERBO por bivalente); sin plantilla de título (así aun cuando el piso hubiese capturado el título no se resolvía).
+- **Solución**: lockstep TRES puntos (lección c.616, gate c.751, doctrina c.653 con doble literal por tilde, lección c.1217):
+  1. keywords-OBJETO EXERCISE: `fútbol/futbol/pádel/padel/tenis/baloncesto/voleibol/balonmano/golf`.
+  2. piso NUEVO `EXERCISE_PLAY_SPORT_FLOOR` (alternancia opcional `al|a la|a|el|la`; bare «jugar futbol mañana» pinado; guard `(?<!no )`).
+  3. plantilla `matchJugar` en extractTitle rama EXERCISE (prefijo temporal strip, lección c.604-c.606).
+- **Tests**: sondeo PRE re-medido `tools/probe/JugarDeporteProbe.kt` (T1–T8 NULL, guards NULL, regresión EXERCISE intacta). TDD RED exacto → GREEN 17/17 (`tools/run_filtered_test.sh "JugarDeporte"`). Suite UNIÓN **OK (10109 = 10092 base + 17 míos — aritmética exacta, exit 0)**; smoke dominio 25/25. Guards NULL pineadas: negación/pretérito «jugué»/cartas/escondite/«jugamos»/declarativa; regresión «correr por el parque» → EXERCISE; envolvente «recuérdame…» → TASK (policy envolvente gobierna kind). LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Archivos**: ContextIntent (+9 keywords en comentario dobleliteral), ContextIntentEngine (+EXERCISE_PLAY_SPORT_FLOOR +matchJugar), test nuevo 17 pins, sonda persistida, BACKLOG (RESUELTA + laterales restantes), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
+- **Commits**: hash post-commit (ver `git log -1`).
+- **Próxima prioridad**: laterales de MI auditoría c.1227 — (b) «apuntarme al gimnasio en enero» MEDIA (verificar solape con «gimnasio-alta» histórica); (c) «partido de tenis el domingo» MEDIA; (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL. Laterales de FORMA documentadas (NO fijas): imperativo CALL «llama a mamá»; residuo «los» en títulos D4/D5. Nunca force, nunca main.

@@ -649,6 +649,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
     EXERCISE("Ejercicio", listOf("ejercicio", "gimnasio", "entrenar", "entreno",
         "yoga", "correr", "natación", "pesas", "rutina",
         "hacer deporte", "ir al gimnasio",
+        // c.1228: keywords-OBJETO deporte-equipo («jugar al fútbol» — el
+        // verbo «jugar» es BIVALENTE (cartas/escondite), gate c.751 prohíbe
+        // keyword-VERBO; vía keyword-OBJETO monosemántica, precedente
+        // «mueble» c.1224. Lockstep piso+plantilla (TRES puntos, lección
+        // c.616). Doble literal por tilde-rompe-subcadena, precedente c.1217.
+        "fútbol", "futbol", "pádel", "padel", "tenis", "baloncesto",
+        "voleibol", "balonmano", "golf", 
         // c.1135: «campamento» (actividad escolar/estival de los hijos —
         // «inscribir al niño en el campamento en julio» era NULL aunque las
         // hermanas con keyword como «natación» capturaban). Lockstep con el

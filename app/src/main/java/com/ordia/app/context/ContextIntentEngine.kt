@@ -668,6 +668,15 @@ object ContextIntentEngine {
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
     private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR, HOUSEHOLD_FURNITURE_FLOOR, PET_BRUSH_FLOOR)
+
+    // c.1228 (lateral (a) FUERTE auditoría c.1227, sonda
+    // tools/probe/JugarDeporteProbe.kt): «jugar (al|a la|a|bare) <deporte-
+    // equipo>» era NULL tres años. Verbo «jugar» BIVALENTE (cartas/escondite)
+    // → objeto cerrado (gate c.751, precedente «mueble» c.1224). Guard de
+    // negación heredado (?<!no ). Doble literal por tilde (c.1217).
+    private val EXERCISE_PLAY_SPORT_FLOOR =
+        Regex("""\b(?<!no )jugar\s+(?:al\s+|a\s+la\s+|a\s+)?(?:el\s+|la\s+)?(fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf)\b""")
+
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -677,7 +686,8 @@ object ContextIntentEngine {
         // matemáticas" (deberes) no captura. Sin este piso, "hacer
         // ejercicio por la mañana" se DESCARTABA (NULL, olvido
         // silencioso P1) con la sola franja blanda o desnuda.
-        Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte|ejercicio(?!\p{L}))\b""")
+        Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte|ejercicio(?!\p{L}))\b"""),
+        EXERCISE_PLAY_SPORT_FLOOR
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
     // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
@@ -5942,6 +5952,19 @@ object ContextIntentEngine {
                 // escapaba. "mañana ir al gimnasio" → título "Ir al gimnasio"
                 // (dueAt ya lo resolvió [extractDateTime]). Misma paridad que la
                 // rama CALL, que también arranca desde el verbo.
+
+                // c.1228: «jugar (al|a la|a) <deporte-equipo>» (lateral (a)
+                // FUERTE auditoría c.1227) — verbo bivalente, objeto cerrado
+                // ([EXERCISE_PLAY_SPORT_FLOOR], gate c.751). El match arranca
+                // en «jugar», así el prefijo temporal («el sábado »/«mañana »)
+                // no ensucia el título (lección c.604-c.606).
+                val matchJugar = Regex(
+                    """\b(?<!no )(jugar)\s+((?:al\s+|a\s+la\s+|a\s+)?(?:el\s+|la\s+)?(?:fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchJugar != null) {
+                    return "${capitalizeFirst(matchJugar.groupValues[1])} ${matchJugar.groupValues[2]}"
+                }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))
                 null
