@@ -1,3 +1,46 @@
+## 2026-08-25 — run c.1180 (este lado): lateral reflexiva de c.1174 — «llevarme el currículum a la entrevista» FIXED+VERIFIED
+
+- **HEAD inicial del run**: `935e4b2` (tras pull --ff-only; base real de trabajo
+  tras rebase NO-destructivo sobre los 3 commits del hermano: `0c61f0c` sonda
+  vigésima c.1179, `100e82d` feat c.1178, `64d0c0d` cierre c.1178).
+- **Marcador primero**: c.1180 fijado ANTES de sondear (disciplina anti-carrera,
+  lección c.1077); carrera real con el hermano durante el pin → rebase
+  NO-destructivo con resolución UNIÓN en CURRENT_STATE.md (ambos preservados,
+  0 pérdida); pin final `ed11660`.
+- **Selección**: laterales de MI fila c.1174 medidas con sonda efímera NUEVA
+  `/tmp/probe1174lat.kt` (motor real vía `tools/run_probe.sh`, base `a98c7e5`):
+  5/5 NULL — reflexivo «llevarme mi currículum…», «el informe», «el portfolio»,
+  «el CV», destino posesivo «a mi entrevista». UNA por ciclo (anti-overreach):
+  se cierra el reflexivo (forma hablada natural del acarreo P1 de c.1174 —
+  «tengo que llevarme el currículum a la entrevista»); el resto queda NULL
+  pineado. DISJUNTO de c.1177/c.1178/c.1179 (marcadores del hermano).
+- **Fix** (lockstep 2 puntos, lección c.616; CERO keywords nuevas — «llevar»
+  ya es keyword TASK histórica, gate c.751 satisfecho):
+  (1) piso `ERRAND_INTERVIEW_RUN_FLOOR` admite el enclítico «llevarme»
+      (alternativa primera; objeto y destino EXIGIDOS sin cambios);
+  (2) plantilla `matchInterviewRun` de `extractTitle` — título preserva el
+      verbo con su enclítico «Llevarme el currículum a la entrevista»
+      (doctrina c.653).
+- **TDD estricto**: 10 tests NUEVOS
+  `ContextIntentEngineLlevarmeCurriculumEntrevistaFloorTest.kt`
+  (5 capturas + 5 guards: negación directa/compuesta, sin destino,
+  sin objeto [transporte propio], objeto «el informe» pineado fuera).
+  RED EXACTO: 5 fallos (las 5 capturas; 5 guards verdes desde RED) →
+  GREEN en 1 iteración.
+- **Verificación final**: suite UNIÓN intermedia OK (9611) sobre c.1178/c.1179 del hermano; FINAL re-medida
+  **OK (9624 tests)** post-rebase sobre su feat c.1177 «whatsapp» (+13 tests,
+  aritmética exacta); smoke dominio 25/25;
+  automation 9/9; sonda persistida c.1165 (`EighteenthClassSocialProbe.kt`)
+  re-verificada 30 casos byte-idénticos; sonda persistida c.1174 (`LlevarCurriculumEntrevistaProbe.kt`) re-verificada 19/19 (esperado 19 OK, 0 FALLOS); POST efímera: reflexivo NULL →
+  ERRAND 0.45, las otras 4 laterales NULL pineadas.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK en el
+  entorno).
+- **Laterales ABIERTAS registradas** (UNA por ciclo): «el CV», «el
+  informe/portfolio», «a mi entrevista», «llévame…» (imperativo enclítico);
+  candidata (c) DECIMOCTAVA «colgar las fotos de la boda» (DÉBIL); P2
+  honestidad-de-kind «apuntar a <persona> al campamento» (fila c.1165).
+- **HEAD final del run**: pendiente en el commit docs de cierre.
+
 ## 2026-08-25 — run c.1179 (este lado): AUDITORÍA de descubrimiento clase VIGÉSIMA (quehacer doméstico / mantenimiento del hogar) — sonda persistida, CERO producto
 
 - **HEAD inicial del run**: `b4027576` (mi c.1175 «haré la mudanza» ya pusheado
