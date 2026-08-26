@@ -41806,6 +41806,7 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - CERO producto (auditoría). Verificación enclosure: suite UNIÓN OK (**10292**, exit 0 — re-medida sobre árbol de producto idéntico tras merge c.1259b) + smoke dominio 25/25 + sonda compila/corre (exit 0). Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK, JVM pura). Nunca force, nunca main.
 - Próxima prioridad: (a) «(el |mi )?cumpleaños (de <persona>)?» FUERTE — gate c.751 nominal monosemántico-efeméride + TDD lockstep (kind candidato a decidir: APPOINTMENT-bonus vs TASK vs MEETING); luego (b)–(e) en orden, UNA por ciclo.
 - HEAD final: commit docs+sonda c.1261 (siguiente).
+ HEAD
 ## c.1260 (2026-08-26, OpenHands)
 - HEAD inicio: ebe51af | Sync: ff-only OK, tree limpio. Entorno bootstrap re-hecho (checkpoint de sesión): OpenJDK 21, kotlinc 2.1.20 en /tmp/kotlinc-home, jars en /tmp/libs.
 - Problema (P1, descubrimiento documentado c.1255): imperativos conjugados de captura «anota|apunta <objeto>» NULL — piso NOTE_FLOOR (c.714/c.856) solo cubre infinitivo «apuntar|anotar» y reflexivo «apuntarse a»; «anota» recibe score por keyword «nota» (subcadena) sin piso → < MINIMUM_CONFIDENCE; «apunta» ni keyword → olvido silencioso de la orden de captura más natural en dictado.
@@ -41818,3 +41819,7 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room DAOs reales (JVM pura). Por instalar: ver smokes hermanos tras próxima sync si diverge.
 - Commit: feat(captura) piso+plantilla «anota/apunta <objeto>». HEAD final: ver `git log`.
 - Próxima prioridad: auditoría fresca clase XXXVII (dominio nuevo, CERO producto) o gate c.1233 sobre D9 («anota la cita…» APPOINTMENT vs NOTE — contenido ya preservado, probablemente NO-IMPLEMENTAR). Primer-marcador-gana (c.1077). Nunca force, nunca main.
+
+## c.1262 (2026-08-26, OpenHands) — MARCADOR EN CURSO
+
+- HEAD inicio: 8094de1 (grafted; ff-only OK). Unidad: lateral (a) FUERTE de MI auditoría c.1261 (clase XXXVII efemérides/celebraciones familiares): «(el |mi )?cumplea[ií]os? de <persona>» NULL en T1/T2. Kind decidido: TASK (alineación con la envolvente candado c.613 «recuérdame el cumpleaños…» → E1 íntegra; sincera contra APPOINTMENT-bonus y MEETING). Gate c.751: nominal monosemántico-efeméride, CERO keyword nueva — floor-only acotado «cumpleaños de <objeto>». Guards acotados nuevos: pretérito-copulativo «(fue|era) …» y interrogativa consulta al inicio «(qué|cuándo|dónde|quién) …». Plan: TDD RED → lockstep piso+plantilla → GREEN → sonda POST → suite UNIÓN + smokes. Resultado pendiente.
