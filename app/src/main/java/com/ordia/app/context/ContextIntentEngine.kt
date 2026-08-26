@@ -677,6 +677,13 @@ object ContextIntentEngine {
     private val EXERCISE_PLAY_SPORT_FLOOR =
         Regex("""\b(?<!no )jugar\s+(?:al\s+|a\s+la\s+|a\s+)?(?:el\s+|la\s+)?(fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf)\b""")
 
+    // c.1231 (lateral (c) DISJUNTA de c.1230, sonda tools/probe/
+    // PartidoDeporteProbe.kt): «partido de <deporte>» era NULL seis de
+    // seis. Verbo/objeto «partido» BIVALENTE (político) → keyword-OBJETO
+    // ya presente en deportes (c.1228). Guard de negación heredado.
+    private val EXERCISE_MATCH_SPORT_FLOOR =
+        Regex("""\b(?<!no )partido\s+de\s+(fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf)\b""")
+
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -687,7 +694,8 @@ object ContextIntentEngine {
         // ejercicio por la mañana" se DESCARTABA (NULL, olvido
         // silencioso P1) con la sola franja blanda o desnuda.
         Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte|ejercicio(?!\p{L}))\b"""),
-        EXERCISE_PLAY_SPORT_FLOOR
+        EXERCISE_PLAY_SPORT_FLOOR,
+        EXERCISE_MATCH_SPORT_FLOOR
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
     // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
@@ -5964,6 +5972,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchJugar != null) {
                     return "${capitalizeFirst(matchJugar.groupValues[1])} ${matchJugar.groupValues[2]}"
+                }
+                // c.1231: «partido de <deporte>» (lateral (c) DISJUNTA de
+                // c.1230) — objeto bivalente (político), piso acotado a
+                // [EXERCISE_MATCH_SPORT_FLOOR]. El match arranca en
+                // «partido», así el prefijo temporal no ensucia el título.
+                val matchPartido = Regex(
+                    """\b(?<!no )(partido\s+de)\s+((?:fútbol|futbol|pádel|padel|tenis|baloncesto|voleibol|balonmano|golf)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPartido != null) {
+                    return "${capitalizeFirst(matchPartido.groupValues[1])} ${matchPartido.groupValues[2]}"
                 }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))

@@ -41474,3 +41474,17 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: ContextIntent (+9 keywords en comentario dobleliteral), ContextIntentEngine (+EXERCISE_PLAY_SPORT_FLOOR +matchJugar), test nuevo 17 pins, sonda persistida, BACKLOG (RESUELTA + laterales restantes), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
 - **Commits**: hash post-commit (ver `git log -1`).
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (b) «apuntarme al gimnasio en enero» MEDIA (verificar solape con «gimnasio-alta» histórica); (c) «partido de tenis el domingo» MEDIA; (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL. Laterales de FORMA documentadas (NO fijas): imperativo CALL «llama a mamá»; residuo «los» en títulos D4/D5. Nunca force, nunca main.
+
+
+## 2026-08-26 — c.1231 — Sesión 7 [OpenHands]
+
+- **HEAD inicial**: 4b2d976 (marcador EN CURSO doc).
+- **Problema**: lateral (c) MEDIA «partido de <deporte-equipo>» de MI auditoría c.1227 (clase XXX deporte) — analyze SILENT-NULL (P1 olvido silencioso).
+- **Causa raíz**: sin piso «partido de <deporte>»; «partido» bivalente (político) → keyword prohibida (gate c.751); keyword-OBJETO-deporte presente desde c.1228 cubre el gate.
+- **Solución**: lockstep DOS puntos (lección c.616, grafías preservadas c.653):
+  1. piso NUEVO `EXERCISE_MATCH_SPORT_FLOOR` en lista maestra EXERCISE_FLOORS (guard (?<!no ), objeto deporte-equipo closed-set hermano c.1228).
+  2. plantilla `matchPartido` en extractTitle rama EXERCISE (título arranca en «partido de»; prefijo temporal strip, lección c.604-c.606).
+- **Tests**: sonda PRE re-medida `tools/probe/PartidoDeporteProbe.kt` (T1–T6 NULL, G1–G3 NULL, R/E HIT). TDD RED exacto 6 fallos (targets) → GREEN 11/11 (`ContextIntentEnginePartidoDeporteFloorTest.kt`: 6 targets + 2 guards + 2 regresiones + 1 envolvente). Suite UNIÓN **OK (10140, exit 0)**; smoke dominio 25/25; smoke automation 9/9. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Archivos**: ContextIntentEngine (+EXERCISE_MATCH_SPORT_FLOOR +matchPartido), test nuevo 11 pins, sonda persistida, BACKLOG (c.1231 FIXED + laterales restantes d/e/f/g), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
+- **Commits**: hash post-commit (ver `git log -1`).
+- **Próxima prioridad**: laterales de MI auditoría c.1227 — (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL; (g) «clase de yoga mañana» DÉBIL (con-keyword-bajo-umbral). Nunca force, nunca main.
