@@ -41242,3 +41242,38 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Suite UNIÓN: OK (9936 tests, +12) pre-rebase; re-fetch pre-push detectó hermano c.1214/c.1215 → rebase no-destructivo auto-merge engine OK; POST-REBASE UNIÓN OK (9950 tests) tools/run_domain_tests.sh EXIT=0; smoke 25/25 OK (tools/run_domain_checks.sh).
 - Sonda persistida: tools/probe/PodarArbolArbustoProbe.kt (elimo /tmp/probe1213.kt efímera).
 - Cutoff de scope: lateral abierto filtrado a «árbol(es)/arbusto(s)» solo (como hermano hizo con «coser el botón»). Continuación de auditoría hogar (clase VIGESIMOSÉPTIMA jardinería/plantas) definida: las guardas byte-clean ahora documentadas in-file.
+
+
+---
+
+## c.1216 — «llevar (…) a (la) tintorería» ERRAND (lateral (c) cls.XXVIII audit c.1209)
+
+- Fecha: 2026-08-26. HEAD inicial `ae238b3`; remoto había avanzado a `4b06749`
+  en el intervalo (rebase doc-only limpio); HEAD final `55d5457`.
+- Problema: lateral (c) ABIERTA documentada por MI auditoría c.1209 (clase
+  VIGESIMOCTAVA ROPA/VESTIMENTA): «llevar (objeto opcional a)? (la)?
+  tintorería» — dirección ENTREGA (drop-off) dry-cleaner — NULL PRE medido
+  con sonda efímera 16 casos (5/5 targets NULL, 5/5 guards NULL, R1 recogida
+  HIT heredado, R4 veterinario NULL base).
+- Causa raíz: keyword gate literal-frase (c.639): «tintorería» no era trigger;
+  «llevar» bivalente (lección c.684) → piso acotado al destino, no keyword.
+- Solución (lockstep TRES puntos, lección c.616/c.751/c.614(c)):
+  `ERRAND_DRYCLEAN_FLOOR` objeto opcional + keyword-OBJETO literal «tintorería»
+  (subcadena cubre plural; 0.12 sola bajo umbral) + plantilla `matchDryclean`
+  (verbo (llevar|llevo) preservado c.653; prólogo de prefijo temporal/acuse
+  para no ensuciar el título, lección c.616; proscripción «no » cubre la
+  negación, c.854).
+- Tests: `ContextIntentEngineTintoreriaFloorTest` (16 pins: 7 hits, 5 guards
+  NULL, 3 pines regresión [2 recogida + veterinario]). RED exacto: 7 fallos.
+  GREEN: 9965/9965 OK (base 9948 + 17 míos, descontando el nuevo de probe? —
+  no: probe se ejecuta con sonda separada; 16 tests míos). Sonda POST
+  persistida `tools/probe/LlevarTintoreriaProbe.kt`: PROBE OK (9 HIT/6 NULL).
+  Smokes: dominio 25 OK; automation 9 OK. UI/Room/gradle: NO VERIFICADO.
+- Hallazgos: laterales ABIERTAS (UNA forma por ciclo): débito «debo en la
+  tintorería»; pretérito «llevé al tintorería»; negación «no llevó». Guard
+  de pretérito enclítico c.854 cubre «ya lo llevé» (verificado).
+- Commits: marker `c54cdf2` (docs(EN CURSO)); fix `55d5457`; closure: este log.
+- Estado: FIXED VERIFIED JVM (suite 9965 OK).
+- Próxima prioridad: laterales restantes de mi auditoría c.1209: (b) «coser
+  el botón», (d) «quitar mancha de la camisa», (e) «guardar la ropa».
+

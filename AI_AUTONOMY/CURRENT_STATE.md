@@ -814,3 +814,12 @@ c.1043 — «el día N» en captura pasiva: el `dayPattern` local de `ContextInt
 - Re-pin del pin FUERA del hermano (precedente c.957/c.965/c.1018/c.1019): `yaMeLoPago_cliticosMultiplesLateralFueraPin` → `yaMeLoPago_cliticosMultiplesResueltaEnC1029` (narrativa intacta). El pin «ya, <narrativa>» con coma sigue FUERA (lateral ABIERTA).
 - TDD: RED exacto 7 fallos (6 candidatas + re-pin, revert temporal verificado) → GREEN **OK (7501 = 7489 + 12)**; smoke 25/25; automation 9/9.
 - Integración NO-destructiva: push imposible (remoto avanzó con SU c.1029/c.1030/c.1031) → stash docs + `pull --rebase` limpio (código DISJUNTO: SU c.1030 tocó `NaturalTaskParserYaPreteritoNarrativoDeltaTest.kt` NUEVO, cero solape con mi regex/re-pin) + stash pop con conflictos SOLO markdown (CURRENT_STATE/RUN_LOG) resueltos UNIÓN conservando AMBOS lados (cero pérdida, cero marcadores; verificado 0 líneas `
+
+## c.1216 (este lado)
+
+«llevar (… objeto opcional a)? (la)? tintorería» → ERRAND (piso objeto-opcional
++ keyword literal + plantilla matchDryclean); recogida «recoger (…)
+tintorería» intacta; TDD RED exacto→GREEN; suite 9965 OK; probe persistida
+(9 HIT/6 NULL). HEAD `55d5457`. Laterales restantes (b) coser botón,
+(d) quitar mancha, (e) guardar ropa.
+
