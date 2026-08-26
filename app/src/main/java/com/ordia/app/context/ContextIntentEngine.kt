@@ -3614,10 +3614,13 @@ object ContextIntentEngine {
             // check-in perdido tiene coste directo (recargo, asiento
             // perdido) y ventana corta (24-48 h). Verbo bivalente
             // acotado por objeto EXIGIDO «vuelo» (hermano EXACTO de
-            // c.865 «reclamar la factura»): «facturar el proyecto/la
-            // maleta» (mercantil/equipaje) y «hacer el check-in del
-            // hotel» quedan FUERA (laterales medidas NULL, UNA forma
-            // por ciclo). La grafía «checkin»/«check in» sin guion casa
+            // c.865 «reclamar la factura»): «facturar el proyecto»
+            // (mercantil) y «hacer el check-in del hotel» quedan
+            // FUERA (laterales medidas NULL, UNA forma por ciclo); la
+            // lateral de equipaje «facturar la(s) maleta(s)» se cierra
+            // en c.1168 (mismo piso, alternativa de objeto; maleta
+            // olvidada = cola/recargo en el aeropuerto, mismo coste
+            // que el check-in). La grafía «checkin»/«check in» sin guion casa
             // y se preserva en el título (doctrina c.653). Kind TASK
             // (gestión previa al viaje, hermana de «reservar» c.709 /
             // «confirmar» c.700 / «imprimir las tarjetas» c.708 /
@@ -3629,7 +3632,7 @@ object ContextIntentEngine {
             // falta cláusula dedicada en [imperativeIsNegated], mismo
             // argumento que c.895b/c.895c); el pasado «facturé/hice» y
             // el subjuntivo «facture» no casan (forma EXACTA).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+el\s+vuelo\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )facturar\s+(?:el\s+vuelo|las?\s+maletas?)\b""").containsMatchIn(lower) ||
             Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+el\s+check[\s-]?in\s+del?\s+vuelo\b""").containsMatchIn(lower) ||
             // c.1150: candidata (b) clase DECIMOSEXTA — «salir para el
             // aeropuerto a las 5 del lunes» / «salir para la estación
@@ -5321,8 +5324,9 @@ object ContextIntentEngine {
                 // que el piso); los bivalentes («facturar el proyecto»,
                 // «check-in del hotel») nunca llegan aquí porque el piso
                 // no los captura. La grafía del usuario se preserva
-                // («checkin» sin guion, doctrina c.653).
-                val matchFacturarVuelo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(facturar)\s+(el\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // («checkin» sin guion, doctrina c.653). c.1168: alternativa
+                // de objeto «las? maletas?» en lockstep con el piso.
+                val matchFacturarVuelo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(facturar)\s+((?:el\s+vuelo|las?\s+maletas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchFacturarVuelo != null) return "Facturar ${matchFacturarVuelo.groupValues[2]}"
                 val matchHacerCheckIn = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+(el\s+check[\s-]?in\s+del?\s+vuelo\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCheckIn != null) return "Hacer ${matchHacerCheckIn.groupValues[2]}"
