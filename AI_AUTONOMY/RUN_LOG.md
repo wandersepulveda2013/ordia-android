@@ -1,3 +1,7 @@
+## RUN 2026-08-26 — c.1245 AUDITORÍA-CERRADA clase XXXIII oficina/trámites
+- HEAD inicial: ca47278 (c.1244 push). Sonda persistida `TramitesClassXXXIIIProbe.kt` (14D+8G+8R): 11/14 HIT, 3/14 NULL — D7 «sellar la nómina» [DÉBIL], D10 «ella firma» guard CORRECTO, D11 llevar-fotocopias [DÉBIL].
+- Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10215) medida. CERO producto (convención c.1127/c.1165/c.1194/c.1225).
+- **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1244 CERRADO «apagar/encender clima» (FUERTE lateral (b) auditoría c.1243 XXXII)
 - HEAD inicial: f964067. Lockstep DOS puntos (c.616; gate c.751 floor-only, objeto aire-acondicionado/calefacción/calefactor/estufa/chimenea).
 - TDD +2 tests → GREEN 11/11 (repino legítimo «por la noche»→«hoy» ancla temporal). Suite UNIÓN OK (10215); smoke 25/25. POST sonda D8–D11 HIT.
