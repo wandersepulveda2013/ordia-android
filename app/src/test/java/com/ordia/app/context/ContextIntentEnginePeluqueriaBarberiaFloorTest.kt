@@ -15,7 +15,7 @@ import org.junit.Test
  * (desplazamiento). Sonda persistida
  * `tools/probe/PeluqueriaBarberiaProbe.kt` (PRE 6/6 NULL targets —
  * olvido silencioso). Lockstep DOS puntos (lección c.616): piso acotado
- * ERRAND_BARBERSHOP_RUN_FLOOR + plantilla matchBarbershopRun en
+ * ERRAND_BEAUTY_RUN_FLOOR + plantilla matchBeautyRun en
  * extractTitle. Kind: ERRAND (TASK sólo en envolvente
  * «recuérdame»/«tengo que», lección de archivo del wrapper).
  */

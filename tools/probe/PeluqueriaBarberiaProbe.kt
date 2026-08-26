@@ -18,8 +18,8 @@ import com.ordia.app.context.ContextIntentEngine
  * MEDICIÓN PRE (HEAD 2beb542): T1–T6 NULL (olvido silencioso — el
  * nominal no era piso ni keyword); G1–G5 NULL (sin cobertura);
  * R1–R6 HIT (baseline intacta).
- * MEDICIÓN POST (lockstep c.1256: [ERRAND_BARBERSHOP_RUN_FLOOR] +
- * plantilla matchBarbershopRun en extractTitle + guard
+ * MEDICIÓN POST (lockstep c.1256: [ERRAND_BEAUTY_RUN_FLOOR] +
+ * plantilla matchBeautyRun en extractTitle + guard
  * [pastErrandCopulaGoverns]): T1–T6 HIT ERRAND con título limpio
  * («Peluquería»/«La peluquería»/«Mi barbería») y dueAt; G1 NULL
  * ([planWrapperIsNegated]); G2 NULL («salón» excluido por diseño);

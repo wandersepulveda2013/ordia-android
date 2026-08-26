@@ -1127,12 +1127,21 @@ object ContextIntentEngine {
     // (de belleza)» FUERA (polisémico — living-room; lateral (a2)
     // documentada). Plural «peluquerías» lateral ABIERTA.
     // Lockstep DOS puntos (lección c.616): piso + plantilla
-    // matchBarbershopRun en [extractTitle]. Guard de negación
+    // matchBeautyRun en [extractTitle]. Guard de negación
     // heredado (?<!no ) + compuesto [planWrapperIsNegated]
     // («no voy a (la) peluquería»). Determinista (regex), sin
     // random, sin IA fingida.
-    private val ERRAND_BARBERSHOP_RUN_FLOOR =
-        Regex("""\b(?<!no )(?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a)\b""")
+    // c.1257 (lateral (b) MEDIA de MI auditoría c.1252 — misma clase
+    // XXXVI belleza): el nominal de servicio «manicura|pedicura» era
+    // NULL (PRE medido sonda efímera /tmp/probe1257: 6/6 NULL). Gate
+    // c.751: monosemántico-servicio (sesión inequívoca de cuidado);
+    // CERO keyword — floor-only; «uñas»/«cejas» FUERA (partes
+    // corporales polisémicas — sonda G2). El piso c.1256 se RENOMBRA a
+    // ERRAND_BEAUTY_RUN_FLOOR (la clase cubre ya lugar+servicio de
+    // belleza) y la guard [pastErrandCopulaGoverns] cubre los nuevos
+    // nominales por la misma constante — lockstep íntegro.
+    private val ERRAND_BEAUTY_RUN_FLOOR =
+        Regex("""\b(?<!no )(?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura)\b""")
     // Piso analítica de sangre acotado al objeto (c.862, candidata 4/7 de
     // la sonda persistida `EighthClassAdminProbe.kt` c.857 — OCTAVA clase,
     // gestiones de adulto — salud cotidiana; sonda PRE
@@ -1463,7 +1472,7 @@ object ContextIntentEngine {
         ERRAND_CASH_FLOOR,
         ERRAND_DEPOSIT_FLOOR,
         ERRAND_DRYCLEAN_FLOOR,
-        ERRAND_BARBERSHOP_RUN_FLOOR
+        ERRAND_BEAUTY_RUN_FLOOR
     )
     // c.898 (familia NOVENA 5/8): «hacer (los|mis|tus) deberes» — acotado
     // al objeto (lockstep con keyword «deberes» y plantilla de título en
@@ -1806,9 +1815,10 @@ object ContextIntentEngine {
         """\b(?:fue|era)\s+(?:ayer|anteayer|anoche)(?!\p{L})"""
     )
     // Copulativa PASADA para el nominal ERRAND «(la |mi )?(peluquer[ií]a|
-    // barber[ií]a)» (c.1256, hermano posicional de c.1235 EXERCISE — ver
+    // barber[ií]a|manicura|pedicura)» (c.1256 + extensión c.1257 por la
+    // MISMA constante, hermano posicional de c.1235 EXERCISE — ver
     // [pastErrandCopulaGoverns]): «la peluquería fue ayer» capturaba por el
-    // piso nominal [ERRAND_BARBERSHOP_RUN_FLOOR] y persistía como
+    // piso nominal [ERRAND_BEAUTY_RUN_FLOOR] y persistía como
     // compromiso futuro. El pretérito va POSPUESTO al match nominal con
     // marcador de pasado inmediato (ayer|anteayer|anoche) en la misma
     // cláusula. «estuvo llena/cerrada ayer» queda lateral ABIERTA
@@ -2188,7 +2198,7 @@ object ContextIntentEngine {
         // Guard de copulativa PASADA nominal ERRAND (c.1256 anti-overreach,
         // hermano posicional de c.1235 EXERCISE, ver
         // [PAST_ERRAND_COPULA_PATTERN]): «la peluquería fue ayer» activaba
-        // [ERRAND_BARBERSHOP_RUN_FLOOR] y persistía el hecho cumplido con
+        // [ERRAND_BEAUTY_RUN_FLOOR] y persistía el hecho cumplido con
         // fecha PASADA. Se descarta sólo el candidato ERRAND gobernado por
         // la copulativa pospuesta; la envolvente presente legítima
         // («recuérdame que la peluquería fue ayer» → TASK, candado c.613)
@@ -4609,13 +4619,14 @@ object ContextIntentEngine {
     }
 
     /**
-     * Detecta si el nominal ERRAND «(la |mi )?(peluquer[ií]a|barber[ií]a)»
-     * está GOBERNADO por una copulativa en pretérito pospuesta con
-     * marcador de pasado inmediato (c.1256 anti-overreach — hermano
+     * Detecta si el nominal ERRAND «(la |mi )?(peluquer[ií]a|barber[ií]a|
+     * manicura|pedicura)» (c.1256 + extensión c.1257 por la MISMA
+     * constante) está GOBERNADO por una copulativa en pretérito pospuesta
+     * con marcador de pasado inmediato (c.1256 anti-overreach — hermano
      * posicional de c.1235 EXERCISE, ver [PAST_ERRAND_COPULA_PATTERN]):
      * «la peluquería fue ayer». La cópula «(fue|era)
      * (ayer|anteayer|anoche)» debe estar DESPUÉS del match del piso
-     * [ERRAND_BARBERSHOP_RUN_FLOOR] y en la MISMA cláusula — sin corte
+     * [ERRAND_BEAUTY_RUN_FLOOR] y en la MISMA cláusula — sin corte
      * [.!?,;:] entre el fin del match y la cópula, lección c.1142. Sólo
      * gobierna el candidato ERRAND por ese piso nominal: la envolvente
      * presente legítima («recuérdame que la peluquería fue ayer» → TASK,
@@ -4627,7 +4638,7 @@ object ContextIntentEngine {
      */
     private fun pastErrandCopulaGoverns(lower: String, kind: ContextIntentKind): Boolean {
         if (kind != ContextIntentKind.ERRAND) return false
-        val match = ERRAND_BARBERSHOP_RUN_FLOOR.find(lower) ?: return false
+        val match = ERRAND_BEAUTY_RUN_FLOOR.find(lower) ?: return false
         return PAST_ERRAND_COPULA_PATTERN.findAll(lower).any { m ->
             m.range.first > match.range.last &&
                 lower.substring(match.range.last + 1, m.range.first).none { it in ".!?,;:" }
@@ -7080,17 +7091,17 @@ object ContextIntentEngine {
                 if (matchIrDestino != null) return capitalizeFirst(matchIrDestino.groupValues[1])
                 // "peluquería / la peluquería / mi barbería" → "Peluquería" /
                 // "La peluquería" / "Mi barbería" (c.1256, lockstep DOS puntos
-                // con [ERRAND_BARBERSHOP_RUN_FLOOR]): el match arranca en el
+                // con [ERRAND_BEAUTY_RUN_FLOOR]): el match arranca en el
                 // nominal de lugar, así el acuse/prefijo temporal ("en la
                 // peluquería el viernes") no ensucia el título (lección
                 // c.616 — paridad matchClase c.1250); residuo temporal de
                 // cola depurado por [sanitizeTitle].
-                val matchBarbershopRun = Regex(
-                    """\b(?<!no )((?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a)\b.*)""",
+                val matchBeautyRun = Regex(
+                    """\b(?<!no )((?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
-                if (matchBarbershopRun != null) {
-                    return capitalizeFirst(matchBarbershopRun.groupValues[1])
+                if (matchBeautyRun != null) {
+                    return capitalizeFirst(matchBeautyRun.groupValues[1])
                 }
                 null
             }
