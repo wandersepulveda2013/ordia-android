@@ -3415,6 +3415,13 @@ object ContextIntentEngine {
             // monosemánticos bricoloaje; gate c.751 — objeto EXIGIDO
             // acotado físico-hogar; CERO keyword nueva).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:taladrar|atornillar|montar|colgar|pintar|pegar|lijar|pulir|sustituir|sellar)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:paredes?|pared|la\s+pared|estanter[ií]a|estanterías|muebles?|cuadros?|habitaci[oó]n|pasillo|marcos?|juntas?|ducha|focos?|baldosas?|suelos?|puertas?)\b""").containsMatchIn(lower)
+            // c.1249: piso acotado «practicar <instrumento-musical>»
+            // (lateral (a) FUERTE de MI auditoría c.1248 clase XXXV
+            // música — sonda persistida `MusicaClassXXXVProbe.kt`;
+            // gate c.751 — «practicar <instrumento>» casi
+            // monosemántico sobre objeto EXIGIDO acotado; plural
+            // (?:e)?s? cubre violines/guitarras; CERO keyword).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )practicar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(?:piano|guitarra|viol[ií]n|viola|violoncelo|violonchelo|flauta|clarinete|saxof[oó]n|trompeta|acorde[oó]n|ukelele|tromb[oó]n)(?:e)?s?\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5925,6 +5932,10 @@ object ContextIntentEngine {
                 // c.1247: plantilla «verbos brico»
                 val matchBrico = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(taladrar|atornillar|montar|colgar|pintar|pegar|lijar|pulir|sustituir|sellar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:paredes?|pared|la\s+pared|estanter[ií]a|estanterías|muebles?|cuadros?|habitaci[oó]n|pasillo|marcos?|juntas?|ducha|focos?|baldosas?|suelos?|puertas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchBrico != null) return "${matchBrico.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchBrico.groupValues[2]}"
+                // c.1249: plantilla «practicar <instrumento>» (lockstep
+                // con el piso; grafía preservada c.653)
+                val matchPracticarInstrumento = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(practicar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(?:piano|guitarra|viol[ií]n|viola|violoncelo|violonchelo|flauta|clarinete|saxof[oó]n|trompeta|acorde[oó]n|ukelele|tromb[oó]n)(?:e)?s?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPracticarInstrumento != null) return "Practicar ${matchPracticarInstrumento.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

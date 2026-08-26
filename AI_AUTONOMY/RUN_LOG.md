@@ -41663,3 +41663,15 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura). Nunca force, nunca main.
 - Próxima prioridad: implementar (a) «practicar <instrumento>» floor-only con plantilla lockstep (lección c.616/c.751); gate c.751 floor-only CERO keyword. Una-lateral-por-ciclo.
 - HEAD final: commit docs(ai) c.1248 (siguiente).
+
+## c.1249 (2026-08-26, este lado) — FIXED+VERIFIED lateral (a) «practicar <instrumento>»
+
+- HEAD inicial: `e328221` (docs(audit) c.1248 ya publicada; marcador EN CURSO `7f8f559`).
+- Implementación lockstep DOS puntos (lección c.616; gate c.751 — «practicar <instrumento-musical>» casi monosemántico sobre objeto EXIGIDO acotado; CERO keyword nueva): (1) piso en `hasStrongTaskImperative` (ancla ^|acuse|temporal heredada, lookbehind «no »); (2) plantilla en `extractTitle` — título «Practicar <objeto>« grafía preservada (c.653).
+- TDD estricto: 7 tests NUEVOS `ContextIntentEnginePracticarInstrumentoFloorTest.kt` (2 capturas + 4 guards/conservaciones + 1 regresión brico-apagar) — RED EXACTO 2 fallos (ambas capturas; guards y regresiones verdes desde RED).
+- GREEN tras UNA iteración de fix: acentos opcionales `viol[ií]n|saxof[oó]n|acorde[oó]n|tromb[oó]n` (la grafía sin tilde «violines» es común → primer fallo detectado y corregido; piso/plantilla update al unísono).
+- Suite UNIÓN FINAL **OK (10235 = 10228 prev + 7 nuevos — aritmética exacta, exit 0)**; smokes dominio 25/25 y automation 9/9.
+- Sonda persistida `tools/probe/MusicaClassXXXVProbe.kt` POST: D1 HIT TASK 0.45 «Practicar el piano por la tarde» (residual temporal conservado como el hermano c.1247); D2–D4/D6–D7 siguen NULL por convenio (laterales documentadas (b)–(d)); R 8/8 HIT estables.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura). Doc-note: mojibake `ÂŤ` en vista de file_editor es artefacto de display (bytes verificados limpios con python).
+- Próxima prioridad: (b) «afinar <instrumento>» (verbo monosemántico) o (d) nominales «el ensayo/la audición»; hermano (h)-espejo «instalar (una) app». Una-lateral-por-ciclo.
+- HEAD final: commit feat c.1249 (siguiente). Nunca force, nunca main.
