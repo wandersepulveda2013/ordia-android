@@ -1309,3 +1309,12 @@ Unidad: lateral (a) FUERTE de MI auditoría c.1227 (clase TRIGÉSIMA deporte): �
 Unidad: lateral P1 ABIERTA del área PARSER (DISJUNTA del hermano — su c.1228 es context «jugar (al|a la) <deporte>»; las laterales (b)–(g) de mi auditoría c.1227 tocarían las mismas 3 regiones del engine en pleno trabajo suyo, anti-colisión): weekday AL FINAL con SUJETO NOMINAL en el PREFIJO («el paquete llegó el lunes», «la alarma sonó el viernes», «mi hermano vino el jueves») — registrada ABIERTA en c.1041 UNIÓN con pin byte-idéntico `NaturalTaskParserWeekdayFinalPreteritoNarrativoTest` («el paquete llegó el lunes» assertAnchors). DOBLE daño P1 medible: ancla weekday FALSA (relato convertido en compromiso que ensucia What Now) + título mutilado (sin su weekday). Pin del hermano c.1041 pineado FUERA conservadoramente por sujeto nominal. Plan: sonda PRE persistida `tools/probe/SubjectPrefixWeekdayProbe.kt` → TDD RED exacto → re-pin pin→resuelto (precedente c.1033/c.1035) → fix 1 punto: cabeza sujeto-nominal (determinante opcional + UNA palabra) antes de clíticos{0,2}+pretérito en la ruta vocab de `weekdayOccurrenceIsPreteriteNarrative` → GREEN + POST + suite UNIÓN. Candados conservadores c.1023 intactos (quedar-con, infinitivo/que). Primer-marcador-gana (c.1077). Nunca force, nunca main.
 
 Resolución: CERRADO en este run — sonda PRE persistida `tools/probe/SubjectPrefixWeekdayProbe.kt`, TDD RED exacto 8 fallos de 10112, fix 1 punto (regex `narrativeSubjectPrefixHead` fallback del vocab-head en `weekdayOccurrenceIsPreteriteNarrative`), GREEN **10112 OK (10092+20 exacto)**, smokes 25/25 + 9/9, POST sonda 7 narrativa/8 ancla/5 regresiones byte-idénticas. Re-pin ×2 legítimo (c.1033/c.1035). **NO VERIFICADO** gradle/UI. Detalles en RUN_LOG + CURRENT_STATE.
+## FIXED VERIFIED — c.1232 (lateral (d) «ir a pilates» MEDIA)
+c.1232 (lateral (d) auditoría c.1227 cl.XXX deporte): analize SILENT-NULL
+«(ir a|empezar|hacer) pilates» — keyword inexistente. Gate c.751 requería
+keyword-OBJETO mono; vía GATE-OK. Lockstep TRES puntos en ContextIntentEngine.kt
+(piso↔keyword↔título), guard negación (?<!no ). EVIDENCIA: sonda
+`tools/probe/IrAPilatesProbe.kt` PRE = T1/T2/T4 SILENT-NULL; POST T1/T2/T4
+[HIT] EXERCISE título+dueAt; T3 (bare) NULL asimetría aceptada; guardas
+G1/G2/G3 (declarativa/pretérito/negación) NULL; regressions R1/R2 OK.
+Suite 10148 tests + smoke 25/25. FIXED c.1232 VERIFIED.

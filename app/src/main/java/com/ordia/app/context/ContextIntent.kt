@@ -655,7 +655,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // «mueble» c.1224. Lockstep piso+plantilla (TRES puntos, lección
         // c.616). Doble literal por tilde-rompe-subcadena, precedente c.1217.
         "fútbol", "futbol", "pádel", "padel", "tenis", "baloncesto",
-        "voleibol", "balonmano", "golf", 
+        "voleibol", "balonmano", "golf",
+        // c.1232: keyword-OBJETO mono «pilates» (ver los verbos-acotados en
+        // EXERCISE_FLOORS; sola e inerte 0.12 aun si se captura como «el
+        // pilates es bueno»). Gate c.751 requerida keyword.
+        "pilates",
         // c.1135: «campamento» (actividad escolar/estival de los hijos —
         // «inscribir al niño en el campamento en julio» era NULL aunque las
         // hermanas con keyword como «natación» capturaban). Lockstep con el
