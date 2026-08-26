@@ -718,6 +718,28 @@ object ContextIntentEngine {
     // así la negación/declarativo siguen descartados).
     private val ERRAND_WORK_DEVICE_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|la|mi|tu|su)\s+)?(?:port[áa]til|ordenador)\s+(?:al\s+trabajo|a\s+la\s+oficina)\b""")
+    // Piso acarreo «llevar el currículum a la entrevista» (c.1174,
+    // descubrimiento d-bis de la auditoría c.1165, sonda persistida
+    // EighteenthClassSocialProbe): el objeto «el currículum» con destino
+    // «la entrevista» caía a NULL (6/6 candidatas medidas PRE sobre HEAD
+    // 9220964) porque los pisos «llevar» están acotados (taller c.684,
+    // escolar c.773/c.1170, médico c.776, estación c.1158, dispositivo
+    // c.1157) y la keyword «llevar» sola queda bajo umbral. Hermano de
+    // acarreo del «echar el currículum» c.1148: la entrevista sin el
+    // currículum físico es olvido silencioso P1. Objeto EXIGIDO
+    // `curr[ií]culum` (grafía RAE con/sin tilde, preservada en el título
+    // doctrina c.653), destino EXIGIDO «a la entrevista». Anti-overreach
+    // UNA forma por ciclo: «el CV», «el informe» y otros destinos («la
+    // oficina», «la reunión») quedan FUERA pineados NULL. Interop:
+    // objeto y destino disjuntos del resto de pisos «llevar» — sin
+    // solape. Kind deliberado: ERRAND (acarreo físico, doctrina c.1144).
+    // Lockstep con la plantilla matchInterviewRun de [extractTitle]
+    // (lección c.616); CERO keywords nuevas («llevar» ya es keyword TASK
+    // histórica → gate c.751 satisfecho; 0.12 + bono temporal 0.1 = 0.22
+    // < umbral sin el piso, así la negación/declarativo siguen
+    // descartados).
+    private val ERRAND_INTERVIEW_RUN_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -1123,6 +1145,7 @@ object ContextIntentEngine {
         ERRAND_MEDICAL_RUN_FLOOR,
         ERRAND_STATION_RUN_FLOOR,
         ERRAND_WORK_DEVICE_FLOOR,
+        ERRAND_INTERVIEW_RUN_FLOOR,
         ERRAND_FUEL_FLOOR,
         ERRAND_HAIRCUT_FLOOR,
         ERRAND_BLOOD_TEST_FLOOR,
@@ -5968,6 +5991,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchWorkDeviceRun != null) {
                     return "${capitalizeFirst(matchWorkDeviceRun.groupValues[1])} ${matchWorkDeviceRun.groupValues[2]}"
+                }
+                // "llevar el currículum a la entrevista" → "Llevar el
+                // currículum a la entrevista" (c.1174, lockstep con
+                // [ERRAND_INTERVIEW_RUN_FLOOR]): verbo preservado con su
+                // persona (doctrina c.653; "Llevo el currículum…"),
+                // grafía del usuario intacta ("curriculum" sin tilde se
+                // conserva), residuo temporal de cola depurado por
+                // [sanitizeTitle]; el match arranca en el verbo, así el
+                // acuse ("vale, …") y el prefijo temporal ("mañana …")
+                // no ensucian el título (lección c.616).
+                val matchInterviewRun = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchInterviewRun != null) {
+                    return "${capitalizeFirst(matchInterviewRun.groupValues[1])} ${matchInterviewRun.groupValues[2]}"
                 }
                 // "echar gasolina" → "Echar gasolina" (c.829, lockstep con
                 // [ERRAND_FUEL_FLOOR]): verbo preservado (alineación
