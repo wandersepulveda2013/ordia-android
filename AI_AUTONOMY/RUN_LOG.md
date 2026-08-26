@@ -1,3 +1,13 @@
+## RUN 2026-08-26 — c.1240 AUDITORÍA clase XXXI TECNOLOGÍA/INFORMÁTICA (descubrimiento, CERO producto)
+
+- HEAD inicial: `a481989` (post-push enroll-gimnasio UNION); HEAD final: pendiente commit docs.
+- Sonda persistida `tools/probe/TecnologiaClassXXXIProbe.kt` (14 D + 8 G + 6 R), PRE sobre base integrada `1e0a34f`.
+- Cobertura heredada: 10/14 HIT (actualizar/copia/imprimir/escanear/reiniciar-router/formatear/comprar-adaptador/subir-nube/descargar/sincronizar). 4/14 NULL: (a) «conectar wifi» y «apagar/encender <dispositivo>» [FUERTE], (b) nominal «mi copia de seguridad» [DÉBIL].
+- Controles 8/8 NULL correctos, regresiones 6/6 HIT. Suite no tocada; smokes 25/25.
+- Laterales ABIERTAS: (a) piso TASK acotado «(apagar|encender) (el|la)? (ordenador|portátil|tablet|router|wifi|pc)» (evaluar gate c.751 — verbos casi-monosemáticos → floor-only) o «conectar (el )? (wifi|bluetooth)». (b) nominal copia seguridad DESCARTADA (familia rara — medido D14 NULL; gate de necesidad).
+- Próxima prioridad: lateral (a). DISJUNTO del hermano (su c.1239 «clase de <ejercicio>»).
+- Commits: pendiente `docs(ai) c.1240`. Primer-marcador-gana (c.1077). Nunca force, nunca main.
+
 ## 2026-08-26 — c.1235 CERRADO «entrenamiento de (fútbol|deporte)» (lateral (f) de MI auditoría c.1227 [clase XXX deporte])
 
 - HEAD inicial del ciclo: `98e2ed9` (rebase op limpio sobre `dbfcf16` tras divergencia con hermano c.1238 — un solo conflicto en la lista EXERCISE_FLOORS resuelto conservando AMBOS regex; lección: sonda POST tras resolver).
