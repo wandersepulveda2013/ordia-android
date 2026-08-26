@@ -19490,6 +19490,32 @@ a un permiso persistente frágil y silencioso ante fallos.
 **Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
 **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
 
+## 2026-08-25 — ciclo c.1187 (este lado, OpenHands)
+
+- **HEAD inicial:** 27e300b (mi c.1182 integrada).
+- **Ítem:** lateral ABIERTA de MI cierre c.1182 — objeto «mail» del piso contestar c.873
+  («contestar el mail de <persona> (esta noche)»; el mail sin contestar dicho con el verbo
+  cotidiano dominante de mensajería). P1 (captura/olvido cotidiano).
+- **Disjunta** de marcadores del hermano (c.1185 «objeto abreviado CV»; c.1186 «check-in hotel»).
+- **PRE medido** (sonda persistida `tools/probe/TwentiethClassMailContestProbe.kt` sobre HEAD
+  27e300b): NULL 5/5 candidatas (keyword «mail» ERRAND ya lleva la frase al análisis desde
+  c.1182, pero el piso exige objeto cerrado correos|emails|mensajes|cartas|whatsapps →
+  asimetría de objeto); controles C6-C9 NULL correctos; regresiones C10-C12 HIT.
+- **TDD:** RED exacto 5 fallos (9648 tests: las 5 capturas nuevas) → GREEN **9648/9648 OK**
+  (9636 pre-existentes + 12 nuevos, aritmética exacta). Smokes: dominio 25/25, automation 9/9.
+- **Fix lockstep 2 puntos** (ContextIntentEngine.kt): objeto `mails?` en el piso «contestar…»
+  de hasStrongTaskImperative + MISMO objeto en la plantilla matchContestarA de extractTitle
+  (grafía preservada c.653). Keyword-OBJETO «mail» ya presente desde c.1182 (sin cambios).
+- **POST:** C1-C5 NULL→TASK 0.45 (títulos «Contestar el mail de Marta»…, dueAt=true donde hay
+  temporal); controles NULL; regresiones HIT.
+- **Previo en este run:** resolución del rebase pendiente de c.1182 (conflicto docs
+  CURRENT_STATE/RUN_LOG con pushes del hermano; unión append-only preservando ambas líneas) →
+  re-suite 9636 OK → push 27e300b. c.1182 cerrada definitivamente.
+- **Laterales ABIERTAS (UNA por ciclo):** «responder el whatsapp…» (hermana del piso
+  responder; no implementada — el WhatsApp dicho con «responder»).
+- **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077).
+  Nunca force, nunca main.
 
 ## c.1184 (2026-08-25) — abuelos del piso médico FIXED+VERIFIED
 - HEAD inicial: c218e5d8 (se había recogido 1a39d6c8 del hermano en rebase intermedio).
