@@ -19489,3 +19489,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 **Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
 **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
+
+
+## c.1184 (2026-08-25) — abuelos del piso médico FIXED+VERIFIED
+- HEAD inicial: c218e5d8 (se había recogido 1a39d6c8 del hermano en rebase intermedio).
+- Problema: lateral P1/P2 pineada en MI sonda c.1178 — abuelos del piso médico («llevar a mi abuela/al abuelo»), cuidado de mayores; medida NULL PRE por sonda efímera (4/4 capturas, 3/3 guards, 3/3 pines, 3/3 regresiones, 2/2 envolventes).
+- Causa raíz: piso c.776 cerraba el objeto con lista cerrada niñ[oa]s?|hij[oa]s?|mamá|papá|madre|padre; «abuel[oa]s?» nunca entró (pin deliberado una-forma-por-ciclo c.1178).
+- Solución (lockstep 2 puntos, CERO keywords nuevas): objeto `abuel[oa]s?` en `ERRAND_MEDICAL_RUN_FLOOR` + MISMO en `matchMedicalRun`; re-pin legítimo del pin «pin abuela fuera» de la clase c.1178 (doctrina c.1133/c.1141/c.1144/c.1172); envolvente acuse pineada TASK (heredado c.1178 «recuérdame» TASK 0.54).
+- TTT: RED 7 fallos exactos (7 capturas; 9 pines/guards/regresiones verdes) → GREEN 9630 OK; smokes 25/25 y 9/9; sondas MedicalRunMama (re-pin P1)/MedicalRunMiHijo/MedicalRunAbuelos (persistida POST) 3/3 OK.
+- Archivos: +`ContextIntentEngineLlevarAbuelaMedicoFloorTest.kt` (16 tests), `ContextIntentEngine.kt` (piso+plantilla+comentarios), `ContextIntentEngineLlevarMamaMedicoFloorTest.kt` (re-pin), `tools/probe/MedicalRunAbuelosProbe.kt` (persistida), `tools/probe/MedicalRunMamaProbe.kt` (re-pin P1).
+- Commits: dd421a79 (feat), docs en cierres. HEAD final: dd421a79.
+- Próxima: c.1185 — esposa del piso médico (pin P2 c.1178 / pin esposa c.1184), re-pin, TDD.
+- NO VERIFICADO: gradle/lint/assemble/UI/Room real (no hay Android SDK).
