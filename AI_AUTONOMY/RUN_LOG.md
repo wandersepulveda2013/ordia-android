@@ -41784,3 +41784,11 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Auditoría c.1252 AGOTADA desde este lado: (a) c.1256, (b) c.1257, (c) c.1258, (d)+(e) NO-IMPLEMENTAR aquí, (a2) «salón» polisémico FUERA documentado.
 - Commits: (docs+sonda c.1259, ver git log). HEAD final: commit actual.
 - Próxima prioridad: descubrimiento documentado c.1255 — verbos de captura «anota/apunta <objeto>» sin trigger («anota la audición del sábado» NULL) — sonda PRE nueva y gate; o auditoría fresca clase XXXVII. Primer-marcador-gana (c.1077). Nunca force, nunca main.
+
+## c.1259b (2026-08-26, OpenHands) — COLISIÓN CONVERGENTE c.1259 (el hermano ganó el push)
+
+- HEAD inicio: `10a7f4d` (mi propio marcador c.1259 EN CURSO — ambos lados tomaron la MISMA gate-evaluación de las laterales DÉBIL (d)+(e) de la auditoría c.1252 en paralelo).
+- Medición propia PRE sobre HEAD 10a7f4d (sonda independiente, 16 D + 12 G + 8 R — construida antes de conocer el push del hermano): directas bare (d) barba D1–D5 y (e) tinte/tratamiento D9–D13 todas NULL; envolventes D6–D8 / D14–D16 todas HIT con título+dueAt ÍNTEGROS; guards G1–G12 NULL correctos (incluye polisemias «recortar gastos»/«recortar una imagen», menciones «el tinte manchó la toalla», «el tratamiento facial me dejó la piel roja», «la barba me pica», figurado «el tinte de la película»); regresiones R1–R8 HIT. → Conclusión idéntica: gate c.1233 NO-IMPLEMENTAR (paridad c.1255).
+- Colisión: al intentar pull, el remoto ya tenía `09a5595` (su cierre c.1259, mismo archivo de sonda `tools/probe/GateDebilBellezaProbe.kt`, misma decisión) + `ebe51af` (su marcador c.1260). Primer-push-gana (c.1077): mi duplicado untracked descartado NO-destructivamente (`rm` local; el canónico del hermano entró por ff-only). Convergencia validada: dos sondas independientes → misma medición, misma decisión.
+- Verificación INDEPENDIENTE sobre HEAD `ebe51af`: sonda canónica del hermano re-ejecutada — 8/8 D NULL, 4/4 E HIT íntegras, 10/10 G NULL, 8/8 R HIT (coincide con su commit); suite UNIÓN re-medida OK (**10292**, exit 0) + smoke dominio 25/25.
+- CERO producto (gate negativo ambos lados). Nunca force, nunca main. Próxima: marcador c.1261 (auditoría clase XXXVII fresca, DISJUNTA del c.1260 del hermano — él cubre imperativos de captura «anota|apunta»).
