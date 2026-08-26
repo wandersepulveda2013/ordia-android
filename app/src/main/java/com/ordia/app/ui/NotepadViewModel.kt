@@ -15,6 +15,9 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
 
     fun save(title: String, content: String, existingId: Long? = null) {
         viewModelScope.launch {
+            // Never persist a brand-new note that has nothing in it: opening the
+            // editor and leaving immediately must not create ghost empty notes.
+            if (existingId == null && title.isBlank() && content.isBlank()) return@launch
             if (existingId != null) {
                 val current = repo.get(existingId)
                 val now = System.currentTimeMillis()

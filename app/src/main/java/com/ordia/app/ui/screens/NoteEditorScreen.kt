@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +47,11 @@ fun NoteEditorScreen(
             title = note.title
             content = note.content
         }
+    }
+
+    BackHandler {
+        onSave(title, content, note?.id)
+        onBack()
     }
 
     Scaffold(
