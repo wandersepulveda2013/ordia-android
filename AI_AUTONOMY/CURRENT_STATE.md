@@ -825,3 +825,17 @@ tintorería» intacta; TDD RED exacto→GREEN; suite 9965 OK; probe persistida
 (9 HIT/6 NULL). HEAD `55d5457`. Laterales restantes (b) coser botón,
 (d) quitar mancha, (e) guardar ropa.
 
+
+
+## c.1217 (este lado)
+
+«coser (el|los)? botón(es)» → HOUSEHOLD (lateral (b) ABIERTA de la auditoría
+c.1209 clase ROPA/VESTIMENTA, lockstep TRES puntos): piso
+`HOUSEHOLD_SEW_BUTTON_FLOOR` (hermano familia ROPA doblar/colgar c.1209) +
+keyword-OBJETO «botón»/«boton» (dos literales, tilde rompe subcadena — c.751)
++ plantilla `matchSew` (lección c.616: acuse/prefijo temporal no ensucia).
+TDD RED exacto (5/13) → GREEN; suite 9978 OK; smokes 25+9 asserts OK;
+sonda persistida `tools/probe/CoserBotonProbe.kt` (5 HIT + 6 NULL +
+2 regresiones doblar/colgar => PROBE OK). HEAD `f5518d7`. NO VERIFICADO
+Android/gradle/assemble/UI. Laterales restantes de c.1209: (d) «quitar
+mancha de la camisa», (e) «guardar la ropa».
