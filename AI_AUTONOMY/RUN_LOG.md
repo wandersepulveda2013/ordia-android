@@ -737,7 +737,7 @@
 **Próxima prioridad**: clase UNDÉCIMA AGOTADA (a RECHAZADA por diseño P0 c.1029; b VERIFIED c.1032; c VERIFIED c.1036; d VERIFIED c.1038). Nueva auditoría de descubrimiento (clase DUODÉCIMA) o laterales ABIERTAS (2ª persona «no vas a…» c.1009, «ponerme la vacuna» c.1011, «dale la pastilla…» c.1012, «pasear al gato» c.1018, plural «los pelos» c.842, colas relativas en títulos; parser: residual narrativa SU c.1035, genitivos c.957, «por la tarde/noche» dueAt c.1026). Re-fetch OBLIGATORIO pre-implementación y pre-push.
 
 ## Ciclo c.1014 [renumerado c.1012->c.1013->c.1014 por DOBLE colisión cycle-ID — el hermano fijó su c.1012 «darle la pastilla» y luego su c.1013 «cabello» (ambas DISJUNTAS) entre mis push y re-fetch; regiones disjuntas, UNIÓN vía pull --rebase no destructivo ×2] (2026-08-24) — feat/test-delta(context): COLISIÓN CONVERGENTE c.1011/c.1011 con el hermano (MISMA candidata (a) fila DÉCIMA «ponerle la vacuna al perro») → duplicado propio descartado NO-destructivo (stash drop) + delta DISJUNTO: extensión aditiva del artículo INDEFINIDO «una vacuna» en los TRES puntos lockstep + 4 pins UNIÓN
-**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `8d147d3` → re-fetch pre-implementación: `d8fabf9` (c.1010 parser del hermano, DISJUNTA). **COLISIÓN detectada en re-fetch pre-docs/push**: el hermano publicó `3a1fd52`+`d8a13c5`+merges hasta `4c43a85f` — su c.1011 implementó EL MISMO piso dativo (convergencia funcional casi total: mismo acotamiento al objeto mascota, mismo lockstep de 3 puntos, cero keywords nuevas). Integración NO-destructiva (precedentes c.979/c.980, c.984/c.985, c.988/c.989, c.904b): mi producción duplicada + mi clase de test duplicada quedaron en `stash` y se descartaron (`stash drop`) tras verificar la base remota; la clase del hermano se conserva intacta. **SEGUNDA colisión en el push**: su c.1012 «darle la pastilla» (candidata (b), región adyacente del mismo engine) — integración vía `pull --rebase` NO-destructivo: conflictos triviales (línea regex del piso + doble-prepend de docs) resueltos UNIÓN (mi extensión `un|una` + su piso pastilla completos; ambas filas/entradas conservadas). **TERCERA colisión**: su c.1013 «cabello» (lateral c.842, DISJUNTA) fijado antes de mi push renumerado — segundo `pull --rebase` auto-merge limpio (regiones disjuntas), ciclo renumerado de nuevo a c.1014. Residuo de marcador de conflicto (`>>>>>>> d3a50961 (título…)`) detectado por la suite (compile error) y eliminado antes del GREEN final — lección: tras resolver conflictos a mano, compilar SIEMPRE antes de continuar el rebase.
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `8d147d3` → re-fetch pre-implementación: `d8fabf9` (c.1010 parser del hermano, DISJUNTA). **COLISIÓN detectada en re-fetch pre-docs/push**: el hermano publicó `3a1fd52`+`d8a13c5`+merges hasta `4c43a85f` — su c.1011 implementó EL MISMO piso dativo (convergencia funcional casi total: mismo acotamiento al objeto mascota, mismo lockstep de 3 puntos, cero keywords nuevas). Integración NO-destructiva (precedentes c.979/c.980, c.984/c.985, c.988/c.989, c.904b): mi producción duplicada + mi clase de test duplicada quedaron en `stash` y se descartaron (`stash drop`) tras verificar la base remota; la clase del hermano se conserva intacta. **SEGUNDA colisión en el push**: su c.1012 «darle la pastilla» (candidata (b), región adyacente del mismo engine) — integración vía `pull --rebase` NO-destructivo: conflictos triviales (línea regex del piso + doble-prepend de docs) resueltos UNIÓN (mi extensión `un|una` + su piso pastilla completos; ambas filas/entradas conservadas). **TERCERA colisión**: su c.1013 «cabello» (lateral c.842, DISJUNTA) fijado antes de mi push renumerado — segundo `pull --rebase` auto-merge limpio (regiones disjuntas), ciclo renumerado de nuevo a c.1014. Residuo de marcador de conflicto (`
 **Delta propio conservado (UNIÓN, regiones aditivas sobre su producción)**: (1) lateral DISJUNTA que su piso no cubría — artículo INDEFINIDO «ponerle una vacuna a mi perra esta tarde» (NULL medido PRE con sonda efímera `/tmp/probe1011/Probe.kt` — 7/7 dativas NULL sobre `d8fabf9`, incluida ésta; y NULL sobre `4c43a85f` con su piso, RED exacto: 7267 run, EXACTAMENTE 1 fallo) → extensión aditiva `un|una` en los TRES puntos lockstep (piso `HOUSEHOLD_VACCINE_DATIVE_FLOOR` + cláusula de `imperativeIsNegated` + plantilla de `extractTitle`, lección c.616); (2) pins únicos de mi batería UNIDOS a su clase de test: envolvente «recuérdame ponerle la vacuna al perro el lunes» → TASK gobierna (anti-robo vía `imperativeIsWrapped`/`WRAPPABLE_PATTERNS`), interop «poner la lavadora» intacta (verbo compartido), forma exacta del backlog «ponerle la vacuna al perro el mes que viene» (título sin residuo multi-palabra + dueAt), captura indefinida.
 **Tests**: `bash tools/run_domain_tests.sh` → pre-rebase **OK (7267 = 7263 base-UNIÓN c.1011 [7222 + 17 su clase + 24 su guard-plan] + 4 delta)**; intermedia sobre la UNIÓN con su c.1012 pastilla OK (7284 = 7280 + 4 delta); FINAL sobre la UNIÓN con su c.1013 cabello **OK (7297 = 7293 + 4 delta)** — GREEN tras RED exacto (1 fallo = el indefinido; los otros 3 pins ya verdes sobre su producción); `bash tools/run_domain_checks.sh` → smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
 **Archivos**: M `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (extensión `un|una` ×3 puntos + comentario c.1012), M `app/src/test/java/com/ordia/app/context/ContextIntentEnginePonerleVacunaFloorTest.kt` (+4 tests delta UNIÓN), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sonda efímera `/tmp/probe1011/` (NO commiteada). Stash del duplicado: descartado sin pérdida (superset funcional ya en remoto).
@@ -19112,7 +19112,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 ## RUN 2026-08-25 (noche UTC) — ciclo c.1153 (higiene): marcador de conflicto HUÉRFANO en CURRENT_STATE.md REPARADO
 
 - HEAD inicial: `ca4f8b7` (cierre de cifras c.1148 ya en remoto).
-- Hallazgo: línea 3 de `AI_AUTONOMY/CURRENT_STATE.md` contenía el marcador de cierre de conflicto `>>>>>>> b9ce7ba (...)` COMMITTEADO (introducido en `39417de` al resolver un rebase; sus líneas de contenido quedaron correctas, sobraba solo el marcador). Sin `- Impacto: corruptela de la memoria de continuidad (los agentes futuros leen CURRENT_STATE al inicio de cada run). Clase P2 (docs), pero bloquea higiene de la UNIÓN.
+- Hallazgo: línea 3 de `AI_AUTONOMY/CURRENT_STATE.md` contenía el marcador de cierre de conflicto `
 - Fix: borrado de la línea huérfana única; cero cambios de código Kotlin (no aplica suite; verificación = 0 marcadores restantes en todo el repo).
 - Cero force, cero main, cero código falso.
 
@@ -19305,7 +19305,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Trabajo propio válido realizado antes de detectar la colisión: re-medida PRE con sonda efímera (5/5 candidatas NULL, 8/8 guards NULL, 7/7 regresiones HIT — corrobora la medida canónica), TDD con archivo propio de 21 tests (RED EXACTO 5/5), GREEN 21/21, sonda POST (5/5 NULL→HIT TASK 0.45 títulos limpios, guards intactos) y medida honesta de laterales pre/post vía `git stash` (L1 «no voy a salir…» NULL→NULL; L2 multi-frase NULL→HIT con residuo multi-frase, precedente c.1140; L3 «para salir… hay que madrugar» HIT «Madrugar» byte-idéntico pre/post — el piso «hay que» pre-existente, no el mío).
 - Detección: al integrar (12 commits nuevos), el stash pop marcó conflicto y el log mostró el cierre canónico. Resolución no-destructiva: `git restore --source=HEAD` de los dos archivos del motor (se cede el canónico, es funcionalmente idéntico), extracción de mi archivo de tests desde el stash (`stash@{0}^3`) para comparar cobertura, `git stash drop`.
 - Valor conservado (único delta real): 2 guards ausentes en el archivo canónico (24 tests) — futuro «saldré para la estación a las 7» NULL y lateral «ir al aeropuerto» NULL status quo (documentada en sonda c.1137). Añadidos in-file con nota de procedencia (`421f30e`). 26/26 en el archivo.
-- Fix colateral de docs: retirado marcador de conflicto residual `>>>>>>> b9ce7ba (...)` commiteado en la línea 3 de CURRENT_STATE.md (duplicaba la línea 2; resto del archivo limpio de marcadores). BACKLOG: fila auditoría c.1137 — candidata (b) marcada RESUELTA c.1150.
+- Fix colateral de docs: retirado marcador de conflicto residual `
 - Tests: `run_filtered_test.sh ContextIntentEngineSalirAeropuertoFloorTest` OK (26 tests); suite UNIÓN post-integración **OK (9254 = 9252 punta remota + 2 míos — aritmética exacta)**; smoke `run_domain_checks.sh` 25/25. NO VERIFICADO: gradle/lint/assemble/UI/Room real (sin Android SDK).
 - LECCIÓN (anti-colisión, complementa c.1077 y la lección c.1146-colisión): el snapshot de contexto de una sesión relanzada puede describir trabajo que UNA SESIÓN PROPIA POSTERIOR ya completó y empujó. Antes de implementar (no solo antes de empujar), re-fetch y leer la cabecera de CURRENT_STATE/RUN_LOG: si el ciclo marcado aparece ya COMPLETADO por el propio lado, el run entero es duplicado — saltar directo a la verificación del canónico.
 - Nunca force, nunca main, cero pérdida de trabajo válido. Determinista, cero IA fingida.
@@ -19324,7 +19324,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: laterales DECIMOQUINTA abiertas (b-ter «gimnasio» en alta, «empadronarme») o familia (c) DECIMOSEXTA si libre; consultar CURRENT_STATE antes de fijar marcador.
 ## Run 2026-08-25 — ciclos c.1155 (FIX «preparar la entrevista») + fix docs marcador huérfano (e8f4acd)
 - HEAD inicial: `f43e364f` (tras push del cede c.1153). HEAD final: pendiente de push (este commit).
-- Preámbulo docs: retirado marcador de conflicto huérfano `>>>>>>> 6e074c5b` de CURRENT_STATE.md línea 6 (dejado por mi resolución de rebase en `f43e364` — mi script procesó el primer hunk y dejó pasar el segundo marcador; contenido intacto, misma clase de bug que el hermano corrigió en `0b21d3ae`). Commit `e8f4acd7`.
+- Preámbulo docs: retirado marcador de conflicto huérfano `
 - c.1155 (P1, este lado): candidata (d) FUERTE de MI auditoría c.1147 (clase DECIMOSÉPTIMA vida laboral, sonda persistida C4) — «preparar la entrevista (de trabajo)» caía a NULL en forma desnuda (keyword EVENT «entrevista» 0.12 + bono temporal 0.1 = 0.22 < umbral). Olvido silencioso P1: entrevista perdida = oportunidad perdida (coste hermano del check-in c.1140).
 - Causa raíz: objeto «entrevista» fuera de todos los pisos «preparar» existentes (cena c.898 HOUSEHOLD, examen STUDY, maleta c.827 TASK — todos objeto-anclados).
 - Solución (lockstep 2 puntos, hermano EXACTO de c.827/c.1149): (1) piso NUEVO acotado «preparar (el|la|una|mi)? entrevistas?» en `hasStrongTaskImperative` ADYACENTE al piso maleta c.827 (cluster temático «preparar»; líneas DISJUNTAS de los marcadores activos del hermano: c.1151 FINAL cadena, c.1152 tras cubrir-turno, c.1154 guards scoreKind); (2) plantilla `matchPrepararEntrevista` en `extractTitle` tras `matchMaleta` (grafía preservada c.653). CERO keywords nuevas («entrevista» ya es keyword EVENT — gate c.751 satisfecho, medido PRE). Clasificador CERO cambios.
@@ -19620,7 +19620,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK, nunca fingido).
 - Laterales ABIERTAS (UNA por ciclo, anti-overreach): genitivos «de hoy»/«de ayer»/«de anteayer» (guard c.690 los conserva hoy; medir si «de hoy» debe resolver a HOY — la sonda deja el control pineado conservado); honestidad-de-kind P2 «apuntar a <personas> al campamento» (captura EXERCISE por keyword heredada c.1146; el kind correcto sería social/logística).
 - Próxima prioridad: lateral «de hoy»/«de ayer» si libre, o MI ciclo-candidato c.1174 original verificando DISJUNCIÓN con el piso reflexivo c.1180 del hermano (ya FIXED) y su c.1185 «el CV» EN CURSO (regiones de pisos). NO TOCAR c.1184/c.1185/c.1186/c.1187 activos del hermano.
->>>>>>> d2e0a53 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio (c.1192, renumerado c.1175→c.1194→c.1193 primer-marcador-gana; 8 tests nuevos, suite UNIÓN 9644 OK sobre 38cd726, smokes 25/25 y 9/9))
+
 - Nunca force, nunca main, cero pérdida de trabajo válido.
 ## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
 ## Cierre real c.1190 (renum de c.1185 propio) — push retrasado por colisión de numeración
@@ -19629,7 +19629,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Re-medida la suite UNIÓN tras rebase: **OK (9684 tests)**; tras el segudo rebase por c.1186 del hermano (check-in hotel) la UNIÓN final es **OK (9699 tests)**, smoke dominio 25/25. Estado: FIXED+VERIFIED (JVM).
 
 ## Run c.1190 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
->>>>>>> b2e4c5b (docs(autonomy): cierre c.1190 (renum de c.1185 propio) — «el CV» del piso entrevista FIXED+VERIFIED (RED 4/10 → GREEN 10/10; suite re-medida tras rebase ver RUN_LOG; pin c.1174 invertido a captura))
+
 
 - HEAD inicial: `8349577` (marcador doble c.1190 de la unión anterior; base real del fix `d3f8669` (cierre c.1180).
 - Ciclo TDD completo: RED 4/10 exactos (4 targets) → fix lockstep piso+plantilla → GREEN 10/10 → suite UNIÓN re-medida 9634/9634 OK → smoke dominio 25/25. Pin de lateral-abierta de la clase c.1174 invertido a captura.
@@ -19637,7 +19637,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commit feat: `f406bf3`; commit docs: el siguiente. Estado: **FIXED+VERIFIED (JVM)**. NO VERIFICADO: Android SDK/gradle/UI.
 - Próxima prioridad: laterales (b) «el informe/portfolio» y (c) destino poseedor «mi entrevista» (UNA por ciclo); verificar marcadores del hermano.
 - Nunca force, nunca main. Determinista, cero random, IA honesta.
->>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))escartado, punta del hermano adoptada
+
 
 - HEAD inicial `38cd726`. Seleccionado c.1187 «contestar el mail» (marcador propio
   de la punta). TDD completo local: sonda re-medida PRE 5/5 NULL sobre `38cd726`,
@@ -19892,7 +19892,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Fix** (lockstep 2 puntos, lección c.616/c.751, CERO keywords nuevas, hermano EXACTO de c.1140): (1) piso «hacer (det)? cursos?» en `hasStrongTaskImperative` (MID-chain tras c.1149-cubrir, anti-colisión c.1014 — el hermano appenda al FINAL tras c.1150); (2) plantilla `matchHacerCurso` en `extractTitle` tras `matchCubrirTurno` (grafía preservada c.653).
 - **Integración NO-destructiva** (el remoto avanzó 39417de→76d91a8 durante el run: hermano añadió +7 tests cubrir-turno `ff04480`, +2 salir-aeropuerto `dc239a7`, retiró el marcador huérfano b9ce7ba `0b21d3a`, marcadores c.1153-cedido/c.1154/c.1155): `git stash -u` → `pull --ff-only` → `stash pop` (1 conflicto CURRENT_STATE UNIÓN) y después `pull --rebase` sobre `372156cc` (cierre c.1151 + marcador c.1156 del hermano; 1 conflicto RUN_LOG UNIÓN: mi entrada arriba, la suya intacta); código auto-merge limpio en ambos (mi cierre sustituye a mi marcador; marcadores hermano c.1151/c.1154/c.1155 y línea 🏁 c.1149 conservados intactos).
 - **GREEN**: suite UNIÓN definitiva **OK (9303 = 9283 base remota `372156cc` + 20 míos) — medida post-rebase UNIÓN, lección c.1014** (intermedias 9272 sobre `39417de` y 9281 sobre `76d91a5`; el remoto avanzó dos veces durante el cierre); smokes dominio 25/25 y automation 9/9 re-medidos sobre la UNIÓN; sonda POST re-corrida sobre la UNIÓN: 6/6 TASK 0.45 títulos exactos pineados («Hacer el curso de prevención antes del día 30» conserva cola Y resuelve dueAt — igual que la envolvente c.613; «el mes que viene» depurado del título + dueAt; «esta semana»/«en octubre» sin fecha, pin honesto), envolvente byte-idéntica (TASK 0.52), guards 9/9 NULL byte-idénticos, regresiones 4/4 byte-idénticas.
-- **Higiene**: el resto de marcador de conflicto `>>>>>>> b9ce7ba` en `CURRENT_STATE.md` línea 3 (de mi propia resolución UNIÓN del marcador c.1152) lo retiró el hermano primero en el remoto (`0b21d3a`, su c.1153) y mi edición local coincidía — en el merge se conserva su retirada; lección reforzada c.1078: tras resolver conflictos a mano, compilar Y revisar residuos `- Commits del run: `39417de` (marcador, run previo) + <fix+tests+docs de este cierre>. HEAD final: el de este push.
+- **Higiene**: el resto de marcador de conflicto `
 - **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK, nunca fingido).
 - **Próxima prioridad**: candidatas DECIMOSÉPTIMA restantes (UNA por ciclo): (d) «preparar la entrevista de mañana», (e) «llevar el portátil al trabajo mañana»; re-fetch OBLIGATORIO + marcador EN CURSO con push inmediato (lección c.1066/c.1077).
 
@@ -20375,7 +20375,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 **Próxima prioridad**: clase UNDÉCIMA AGOTADA (a RECHAZADA por diseño P0 c.1029; b VERIFIED c.1032; c VERIFIED c.1036; d VERIFIED c.1038). Nueva auditoría de descubrimiento (clase DUODÉCIMA) o laterales ABIERTAS (2ª persona «no vas a…» c.1009, «ponerme la vacuna» c.1011, «dale la pastilla…» c.1012, «pasear al gato» c.1018, plural «los pelos» c.842, colas relativas en títulos; parser: residual narrativa SU c.1035, genitivos c.957, «por la tarde/noche» dueAt c.1026). Re-fetch OBLIGATORIO pre-implementación y pre-push.
 
 ## Ciclo c.1014 [renumerado c.1012->c.1013->c.1014 por DOBLE colisión cycle-ID — el hermano fijó su c.1012 «darle la pastilla» y luego su c.1013 «cabello» (ambas DISJUNTAS) entre mis push y re-fetch; regiones disjuntas, UNIÓN vía pull --rebase no destructivo ×2] (2026-08-24) — feat/test-delta(context): COLISIÓN CONVERGENTE c.1011/c.1011 con el hermano (MISMA candidata (a) fila DÉCIMA «ponerle la vacuna al perro») → duplicado propio descartado NO-destructivo (stash drop) + delta DISJUNTO: extensión aditiva del artículo INDEFINIDO «una vacuna» en los TRES puntos lockstep + 4 pins UNIÓN
-**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `8d147d3` → re-fetch pre-implementación: `d8fabf9` (c.1010 parser del hermano, DISJUNTA). **COLISIÓN detectada en re-fetch pre-docs/push**: el hermano publicó `3a1fd52`+`d8a13c5`+merges hasta `4c43a85f` — su c.1011 implementó EL MISMO piso dativo (convergencia funcional casi total: mismo acotamiento al objeto mascota, mismo lockstep de 3 puntos, cero keywords nuevas). Integración NO-destructiva (precedentes c.979/c.980, c.984/c.985, c.988/c.989, c.904b): mi producción duplicada + mi clase de test duplicada quedaron en `stash` y se descartaron (`stash drop`) tras verificar la base remota; la clase del hermano se conserva intacta. **SEGUNDA colisión en el push**: su c.1012 «darle la pastilla» (candidata (b), región adyacente del mismo engine) — integración vía `pull --rebase` NO-destructivo: conflictos triviales (línea regex del piso + doble-prepend de docs) resueltos UNIÓN (mi extensión `un|una` + su piso pastilla completos; ambas filas/entradas conservadas). **TERCERA colisión**: su c.1013 «cabello» (lateral c.842, DISJUNTA) fijado antes de mi push renumerado — segundo `pull --rebase` auto-merge limpio (regiones disjuntas), ciclo renumerado de nuevo a c.1014. Residuo de marcador de conflicto (`>>>>>>> d3a50961 (título…)`) detectado por la suite (compile error) y eliminado antes del GREEN final — lección: tras resolver conflictos a mano, compilar SIEMPRE antes de continuar el rebase.
+**Branch**: openhands/autonomous-ordia. **HEAD inicial**: `8d147d3` → re-fetch pre-implementación: `d8fabf9` (c.1010 parser del hermano, DISJUNTA). **COLISIÓN detectada en re-fetch pre-docs/push**: el hermano publicó `3a1fd52`+`d8a13c5`+merges hasta `4c43a85f` — su c.1011 implementó EL MISMO piso dativo (convergencia funcional casi total: mismo acotamiento al objeto mascota, mismo lockstep de 3 puntos, cero keywords nuevas). Integración NO-destructiva (precedentes c.979/c.980, c.984/c.985, c.988/c.989, c.904b): mi producción duplicada + mi clase de test duplicada quedaron en `stash` y se descartaron (`stash drop`) tras verificar la base remota; la clase del hermano se conserva intacta. **SEGUNDA colisión en el push**: su c.1012 «darle la pastilla» (candidata (b), región adyacente del mismo engine) — integración vía `pull --rebase` NO-destructivo: conflictos triviales (línea regex del piso + doble-prepend de docs) resueltos UNIÓN (mi extensión `un|una` + su piso pastilla completos; ambas filas/entradas conservadas). **TERCERA colisión**: su c.1013 «cabello» (lateral c.842, DISJUNTA) fijado antes de mi push renumerado — segundo `pull --rebase` auto-merge limpio (regiones disjuntas), ciclo renumerado de nuevo a c.1014. Residuo de marcador de conflicto (`
 **Delta propio conservado (UNIÓN, regiones aditivas sobre su producción)**: (1) lateral DISJUNTA que su piso no cubría — artículo INDEFINIDO «ponerle una vacuna a mi perra esta tarde» (NULL medido PRE con sonda efímera `/tmp/probe1011/Probe.kt` — 7/7 dativas NULL sobre `d8fabf9`, incluida ésta; y NULL sobre `4c43a85f` con su piso, RED exacto: 7267 run, EXACTAMENTE 1 fallo) → extensión aditiva `un|una` en los TRES puntos lockstep (piso `HOUSEHOLD_VACCINE_DATIVE_FLOOR` + cláusula de `imperativeIsNegated` + plantilla de `extractTitle`, lección c.616); (2) pins únicos de mi batería UNIDOS a su clase de test: envolvente «recuérdame ponerle la vacuna al perro el lunes» → TASK gobierna (anti-robo vía `imperativeIsWrapped`/`WRAPPABLE_PATTERNS`), interop «poner la lavadora» intacta (verbo compartido), forma exacta del backlog «ponerle la vacuna al perro el mes que viene» (título sin residuo multi-palabra + dueAt), captura indefinida.
 **Tests**: `bash tools/run_domain_tests.sh` → pre-rebase **OK (7267 = 7263 base-UNIÓN c.1011 [7222 + 17 su clase + 24 su guard-plan] + 4 delta)**; intermedia sobre la UNIÓN con su c.1012 pastilla OK (7284 = 7280 + 4 delta); FINAL sobre la UNIÓN con su c.1013 cabello **OK (7297 = 7293 + 4 delta)** — GREEN tras RED exacto (1 fallo = el indefinido; los otros 3 pins ya verdes sobre su producción); `bash tools/run_domain_checks.sh` → smoke 25/25. Determinista (regex), cero random, cero IA fingida, cero UI.
 **Archivos**: M `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (extensión `un|una` ×3 puntos + comentario c.1012), M `app/src/test/java/com/ordia/app/context/ContextIntentEnginePonerleVacunaFloorTest.kt` (+4 tests delta UNIÓN), M `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Sonda efímera `/tmp/probe1011/` (NO commiteada). Stash del duplicado: descartado sin pérdida (superset funcional ya en remoto).
@@ -38750,7 +38750,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 ## RUN 2026-08-25 (noche UTC) — ciclo c.1153 (higiene): marcador de conflicto HUÉRFANO en CURRENT_STATE.md REPARADO
 
 - HEAD inicial: `ca4f8b7` (cierre de cifras c.1148 ya en remoto).
-- Hallazgo: línea 3 de `AI_AUTONOMY/CURRENT_STATE.md` contenía el marcador de cierre de conflicto `>>>>>>> b9ce7ba (...)` COMMITTEADO (introducido en `39417de` al resolver un rebase; sus líneas de contenido quedaron correctas, sobraba solo el marcador). Sin `- Impacto: corruptela de la memoria de continuidad (los agentes futuros leen CURRENT_STATE al inicio de cada run). Clase P2 (docs), pero bloquea higiene de la UNIÓN.
+- Hallazgo: línea 3 de `AI_AUTONOMY/CURRENT_STATE.md` contenía el marcador de cierre de conflicto `
 - Fix: borrado de la línea huérfana única; cero cambios de código Kotlin (no aplica suite; verificación = 0 marcadores restantes en todo el repo).
 - Cero force, cero main, cero código falso.
 
@@ -38943,7 +38943,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Trabajo propio válido realizado antes de detectar la colisión: re-medida PRE con sonda efímera (5/5 candidatas NULL, 8/8 guards NULL, 7/7 regresiones HIT — corrobora la medida canónica), TDD con archivo propio de 21 tests (RED EXACTO 5/5), GREEN 21/21, sonda POST (5/5 NULL→HIT TASK 0.45 títulos limpios, guards intactos) y medida honesta de laterales pre/post vía `git stash` (L1 «no voy a salir…» NULL→NULL; L2 multi-frase NULL→HIT con residuo multi-frase, precedente c.1140; L3 «para salir… hay que madrugar» HIT «Madrugar» byte-idéntico pre/post — el piso «hay que» pre-existente, no el mío).
 - Detección: al integrar (12 commits nuevos), el stash pop marcó conflicto y el log mostró el cierre canónico. Resolución no-destructiva: `git restore --source=HEAD` de los dos archivos del motor (se cede el canónico, es funcionalmente idéntico), extracción de mi archivo de tests desde el stash (`stash@{0}^3`) para comparar cobertura, `git stash drop`.
 - Valor conservado (único delta real): 2 guards ausentes en el archivo canónico (24 tests) — futuro «saldré para la estación a las 7» NULL y lateral «ir al aeropuerto» NULL status quo (documentada en sonda c.1137). Añadidos in-file con nota de procedencia (`421f30e`). 26/26 en el archivo.
-- Fix colateral de docs: retirado marcador de conflicto residual `>>>>>>> b9ce7ba (...)` commiteado en la línea 3 de CURRENT_STATE.md (duplicaba la línea 2; resto del archivo limpio de marcadores). BACKLOG: fila auditoría c.1137 — candidata (b) marcada RESUELTA c.1150.
+- Fix colateral de docs: retirado marcador de conflicto residual `
 - Tests: `run_filtered_test.sh ContextIntentEngineSalirAeropuertoFloorTest` OK (26 tests); suite UNIÓN post-integración **OK (9254 = 9252 punta remota + 2 míos — aritmética exacta)**; smoke `run_domain_checks.sh` 25/25. NO VERIFICADO: gradle/lint/assemble/UI/Room real (sin Android SDK).
 - LECCIÓN (anti-colisión, complementa c.1077 y la lección c.1146-colisión): el snapshot de contexto de una sesión relanzada puede describir trabajo que UNA SESIÓN PROPIA POSTERIOR ya completó y empujó. Antes de implementar (no solo antes de empujar), re-fetch y leer la cabecera de CURRENT_STATE/RUN_LOG: si el ciclo marcado aparece ya COMPLETADO por el propio lado, el run entero es duplicado — saltar directo a la verificación del canónico.
 - Nunca force, nunca main, cero pérdida de trabajo válido. Determinista, cero IA fingida.
@@ -38962,7 +38962,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: laterales DECIMOQUINTA abiertas (b-ter «gimnasio» en alta, «empadronarme») o familia (c) DECIMOSEXTA si libre; consultar CURRENT_STATE antes de fijar marcador.
 ## Run 2026-08-25 — ciclos c.1155 (FIX «preparar la entrevista») + fix docs marcador huérfano (e8f4acd)
 - HEAD inicial: `f43e364f` (tras push del cede c.1153). HEAD final: pendiente de push (este commit).
-- Preámbulo docs: retirado marcador de conflicto huérfano `>>>>>>> 6e074c5b` de CURRENT_STATE.md línea 6 (dejado por mi resolución de rebase en `f43e364` — mi script procesó el primer hunk y dejó pasar el segundo marcador; contenido intacto, misma clase de bug que el hermano corrigió en `0b21d3ae`). Commit `e8f4acd7`.
+- Preámbulo docs: retirado marcador de conflicto huérfano `
 - c.1155 (P1, este lado): candidata (d) FUERTE de MI auditoría c.1147 (clase DECIMOSÉPTIMA vida laboral, sonda persistida C4) — «preparar la entrevista (de trabajo)» caía a NULL en forma desnuda (keyword EVENT «entrevista» 0.12 + bono temporal 0.1 = 0.22 < umbral). Olvido silencioso P1: entrevista perdida = oportunidad perdida (coste hermano del check-in c.1140).
 - Causa raíz: objeto «entrevista» fuera de todos los pisos «preparar» existentes (cena c.898 HOUSEHOLD, examen STUDY, maleta c.827 TASK — todos objeto-anclados).
 - Solución (lockstep 2 puntos, hermano EXACTO de c.827/c.1149): (1) piso NUEVO acotado «preparar (el|la|una|mi)? entrevistas?» en `hasStrongTaskImperative` ADYACENTE al piso maleta c.827 (cluster temático «preparar»; líneas DISJUNTAS de los marcadores activos del hermano: c.1151 FINAL cadena, c.1152 tras cubrir-turno, c.1154 guards scoreKind); (2) plantilla `matchPrepararEntrevista` en `extractTitle` tras `matchMaleta` (grafía preservada c.653). CERO keywords nuevas («entrevista» ya es keyword EVENT — gate c.751 satisfecho, medido PRE). Clasificador CERO cambios.
@@ -39193,7 +39193,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 **Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
 **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
-<<<<<<< HEAD
+
 
 ## 2026-08-25 — ciclo c.1187 (este lado, OpenHands)
 
@@ -39259,7 +39259,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK, nunca fingido).
 - Laterales ABIERTAS (UNA por ciclo, anti-overreach): genitivos «de hoy»/«de ayer»/«de anteayer» (guard c.690 los conserva hoy; medir si «de hoy» debe resolver a HOY — la sonda deja el control pineado conservado); honestidad-de-kind P2 «apuntar a <personas> al campamento» (captura EXERCISE por keyword heredada c.1146; el kind correcto sería social/logística).
 - Próxima prioridad: lateral «de hoy»/«de ayer» si libre, o MI ciclo-candidato c.1174 original verificando DISJUNCIÓN con el piso reflexivo c.1180 del hermano (ya FIXED) y su c.1185 «el CV» EN CURSO (regiones de pisos). NO TOCAR c.1184/c.1185/c.1186/c.1187 activos del hermano.
->>>>>>> d2e0a53 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio (c.1188, renumerado c.1175→c.1188 primer-marcador-gana; 8 tests nuevos, suite UNIÓN 9644 OK sobre 38cd726, smokes 25/25 y 9/9))
+
 - Nunca force, nunca main, cero pérdida de trabajo válido.
 
 
@@ -39311,8 +39311,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Colisiones: hermano puso c.1186/c.1187/c.1192/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
 - HEAD final: 319257b4 (push tras tercer fetch; la última rebase fue clean, sin re-medir suite full [smoke 25/25 re-verificado])
 - Lección: ante doble divergencia, pipeline fetch→rebase→test→push con union-merge assistido por python funciona
->>>>>>> 61794f2 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio + cierre c.1192)
->>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))
+
+
 
 ---
 
@@ -39327,7 +39327,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Verde inicial: OK (9707) — tras remeasure del árbol integrado con la feat simultánea del hermano (`fb90338`, 28 tests suyos), UNIÓN FINAL **OK (9735)** | smoke dominio 25/25 | automation 9/9 | gradle/lint/assemble NO VERIFICADO (sin SDK).
 - Commit: (se actualiza tras push).
 - Próxima prioridad: lateral (c) «mi entrevista» destino posesivo (si no la toma el hermano), o nueva clase probe (P0 ahorita none).
->>>>>>> 7c74411 (feat(context): piso entrevista captura «el informe|portfolio» (c.1191) — lockstep piso+plantilla, re-pin legítimo 3 pins invertidos a captura; POST probe persistido; RED 4 → GREEN 9707)
+
 
 Nota c.1194: el commit  lleva mensaje con id c.1193, contenido renumerado c.1194 (re-num postened al rebase puede variar el mensaje; procedente, no es force amend post-push).
 Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumeado c.1194 (el rnum fue docs-only tras el rebase).
@@ -39342,7 +39342,7 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: descubrimiento (a) ABIERTA → c.1196. Audit cerrada (c.822 docs-only).
 - Smoke dominio 25/25 re-medido; suite no aplicada (docs-only).
 - Próxima prioridad: c.1196 fix «castrar» mascota (disjunto hermano c.1193 temporal).
-<<<<<<< HEAD
+
 
 ---
 ## 2026-08-26 run — c.1190 CIERRE/post-merge recuperación + LIMPIEZA + VALIDACIÓN
@@ -39377,3 +39377,19 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: (a),(b),(c) ABIERTAS → c.1198+ (UNA por ciclo). Audit CERRADA (convención c.822/c.1173).
 - Smoke dominio 25/25 re-medido; suite UNIÓN 9765 OK medida PRE-audit.
 - Próxima prioridad: (a) «hacer la transferencia» (del hermano o este lado) — piso «hacer X» acotado.
+
+
+## 2026-08-26 — ciclo c.1198 — RECHAZADA POR DISEÑO (privacidad) — este lado
+
+- HEAD inicial: c25958e (reseado hermano: marcadores activos c.1202/c.1203/c.1204 [ova|fondo|coffe]: evito su sombra por primer-marcador-gana c.1077 — reciclada numeración c.1197 interna).
+- Problema: candidata (a) «hacer la transferencia al casero el lunes» de MI auditoría c.1197 (clase VIGESIMOTERCERA finanzas): TDD RED planeado como piso «hacer transferencias?» → TASK.
+- Sonda POST con DEBUG temporal (revertida): causa raíz REAL = `ContextPrivacyFilter.blockedContentPatterns` descarta `\btransferencia\b` ANTES de clasificar (finanzas domésticas, hermana de depósito/retiro/saldo/estado de cuenta). Root-cause NO es el gate de keyword c.751 atribuido inicialmente por BACKLOG.
+- Doctrina c.1029 aplicada («cambiar la contraseña» RECHAZADA): el piso pre-filtro arriesga fuga en el título («hacer la transferencia a abc123»). Anti-overreach: preferimos NO capturar una tarea legítima ocasional a persistir contenido financiero sensible. Candidata RECHAZADA.
+- Fuga PLURAL cerrada en el mismo ciclo: el ancla `\b` dejaba pasar «transferencias» (protección inconsistente). Regex recalibrada a plurales (`transferencias?|depósitos?|depositos?|retiros?|saldos?|estados? de cuenta`).
+- Piso c.1198 REVERTIDO (producción byte-idéntica). Floor-test TDD RED reescrito como pin: `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (10 tests — 10 NULL DELIBERADOS incl. plural-cerrada + plurales hermanos).
+- Tests: `bash tools/run_domain_tests.sh` → suite UNIÓN **9783/9783 OK**; `bash tools/run_domain_checks.sh` → smoke 25/25 OK.
+- Archivos: `ContextPrivacyFilter.kt` (rendija plural), `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (pin nuevo), `AI_AUTONOMY/*` (marcador, backlog (a)→RECHAZADA, RUN_LOG). Producto `ContextIntentEngine.kt`/`ContextIntent.kt` SIN cambios netos.
+- NO VERIFICADO: gradle/Android/UI/Room con DAOs reales.
+- ABIERTAS reales que quedan de MI auditoría c.1197: (b) «recargar la tarjeta», (c) «adelantar la mensualidad del coche».
+- Próxima prioridad: (b) «recargar la tarjeta» (token único keyword-vs-infinitivo; piso hermano) — cerciorar PRE que el word único «recargar» no es otro caso de privacidad/gate.
+- Estado: REJECTED BY DESIGN fixed+VERIFIED (JVM), NO VERIFICADO SDK.

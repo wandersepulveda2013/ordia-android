@@ -44,7 +44,11 @@ object ContextPrivacyFilter {
         // de lectura: no aplican a la persistencia de un compromiso.
         Regex("""\b(acoso|hostigamiento|extorsión|extorsion|chantaje)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(suicidi|autolesión|autolesion|hacerme daño|hacerme dano|quitarme la vida)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(transferencia|depósito|deposito|retiro|saldo|estado de cuenta)\b""", RegexOption.IGNORE_CASE),
+        // c.1198: la fuga plural era una rendija del ancla `\b` (la coda 's'
+        // rompe la frontera) — «transferencias» entraba aunque el singular se
+        // bloqueaba. Anti-overreach c.1029: preferir NO capturar a persistir
+        // contenido financiero sensible.
+        Regex("""\b(transferencias?|depósitos?|depositos?|retiros?|saldos?|estados? de cuenta)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(partido político|partido politico|elección|eleccion|campaña política|campana politica|votar por)\b""", RegexOption.IGNORE_CASE)
     )
 
