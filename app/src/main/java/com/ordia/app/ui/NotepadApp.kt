@@ -42,6 +42,7 @@ fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
                     onOpenNote = { editingId = it.id },
                     onCreateNote = { creating = true },
                     onDeleteNote = { viewModel.delete(it) },
+                    onRestoreNote = { viewModel.restore(it) },
                     onTogglePin = { viewModel.togglePinned(it) },
                 )
             }

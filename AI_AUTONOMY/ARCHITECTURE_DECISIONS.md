@@ -1,14 +1,22 @@
-# ARCHITECTURE_DECISIONS — Decisiones significativas
+# ARCHITECTURE_DECISIONS — Ordía (bloc de notas)
 
-## ORD-3.0-A01 (2026-08-26) — Guard contra persistencia de notas vacías
-- **Decisión**: `NotepadViewModel.save` ignora crear notas nuevas cuando título y contenido están en
-  blanco (para notas existentes se mantiene la semántica de guardado; no hay auto-borrado de vacías).
-- **Motivo**: evitar notas fantasma en la lista sin introducir complejidad de borrado automático.
-- **Alternativa descartada**: borrar notas existentes vacías al guardar — cambio de comportamiento
-  potencialmente destructivo; se evalúa aparte si hace falta.
+> Solo decisiones técnicas significativas y duraderas.
 
-## Decisiones heredadas (era jules, vigentes)
-- Room con **KAPT** (no KSP) — ver DECISIONS.md / ORD-036. No revertir sin documentar.
-- Flavors `previewSafe`, `previewAdvanced`, `previewFull`; package names derivados.
-- `selectedId` + `rememberSaveable` para alternar lista/editor (sin Navigation component) — evaluado
-  como suficiente para MVP; migración a Navigation registrada en NEXT_TASKS.md (P1).
+## DEC-001 (2026-08-26) — Restaurar notas borradas reinsertando con el mismo id
+
+El undo de borrado reutiliza `NoteDao.insert(REPLACE)` con la entidad original:
+`@PrimaryKey(autoGenerate = true)` solo genera id cuando `id == 0`, así que la
+reinserción conserva el id original, el orden y cualquier referencia externa.
+Alternativas descartadas: papelera lógica (columna `deletedAt`) — más potente
+pero exige migración y cambios en todas las consultas; desproporcionado para el
+tamaño actual del producto. Si en el futuro se necesita papelera con caducidad,
+será una decisión nueva con migración Room v2.
+
+## Decisiones heredadas del rebuild (commit `ceb1ff3`, no de esta automatización)
+
+- Room + KAPT (ver ORD-036 en el historial: KSP sombrea kotlinx-serialization y
+  rompe el processor de Room). No revertir a KSP sin documentar.
+- Flavors `previewSafe` / `previewFull` / `previewAdvanced` con `applicationId`
+  propio; el bloc de notas solo usa código común en `src/main`.
+- Persistencia única: Room `ordia.db` v1, tabla `notes`
+  (id, title, content, createdAt, updatedAt, pinned), `exportSchema = true`.

@@ -1,38 +1,49 @@
-# CURRENT_STATE — Estado actual del producto
+# CURRENT_STATE — Ordía (bloc de notas)
 
-## Resumen general
+> Estado actual del producto para la automatización `openhands/autonomous-notes`.
+> El estado del producto anterior a la reconstrucción está en
+> `CURRENT_STATE_PRE_REBUILD.md` (histórico).
 
-Rebuild completo de la app (commit ceb1ff3, main). Producto: bloc de notas minimalista
-(Room + Jetpack Compose, MVVM). Funciones reales: listar, fijar (pin), editar, eliminar notas.
-Los docs jules-era previos en AI_AUTONOMY/ (MISSION, DECISIONS, RUN_LOG, SUPERVISION,
-CODE_OF_CONDUCT) son historicos del rebuild anterior y ya no describen el codigo vigente.
+## Estado general
 
-## Arquitectura importante
+- **Producto:** bloc de notas minimalista (rebuild completo en `main`, commit
+  `ceb1ff3`): lista de notas con pin, editor título+contenido, Room `ordia.db`.
+- **Branch de trabajo:** `openhands/autonomous-notes` (creada desde `main`
+  `ceb1ff3` el 2026-08-26).
+- **Arquitectura:** `MainActivity` → `NotepadApp` (navegación lista↔editor por
+  estado, sin Navigation component en uso) → `NotepadViewModel` →
+  `NoteRepository` → `NoteDao` (Room v1, `exportSchema = true`).
+- **Sin red:** ningún permiso INTERNET en el núcleo; flavors solo añaden
+  metadatos de update checker (URLs en BuildConfig, sin código en `src/main`).
 
-- data/: NoteEntity (Room), NoteDao, NoteDatabase, NoteRepository.
-- ui/: NotepadApp (alterna lista/editor via selectedId + rememberSaveable), NotepadViewModel
-  (save/togglePin/delete/clearAll; guard de nota en blanco), screens NotesListScreen y
-  NoteEditorScreen (BackHandler guarda al salir).
-- Sin navegacion tipada; el back del sistema dentro del editor se intercepta y guarda.
+## Módulos críticos
 
-## Areas modificadas esta sesion (2026-08-26)
+- Persistencia: `data/NoteDatabase.kt`, `data/NoteDao.kt` (REPLACE en insert).
+- Edición: `ui/screens/NoteEditorScreen.kt` — persiste solo al volver atrás
+  (sin autosave todavía; P1 en `NEXT_TASKS.md`).
+- Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer.
 
-- NoteEditorScreen.kt: BackHandler (P0: antes el back del sistema cerraba la app y perdia notas).
-- NotepadViewModel.kt: guard de nota en blanco + existingId explicito (evita notas fantasma).
-- NotepadViewModelTest.kt: 5 tests nuevos.
-- AI_AUTONOMY/: memoria completa segun protocolo openhands/autonomous-notes.
+## Áreas recientemente modificadas (ejecuciones 001-002)
 
-## Riesgos abiertos (detalle en NEXT_TASKS.md)
+- `ui/NotepadViewModel.kt` (+`restore`, guardia de nota vacía en `save`).
+- `ui/screens/NotesListScreen.kt` (snackbar undo).
+- `ui/NotepadApp.kt` (cableado de `onRestoreNote`).
+- `ui/screens/NoteEditorScreen.kt` (`BackHandler`: el back del sistema guarda y
+  vuelve a la lista; BUG-003).
+- `src/test/.../NotepadViewModelTest.kt` (nuevo, 7 tests tras el merge).
 
-- P1: eliminacion instantanea sin deshacer.
-- P1: sin navegacion tipada (conmutacion por estado local).
-- P1: posible doble guardado por DisposableEffect + flecha (por confirmar).
+## Riesgos abiertos
 
-## Estado de build/tests (2026-08-26)
+- Edición sin autosave: pérdida de texto si el proceso muere sin saved-state
+  (P1, ver `NEXT_TASKS.md`).
+- Sin búsqueda de notas (P2).
 
-- compilePreview{Safe,Advanced,Full}DebugKotlin -> BUILD SUCCESSFUL.
-- testPreviewSafeDebugUnitTest -> 20/20 PASS (8 DAO + 7 Repo + 5 ViewModel).
+## Bloqueos actuales
 
-## Bloqueos
+- Ninguno. Entorno local: JDK 21 (compila con jvmTarget 17), Android SDK 36 en
+  `~/android-sdk`; `./gradlew :app:testPreviewSafeDebugUnitTest` funciona.
 
-- Ninguno activo. (Advertencia kapt language-version 2.0 -> fallback 1.9: cosmetica.)
+## Estado de tests
+
+- Última ejecución: 22/22 verdes (`testPreviewSafeDebugUnitTest`, ejecución 002).
+  Detalle en `TEST_STATUS.md`.

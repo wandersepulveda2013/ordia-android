@@ -24,10 +24,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,9 +53,25 @@ fun NotesListScreen(
     onOpenNote: (NoteEntity) -> Unit,
     onCreateNote: () -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
+    onRestoreNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
+
+    LaunchedEffect(pendingUndo) {
+        val note = pendingUndo ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "Nota eliminada",
+            actionLabel = "Deshacer",
+            duration = SnackbarDuration.Short,
+        )
+        if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
+        pendingUndo = null
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
@@ -76,7 +98,10 @@ fun NotesListScreen(
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                    NoteRow(note, onOpenNote, onTogglePin) { deleted ->
+                        onDeleteNote(deleted)
+                        pendingUndo = deleted
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }

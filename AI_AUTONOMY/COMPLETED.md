@@ -1,11 +1,26 @@
-# COMPLETED — Mejoras completadas (solo mejoras reales, no microcambios)
+# COMPLETED — Ordía (bloc de notas)
 
-## 2026-08-26 — Baseline + seguridad de datos del editor (branch openhands/autonomous-notes)
-1. **Baseline verde**: entorno Android SDK 36 + JDK 21 configurado; 15 tests (DAO+Repository) PASS.
-2. **P0 — Back del sistema en editor**: antes, el botón/gesto back del sistema cerraba la app y
-   perdía la nota en edición (no había Navigation; el estado quedaba en `rememberSaveable` del
-   composable). Ahora `BackHandler` guarda y vuelve a la lista, como la flecha de la barra.
-3. **Guard contra notas fantasma**: `NotepadViewModel.save` ya no persiste notas nuevas con
-   título y contenido en blanco (evita notas vacías al abrir el editor y salir).
-4. **Tests**: `NotepadViewModelTest` (5 tests) — guard de nota en blanco, inserción, actualización
-   con bump de `updatedAt`, y no-recreación tras eliminación. 20/20 PASS.
+> Solo mejoras importantes completadas por la automatización
+> `openhands/autonomous-notes`. Microcambios triviales no se registran.
+
+## 2026-08-26 — Ejecución 001 (baseline + integridad de datos)
+
+- **Baseline del producto rebuild** (bloc de notas minimalista, commit `ceb1ff3`):
+  compilación `previewSafeDebug` OK; 15 tests unitarios verdes (8 DAO + 7 repo).
+- **Undo de eliminación de notas** (P0, BUG-001): snackbar con "Deshacer" en la
+  lista; `NotepadViewModel.restore` reinserta con el mismo id.
+- **No persistir notas nuevas vacías** (P1, BUG-002): `save` ignora creaciones
+  sin título ni contenido.
+- **`NotepadViewModelTest`** nuevo: 5 tests (crear, actualizar conservando
+  `createdAt`, ignorar nota nueva vacía, borrar+restaurar con mismo id,
+  fijar/desfijar).
+
+## 2026-08-26 — Ejecución 002 (back del sistema + integración de ejecuciones)
+
+- **Back del sistema guarda la nota** (P0, BUG-003): `BackHandler` en
+  `NoteEditorScreen` ejecuta el guardado antes de volver a la lista; antes
+  cerraba la app y se perdía la edición.
+- **Merge de trabajos paralelos** en `openhands/autonomous-notes` (ejecuciones
+  001 y 002): conservados undo de borrado, guardia de nota vacía y BackHandler.
+- **`NotepadViewModelTest`** ampliado a 7 tests (+ título en blanco con
+  contenido, + no recrear nota inexistente por `existingId`).
