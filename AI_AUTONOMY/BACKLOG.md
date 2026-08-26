@@ -1,3 +1,4 @@
+c.1247 FIXED+VERIFIED (este lado): FUERTE brico «verbos acotados» auditoría c.1246 agotada. Suite 10228.
 c.1244 FIXED+VERIFIED (este lado): FUERTE lateral (b) «apagar/encender clima» auditoría c.1243 agotada. DÉBIL (a) verbos-posición NO-toque. Suite 10215.
 c.1242 FIXED+VERIFIED (este lado): lateral (a-bis) «conectar (el) wifi|bluetooth» — familia (a) auditoría c.1240 agotada. Suite 10213.
 c.1241 FIXED+VERIFIED (este lado): lateral (a) «apagar/encender <electrónica>» de MI auditoría c.1240 — piso floor-only + plantilla lockstep (c.616, c.751). Suite 10211. «conectar wifi» ABIERTA.

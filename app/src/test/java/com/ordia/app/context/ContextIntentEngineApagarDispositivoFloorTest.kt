@@ -142,4 +142,33 @@ class ContextIntentEngineApagarDispositivoFloorTest {
         assertNull(analyze("la chimenea está fría"))
     }
 
+
+    @Test
+    fun `verbos brico captura task c1247`() {
+        val r1 = analyze("montar el mueble de ikea")
+        assertNotNull(r1)
+        assertEquals(ContextIntentKind.TASK, r1!!.kind)
+        assertEquals("Montar el mueble de ikea", r1.title)
+
+        val r2 = analyze("taladrar la pared del salón")
+        assertNotNull(r2)
+        assertEquals(ContextIntentKind.TASK, r2!!.kind)
+        assertEquals("Taladrar la pared del salón", r2.title)
+
+        val r3 = analyze("hoy pintar la habitación")
+        assertNotNull(r3)
+        assertEquals(ContextIntentKind.TASK, r3!!.kind)
+
+        val r4 = analyze("colgar el cuadro")
+        assertNotNull(r4)
+        assertEquals(ContextIntentKind.TASK, r4!!.kind)
+    }
+
+    @Test
+    fun `guards brico NULL c1247`() {
+        assertNull(analyze("no montar el mueble"))
+        assertNull(analyze("no sé si taladrar la pared"))
+        assertNull(analyze("montaste el mueble"))
+    }
+
 }

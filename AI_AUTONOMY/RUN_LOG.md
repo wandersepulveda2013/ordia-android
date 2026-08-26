@@ -1,3 +1,6 @@
+## RUN 2026-08-26 — c.1247 CERRADO verbos brico acotados (FUERTE lateral c.1246 XXXIV)
+- HEAD inicial: 2f34843. Lockstep DOS puntos (c.616; gate c.751 floor-only objeto físico-hogar). TDD +2 → GREEN 13/13. Suite UNIÓN OK (10228); smoke 25/25. POST sonda D1/D2/D3/D8/D9/D11 HIT.
+- **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1246 AUDITORÍA-CERRADA clase XXXIV bricolaje/herramientas
 - HEAD inicial: 45be8a0. Sonda persistida `BricoClassXXXIVProbe.kt` (14D+8G+8R): 4/14 HIT, 10/14 NULL — familia verbos-bricoloaje [FUERTE, floor-only con objeto acotado como c.1241/c.1244].
 - Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10215) medida. CERO producto.
