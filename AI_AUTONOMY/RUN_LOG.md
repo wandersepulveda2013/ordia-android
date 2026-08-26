@@ -1,3 +1,13 @@
+## 2026-08-26 — c.1235 CERRADO «entrenamiento de (fútbol|deporte)» (lateral (f) de MI auditoría c.1227 [clase XXX deporte])
+
+- HEAD inicial del ciclo: `98e2ed9` (rebase op limpio sobre `dbfcf16` tras divergencia con hermano c.1238 — un solo conflicto en la lista EXERCISE_FLOORS resuelto conservando AMBOS regex; lección: sonda POST tras resolver).
+- PRE (sonda persistida `tools/probe/EntrenamientoDeporteProbe.kt`): T1–T4 capturas nominales NULL (olvido silencioso P1).
+- Fix lockstep DOS puntos (lección c.616; gate c.751 — floor-only, CERO keywords nuevas): (1) piso NUEVO `EXERCISE_TRAINING_FLOOR` en `EXERCISE_FLOORS` (guard `(?<!no )` heredado); (2) guard copulativa PASADA `PAST_EXERCISE_COPULA_PATTERN` + `pastExerciseCopulaGoverns` — hermano posicional de c.1142 MEETING («fue|era ayer|anteayer|anoche» pospuesto en misma cláusula, sin corte [.!?,;:]).
+- TDD RED→GREEN: `ContextIntentEngineEntrenamientoDeporteFloorTest.kt` (4 tests) RED exacto → suite UNIÓN GREEN **OK (10178)**; smokes dominio **25/25**.
+- POST sonda: T1–T4 HIT EXERCISE 0.45 (títulos «Entrenamiento de...»/«El entrenamiento de...»), G1–G3 NULL (past-copula «fue ayer», doble-negación «no entrenamiento…»), R1–R2 intactas. Determinista (regex), cero random, cero IA fingida, cero UI.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (JVM pura, sin SDK).
+- Próxima prioridad: lateral DISJUNTA fresca (g) «clase de yoga» con gate c.751, o nueva auditoría (primer-marcador-gana c.1077). Nunca force, nunca main.
+
 ## 2026-08-26 — c.1230 CERRADO «enroll-gimnasio me/te/nos» (lateral (b) de la auditoría c.1227 [clase XXX hermano]; DISJUNTA de la reflexiva «apuntarse» c.856 y del hetero-enroll hermano c.1228)
 ## RUN 2026-08-26 (cierre c.1230 — enroll-gimnasio me/te/nos → EXERCISE)
 
