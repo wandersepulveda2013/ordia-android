@@ -41688,3 +41688,17 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **NO VERIFICADO** gradle/lint/Android/UI/Room (JVM pura, sin SDK). Nunca force, nunca main.
 - Auditoría c.1227 AGOTADA (a)–(g). Próxima prioridad: clase nueva de descubrimiento (XXXI+ vía convención) o laterales de FORMA (imperativo CALL, residuo «los»).
 - HEAD final: commit feat(context) c.1250 (siguiente).
+
+## Run c.1252 (este lado, 2026-08-26) — AUDITORÍA clase XXXVI CUIDADO PERSONAL/BELLEZA
+
+- HEAD inicial: `f17986f` (post-push c.1250 close + marker c.1252 EN CURSO).
+- Problema: medir la clase XXXVI belleza/cuidado personal (peluquería, barbería, manicura, uñas, cejas, depilación, cera, barba, tinte, tratamiento facial) — descubrimiento puro, CERO producto. Prioridad descubrimiento (área parser longitudinal).
+- Sonda persistida `tools/probe/BellezaClassXXXVIProbe.kt`: 14 candidatas + 8 guards + 8 regresiones, PRE sobre HEAD.
+- MEDIDA: 1/14 HIT-heredado APPOINTMENT («cita con el barbero» via «cita con» genérica — similar a R2 médico). 13/14 NULL familia: (a) peluquería/barbería/salón FUERTE; (b) manicura|pedicura|uñas|cejas MEDIA; (c) depilación|cera MEDIA; (d) barba DÉBIL; (e) tinte|tratamiento facial DÉBIL.
+- Guards 8/8 NULL (negación, pretérito, pretérito-copulativo, declarativa, hablar, sustantivo, 3a persona).
+- Regresiones 8/8 HIT (recuérdame TASK, médico APPOINTMENT, leche SHOPPING, llamar CALL, luz PAYMENT, perro HOUSEHOLD, yoga/gimnasio EXERCISE).
+- Vía plan abiertas de gate c.751: keyword-OBJETO nominal-acotado (precedente «partido» c.1231 / «clase-fitness» c.1250), CERO keywords nuevas; título arranca en el nominal/objeto (paridad matchPartido/matchClase). Locks (a)–(e) UNA por ciclo.
+- Verificación enclosure: suite UNIÓN OK (10242, exit 0) re-medida sobre el mismo árbol de producto; smoke 25/25; probe compila.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint (sin SDK). Nunca force, nunca main.
+- Próxima prioridad: (a) «peluquería/salón» FUERTE o toma del hermano; luego (b)–(e) en orden.
+- HEAD final: commit docs(ai) c.1252 (siguiente).
