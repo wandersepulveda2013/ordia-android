@@ -39426,3 +39426,5 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Head final: pending; próxima prioridad: (c) «adelantar la mensualidad» (UNA por ciclo, gate de keyword — requiere decisión)
 - Nunca force, nunca main
 
+
+- 2026-08-26 · AUDITORÍA c.1199 (clase XXIV hogar/limpieza) — 9/10 HIT heredado (HOUSEHOLD 0.45); gap débil «hacer la limpieza» NULL POR DISEÑO (pin no-re-auditar en BACKLOG); sonda efímera; CERO cambios producto.

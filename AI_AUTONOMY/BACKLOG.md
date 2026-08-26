@@ -1231,3 +1231,5 @@
 - Laterales ABIERTAS (UNA por ciclo, anti-overreach):
   1. **«llevar a <NOMBRE PROPIO> al aeropuerto/estación»** — NULL medido PRE/POST («María»/«Ana» fuera de la lista cerrada de parentesco: bivalentes sin acotar). Forma hermana «dejo a María en la estación». Requiere piso persona con nombre propio desambiguado (¿lista? ¿capitalización? — la captura normaliza a minúsculas, la capitalización NO está disponible en `lower`; decisión de diseño pendiente).
   2. **Pretérito de acompañamiento** — «llevé a mamá al aeropuerto ayer» ya queda NULL (guard `(?<!no )` + ancla de infinitivo lo cubren; verificado G2), pero la FAMILIA de hechos cumplidos con keyword propia (hermana de c.1138/c.1142/c.1154) conviene auditarla cuando otro piso de «llevar» aterrice con pasado distinto.
+
+- [FIXED-NO-AUDIT-AGAIN][measured c.1199 vía sonda efímera] «hacer la limpieza» NULL por diseño — dependiente «hacer (la)? + término», descarte documentado; pin de no-re-auditar (precedente c.1194 «sacar»/«presentar» ambiguos). Lección c.1167 pivot verbo-fuerte → no reintroducir genérico «hacer» sin acuse-keyword fuerte.
