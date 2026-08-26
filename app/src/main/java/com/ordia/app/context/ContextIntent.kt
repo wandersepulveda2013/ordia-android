@@ -133,6 +133,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // subcadena. 0.12 sola inerte: «me llegó un whatsapp» / «el
         // whatsapp sonó dos veces» siguen NULL (guard en test c.1177).
         "whatsapp",
+        // c.1197: keyword-OBJETO «wasap»/«wassap» — grafías coloquiales de
+        // la hermana ABIERTA documentada en c.1192 (lockstep con el piso
+        // responder/contestar; DISJUNTO del marcador activo del hermano
+        // c.1194 «después de comer»). 0.12 sola inerte (gate c.751):
+        // «me llegó un wasap» / «el wassap sonó dos veces» siguen NULL
+        // (guard en test c.1197). «wasap» no es subcadena de «wassap».
+        "wasap",
+        "wassap",
         // c.881: keyword-OBJETO "tatuaje" (lockstep con la extensión del
         // piso «hacerse» c.862; 0.12 sola inerte y el piso exige el verbo
         // reflexivo + objeto acotado, anti-overreach).

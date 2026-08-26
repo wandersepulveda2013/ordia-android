@@ -39353,3 +39353,19 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - NO VERIFICADO SDK/Gradle/UI.
 - c.1191 (b) FIXED+VERIFIED en backlog remoto. Sin código nuevo.
 - Estado: VERIFIED (tests), NO VERIFICADO SDK/Gradle/UI.
+
+---
+
+
+---
+
+✅ CICLO c.1197 (3255785) — hermana ABIERTA de c.1192 CERRADA [este lado]
+
+- HEAD inicial: 3593001 (pull al 3255785 en pleno run por colisión hermano — anti-colisión re-fetch; sonda PRE hecha antes del pull).
+- Fix: grafías coloquiales «wasap/wassap(s)» del piso responder/contestar (candidata (d) auditoría c.1173/clase DECIMONOVENA). DISJUNTO del marcador activo del hermano c.1194 (parser/sanitización temporal — no tocado).
+- Lockstep TRES puntos lección c.616: keyword-OBJETO «wasap» + «wassap» (ContextIntent.kt), piso responder c.1192 + piso contestar c.1177 (hasStrongTaskImperative), plantillas matchResponderCorreo + matchContestarA (extractTitle). Gate c.751 satisfecho: keyword sola 0.12 < umbral.
+- TDD estricto: RED exacto 5 fallos (9743 tests) → GREEN 9743/9743 OK.
+- Sonda persistida: PRE efímera /tmp/WasapGrafiasProbe medido NULL 4/4 → POST tools/probe/WasapGrafiasProbe.kt 4/4 HIT TASK 0.45; guards 4/4 NULL (no voy / quizá / pretérito / bare-imperative).
+- Archivos: ContextIntentEngine.kt, ContextIntent.kt, ContextIntentEngineWasapGrafiasFloorTest.kt (9 tests), tools/probe/WasapGrafiasProbe.kt, AI_AUTONOMY.
+- ABIERTAS que quedan: (b) «responder el mail» [lateral], (e) residual «ahora» en título contestar (coordinar con hermano c.1194 parser-residual).
+- NO VERIFICADO: gradle/Android/UI.

@@ -2855,8 +2855,10 @@ object ContextIntentEngine {
             // KDoc; sonda PRE persistida `ResponderWhatsappObjectProbe.kt`
             // medida NULL 5/5; keyword-OBJETO «whatsapp» llega desde c.1177,
             // NULL por piso). Lockstep con la plantilla matchResponderCorreo.
-            // Hermana NO implementada (UNA por ciclo): grafías «wasap/wassap».
-|| Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?)\b""").containsMatchIn(lower)
+            // c.1197: grafías coloquiales «wasap/wassap(s)» (la hermana
+            // ABIERTA del KDoc c.1192; DISJUNTO del marcador activo del
+            // hermano c.1194 «después de comer»; keyword alcanzada c.1197).
+|| Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )responder\s+(?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?|wasaps?|wassaps?)\b""").containsMatchIn(lower)
             // c.861 (candidata 3/7 de la sonda persistida c.857
             // `tools/probe/EighthClassAdminProbe.kt`, OCTAVA clase —
             // gestiones de adulto; NULL PRE verificado sobre HEAD b4e12fb,
@@ -2907,15 +2909,15 @@ object ContextIntentEngine {
             // «contestar el WhatsApp de <persona>» medida NULL por asimetría
             // de keyword frente a «contestar el correo» c.873). Lockstep con
             // plantilla + keyword-OBJETO «whatsapp» (sin ella la frase ni
-            // llega al análisis). Hermanas NO implementadas (UNA por ciclo):
-            // «responder el whatsapp…» y grafías «wasap»/«wassap» (laterales).
+            // llega al análisis). c.1197: grafías coloquiales «wasap»/
+            // «wassap(s)» (hermana ABIERTA documentada en el mismo piso;
+            // DISJUNTO del marcador del hermano c.1194; keyword c.1197).
             // c.1187: objeto «mail» (lateral ABIERTA de c.1182; «contestar el
             // mail de <persona>» medida NULL 5/5 PRE sobre HEAD 27e300b, sonda
             // persistida TwentiethClassMailContestProbe.kt — asimetría de objeto:
             // la keyword «mail» ya llega al análisis desde c.1182). Lockstep con
-            // la plantilla matchContestarA. Hermana NO implementada (UNA por ciclo):
-            // «responder el whatsapp…» sigue lateral.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar(?:les?)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?|mails?|whatsapps?)\b|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w)""").containsMatchIn(lower)
+            // la plantilla matchContestarA.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )contestar(?:les?)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?|mails?|whatsapps?|wasaps?|wassaps?)\b|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w)""").containsMatchIn(lower)
             // c.880: objeto «carta» (lateral c.873; «la carta» física sigue siendo
             // correo real en español). Hermano de c.879 (dativo inerte por
             // subcadena de grupo). c.879+c.880 en las dos ramas.
@@ -5396,8 +5398,9 @@ object ContextIntentEngine {
                 // temporal de cola lo depura [sanitizeTitle]; el objeto
                 // bivalente "responder en el examen…" nunca llega aquí
                 // porque el piso no lo captura). La grafía del usuario se
-                // preserva (doctrina c.653).
-                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                // preserva (doctrina c.653). c.1197: objetos «wasap»/
+                // «wassap(s)» en lockstep con el piso.
+                val matchResponderCorreo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(responder)\s+((?:al\s+|el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:correos?|emails?|mails?|mensajes?|whatsapps?|wasaps?|wassaps?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchResponderCorreo != null) return "Responder ${matchResponderCorreo.groupValues[2]}"
                 // c.861: plantilla «contestar a <persona>» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
@@ -5408,7 +5411,8 @@ object ContextIntentEngine {
                 // del usuario se preserva (doctrina c.653).
                 // c.1177: objeto «whatsapps?» en lockstep con el piso (misma
                 // alternancia; grafía original preservada, doctrina c.653).
-                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar(?:les?)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?|mails?|whatsapps?)\b.*|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*))""", RegexOption.IGNORE_CASE).find(original)
+                // c.1197: grafías «wasap»/«wassap(s)» en lockstep con el piso.
+                val matchContestarA = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(contestar(?:les?)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+(?:correos?|emails?|mensajes?|cartas?|mails?|whatsapps?|wasaps?|wassaps?)\b.*|(?:al\s+(?!examen\b)|a\s+la\s+(?!preguntas?\b)|a\s+(?!(?:el|la|los|las|un|una|unos|unas)\s))(?:mi\s+|tu\s+|su\s+)?(?!tiempo\b)\w.*))""", RegexOption.IGNORE_CASE).find(original)
                 if (matchContestarA != null) return matchContestarA.groupValues[1].replaceFirstChar { it.uppercase() } + " " + matchContestarA.groupValues[2]
                 // c.875: plantilla «presentar la declaración de la
                 // renta» (ancla/guard idénticos al piso; lección c.616:
