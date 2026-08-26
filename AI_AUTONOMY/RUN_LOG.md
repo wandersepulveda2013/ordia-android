@@ -41559,3 +41559,9 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: ContextIntentEngine (+EXERCISE_BIKE_OUT_FLOOR +matchSalirEnBici), test nuevo 10 pins, sonda persistida, BACKLOG (c.1234 FIXED renum), CURRENT_STATE (FIXED VERIFIED renum), RUN_LOG (este append).
 - **Commits**: commit implementación marcado c.1233 (renum. a c.1234), post-hash ver `git log`.
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (f) «entrenamiento de (fútbol|deporte)»; (g) «clase de (yoga|pilates)» (gate vía keyword existente). Nunca force, nunca main.
+
+## c.1233/c.1234/c.1236/c.1237 (2026-08-26, OpenHands)
+- HEAD inicial: `98e2ed9` (marcador hermano c.1235). HEAD final: pendiente de push.
+- Trabajo: descarte no-destructivo de MI marcador obsoleto c.1234 (el hermano ganó primer-push con c.1235 «entrenamiento de <deporte>»); auditoría de DESCUBRIMIENTO c.1236 clase XXXI TECNOLOGÍA/INFORMÁTICA (sonda persistida `tools/probe/TecnologiaClassXXXIProbe.kt`: 9/14 HIT heredado, 6/14 NULL gap, 8/8 guards NULL, 6/6 regresiones HIT); fix c.1237 lateral (a) FUERTE «escanear el informe/documento(s)» — ampliada la alternancia de objetos del piso c.864 en los 4 puntos lockstep (floor `hasStrongTaskImperative` + floor `reescanear` + plantillas de título); TDD RED→GREEN.
+- Tests: sonda PRE NULL (T1–T4/T6), TDD RED; suite completa **OK (10169)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. AI_AUTONOMY: CURRENT_STATE marker cerrado; BACKLOG audit + fix; sondas persistidas. Próxima prioridad: laterales restantes «escanear + objeto» (b)-(e) DÉBILES de c.1236, UNA por ciclo.
+- Colisiones: ninguna con el hermano (su c.1235 intacta); reclamo previo (entrenamiento piloto) retirado de forma no-destructiva.

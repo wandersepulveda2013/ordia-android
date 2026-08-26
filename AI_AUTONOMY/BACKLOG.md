@@ -1339,3 +1339,31 @@ no pineado), R1–R2 intactas. TDD RED exacto 5 fallos de 10153 → GREEN
 10/10; suite UNIÓN OK (10158, exit 0); smoke dominio 25/25. FIXED c.1234
 VERIFIED (renum. c.1233→c.1234).
 Resolución (este run, corrección tras re-fetch pre-push): CERRADO c.1229 por el hermano en COLISIÓN CONVERGENTE TOTAL (precedente c.1211 STALE_RUN CONVERGENTE; mi implementación `18bcdbc` [24 tests, regex `weekdayNominalSubjectPreteriteHead`] descartada NO-destructivo — la del hermano es equivalente; integración stash−u → `git checkout -- .` sobre `origin` 4b2d976). Complemento propio conservado: el candado c.1023 de clíticos ([ordinalHoraQuedarConArrangement]) sólo admite clíticos → «quedar con» con SUJETO nominal («mis padres quedaron con Ana el lunes») se suprimía en silencio (due→null). Mi fix complementario (1 punto): regex NUEVA `weekdayNominalSubjectQuedarCon` (determinante opcional + UNA palabra de sujeto + hasta 2 clíticos + pretérito de «quedar» pegado a «con») en el MISMO guard. Sonda PRE persistida `tools/probe/QuedarNominalSubjectProbe.kt` RED 4 fallos medidos → POST OK 9/9. TDD: +7 tests en `NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest` (3 capturas nominales, 2 guards narrativa re-pineadas, 2 regresiones ruta ordinal/parte-del-día). Suite UNIÓN FINAL OK (10147 = 10140 hermano + 7 míos — re-medida tras la UNIÓN, lección c.1014); smokes 25/25. Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** gradle/UI. Detalles en RUN_LOG + CURRENT_STATE.
+
+### ✅ AUDIT-CERRADA — c.1236 (este lado, OpenHands): AUDITORÍA clase XXXI TECNOLOGÍA/INFORMÁTICA
+
+Unidad: auditoría de DESCUBRIMIENTO de la clase TRIGÉSIMOPRIMERA [XXXI]: TECNOLOGÍA/INFORMÁTICA dichas como se hablan (actualizar, copia de seguridad, imprimir, escanear, reiniciar router, wifi, apagar/encender, adaptadores, subir/descargar nube/drive) — DISJUNTA del marcador del hermano (su c.1235 «entrenamiento de <deporte>»). CERO cambio de producto.
+
+Resultados medidos (sonda real vía `tools/run_probe.sh`, persistida `tools/probe/TecnologiaClassXXXIProbe.kt`):
+
+- **9/14 HIT-heredado TASK (+SHOPPING «comprar un adaptador nuevo»)**: «actualizar la app mañana», «hacer la copia de seguridad el sábado», «imprimir el contrato hoy», «reiniciar el router esta tarde», «formatear el portátil mañana», «comprar un adaptador nuevo mañana», «subir las fotos a la nube esta noche», «descargar el vídeo hoy», envolvente «recuérdame actualizar la app». La cobertura heredada del dominio es buena (keywords-objeto existentes).
+- **6/14 NULL medidos — laterales ABIERTAS (UNA por ciclo, anti-overreach c.822/c.1165/c.1173/c.1194)**:
+  - **(a) «escanear el informe/documentos» — FUERTE**: keyword «escanear» existe (c.864), piso `hasStrongTaskImperative` con objeto cerrado (dni|contratos?|notas?|código qr) — «informe/documentos» caen por objeto acotado (gate c.751 satisfecho SIN keyword nueva; ampliar alternancia de objeto).
+  - (b) «conectar el wifi» — DÉBIL (verbo bivalente con gate arriesgado: conectar/tocable en otros objetos).
+  - (c) «apagar el ordenador» — DÉBIL (verbo bivalente).
+  - (d) «encender la tablet» — DÉBIL (verbo bivalente).
+  - (e) «sincronizar el drive» — DÉBIL (verb + objeto brand «drive», utilidad marginal).
+  - (f) «mi copia de seguridad mañana» — RECHAZADA en gate (formate nominal sin verbo — lección c.1233 «colgar las fotos de la boda»): se queda NUL L ilegítimo pero NO interceptable sin empeorar guardas; ver APLICA/condicionada.
+- **8/8 controles NULL correctos**: negación, duda subjuntivo, pretérito («imprimí el contrato ayer»), declarativo («el router está apagado»/«la copia tardó horas»/«el ordenador es bueno»), verbo-solo «imprimir», sustantivo-solo «el wifi».
+- **6/6 regresiones HIT estables**: pago PAYMENT, compra SHOPPING, llamada CALL, recado ERRAND, hogar HOUSEHOLD.
+
+Verificación (este run, audit-ciclo): suite completa verde **OK (10165)** sobre HEAD propio recién sincronizada (`98e2ed9` — pre-c.1230 del hermano); la sonda no toca bits de producto (audit). Determinista (regex), cero random, cero IA fingida, CERO UI.
+
+### ✅ FIXED VERIFIED — c.1237 (este lado, OpenHands)
+
+Unidad: lateral (a) FUERTE de MI auditoría c.1236 (clase XXXI tecnología): «escanear + objeto documental profesional» («informe(s)», «documento(s)»). PRE medido NULL con sonda persistida `tools/probe/EscanearInformeProbe.kt` (T1–T4/T6 NULL directos, T5 envolvente HIT por «recuérdame»). El piso c.864 acotaba su alternancia de objeto a (dni|contratos?|notas?|código qr) — gate c.751 satisfecho SIN keyword nueva (keyword «escanear» existe desde c.864; CERO keywords nuevas).
+
+Implementación (lockstep 4 puntos): ampliada la alternancia (dni|contratos?|notas?|informes?|documentos?|código qr) en el floor `hasStrongTaskImperative` (TDD RED→GREEN) y las dos plantillas de título (`escanear` y `reescanear`, hermana c.888/c.890) + floor `reescanear`. Comentario c.864 actualizado con c.1237. Tests: `ContextIntentEngineEscanearInformeFloorTest` (4 métodos, cobertura T/G/R). Suite completa **OK (10169)**; smokes 25+9 verdes.
+
+Laterales restantes de MI auditoría c.1236 (UNA por ciclo, anti-overreach): (b) «conectar el wifi» DÉBIL; (c) «apagar el ordenador» DÉBIL; (d) «encender la tablet» DÉBIL; (e) «sincronizar el drive» DÉBIL.
+

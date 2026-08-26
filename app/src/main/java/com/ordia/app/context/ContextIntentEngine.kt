@@ -3284,7 +3284,11 @@ object ContextIntentEngine {
             // ciclo): «contrato(s)» desde c.884 (lateral c.864), DRIs
             // de gestión y bancarios; «notas» (notas escritas, no
             // calificaciones — la guard «las notas que saqué en clase»
-            // queda fuera por ancla); «código QR». Las compuestas
+            // queda fuera por ancla); «código QR»; «informe(s)» y
+            // «documento(s)» profesionales desde c.1237 (lateral (a)
+            // FUERTE de MI auditoría c.1236, clase XXXI tecnología —
+            // keyword «escanear» preexistente c.864: CERO keyword
+            // nueva). Las compuestas
             // («escanear el contrato y enviarlo mañana») capturan:
             // misma gestión, no bivalencia. Negación sin cláusula en
             // [imperativeIsNegated]: keyword «escanear» 0.12 + bono
@@ -3298,7 +3302,7 @@ object ContextIntentEngine {
             // sin desplazamiento; precedente c.698 «renovar el DNI» y
             // convergencia con la envolvente «recuérdame escanear el
             // contrato…» (c.613, TASK).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
             // c.887: piso acotado «fotocopiar el DNI» — lateral medida
             // NULL desde c.864 (verbo distinto del piso «escanear el
             // DNI»; la sonda PRE persistida tools/probe/
@@ -3339,7 +3343,7 @@ object ContextIntentEngine {
             // bivalente «reescanear el examen» sigue ruteando STUDY
             // 0.47, no TASK (medido PRE/POST en la sonda). Kind TASK
             // (convergente con «escanear/fotocopiar el DNI»).
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reescanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reescanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5756,7 +5760,7 @@ object ContextIntentEngine {
                 // caras»— se conserva: es la misma gestión, no un objeto
                 // bivalente). Objeto ACOTADO (dni/contrato/notas/código
                 // QR). La grafía del usuario se preserva (doctrina c.653).
-                val matchEscanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                val matchEscanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEscanearDoc != null) return "Escanear ${matchEscanearDoc.groupValues[2]}"
                 // c.887: plantilla «fotocopiar el DNI» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
@@ -5775,7 +5779,7 @@ object ContextIntentEngine {
                 // Objetos-ancla del hermano c.864: dni/contrato/notas/
                 // código QR). La grafía del usuario se preserva
                 // (doctrina c.653).
-                val matchReescanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reescanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                val matchReescanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reescanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReescanearDoc != null) return "Reescanear ${matchReescanearDoc.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
