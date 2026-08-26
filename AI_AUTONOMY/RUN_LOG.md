@@ -41345,3 +41345,13 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
   smokes dominio 25/25 + automation 9/9. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
 - **Commits**: marcador d172d39; fix+closure: hash post-commit de este run.
 - **Próxima prioridad**: lateral (e) «guardar la ropa» restante de c.1209. Nunca force, nunca main.
+
+## 2026-08-26 — c.1220 — Sesión 3 [OpenHands]
+
+- **HEAD inicial**: 3147eeb (mi c.1219 «trasplantar» FIXED VERIFIED ya pusheado; árbol limpio, hermano sin nuevos commits al fetch).
+- **Problema**: «echar (abono|fertilizante) a (tus)? plantas» devolvía SILENT-NULL (lateral ABIERTA de MI auditoría c.1211 clase VIGESIMOSÉPTIMA jardinería/plantas; verbo bivalente `echar` sin acotar — ni piso, ni keyword, ni plantilla).
+- **Causa raíz**: ningún piso coincidía (familia «podar» no cubre `echar`) y la sustancia (abono|fertilizante) no es keyword; el título no se formaba → NULL.
+- **Solución**: piso NUEVO `HOUSEHOLD_FERTILIZE_FLOOR` (sonda primero: lección c.616; gate c.751 sin keyword) añadido a `HOUSEHOLD_FLOORS` + plantilla canónica `matchEcharAbonoPlantas` en extractTitle — alternancia sustancia/objeto IDÉNTICA piso↔template (lockstep DOS puntos); guard de negación `(?<!no )` heredado de familia; grafías preservadas (c.653); objeto plantas/suculentas/rosales/flores/jardín OPCIONAL.
+- **Tests**: PRE A1–A6 NULL (sonda con 6 candidatas/guardas-5/R-3). TDD RED: 12 tests y 6 fallas exactas (solo capturas; guards/regresiones ya verdes). POST: A1–A6 HIT HOUSEHOLD 0.45 con títulos exactos, guards G1–G5 NULL (pasado/negación/sustantivo/TI/acuse-futuro), regresión R1–R3 byte-idéntica. Suite UNIÓN **10028 OK** — el hermano agregó tests en c.1215–1218 al árbol integrado; aritmética +12 mía. Smoke 25/25.
+- **Commits**: d1ec6c7 (marcador c.1220) → fix cierre c.1220 (hash en commit). HEAD final: ver `git rev-parse HEAD`.
+- **Próxima prioridad**: laterales ABIERTAS de c.1211 restantes: «cubrir plantas + frío» / «sacar muebles + terraza»; si ninguna, re-auditoría de clase (c.1211 ya tiene 4 laterales RESUELTAS: podar, quitar-hierbas, plantar-hermano, trasplantar, echar-abono).
