@@ -14,7 +14,7 @@ import org.junit.Test
  * «hago la mudanza». PRE medido con sonda efímera
  * `/tmp/probe1183/Probe.kt` (motor real vía `tools/run_probe.sh`,
  * HEAD `38cd726c`): C7 «hago el curso de prevención mañana» NULL,
- * C8 «haré el curso…» NULL (futuro queda FUERA — lateral
+ * C8 «haré el curso…» CAPTURA medida (futuro invertido c.1196
  * siguiente); C1..C6 infinitivo HIT (c.1152 vigente); sensibles
  * S1..S3 NULL correctos (keyword sola inerte, gate c.751); guards
  * G1..G6 NULL correctos; regresiones R1..R3 HIT. Olvido real: el
@@ -36,7 +36,7 @@ import org.junit.Test
  * Kind TASK (gestión administrativa con plazo, hermana del
  * infinitivo c.1152; STUDY gobierna el estudio continuo — criterio
  * c.704). Determinista (regex), sin random, sin IA fingida.
- * Alcance: SOLO presente 1ª persona «hago»; futuro «haré…» y
+ * Alcance: presente 1ª persona «hago»; futuro «haré…» captura
  * subjuntivo «haga…» quedan laterales documentadas (UNA forma
  * por ciclo, doctrina anti-overreach).
  */
@@ -155,10 +155,23 @@ class ContextIntentEngineHagoCursoFloorTest {
     }
 
     @Test
-    fun futuroHareElCurso_isNull() {
-        // Futuro 1ª persona «haré…»: lateral SIGUIENTE documentada
-        // (UNA forma por ciclo, anti-overreach; medida NULL PRE C8).
-        assertNull(analyze("haré el curso de prevención la semana que viene"))
+    fun futuroHareElCurso_capturesAsTask() {
+        // c.1196: re-pin legítimo documentado (inversión del pin NULL
+        // original; PRE medido NULL, fix 2 puntos).
+        val intent = analyze("haré el curso de prevención la semana que viene")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Haré el curso de prevención", intent.title)
+    }
+
+    @Test
+    fun mananaHareLosCursos_capturesAsTask() {
+        // Réplica temporal G8-D5 (hermano espejo c.1174 re-pin):
+        // el plan comprometido con temporal explícito patriia.
+        val intent = analyze("mañana haré el curso")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertNotNull(intent.dueAt)
     }
 
     @Test

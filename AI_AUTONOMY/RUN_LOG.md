@@ -39393,3 +39393,18 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - ABIERTAS reales que quedan de MI auditoría c.1197: (b) «recargar la tarjeta», (c) «adelantar la mensualidad del coche».
 - Próxima prioridad: (b) «recargar la tarjeta» (token único keyword-vs-infinitivo; piso hermano) — cerciorar PRE que el word único «recargar» no es otro caso de privacidad/gate.
 - Estado: REJECTED BY DESIGN fixed+VERIFIED (JVM), NO VERIFICADO SDK.
+---
+
+## 🔄 Run — 2026-08-26 (ciclo c.1193)
+
+- HEAD inicial: `81038f4`; re-base post-rebase caso-conflict con c.1190 CV + c.1191 informe|portfolio/c.1188/c.1192 genitivo «mañana» del hermano
+- Ciclo: c.1193 — lateral observada en MI c.1179 (sonda `tools/probe/TwentiethClassHouseholdProbe.kt`: «después de comer/cenar/la comida / esta semana/finde/mes» dueAt=false y residuo en título; DISJUNTO del del hermano)
+- Problema: stripTemperatureTail dejaba restos genitivados («después de la comida / del almuerzo»); qualified («esta semana / este finde / este mes») y bare («después de comer/cenar/desayunar/almorzar») conservados por canario c.1018
+- Fix: regex `ambiguousTail` sólo-genitivo en `stripTemperatureTail` (UN punto; CERO keywords; gate c.751)
+- Test NEW: `ContextIntentEngineAmbiguousTailTest.kt` (TDD 4 tests; RED→GREEN)
+- Colisiones: ninguna — trabajo disjunto por área
+- Verificación: suite UNIÓN OK (9730), smoke 25/25
+- Head final: pending
+- Lección: alcance genitivo-only después de rollback over-strip; TDD-first documenta decisiones productivas
+
+- 2026-08-26 · c.1196 · RESUMEN: «haré (el)? curso(s)» (futuro 1ª persona) — GREEN tras fix piso (hacer|hago|haré) + plantilla matchHacerCurso; re-pin legítimo del pin NULL ´haré´ del hermano; sonda POST persistida HareCursoProbe 0 misses; suite UNION 9766 OK; smokes 25+9 OK. NO VERIFICADO Android. PRÓXIMO: revisión de producto (clase siguiente no se auto-auditada).

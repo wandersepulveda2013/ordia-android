@@ -3730,7 +3730,7 @@ object ContextIntentEngine {
             // futuro «haré» y subjuntivo «haga» siguen FUERA,
             // laterales). El pasado «hice» y la 3ª persona «hace»
             // tampoco casan.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago)\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:hacer|hago|haré)\s+(?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?\b""").containsMatchIn(lower) ||
             // c.1169: «hacer (la)? mudanza(s)» (lateral (d-bis) del
             // cierre c.1156 — forma C20 de la sonda persistida c.1132,
             // clase DECIMOQUINTA; NULL medido allí y re-medido PRE con
@@ -4954,7 +4954,7 @@ object ContextIntentEngine {
                 // propia o ruta previa). c.1188: el verbo se CAPTURA
                 // del match para conservar la forma («hacer»/«hago»),
                 // precedente c.1171 matchHacerMudanza (c.903).
-                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago)\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
+                val matchHacerCurso = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer|hago|haré)\s+((?:(?:el|la|mi|tu|su|un|una|este|ese)\s+)?cursos?.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchHacerCurso != null) return "${matchHacerCurso.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchHacerCurso.groupValues[2]}"
                 // "hacer (la)? mudanza(s) X" → "Hacer la mudanza X" (c.1169):
                 // lockstep con el piso (lección c.616); grafía preservada
@@ -7053,6 +7053,14 @@ object ContextIntentEngine {
         // — medida con probe. El ancla de franja exige mañana/tarde/noche,
         // así «para el abuelo»/«para la entrada» nunca se tocan.)
         val bandTail = Regex("""\s*(?:por|en|para)\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        // (c.1193: temporales RELATIVOS NO-CALIFICADOS de cola que no anclan
+        // fecha (dueAt queda null por diseño) pero ensuciaban el título:
+        // «… después de comer / de la comida / del almuerzo / de desayunar /
+        // de cenar / de almorzar» — residual medido con sonda persistida
+        // `TwentiethClassHouseholdProbe`. Las variantes «… esta semana /
+        // este finde / este mes» permanecen en el título por decisión
+        // previa documentada (tests previos canario).)
+        val ambiguousTail = Regex("""\s*después\s+(?:de\s+la\s+comida|(?:de\s+el|del)\s+almuerzo)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
         // c.839: «para» huérfana tras despojar la fecha de cola
         // («reservar el hotel para el sábado» → despojo de «el sábado»
@@ -7073,6 +7081,7 @@ object ContextIntentEngine {
                 current = orphanPara.replace(current, "").trim()
             }
             current = bandTail.replace(current, "").trim()
+            current = ambiguousTail.replace(current, "").trim()
             // Días relativos desnudos: sólo si NO los precede un genitivo.
             // "pasado" también bloquea (c.690): el compuesto "pasado mañana"
             // lo consume la alternativa `date` de `tail` en la siguiente

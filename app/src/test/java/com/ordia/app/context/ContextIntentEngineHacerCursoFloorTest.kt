@@ -139,8 +139,13 @@ class ContextIntentEngineHacerCursoFloorTest {
     }
 
     @Test
-    fun futuroHareCurso_isNull() {
-        assertNull(analyze("haré el curso de prevención mañana"))
+    fun futuroHareCurso_isCaptured() {
+        // Re-pin legítimo documentado (c.1196 estelado): el hermano
+        // amplía (hacer|hago|haré) en piso+plantilla con medición
+        // PRE NULL → POST captura. Válido con ´grafía preservada´.
+        val intent = analyze("haré el curso de prevención mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 
     @Test
