@@ -133,8 +133,15 @@ class ContextIntentEngineFacturarVueloFloorTest {
     }
 
     @Test
-    fun `lateral facturar la maleta no captura`() {
-        assertNull(analyze("facturar la maleta mañana"))
+    fun `lateral facturar la maleta captura desde c1168 (re-pin documentado)`() {
+        // Re-pin legítimo (precedente c.1049/c.1080): la lateral «maleta(s)»
+        // que c.1140 dejó FUERA se cierra en c.1168 extendiendo el objeto del
+        // piso «facturar» (misma ancla/guard, CERO keywords nuevas). Cobertura
+        // completa en [ContextIntentEngineFacturarMaletaFloorTest].
+        val r = analyze("facturar la maleta mañana")
+        assertNotNull(r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+        assertEquals("Facturar la maleta", r.title)
     }
 
     @Test

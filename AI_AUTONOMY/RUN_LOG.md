@@ -19164,3 +19164,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Marcadores del hermano intactos (c.1154/c.1155/c.1156 — NO tocados). Nunca force, nunca main.
 - Próxima prioridad: laterales ABIERTAS de c.1157 (UNA por ciclo: «a la oficina»/«al curro», plural, «tablet») o clase DECIMOSÉPTIMA casi agotada → valorar auditoría de clase NUEVA (DECIMOCTAVA).
 - Commits del run: `74ad1c9`→rebase `f8224ae` (feat piso+plantilla+tests), `16477a9`→rebase `7933015` (docs cierre). HEAD final: `7933015` + este commit docs post-UNIÓN.
+
+
+## Run c.1168 (2026-08-25, este lado) — lateral c.1140 «facturar la maleta(s)» FIXED VERIFIED
+- HEAD inicial: `488bfe6` → marcador propio EN CURSO pusheado INMEDIATAMENTE (`bed3f19`) tras carrera de numeración: el hermano fijó c.1167 «felicitar a <persona>» primero → renumerado c.1167→c.1168 (primer-marcador-gana, lección c.1077). El hermano a su vez renumeró su «hacer la mudanza» a c.1169 reconociendo mi c.1168.
+- Selección: lateral listada en la propia entrada c.1140 del BACKLOG («facturar la maleta», clase DECIMOSEXTA viajes). Olvido real: facturar equipaje olvidado = cola/recargo en el aeropuerto, mismo coste que el check-in.
+- PRE (sonda efímera `/tmp/probe1167/FacturarMaletaPreProbe.kt`, motor real vía `tools/run_probe.sh`, HEAD `488bfe6`): 4/4 desnudas NULL («…mañana», «las maletas el lunes por la mañana», acuse «vale, …», pelada), envolvente «tengo que…» TASK 0.49 genérico, guards 4/4 NULL (negación/pasado/duda/pasiva), regresiones 4/4 HIT.
+- Fix lockstep DOS puntos (lección c.616), CERO keywords nuevas: (1) piso c.1140 en `hasStrongTaskImperative`: objeto EXIGIDO «el vuelo» → «(?:el vuelo|la(s) maleta(s))»; (2) plantilla `matchFacturarVuelo` captura el mismo grupo. Docblock c.1140 ajustado (la lateral ya no queda FUERA). Bivalente «facturar el proyecto» y lateral «check-in del hotel» siguen FUERA pineados (UNA forma por ciclo).
+- TDD estricto: archivo NUEVO `ContextIntentEngineFacturarMaletaFloorTest.kt` (16 tests) → RED exacto 5 fallos (las 5 capturas) → GREEN 16/16. Re-pin legítimo documentado del pin c.1140 «lateral facturar la maleta no captura» (precedente c.1049/c.1080) → ahora aserta la captura.
+- POST: 5/5 HITs TASK (4 piso 0.45 + envolvente 0.49 byte-idéntica, títulos limpios «Facturar la maleta» / «Facturar las maletas»), guards 4/4 NULL, regresiones 4/4 HIT (vuelo c.1140, check-in c.1140, maleta c.715, mesa).
+- Suite UNIÓN definitiva `bash tools/run_domain_tests.sh` **OK (9397 = 9381 base + 16)** medida post-rebase sobre `5ddac90` (lección c.1014); `run_domain_checks.sh` 25/25.
+- Commits: `bed3f19` (marcador), `5ddac90`→rebase→`5ddac90` feat (motor + test). Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Próxima prioridad (UNA por ciclo, DISJUNTO de c.1166/c.1167/c.1169 del hermano): lateral c.1140 «hacer el check-in del hotel» (misma extensión de objeto en el piso hermano) o gaps NULL de la auditoría c.1165 una vez los cierre el hermano (c.1167 felicitar EN CURSO — NO TOCAR).
