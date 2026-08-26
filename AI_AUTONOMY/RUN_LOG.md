@@ -39523,3 +39523,12 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - **Cambios**: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (piso+lista+plantilla); app/src/test/java/com/ordia/app/context/ContextIntentEngineCastrarMascotaTest.kt (nuevo, 11 tests); tools/probe/CastrarMascotaProbe.kt (nuevo); AI_AUTONOMY/*.
 - **Próxima prioridad**: ABIERTAS documentadas de MI auditoría c.1197: (b) «recargar la tarjeta» (infinitivo de keyword «recarga»); laterales ABIERTAS de MI auditoría c.1195 (vgr. «esterilizar al perro»). «hacer la transferencia»: PIN de privacidad POR DISEÑO c.1198 — NO re-auditar.
 - **Estado**: FIXED+VERIFIED (JVM).
+
+### Ciclo c.1204→c.1206 (esta sesión) — AUDIT-VERIFIED (clase XXVI suscripciones/cargos recurrentes) Ω
+- HEAD inicial `29d5a8cd`; sincro limpia; sin colisiones nuevas; rebase post-clone ejecutado (markerO EN CURSO commit e4fc31c7 tras C4-operative 'code --wait' fix= -m).
+- Probe en `/tmp/probe1206` compilado con unresolved refs (API real distinta de supuestas: ContextPrivacyFilter.shouldBlock(event) no existe: la cadena es buildResult → S.3 normalize → Priv -> adaMinSafe(auxiliar Ref.6 hasSafeText / S-ish): adaptar sonda; deps-array compuesto de RoomStubs+SensitiveSecretPatterns+ContentModeration+ContextEvent+ContextCaptureSource+ContextPrivacyFilter+ContextIntent+ContextIntentEngine+probe.
+- MEDIDA 14 candidatas: 12/14 HIT heredado (cancelar Netflix, dar de baja el gimnasio, devolver pedido Amazon, reclamar la factura, renovar el seguro, pagar la suscripción, descargar la factura, pedir la factura, cancelar la suscripción, renovar la suscripción, renovar el pasaporte, devolver yenes). NULL-1 control declarativa «la suscripción vence esta semana». NULL-2 real «reclamar el retraso del vuelo» → LATENTE (no-fix: keyword «vuelo» inexistente; «reclamar <objeto>» sería overreach gate c.751).
+- Suite UNIÖN base OK 9854 (9.6s) - no degradada; env sondeada inicial fallaba por kotlinc-path (resuelto /tmp/kotlinc-home restaurado).
+- Docs: BACKLOG prepend fila AUDIT-VERIFIED c.1206; CURRENT_STATE marker cerrada [estelado]; carpetas sonda `tools/probe/SuscripcionesXXVIProbe.kt` persistida.
+- Aleksum latente: NULL-2. Próxima prioridad: respetar medida-sonda del hermano en c.1204/c.1205 o tomar siguiente clase (XXVII) o NULL-2 revisión con Montado-AUDIT
+- Commit head final pendiente completándose tras log append (docs+tools/probe).
