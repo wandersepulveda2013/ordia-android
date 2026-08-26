@@ -41366,4 +41366,19 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Tests**: suite UNIÓN FINAL **OK (10028 = 10016 base-compuesta + 12 pin — aritmética exacta; exit 0)**, smoke de dominio 25/25, autom. 9/9 previos. LIMITACIÓN: gradle/lint/assemble/Android/UI NO VERIFICADO (entorno JVM, sin SDK).
 - **Commits**: cierre c.1221 (hash post-commit). HEAD final = 0361607 + 1.
 - **Próxima prioridad**: laterales ABIERTAS no reclamadas de auditoría c.1211 («cubrir plantas + frío», «sacar muebles a la terraza») y (e) «guardar la ropa» de cl.XXVIII. Verificar marcadores `EN CURSO` hermanos (c.1220 «echar plantas», c.1218 «quitar mancha» — NO TOCAR) antes de abrir.
+---
+
+## RUN c.1223 — 2026-08-26 (OpenHands autonomous)
+
+- **HEAD inicial**: edaaf4e (marcador EN CURSO c.1223 propio)
+- **Lateral**: ABIERTA de MI auditoría clase XXVII c.1211 (jardinería/plantas): «cubrir (las)? plantas (del frío)?» → `analyze` SILENT-NULL. Verbo «cubrir» bivalente (la mesa/un libro): acotación al objeto familia-planta.
+- **Gate c.751**: sin keyword nueva; evaluado «cubrir» como keyword-objeto — RECHAZADO por bivalencia (cubrir la mesa = colisión real); solución piso+plantilla con objeto acotado.
+- **Lockstep DOS puntos** (lección c.616): (1) piso `HOUSEHOLD_COVER_PLANTS_FLOOR` añadido a `HOUSEHOLD_FLOORS`; (2) plantilla canónica `matchCubrirPlantas` (titulación). MISMA alternancia objeto/motivo en ambos. Grafías preservadas (c.653).
+- **Sonda PRE** (`tools/probe/CubrirPlantasProbe.kt`): A1–A6 NULL (gap abierto), G1–G5 NULL (pasado/negación/sustantivo/objeto-mesa/futuro), R1–R3 vecinos (quitar mancha/coser botón/echar abono) byte-idénticos.
+- **TDD RED**: 12 tests nuevos (`ContextIntentEngineCubrirPlantasFloorTest.kt`); 6 fallas exactas — solo las capturas; guards/regresiones ya verdes.
+- **Implementación**: floor+template. **POST**: A1–A6 HIT HOUSEHOLD 0.45 con títulos exactos («Cubrir las plantas cuando hace frío», «Cubrir el jardín por la helada»…), G1–G5 NULL, R1–R3 byte-idénticas.
+- **Tests**: Suite UNIÓN **10040 OK** (10028 base integrada + 12 míos). Smoke dominio 25/25. Gradle/lint/assemble/UI/Room NO VERIFICADO (JVM puro, sin SDK).
+- **Archivos**: `ContextIntentEngine.kt` (piso+plantilla+lista), `ContextIntentEngineCubrirPlantasFloorTest.kt` (nuevo, 12 tests), `tools/probe/CubrirPlantasProbe.kt` (nuevo), CURRENT_STATE (marcador→FIXED VERIFIED), RUN_LOG (este append).
+- **Colisión hermano**: ninguna — c.1222 «guardar la ropa» sigue siendo suyo (marcador intacto); archivos disjuntos en el mismo motor pero hunks no solapados.
+- **Próxima prioridad**: última lateral ABIERTA de c.1211: «sacar (los)? muebles a la terraza» (vigilar: «sacar» es bivalente pesado — sacar la basura ya captura; acotar a muebles+terraza).
 

@@ -551,6 +551,16 @@ object ContextIntentEngine {
     // ("echar a los archivos"); guard de negación heredado (?<!no ).
     private val HOUSEHOLD_FERTILIZE_FLOOR =
         Regex("""\b(?<!no )echar\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?(?:abono|fertilizante)(?:\s+a\s+(?:las|los|tus|mis|sus|el|un|una)\s+(?:planta(?:s)?|suculenta(?:s)?|rosal(?:es)?|flor(?:es)?|jard(?:ín|ines)))?\b""")
+    // Piso jardín "cubrir las plantas (del frío)" (c.1223 — lateral
+    // ABIERTA de la auditoría clase XXVII c.1211): «cubrir» es bivalente
+    // (la mesa/un libro), así se ACOTA al objeto familia-planta con
+    // motivo meteo opcional; sin keyword nueva (gate c.751); MISMA
+    // alternancia objeto/motivo que la plantilla matchCubrirPlantas
+    // (lockstep c.616; grafía preservada c.653). `\b` final: objetos
+    // fuera de familia no casan ("cubrir la mesa"); guard de negación
+    // heredado (?<!no ).
+    private val HOUSEHOLD_COVER_PLANTS_FLOOR =
+        Regex("""\b(?<!no )cubrir\s+(?:(?:el|la|los|las|mis|tus|sus)\s+)?(?:planta(?:s)?|suculenta(?:s)?|rosal(?:es)?|jardín)(?:\s+(?:cuando\s+hace\s+(?:frío|calor|viento)|(?:del|por|contra)\s+(?:(?:el|la)\s+)?(?:frío|helada|viento|sol)))?\b""")
     // Piso hogar "pintar la casa" (c.758 — sonda
     // `FourthClassVerbDiscoveryProbe.kt` c.740; selección por dispersión
     // determinista epoch-day tras descartar RESERVA "bañar al perro"
@@ -616,7 +626,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6275,6 +6285,18 @@ object ContextIntentEngine {
                 if (matchEcharAbonoPlantas != null) {
                     return "${capitalizeFirst(matchEcharAbonoPlantas.groupValues[1])} ${matchEcharAbonoPlantas.groupValues[2]}"
                 }
+                // Piso "cubrir las plantas (del frío)" (c.1223 — lateral ABIERTA
+                // auditoría clase XXVII c.1211): MISMA alternancia objeto/motivo
+                // que el piso [HOUSEHOLD_COVER_PLANTS_FLOOR] (lockstep
+                // piso↔plantilla lección c.616; grafía preservada c.653).
+                val matchCubrirPlantas = Regex(
+                    """\b(cubrir) ((?:(?:el|la|los|las|mis|tus|sus) )?(?:planta(?:s)?|suculenta(?:s)?|rosal(?:es)?|jardín)(?:\s+(?:cuando\s+hace\s+(?:frío|calor|viento)|(?:del|por|contra)\s+(?:(?:el|la)\s+)?(?:frío|helada|viento|sol)))?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchCubrirPlantas != null) {
+                    return "${capitalizeFirst(matchCubrirPlantas.groupValues[1])} ${matchCubrirPlantas.groupValues[2]}"
+                }
+
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
                 // `\b` (c.693): sin borde, "regar" casa dentro de "entregar".
