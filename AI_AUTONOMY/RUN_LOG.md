@@ -39441,6 +39441,27 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 
 ## c.1201 — 2026-08-26 (este lado) — CIERRE finanzas unidad (c)
 
+## 2026-08-26 · ciclos c.1197→c.1199 (ContextIntentEngine, clase VIGESIMOTERCERA finanzas)
+
+- HEAD inicial: 72071cf (c.1197 con sonda junta).
+- Problema: auditoría-finanzas c.1197 midió 3 gaps en clase de mensualidades/recargos/transferencias:
+  (a) «hacer la transferencia» — falso gap: ContextPrivacyFilter bloquea «transferencia» POR DISEÑO (privacy PIN, precedente c.1029); se fijó con test de regresión [ContextIntentEngineTransferenciaPrivacyPinTest].
+  (b) «recargar la tarjeta» — NULL real; el hermano la cerró en paralelo vía PAYMENT_VERBS («pagar|recargar») en c.1198; mi implementación paralela (keyword-OBJETO «tarjeta» + piso PAYMENT_TOPUP_FLOOR + plantilla matchRecargar) se retira por duplicado en carrera (precedente c.1146).
+  (c) «adelantar la mensualidad» — NULL real (PRE sonda /tmp/MensualidadProbePRE.kt). Raíz: keyword «mensualidad» existía; verbo «adelantar» 0.12 inerte < umbral. Fix lockstep: piso acotado PAYMENT_ADVANCE_FLOOR (con opción «pago de <det>?») + plantilla matchAdelantar en extractTitle. TDD: RED 5 fallos → GREEN; 1 reintento en la grafía «el pago de» (determinante propio).
+- Pruebas: tools/run_domain_tests.sh → 9801/9801 OK (exit 0); tools/run_domain_checks.sh → 25/25 pins.
+- Archivos: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (pisos PAYMENT_TOPUP_FLOOR/PAYMENT_ADVANCE_FLOOR + extractTitle matchRecargar/matchAdelantar); app/src/main/java/com/ordia/app/context/ContextIntent.kt (keyword-OBJETO «tarjeta»); tests: ContextIntentEngineTransferenciaPrivacyPinTest.kt (pin a), ContextIntentEngineRecargarTarjetaTest.kt (b), ContextIntentEngineAdelantarMensualidadTest.kt (c).
+- Commits: 50157e6 (c.1198 b + pin a) + commit c.1199 (c) pendiente de registrar a continuación.
+- HEAD final: (actualizado tras commit/push).
+- Estado: VERIFIED. Próxima prioridad: auditoría de producto nueva / backlog P1. NO VERIFICADO gradle/Android/UI.
+## 2026-08-26 · ciclo c.1199b (post-merge c.1199, cableado del piso + pin obsoleto)
+
+- HEAD inicial: e43dbac (merge del fix c.1199 del hermano, 5 fallos rojos residuales).
+- Problema: el piso PAYMENT_ADVANCE_FLOOR y su registro en WRAPPABLE_PATTERNS llegaron por el merge, pero `hasStrongPaymentImperative` seguía evaluando sólo `PAYMENT_FLOOR` (artefacto de resolución de conflicto: la extensión `PAYMENT_FLOORS.any{...}` se perdió); además el pin RED lateral `adelantar la mensualidad sigue ABIERTA en null lateral` de `ContextIntentEngineRecargarTarjetaTest` quedó obsoleto al cerrarse la unidad (c).
+- Fix: (1) `hasStrongPaymentImperative` ahora itera `PAYMENT_FLOORS` (PAYMENT_FLOOR + PAYMENT_ADVANCE_FLOOR); (2) pin lateral RED obsoleto retirado y sustituido por nota de cierre c.1199 (la captura queda pineada en `ContextIntentEngineAdelantarMensualidadTest`).
+- Pruebas: sonda efímera /tmp/MensualityProbePRE.kt POST: 3/3 targets PAYMENT 0.45 + título con verbo preservado («Adelantar la mensualidad del coche»); sonda-control «pagar la mensualidad del piso» PAYMENT 0.45 (regresión heredada intacta). tools/run_domain_tests.sh → OK 9807; tools/run_domain_checks.sh → 25/25.
+- Archivos: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (1 línea), app/src/test/java/com/ordia/app/context/ContextIntentEngineRecargarTarjetaTest.kt (retira 1 pin RED obsoleto, + nota).
+- Estado: VERIFIED (JVM). NO VERIFICADO gradle/Android/UI. Nunca force, nunca main.
+ (fix: c.1199 piso acotado PAYMENT_ADVANCE_FLOOR (adelantar la mensualidad) — clase VIGESIMOTERCERA gap (c) cerrada)
 - **Branch**: openhands/autonomous-ordia
 - **HEAD inicial**: 59c492f
 - **Problema**: unidad (c) ABIERTA de MI auditoría c.1197 (clase VIGESIMOTERCERA, finanzas domésticas): «adelantar la mensualidad (del coche/el lunes…)» era NULL silencioso (olvido < umbral).
