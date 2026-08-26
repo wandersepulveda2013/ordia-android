@@ -297,6 +297,21 @@ object ContextIntentEngine {
     // «quitaré» c.1214 / «la poda» c.1211).
     private val HOUSEHOLD_PLANTING_FLOOR =
         Regex("""\b(?<!no )plantar\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?(?:tomates?|orquídeas?|árbol(?:es)?|jard(?:ín|ines)|menta|tomillo|hierbabuena)\b""")
+    // Piso faena doméstica "sacar (el|los|mis|tus|sus)? mueble(s) (a la
+    // terraza)" (c.1224 — lateral D15 ABIERTA, ÚLTIMA de la auditoría
+    // clase VIGESIMOSÉPTIMA jardinería c.1211). Nuevo piso de la familia
+    // «sacar» por objeto disjunto: basura c.717 / perro-gato c.740 /
+    // dinero c.893 / visado c.1151 / billete c.1219 / muebles aquí.
+    // Verbo bivalente «sacar» acotado al OBJETO vía keyword-OBJETO
+    // «mueble» (lockstep TRES puntos, precedente «mancha» c.1221 /
+    // «hierbas» c.1212). Artículos y posesivos (que el plural «muebles»
+    // arrastra mis/tus/sus como el piso ABONO c.941 — «sacar mis
+    // muebles» HIT, canary en el test). Guard de negación heredado
+    // (?<!no ). El guard e-ódo («saqué») y el e-édo («sacaré») quedan
+    // FUERA (pins en el test, misma antidrift que «quité»/«quitaré»
+    // c.1221).
+    private val HOUSEHOLD_FURNITURE_FLOOR =
+        Regex("""\b(?<!no )sacar\s+(?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?muebles?\b""")
     // Piso faena doméstica "sacar al perro" (c.740, primera mascota del
     // dominio — sonda NUEVA `FourthClassVerbDiscoveryProbe.kt` c.740,
     // paralela a Chore c.734): el quehacer diario con mascota canónico.
@@ -636,7 +651,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR, HOUSEHOLD_FURNITURE_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6116,6 +6131,21 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchQuitarMancha != null) {
                     return "${capitalizeFirst(matchQuitarMancha.groupValues[1])} ${matchQuitarMancha.groupValues[2]}"
+                }
+                // "sacar (el|los|mis|tus|sus)? mueble(s) (a la terraza)…"
+                // → "Sacar los muebles a la terraza…" (c.1224): verbo
+                // preservado y objeto restringido como en
+                // [HOUSEHOLD_FURNITURE_FLOOR] (nuevo piso de la familia
+                // «sacar» por objeto disjunto: basura c.717 / perro-gato
+                // c.740 / dinero c.893 / billete c.1219 / muebles aquí —
+                // no colisionan). Artículos + posesivos (c.756). Lateral
+                // D15 ABIERTA (última) de la auditoría clase XXVII c.1211.
+                val matchSacarMuebles = Regex(
+                    """\b(?<!no )(sacar)\s+((?:(?:el|la|los|las|mi|mis|tu|tus|su|sus)\s+)?muebles?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSacarMuebles != null) {
+                    return "${capitalizeFirst(matchSacarMuebles.groupValues[1])} ${matchSacarMuebles.groupValues[2]}"
                 }
                 // "plantar (los) tomates / plantar la orquídea …" →
                 // "Plantar los tomates …" (c.1215): verbo preservado y

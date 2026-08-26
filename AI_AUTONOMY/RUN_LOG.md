@@ -41406,3 +41406,16 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Tests**: sin cambios de código (auditoría docs+sonda); Suite UNIÓN queda 10052 OK verificada en el commit anterior. Gradle/lint/UI/Room NO VERIFICADO (JVM puro).
 - **Archivos**: BACKLOG (sección cl.XXIX), CURRENT_STATE (marcador→FIXED), RUN_LOG (este append), `tools/probe/HogarMascotasClassXXIXProbe.kt` (nuevo).
 - **Próxima prioridad**: lateral (a) «cepillar (al) gato|perro» — marcador+sonda+TDD RED→GREEN, lockstep DOS puntos, sin keyword (gate c.751).
+
+## 2026-08-26 — c.1224 — Sesión 4 [OpenHands]
+
+- **HEAD inicial**: 58c730c. Marcador EN CURSO `c74bbd2` (lateral D15, primer-marcador-gana c.1077 — hermano sin colisión al fetch).
+- **Problema**: lateral ABIERTA D15 de MI auditoría c.1211 (clase VIGESIMOSÉPTIMA jardinería): «sacar (los) muebles (a la terraza)» → analyze SILENT-NULL (P1, olvido silencioso; última lateral abierta de la lista tras D14 «cubrir las plantas» tomada por hermano c.1223).
+- **Causa raíz**: familia «sacar» por objeto disjunto carecía del piso muebles (basura c.717 / perro-gato c.740 / dinero c.893 / visado c.1151 / billete c.1219 / falta muebles); keyword-OBJETO «mueble» inexistente; plantilla match inexistente.
+- **Solución**: lockstep TRES puntos (lección c.616, gate c.751 — keyword-OBJETO, doctrina c.653 grafía preservada):
+  1. keyword-OBJETO «mueble» en ContextIntent (0.12 inerte — VERBO bivalente «sacar» NO se añade);
+  2. piso NUEVO HOUSEHOLD_FURNITURE_FLOOR en lista maestra (guard (?<!no ), artículos+posesivos singulares Y plurales mis/tus/sus — precedente ABONO c.941, corrección post-RED);
+  3. plantilla matchSacarMuebles en extractTitle (alternancia posesivos idéntica piso↔template).
+- **Tests**: PRE sonda D15-1..D15-8 NULL (sonda re-modelada sobre QuitarManchaProbe c.1221). TDD RED: 16 tests y 7 fallas exactas (capturas; guards/regresiones ya verdes). POST: 16/16 OK tras ampliar posesivos plurales (mis/tus/sus) en piso+plantilla — lección: RED parcial inicial 7/16 → 2/16 por posesivos plurales, fix en DOS puntos. POST sonda: 8/8 capturas HIT HOUSEHOLD 0.45 títulos limpios, guardas G1–G5 NULL pineadas (saqué / no sacar / declarativo / sacaré / juguetes), regresiones R1–R3 byte-idénticas (perro/basura/dinero). Suite UNIÓN OK (10044, exit 0); smoke dominio 25/25. LIMITACIÓN: gradle/lint/assemble/UI/Room NO VERIFICADO (JVM pura).
+- **Commits**: marcador c74bbd2 (pre-existente este run) + fix cierre c.1224 (hash post-commit).
+- **Próxima prioridad**: lateral (e) «guardar la ropa» de c.1209 (ROPA) si sigue abierta; si no, re-auditoría de clase nueva (c.1211 CERRADA tras D15). Nunca force, nunca main.

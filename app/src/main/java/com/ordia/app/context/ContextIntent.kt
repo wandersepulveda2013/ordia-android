@@ -767,9 +767,20 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // sigue descartado (canary). El verbo «quitar» NO se añade
         // (bivalente — la mesa/el polvo/la camisa; piso ya acotado por
         // objeto disjunto).
+        // c.1224: keyword-OBJETO «mueble» (lockstep con el piso
+        // `sacar (el|los|mis|tus|sus)? mueble(s)` — lateral D15 ABIERTA
+        // (última) de la auditoría clase VIGESIMOSÉPTIMA jardinería
+        // c.1211; precedente «mancha» c.1221 / «hierbas» c.1212). La
+        // subcadena cubre el plural («muebles»→«mueble»). 0.12 sola
+        // queda bajo el umbral: «los muebles están en la terraza»
+        // (declarativo) sigue descartado (canary en
+        // `ContextIntentEngineSacarMueblesFloorTest`). El verbo «sacar»
+        // NO se añade (bivalente consolidado — la basura c.717 / al
+        // perro c.740 / dinero c.893 / el visado c.1151 / billete
+        // c.1219; piso ya acotado por objeto disjunto).
         "cena", "comida", "almuerzo", "desayuno", "merienda", "descongelar",
         "basura", "cama", "lavadora", "césped", "polvo", "mesa", "hierbas",
-        "mancha",
+        "mancha", "mueble",
         // c.758: objeto del piso `pintar la(s) casa(s)` (lockstep
         // keyword↔piso; "pintar" suelto es bivalente — un cuadro/la
         // veranda — así se alinea el OBJETO restringido, sonda
