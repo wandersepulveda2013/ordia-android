@@ -713,7 +713,14 @@ object ContextIntentEngine {
         EXERCISE_PLAY_SPORT_FLOOR,
         EXERCISE_PILATES_FLOOR,
         EXERCISE_BIKE_OUT_FLOOR,
-        EXERCISE_MATCH_SPORT_FLOOR
+        EXERCISE_MATCH_SPORT_FLOOR,
+        // Enroll propio al gimnasio (c.1230, abierto por la auditoria
+        // (b) c.1227): "apuntarme/inscribirme a(l|en) el gimnasio" medido
+        // 0.22 NULL (olvido silencioso P1). Distinto de la reflexiva
+        // "apuntarse" (c.856, NOTE hermana) y de sujeto explicito
+        // "inscribir al nino" (EXERCISE hermano c.1228). Encliticos
+        // me/te/nos (NO se) + prep a|al|en + objeto gimnasio(s).
+        Regex("""\b(?<!no )(apuntar|inscribir)(me|te|nos)\s+(?:a|al|en)\s+(?:(?:el|un|una)\s+)?gimnasios?(?![a-z])""")
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
     // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
@@ -5091,6 +5098,13 @@ object ContextIntentEngine {
     /**
      * Extrae el título del texto original.
      */
+    /** Enroll al gimnasio (c.1230): verbo+enclitico -> titulo "Apuntarme al gimnasio". */
+    private fun matchEnrollGym(original: String): String? {
+        val m = Regex("""(apuntar|inscribir)(me|te|nos)\s+(?:a|al|en)\s+(?:(?:el|un|una)\s+)?gimnasios?(?![a-z])""", RegexOption.IGNORE_CASE).find(original) ?: return null
+        val raw = m.groupValues[1] + m.groupValues[2] + " al gimnasio"
+        return capitalizeFirst(raw)
+    }
+
     private fun extractTitle(original: String, kind: ContextIntentKind): String? {
         val lower = original.lowercase(Locale.ROOT)
 
@@ -6026,6 +6040,9 @@ object ContextIntentEngine {
                 }
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(original.substring(match.range.start))
+                // Enroll al gimnasio (c.1230): replica piso en el extractTitle
+                // (lockstep 2 puntos, leccion c.616).
+                matchEnrollGym(original)?.let { return it }
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {

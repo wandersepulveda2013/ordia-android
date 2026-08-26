@@ -1,3 +1,25 @@
+## 2026-08-26 — c.1230 CERRADO «enroll-gimnasio me/te/nos» (lateral (b) de la auditoría c.1227 [clase XXX hermano]; DISJUNTA de la reflexiva «apuntarse» c.856 y del hetero-enroll hermano c.1228)
+## RUN 2026-08-26 (cierre c.1230 — enroll-gimnasio me/te/nos → EXERCISE)
+
+- HEAD inicial: `2e66959` (pre-rebase final `4141301`).
+- Incidente: push inicial detectó divergencia con el hermano (c.1231/c.1232/c.1233). Rebase con union-resolution de CURRENT_STATE/BACKLOG. La resolución había DROPPED el Regex de mi piso enroll-gimnasio en EXERCISE_FLOORS (quedaba solo el comentario) → probe POST T1—T6 NULL. Lección: tras resolver conflictos, verificar sonda POST antes de dejar el rebase. Restaurado el Regex, sonda POST OK y suite UNIÓN OK (10155).
+- TDD RED→GREEN estricto: `ContextIntentEngineEnrollGymFloorTest.kt` (17 tests) + sonda persistida `tools/probe/EnrollGymProbe.kt`. PRE 0.22 NULL en 6/6 (olvido silencioso P1). POST: T1—T6 HIT EXERCISE 0.45; guards G1—G5 NULL (pretérito/negación/dominio público «inscribirse…»/verbo solo); regresiones R1—R6 byte-idénticas. Zero keywords nuevas (gate c.751); disjoint a hermano c.1228 «inscribir al niño» y a la reflexiva c.856 NOTE.
+- Suite UNIÓN FINAL: OK (10155 tests) tras el rebase; smokes dominio 25/25. Sondas del hermano (JugarDeporte/PartidoDeporte) OK en la unión; sondaIrAPilates (c.1232 EN CURSO hermano): T3 «pilates a las siete» = NULL —notificada, NO tocar (disjointness).
+- NO VERIFICADO: gradle/lint/Android/UI/Room (JVM pura).
+- Commit: (se actualizará con el hash final tras el amend + push).
+- HEAD final: pendiente de push.
+- Próxima prioridad: laterales DISJUNTAS frescas de la auditoría c.1227 (destino P1 olvido).
+
+
+- HEAD inicial: `7f9dc43` (mi docsclose c.1229 ya empujado). Sin avance remoto; DISJUNTO por convención.
+- PRE (sonda persistida `tools/probe/EnrollGymProbe.kt` — efímera estaba medida): T1 «apuntarme al gimnasio en enero» → 0.22 NULL (olvido silencioso P1); DISJUNTO «inscribirse…» guard.
+- Fix lockstep DOS puntos (lección c.616; CERO keywords nuevas, gate c.751 — pisos EXERCISE heredados): (1) piso acotado enroll en `EXERCISE_FLOORS` (guard `(?<!no )` heredado); (2) plantilla `matchEnrollGym` en `extractTitle` (grafía preservada c.653).
+- TDD RED exacto: sonda medida en program-tests compuestos (1 fallo legal T1); GREEN suite UNIÓN **OK (10112 — aritmética exacta)**; smokes dominio **25/25**. Automa-ción de títulos correcta («Apuntarme/al gimnasio»).
+- POST sonda: T1–T6 HIT EXERCISE 0.45; G1–G5 guards NULL (pretérito «me apunté…», negación «no me apuntaré…», dominio público «inscribirse…», verbo solo «háblame del gimnasio»); R1–R6 regresiones byte-idénticas. Determinista (regex), cero random, cero IA fingida, cero UI.
+- Archivos: `ContextIntentEngine.kt` (1 piso + 1 plantilla + comentarios), `tools/probe/EnrollGymProbe.kt` (persistida, PRE colapsada a medida efímera), docs.
+- Estado: VERIFIED (JVM). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room.
+- Próxima: lateral DISJUNTA fresca (gate c.751; enroll dominio-documentado DISJUNTO del hermano c.1228).
+
 ## 2026-08-26 — c.1229 CERRADO «sujeto nominal + weekday-final» (lateral P1 ABIERTA del PARSER c.1041; DISJUNTA del hermano c.1228 context «jugar (al|a la) <deporte>»)
 
 - HEAD inicial: `8f8970f` (marcador hermano c.1228 EN CURSO ya en remoto; mi marcador c.1229 `e2ffbae` empujado limpio; cero divergencia).
