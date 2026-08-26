@@ -18,7 +18,7 @@ import org.junit.Test
  * guard reutiliza el MISMO prefijo narrativo ([narrativePreteritePrefix]).
  * La rama «ya» ya estaba cubierta por [ordinalHoraPreteriteNarrativeLonePrefix]
  * (pin byte-idéntico G5); «ahora/ahorita» quedaban fuera. Verbos pretérito
- * FUERA de la lista cerrada c.950 («contó», «avisó») siguen sin disparar en
+ * FUERA de la lista cerrada c.950 («avisó») siguen sin disparar en
  * TODAS las superficies — lateral ABIERTA documentada en RUN_LOG c.1048.
  * Guards conservadores (ancla real, futuro con «ahora», cita «quedar con»)
  * siguen byte-idénticos.

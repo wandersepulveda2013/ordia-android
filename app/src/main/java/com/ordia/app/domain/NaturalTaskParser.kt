@@ -8711,6 +8711,7 @@ object NaturalTaskParser {
             "bajó|bajé|bajaste|bajaron|ganó|gané|ganaste|ganaron|" +
             "perdió|perdí|perdiste|perdieron|llovió|nevó|tembló|" +
             "nació|nacieron|murió|murieron|dijo|dije|dijiste|dijeron|" +
+            "contó|conté|contaste|contaron|" +
             "hizo|hice|hiciste|hicieron|trajo|traje|trajiste|trajeron|" +
             "puso|puse|pusiste|pusieron|vio|vi|viste|vieron|" +
             "dio|di|diste|dieron|supo|supe|supiste|supieron|" +

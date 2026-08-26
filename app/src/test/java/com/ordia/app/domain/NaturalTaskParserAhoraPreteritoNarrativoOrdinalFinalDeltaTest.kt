@@ -19,7 +19,7 @@ import org.junit.Test
  * narrativo compartido [narrativePreteritePrefix]. La vertiente «ya» ya
  * estaba cubierta por la cabeza c.1016/c.1023 (regresiones R1/R2). Guards
  * conservadores (sin marca narrativa, presente con «ya/ahora») siguen
- * byte-idénticos. Pin FUERA: verbo «contó» fuera de la lista cerrada
+ * byte-idénticos. Pin FUERA: verbo fuera de la lista cerrada («avisó»;
  * c.950 sigue anclando (lateral ABIERTA de cobertura, UNA por ciclo).
  *
  * COLISIÓN CONVERGENTE TOTAL con SU c.1048 `4f2fd28` (misma lateral,
@@ -28,7 +28,7 @@ import org.junit.Test
  * los suyos 11); SU = superconjunto → delta de producción propio
  * descartado NO-destructivo. Este test se conserva por cobertura
  * DISJUNTA: variante CON ARTÍCULO «a la primera hora», pin FUERA
- * byte-idéntico «ya me lo contó a primera hora», guards de presente
+ * re-pin c.1210 del pin «ya me lo contó» — familia «contar» CERRADA).
  * «ahora llamo…»/«ya te aviso…» y regresión doble clítico.
  */
 class NaturalTaskParserAhoraPreteritoNarrativoOrdinalFinalDeltaTest {
@@ -102,7 +102,7 @@ class NaturalTaskParserAhoraPreteritoNarrativoOrdinalFinalDeltaTest {
     }
 
     @Test
-    fun `pin FUERA verbo contado fuera de la lista cerrada sigue anclando`() {
-        assertAnchoredToday("ya me lo contó a primera hora", 9, "me lo contó")
+    fun `pin FUERA verbo avisado fuera de la lista cerrada sigue anclando`() {
+        assertAnchoredToday("ya me lo avisó a primera hora", 9, "me lo avisó")
     }
 }
