@@ -3437,6 +3437,11 @@ object ContextIntentEngine {
             // monosemántico sobre objeto EXIGIDO acotado; plural
             // (?:e)?s? cubre violines/guitarras; CERO keyword).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )practicar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(?:piano|guitarra|viol[ií]n|viola|violoncelo|violonchelo|flauta|clarinete|saxof[oó]n|trompeta|acorde[oó]n|ukelele|tromb[oó]n)(?:e)?s?\b""").containsMatchIn(lower)
+            // c.1251: piso acotado «afinar <instrumento>» (lateral (b)
+            // FUERTE de MI auditoría c.1248 clase XXXV música; gate c.751
+            // — «afinar» monosemántico de afinación, objeto EXIGIDO acotado
+            // al conjunto cerrado; CERO keyword nueva, floor-only).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )afinar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:pianos?|guitarras?|viol[ií]n(?:es)?|violas?|violonchelos?|flautas?|clarinetes?|saxof[oó]n(?:es)?|trompetas?|acorde[oó]n(?:es)?|ukeleles?)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5951,6 +5956,11 @@ object ContextIntentEngine {
                 // con el piso; grafía preservada c.653)
                 val matchPracticarInstrumento = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(practicar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(?:piano|guitarra|viol[ií]n|viola|violoncelo|violonchelo|flauta|clarinete|saxof[oó]n|trompeta|acorde[oó]n|ukelele|tromb[oó]n)(?:e)?s?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPracticarInstrumento != null) return "Practicar ${matchPracticarInstrumento.groupValues[2]}"
+                // c.1251: plantilla «afinar <instrumento>» (ancla/guard
+                // idénticos al piso; lección c.616; grafía preservada
+                // c.653).
+                val matchAfinarInstrumento = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(afinar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:pianos?|guitarras?|viol[ií]n(?:es)?|violas?|violonchelos?|flautas?|clarinetes?|saxof[oó]n(?:es)?|trompetas?|acorde[oó]n(?:es)?|ukeleles?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchAfinarInstrumento != null) return "Afinar ${matchAfinarInstrumento.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el
