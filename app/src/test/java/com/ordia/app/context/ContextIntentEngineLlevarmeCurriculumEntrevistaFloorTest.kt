@@ -25,7 +25,7 @@ import org.junit.Test
  * `matchInterviewRun` de [ContextIntentEngine.extractTitle] (verbo
  * preservado con su enclítico, doctrina c.653: «Llevarme el
  * currículum a la entrevista»). Objeto y destino EXIGIDOS se
- * mantienen: «llevarme el informe» / «llevarme a la entrevista»
+ * mantienen: «llevarme a la entrevista» destino vacío
  * (transporte de uno mismo) siguen NULL pineados.
  */
 class ContextIntentEngineLlevarmeCurriculumEntrevistaFloorTest {
@@ -101,7 +101,10 @@ class ContextIntentEngineLlevarmeCurriculumEntrevistaFloorTest {
     }
 
     @Test
-    fun `guard objeto informe pineado fuera`() {
-        assertNull(analyze("llevarme el informe a la entrevista mañana"))
+    fun `captura objeto informe re-pineado c1191`() {
+        val intent = analyze("llevarme el informe a la entrevista mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevarme el informe a la entrevista", intent.title)
     }
 }

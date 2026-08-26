@@ -148,8 +148,11 @@ class ContextIntentEngineLlevarCurriculumEntrevistaFloorTest {
     }
 
     @Test
-    fun `pin otro objeto fuera`() {
-        assertNull(analyze("llevar el informe a la entrevista mañana"))
+    fun `captura objeto informe re-pineado c1191`() {
+        val intent = analyze("llevar el informe a la entrevista mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar el informe a la entrevista", intent.title)
     }
 
     @Test

@@ -19657,3 +19657,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Colisiones: hermano puso c.1186/c.1187/c.1192/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
 - HEAD final: 319257b4 (push tras tercer fetch; la última rebase fue clean, sin re-medir suite full [smoke 25/25 re-verificado])
 - Lección: ante doble divergencia, pipeline fetch→rebase→test→push con union-merge assistido por python funciona
+>>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))
+
+---
+
+## 🧭 ciclo c.1191 (este lado, 2026-08-25) — objeto «el informe|portfolio» del piso entrevista captura
+
+- HEAD INICIAL al final del run anterior: `a97daac`. HEAD FINAL: el commit de este ciclo se añade abajo tras el push.
+- PRE sonda efímera `/tmp/probe1191pre.kt`: T1-T4 NULL, G1-G3 NULL, R1-R3 HIT («currículum»/«CV»).
+- RED test-class `ContextIntentEngineLlevarInformeEntrevistaFloorTest.kt` (8 tests): exacto 4 fallos (capturas), guards pasan, 9707 total.
+- Fix lockstep (lección c.616): `(?:curr[ií]culum|cv|informe|portfolio)` en `ERRAND_INTERVIEW_RUN_FLOOR` (línea 766) + plantilla matchInterviewRun (línea 6058); grafía preservada (c.653).
+- Re-pin legítimo (c.1168/c.1185): 3 guards «informe» NULL → captura (c.1174, c.1190, clase reflexiva c.1185).
+- Persistido `tools/probe/LlevarInformeEntrevistaProbe.kt` POST: T1-T4 HIT (T2 dueAt=true), G1-G3 NULL, R1-R3 HIT.
+- Verde: suite OK (9707) UNIÓN | smoke dominio 25/25 | automation 9/9 | gradle/lint/assemble NO VERIFICADO (sin SDK).
+- Commit: (se actualiza tras push).
+- Próxima prioridad: lateral (c) «mi entrevista» destino posesivo (si no la toma el hermano), o nueva clase probe (P0 ahorita none).
+>>>>>>> 7c74411 (feat(context): piso entrevista captura «el informe|portfolio» (c.1191) — lockstep piso+plantilla, re-pin legítimo 3 pins invertidos a captura; POST probe persistido; RED 4 → GREEN 9707)

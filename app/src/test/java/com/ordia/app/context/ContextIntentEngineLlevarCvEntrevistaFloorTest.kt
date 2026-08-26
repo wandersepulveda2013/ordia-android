@@ -24,7 +24,7 @@ import org.junit.Test
  * c.751 satisfecho: «llevar» ya es keyword histórica).
  *
  * Guards NULL: negación, sin-destino, prefijo largo «CVD», duda,
- * objeto fuera pineado («informe»). Regresión: «currículum» intacto.
+ * objeto «informe» re-pineado a captura por c.1191. Regresión: «currículum» intacto.
  */
 class ContextIntentEngineLlevarCvEntrevistaFloorTest {
 
@@ -88,8 +88,11 @@ class ContextIntentEngineLlevarCvEntrevistaFloorTest {
     }
 
     @Test
-    fun `guard objeto informe pineado fuera`() {
-        assertNull(analyze("llevar el informe a la entrevista mañana"))
+    fun `captura objeto informe re-pineado c1191`() {
+        val intent = analyze("llevar el informe a la entrevista mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar el informe a la entrevista", intent.title)
     }
 
     @Test
