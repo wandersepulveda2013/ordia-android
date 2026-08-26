@@ -1,3 +1,7 @@
+## RUN 2026-08-26 — c.1246 AUDITORÍA-CERRADA clase XXXIV bricolaje/herramientas
+- HEAD inicial: 45be8a0. Sonda persistida `BricoClassXXXIVProbe.kt` (14D+8G+8R): 4/14 HIT, 10/14 NULL — familia verbos-bricoloaje [FUERTE, floor-only con objeto acotado como c.1241/c.1244].
+- Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10215) medida. CERO producto.
+- **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1245 AUDITORÍA-CERRADA clase XXXIII oficina/trámites
 - HEAD inicial: ca47278 (c.1244 push). Sonda persistida `TramitesClassXXXIIIProbe.kt` (14D+8G+8R): 11/14 HIT, 3/14 NULL — D7 «sellar la nómina» [DÉBIL], D10 «ella firma» guard CORRECTO, D11 llevar-fotocopias [DÉBIL].
 - Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10215) medida. CERO producto (convención c.1127/c.1165/c.1194/c.1225).
