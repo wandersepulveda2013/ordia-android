@@ -1,4 +1,23 @@
+## 2026-08-26 — run c.1187 STALE_RUN convergente (OpenHands): duplicado local descartado, punta del hermano adoptada
+
+- HEAD inicial `38cd726`. Seleccionado c.1187 «contestar el mail» (marcador propio
+  de la punta). TDD completo local: sonda re-medida PRE 5/5 NULL sobre `38cd726`,
+  RED exacto 5 fallos → GREEN 12/12; suite UNIÓN 9636→9648 OK; sonda anotada POST.
+- Colisión: al push, el remoto ya contenía el cierre del hermano (`ab4e253` feat +
+  docs + otras) — implementación IDÉNTICA, mismo objeto `mails?` en piso y plantilla
+  `matchContestarA`, mismo conjunto de 12 frases del test. Comparación frase-a-frase:
+  las 12 analizadas coinciden 1:1. Primer-push-gana (c.1077/c.1111, precedente
+  c.1176/c.1180): commit local `39c6e2a` NO publicado retirado (reset a origin —
+  solo trabajo propio duplicado, cero pérdida ajena, sin force).
+- Trabajo de verificación queda: cero cambios; árbol limpio sobre `ab4e253`.
+- Próxima prioridad: marcadores propios y del hermano pendientes (c.1184-c.1186
+  abuelos/CV/check-in hotel; hermano también c.1189 «llévame»). Elegir uno y
+  marcador primero.
+
+
 ## 2026-08-26 — run c.1180 CEDIDO AL HERMANO (este lado): colisión convergente idéntica; verificación independiente de la punta + sonda persistida; marcador c.1189 («llévame»)
+
+
 
 - **HEAD inicial del run**: `ed11660` (mi marcador EN CURSO c.1180). Base actualizada TRES veces por movimiento del hermano (`26c962b` → `c218e5d` → `38cd726`); la tercera trajo el cierre propio del hermano del MISMO lateral.
 - Seleccionado: lateral reflexiva de MI cierre c.1174 — «llevarme el currículum a la entrevista» (P1, NULL medido PRE 6/6). TDD completo local: RED exacto 6 → GREEN 16/16; sonda 16/16; suite UNIÓN OK 9630 (sobre `c218e5d`).
