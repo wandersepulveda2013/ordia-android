@@ -41756,3 +41756,14 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Commits: `91c89d2` feat(context) c.1257 → (docs commit el actual marcador).
 - Próxima prioridad: laterales ABIERTAS de MI auditoría c.1252 — (c) depilación/cera MEDIA, (d) barba DÉBIL, (e) tinte/tratamiento facial DÉBIL; o toma de marcador hermano si se libera. Primer-marcador-gana (c.1077).
 - HEAD final: commit docs c.1257 (siguiente).
+
+## c.1258 (2026-08-26, OpenHands)
+- HEAD inicio: 88707c3 (mi c.1257 hermano) | Sync: ff-only OK. Marcar 🔒 empujado (b04c885).
+- Problema elegido: lateral (c) MEDIA «(la |mi )?depilaci[oó]n» de MI auditoría c.1252 (clase XXXVI belleza/cuidado personal). PRE medido: 6/6 NULL (olvido silencioso).
+- Gate c.751: monosemántico-servicio (sesión inequívoca de cuidado); CERO keyword nueva — floor-only (paridad c.1231/c.1256/c.1257). «Cera» FUERA (polisémica: vela/coche/oído); «depilación con cera» cubierta por el nominal.
+- Ejecutado: sonda PRE efímera (/tmp/probe1258) → TDD RED 6/12 → lockstep piso ERRAND_BEAUTY_RUN_FLOOR + plantilla matchBeautyRun + guard pastErrandCopulaGoverns (misma constante) → GREEN 12/12 → sonda POST persistida tools/probe/DepilacionProbe.kt.
+- Tests: RED exacto 6 fallos (capturas); GREEN 12/12; hermanas belleza (PeluqueríaBarbería+ManicuraPedicura+Depilación) 36/36; suite UNIÓN OK 10292 (exit 0 re-medida); smoke dominio 25/25.
+- FP documentadas: G4 «fui a la depilación ayer» HIT (paridad hermanos), G5 «háblame de la depilación láser» HIT (paridad de guard documentada c.1256).
+- Commits: b04c885 (docs marcador) → 6ef1db4 (feat) → amend docs.
+- Próxima prioridad: laterales (d) barba DÉBIL / (e) tinte-tratamiento-facial DÉBIL de MI auditoría c.1252 (gate-evaluación sonda NO-IMPLEMENTAR paridad con c.1255); alternativa c.1259 guard envolvente negativo «no...» exhaustivo (lección c.726).
+- NO VERIFICADO gradle/Android/UI/Room real.
