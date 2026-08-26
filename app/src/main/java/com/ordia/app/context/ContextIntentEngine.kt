@@ -3344,6 +3344,15 @@ object ContextIntentEngine {
             // 0.47, no TASK (medido PRE/POST en la sonda). Kind TASK
             // (convergente con «escanear/fotocopiar el DNI»).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reescanear\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b""").containsMatchIn(lower)
+            // c.1238: piso acotado floor-only «sincronizar (los
+            // )archivos/fotos/informes/documentos/drive» — floor-only
+            // SIN keyword nueva («sincronizar» monosemántico, gate
+            // c.751, precedente c.752 «votar»; hermandad c.1237).
+            // Objeto EXIGIDO acotado (medido NULL en sonda de gate;
+            // «sincroniza con tu pareja» queda NULL por ancla). Kind
+            // TASK (convergente con envolvente «recuérdame sincronizar
+            // fotos», TASK 0.45).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )sincronizar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:archivos?|fotos?|informes?|documentos?|drive)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5781,6 +5790,16 @@ object ContextIntentEngine {
                 // (doctrina c.653).
                 val matchReescanearDoc = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reescanear)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:dni|contratos?|notas?|informes?|documentos?|c[óo]digo\s+qr)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReescanearDoc != null) return "Reescanear ${matchReescanearDoc.groupValues[2]}"
+                // c.1238: plantilla hermana del piso floor-only
+                // «sincronizar <objeto acotado>» (ancla/guard idénticos
+                // al piso; lección c.616: el match arranca en el verbo,
+                // así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]). Objeto
+                // EXIGIDO acotado: archivos?/fotos?/informes?/
+                // documentos?/drive. La grafía del usuario se preserva
+                // (doctrina c.653).
+                val matchSincronizar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(sincronizar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:archivos?|fotos?|informes?|documentos?|drive)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchSincronizar != null) return "Sincronizar ${matchSincronizar.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

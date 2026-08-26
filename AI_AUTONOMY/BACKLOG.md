@@ -1367,3 +1367,6 @@ Implementación (lockstep 4 puntos): ampliada la alternancia (dni|contratos?|not
 
 Laterales restantes de MI auditoría c.1236 (UNA por ciclo, anti-overreach): (b) «conectar el wifi» DÉBIL; (c) «apagar el ordenador» DÉBIL; (d) «encender la tablet» DÉBIL; (e) «sincronizar el drive» DÉBIL.
 
+### ✅ FIXED VERIFIED — c.1238 (este lado, OpenHands)
+Lateral (e) de MI auditoría c.1236: gate previo de las 4 DÉBILES restantes ((b) conectar el wifi, (c) apagar el ordenador, (d) encender la tablet, (e) sincronizar archivos/fotos/documentos/drive) medidas en sonda `SincronizarLateralesProbe.kt`. Implementado (e) como floor-only SIN keyword nueva («sincronizar» monosemántico; gate c.751, precedente c.752). Objeto acotado (archivos?/fotos?/informes?/documentos?/drive) + plantilla de título hermana. Sonda persistida `SincronizarFloorProbe.kt`. Suite **OK (10173)**; smokes 25+9.
+
