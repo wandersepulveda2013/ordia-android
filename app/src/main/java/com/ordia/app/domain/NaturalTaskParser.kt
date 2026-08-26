@@ -8847,6 +8847,20 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.1229 F2 (hueco medible complemento del hermano): «quedar con» con
+     * SUJETO nominal antes de los clíticos («mis padres quedaron con Ana…»,
+     * «tu hermana quedó con mis primos…», «mi tía quedó con el dentista…»).
+     * El candado c.1023 de clíticos ([ordinalHoraQuedarConArrangement]) sólo
+     * admite clíticos; con sujeto nominal inequívoco la CITA real se suprimía
+     * en silencio (due→null sobre la ruta [narrativeSubjectPrefixHead]).
+     * MISMAS formas conservadoras: determinante opcional + UNA palabra del
+     * sujeto + hasta 2 clíticos + pretérito de «quedar» pegado a «con».
+     */
+    private val weekdayNominalSubjectQuedarCon = Regex(
+        """(?i)^\s*(?:(?:el|la|los|las|mi|tu|su|mis|tus|sus|un|una|unos|unas)\s+)?[\p{L}]+\s+(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}qued(?:é|ó|aste|aron)(?=\s+con(?:\s|$))"""
+    )
+
+    /**
      * c.954 admitida entre el weekday y el
      * predicado en pretérito de una narrativa c.950 («el lunes en la mañana
      * llegó el paquete», «el martes por la tarde llegó la noticia»).
@@ -8931,6 +8945,7 @@ object NaturalTaskParser {
             val rest = (prefix.substring(head.range.last + 1) + " " + suffix).trimStart()
             val chain = head.value.trim() + " " + rest
             if (ordinalHoraQuedarConArrangement.containsMatchIn(chain)) return false
+            if (weekdayNominalSubjectQuedarCon.containsMatchIn(chain)) return false
             if (ordinalHoraEmbeddedCommandToken.containsMatchIn(rest)) return false
             return true
         }

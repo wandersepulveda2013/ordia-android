@@ -41488,7 +41488,6 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: ContextIntentEngine (+EXERCISE_MATCH_SPORT_FLOOR +matchPartido), test nuevo 11 pins, sonda persistida, BACKLOG (c.1231 FIXED + laterales restantes d/e/f/g), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
 - **Commits**: d0419f7 (implementación completa c.1231).
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL; (g) «clase de yoga mañana» DÉBIL (con-keyword-bajo-umbral). Nunca force, nunca main.
-<<<<<<< HEAD
 ## 2026-08-26 — STALE_RUN (este lado, OpenHands)
 
 - **HEAD local inicial**: `8f8970f` (el marcador EN CURSO c.1228 ya estaba tomado por otra ejecución paralela).
@@ -41496,10 +41495,22 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Acción**: `git pull --ff-only` → remoto `5519dfc`; duplicados descartados.
 - **Verificación**: `bash tools/run_domain_tests.sh` → **OK (10140 tests)**, 0 failures (re-verificado en este run).
 - **Estado**: STALE_RUN (sin cambios destructivos). **Próxima prioridad sugerida**: laterales ABIERTAS restantes de MI auditoría c.1227 — (c) «pilates» / (d) «bici» / (e) «entrenamiento de fútbol» / (f) «apuntarme al gimnasio» (familia enroll) — o auditoría clase XXXI si el hermano las toma. Nunca force, nunca main.
-=======
 - c.1232 CERRADO (lateral (d) «ir a pilates» MEDIA): keyword-OBJETO
   mono «pilates» (gate c.751), piso acotado (ir/empezar/hacer), plantilla
   título; guard (?<!no ). PRE sonda = NULL en T1/T2/T4; POST T1/T2/T4 HIT;
   guardas NULL; suite 10148/25. COMMITTED. Próxima: (e) «gim~gym» MEDIA
   o (g) «clase de <ejercicio>» MEDIA/MEDIO.
->>>>>>> 3c110e0 (feat(context): lateral (d) «ir a pilates» (c.1232) — lockstep piso+keyword+título, guards NULL)
+
+## 2026-08-26 — c.1229 (bis) — Complemento convergente del PARSER [OpenHands]
+
+- **HEAD inicial**: 4b2d976 (docs-close del hermano de c.1229; mi base anterior e2ffbae/18bcdbc STALE tras re-fetch pre-push).
+- **Problema**: segunda cara del ticket c.1041 — candado conservador c.1023 ([ordinalHoraQuedarConArrangement]) sólo admite CLÍTICOS pegados a «quedar», por lo que con SUJETO NOMINAL inequívoco («mis padres quedaron con Ana el lunes») la CITA real se suprimía en silencio (ancla weekday FALSA eliminada PERO también la cita — due→null). P1 de captura: el plan social quedado-con no llegaba a la bandeja fechada.
+- **Colisión convergente**: mi implementación plena del gap hermano (`18bcdbc`, 24 tests, regex `weekdayNominalSubjectPreteriteHead`) resultó DUPLICADA del cierre del hermano (equivalente funcional, primer-marcador-gana, precedente c.1211 STALE_RUN CONVERGENTE/c.967/c.969): descarte NO-destructivo vía stash−u → `git checkout -- .` sobre `origin` 4b2d976. Conservado: complemento DISJUNTO (nueva regex) + sonda persistida propia.
+- **Fix (1 punto, re-uso sin duplicación)** — en `weekdayOccurrenceIsPreteriteNarrative`, fallback NUEVO en el ensamblado del head: tras el guard c.1023 de clíticos, la nueva cabeza nominal `weekdayNominalSubjectQuedarCon` (determinante opcional cerrado + UNA palabra de sujeto `\p{L}` + 1–2 clíticos opcionales + pretérito de «quedar» `qued(?:é|ó|aste|aron|asteis|aron)` pegado a «con»). Narrativa ordinaria NO afectada (el head vocab del hermano sigue primero; la nueva cabeza sólo habilita «quedar con» con sujeto nominal).
+- **Sonda persistida** `tools/probe/QuedarNominalSubjectProbe.kt` (9 checks, now=domingo 2026-08-23 12:00 America/Santo_Domingo): PRE — RED EXACTO 4 fallos (C1/C2/C3 capturas nominales + R2 parte-del-día, todas due→null con título intacto); G1 «el paquete llegó el lunes» ya correcto en PRE. POST — 9/9 OK: C1 «mis padres quedaron con Ana el lunes» → due=2026-08-24 09:00, título íntegro; C2 martes/C3 viernes anclan; G1–G2 narrativa intacta (due→null); G3 «quedé el lunes con Ana» y G4 «…a la una» anclan por la ruta de clíticos; R1 «quedé con Ana a primera hora» ancla por ordinal; R2 «…el lunes por la tarde» ancla.
+- **TDD estricto**: +7 tests en archivo canónico del hermano `NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest` (c.1229 F2 — 3 capturas nominales anclan, 2 guards narrativa re-pineadas, 2 regresiones ruta ordinal/parte-del-día).
+- **Tests**: suite UNIÓN dominio **OK (10147 = 10140 remoto re-medida + 7 míos — aritmética exacta re-medida tras unión, lección c.1014)**, 0 failures; smoke dominio 25/25. **NO VERIFICADO** gradle/lint/Android/UI/Room DAOs reales (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt` (nueva regex `weekdayNominalSubjectQuedarCon` + fallback en el guard), test canónico +7 pins, sonda persistida nueva, BACKLOG (resolución c.1229 corregida a CONVERGENTE + complemento CERRADO), CURRENT_STATE (línea c.1229 corregida), RUN_LOG (este append).
+- **Commits**: hash post-commit (ver `git log -1`).
+- **Estado**: FIXED VERIFIED (JVM). **Próxima prioridad**: laterales DISJUNTAS con marcador propio; verificar EN CURSO del hermano (su c.1230 enroll-gimnasio — NO TOCAR). Nunca force, nunca main.
+
