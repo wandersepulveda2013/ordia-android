@@ -39377,3 +39377,18 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: (a),(b),(c) ABIERTAS → c.1198+ (UNA por ciclo). Audit CERRADA (convención c.822/c.1173).
 - Smoke dominio 25/25 re-medido; suite UNIÓN 9765 OK medida PRE-audit.
 - Próxima prioridad: (a) «hacer la transferencia» (del hermano o este lado) — piso «hacer X» acotado.
+
+
+---
+
+## 🔄 Run — 2026-08-26 (ciclo c.1193)
+
+- HEAD inicial: `81038f4`; re-base post-rebase caso-conflict con c.1190 CV + c.1191 informe|portfolio/c.1188/c.1192 genitivo «mañana» del hermano
+- Ciclo: c.1193 — lateral observada en MI c.1179 (sonda `tools/probe/TwentiethClassHouseholdProbe.kt`: «después de comer/cenar/la comida / esta semana/finde/mes» dueAt=false y residuo en título; DISJUNTO del del hermano)
+- Problema: stripTemperatureTail dejaba restos genitivados («después de la comida / del almuerzo»); qualified («esta semana / este finde / este mes») y bare («después de comer/cenar/desayunar/almorzar») conservados por canario c.1018
+- Fix: regex `ambiguousTail` sólo-genitivo en `stripTemperatureTail` (UN punto; CERO keywords; gate c.751)
+- Test NEW: `ContextIntentEngineAmbiguousTailTest.kt` (TDD 4 tests; RED→GREEN)
+- Colisiones: ninguna — trabajo disjunto por área
+- Verificación: suite UNIÓN OK (9730), smoke 25/25
+- Head final: pending
+- Lección: alcance genitivo-only después de rollback over-strip; TDD-first documenta decisiones productivas
