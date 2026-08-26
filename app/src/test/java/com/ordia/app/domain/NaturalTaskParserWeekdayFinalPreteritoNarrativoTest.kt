@@ -123,10 +123,12 @@ class NaturalTaskParserWeekdayFinalPreteritoNarrativoTest {
 
     // ---- Pines FUERA byte-idénticos (laterales registradas) ----
 
-    @Test fun elPaqueteLlegoElLunes_prefijoConSujetoLateralFueraPin() =
-        // Prefijo con SUJETO nominal («el paquete llegó»): la cabeza compartida
-        // no casa («el» no es clítico) → sigue ancla. Lateral FUERA registrada.
-        assertAnchors("el paquete llegó el lunes", monday, "el paquete llegó")
+    @Test fun elPaqueteLlegoElLunes_prefijoConSujetoResueltoC1229() =
+        // Re-pin c.1229 (precedente pin→resuelto c.1033/c.1035): el prefijo con
+        // SUJETO nominal («el paquete llegó») ya se resuelve con la cabeza
+        // [NaturalTaskParser.narrativeSubjectPrefixHead]; suite UNIÓN en
+        // [NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest].
+        assertNarrativeIntact("el paquete llegó el lunes")
 
     @Test fun saliAComprarElLunes_infinitivoEmbebidoLateralFueraPin() =
         // Infinitivo en el complemento (candado conservador c.1023): sigue

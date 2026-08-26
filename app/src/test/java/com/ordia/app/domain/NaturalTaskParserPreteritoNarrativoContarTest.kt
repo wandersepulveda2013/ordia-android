@@ -47,12 +47,15 @@ class NaturalTaskParserPreteritoNarrativoContarTest {
     }
 
     @Test
-    fun regresion_nominal_pin_c1041_sigue_anclando() {
+    fun regresion_nominal_pin_c1041_resuelto_c1229() {
+        // Re-pin c.1229 (precedente pin→resuelto c.1033/c.1035): el prefijo con
+        // SUJETO nominal se resolvió con [NaturalTaskParser.narrativeSubjectPrefixHead];
+        // suite UNIÓN en [NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest].
         val zone = zoneId
         val now = nowMillis(zone)
         val r = NaturalTaskParser.parse("el paquete llegó el lunes", now, zone)
-        assertAnchors(r)
-        assertEquals("el paquete llegó", r.title)
+        assertNoAnchor(r)
+        assertEquals("el paquete llegó el lunes", r.title)
     }
 
     private fun assertNoAnchor(r: ParsedTaskInput) {

@@ -8805,6 +8805,22 @@ object NaturalTaskParser {
     )
 
     /**
+     * c.1229: cabeza del prefijo narrativo CON SUJETO NOMINAL («el paquete
+     * llegó», «la alarma sonó», «mi hermano vino») — arranque del predicado
+     * como [ordinalHoraPreteriteNarrativePrefixHead] pero admitiendo un sujeto
+     * de UNA palabra con determinante opcional (el/la/los/las/mi/tu/su/mis/
+     * tus/sus/un/una/unos/unas) antes de los clíticos. Lateral P1 ABIERTA
+     * registrada en c.1041 con pin byte-idéntico; re-pineada a resuelto en
+     * [NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest]. La sujeción
+     * acotada (una palabra, determinante cerrada) evita tragar cláusulas
+     * completas; los candados conservadores c.1023 se aplican al complemento
+     * como en la ruta hermana.
+     */
+    private val narrativeSubjectPrefixHead = Regex(
+        """(?i)^\s*(?:ya\s+)?(?:(?:el|la|los|las|mi|tu|su|mis|tus|sus|un|una|unos|unas)\s+)?[\p{L}]+\s+(?:(?:me|te|se|nos|os|lo|la|los|las|le|les)\s+){0,2}(?:$preteriteNarrativeVerbAlternation)(?=\s|$)"""
+    )
+
+    /**
      * c.1023 (H5): compromiso embebido dentro del complemento del prefijo —
      * cualquier infinitivo («avisé a Juan de llamar…», «quedé en llamar…») o
      * el subordinador «que» («me pidió que llamara…») bloquea el disparo:
@@ -8905,7 +8921,12 @@ object NaturalTaskParser {
         // un infinitivo/«que» en el resto bloquea el disparo
         // ([ordinalHoraEmbeddedCommandToken]; pin FUERA «salí a comprar…»).
         // Mismo conservadurismo c.950: ambiguas pretérito/presente no disparan.
+        // c.1229: fallback a [narrativeSubjectPrefixHead] — sujeto nominal de
+        // UNA palabra con determinante opcional antes de los clíticos
+        // («el paquete llegó», «la alarma sonó»; re-pineada en
+        // [NaturalTaskParserWeekdayFinalSubjectPrefixNarrativaTest]).
         val head = ordinalHoraPreteriteNarrativePrefixHead.find(prefix)
+            ?: narrativeSubjectPrefixHead.find(prefix)
         if (head != null) {
             val rest = (prefix.substring(head.range.last + 1) + " " + suffix).trimStart()
             val chain = head.value.trim() + " " + rest

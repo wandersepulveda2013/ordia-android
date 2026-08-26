@@ -1,3 +1,15 @@
+## 2026-08-26 — c.1229 CERRADO «sujeto nominal + weekday-final» (lateral P1 ABIERTA del PARSER c.1041; DISJUNTA del hermano c.1228 context «jugar (al|a la) <deporte>»)
+
+- HEAD inicial: `8f8970f` (marcador hermano c.1228 EN CURSO ya en remoto; mi marcador c.1229 `e2ffbae` empujado limpio; cero divergencia).
+- PRE (sonda persistida `tools/probe/SubjectPrefixWeekdayProbe.kt`): T1–T7 (7/7) targets ANCLANDO weekday falso + título mutilado (doble daño P1 medido); G8–G15 (8/8) guards anclando correcto; R16–R20 (5/5) regresiones estables.
+- TDD RED exacto: suite EXACTAMENTE 8 fallos de 10112 (7 capturas + 1 re-pin del hermano c.1041 renombrado).
+- Fix (1 punto, re-uso sin duplicación — lección c.1016): regex NUEVA `narrativeSubjectPrefixHead` (determinante opcional cerrada el|la|los|las|mi|tu|su|mis|tus|sus|un|una|unos|unas + una palabra + clíticos{0,2} + pretérito cerrado c.950) como fallback de la cabeza vocab en `weekdayOccurrenceIsPreteriteNarrative`; candados conservadores c.1023 intactos (quedar-con, infinitivo/«que»).
+- Re-pin LEGÍTIMO ×2 (precedente c.1033/c.1035): `elPaqueteLlegoElLunes_prefijoConSujetoResueltoC1229` (`NaturalTaskParserWeekdayFinalPreteritoNarrativoTest`) + `regresion_nominal_pin_c1041_resuelto_c1229` (`NaturalTaskParserPreteritoNarrativoContarTest`) — ambas resuelven a narrativa-intacta.
+- GREEN suite UNIÓN **OK (10112 = 10092 base + 20 míos — aritmética exacta)**; smokes dominio **25/25** + automation **9/9** re-medidos.
+- POST sonda: T1–T7 narrativa-intacta (due=null, título completo), G8–G15 ancla, R16–R20 byte-idénticos.
+- **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (JVM pura, sin SDK).
+- Próxima prioridad: laterales (b)–(g) del audit c.1227 están reclamadas por el hermano c.1228 — NO TOCAR; míos: buscar lateral nueva DISJUNTA (AUDITORÍA parser/backup/CLI o backlog) con marcador propio. Primer-marcador-gana (c.1077). Nunca force, nunca main.
+
 ## 2026-08-27 — c.1222 CERRADO «guardar la ropa» (lateral ABIERTA (e) de MI auditoría c.1209, clase VIGESIMOCTAVA ROPA/VESTIMENTA)
 
 - HEAD inicial: `0361607` (marcador EN CURSO propio ya empujado; cero divergencia en este ciclo).
