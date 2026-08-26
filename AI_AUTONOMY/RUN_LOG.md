@@ -19261,3 +19261,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca main.
 - Laterales ABIERTAS (BACKLOG/UNA por ciclo): futuro «haré la mudanza», subjuntivo «haga la mudanza», 3ª persona «él hace la mudanza».
 - HEAD final: este commit.
+
+---
+
+## 2026-08-25 — ciclo c.1172 (piso escolar: objeto posesivo singular «a mi/tu/su hija/o»)
+
+- HEAD inicial del run: `f7a59ec` (cierre c.1149). Run anterior dejó c.1172 marcada EN CURSO con PRE medido (sonda persistida `tools/probe/SchoolRunMiHijoProbe.kt`: 5/5 capturas NULL, guards 2/2 NULL, regresiones 6/6 HIT, pines NULL, envolvente TASK 0.49).
+- Problema: lateral P2 del piso escolar c.1170/c.773 — el hermano pinó P2 «llevar a mi hija a la fiesta del cole el viernes» NULL deliberado (anti-overreach) al cerrar c.1170. Causa raíz: el alternador del piso cubría los|las|mis|tus|sus pero NO el singular mi|tu|su, y el objeto era solo niñ[oa]s? (asimetría hermana del piso médico c.776 y del aeropuerto c.1158, que SÍ cubren parentesco singular).
+- Solución lockstep 2 puntos (lección c.616; CERO keywords nuevas, gate c.751): objeto de `ERRAND_SCHOOL_RUN_FLOOR` extendido al sub-patrón c.1158 ACOTADO a parentesco nuclear menor (mi|tu|su + niñ[oa]s?|hij[oa]s? — SIN padres/abuelos/mujer/marido) + MISMO objeto en la plantilla `matchSchoolRun` (grafía preservada c.653). «a la hija» sin posesivo casa vía la-alternador — deliberado, coherente con c.1158.
+- TDD estricto: test NUEVO `ContextIntentEngineLlevarMiHijoEscuelaFloorTest.kt` (17 tests: 6 capturas + 2 guards + 3 pines + 5 regresiones + 1 envolvente) — RED EXACTO 6 fallos (solo las capturas) → GREEN 17/17 (1 iteración).
+- POST sonda (motor real): 0 misses 17/17 — capturas ERRAND 0.45 títulos limpios + dueAt; guards 2/2 NULL; pines 3/3 NULL («fiesta de cumpleaños» pelada, «mi hijo al médico» [lateral c.776 ABIERTA], «mi mujer al colegio»); regresiones 6/6 HIT (incl. R6 aeropuerto c.1158); envolvente TASK 0.49.
+- Re-pin legítimo (doctrina c.1133/c.1141/c.1144): el pin del hermano «pin objeto mi hija sigue fuera» en `ContextIntentEngineLlevarNinosFiestaColeFloorTest` pasa a «repin c1172 objeto mi hija capturado» (ERRAND 0.45) — el fallo intermedio 1/9494 de la suite era EXACTAMENTE ese pin.
+- Integración NO-destructiva: commit código propio → `pull --rebase` limpio sobre +4 del hermano (cierre c.1170 docs, marcador c.1173 auditoría DECIMONOVENA, piso «felicitar» c.1167, cierre docs c.1167) — regiones disjuntas.
+- Suite UNIÓN FINAL `tools/run_domain_tests.sh` OK (9516 — medida post-rebase sobre la punta con c.1167 integrada); smokes dominio 25/25 y automation 9/9.
+- Commits: `9c703448` (fix+tests+sonda+re-pin, rebasado), docs este commit. HEAD final tras push: ver remoto.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO**: gradle/lint/assemble/UI/Room DAOs reales (sin Android SDK).
+- Próxima prioridad: lateral espejo ABIERTA piso médico c.776 con hij[oa]s? («llevar a mi hijo al médico», pin P3 medido NULL) — DISJUNTA si el hermano no la marca; si la marca, auditoría de clase NUEVA. Marcadores activos del hermano respetados: c.1171 «hago la mudanza», c.1173 auditoría DECIMONOVENA.
+- Nunca force, nunca main, cero pérdida de trabajo válido.
