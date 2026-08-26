@@ -30,7 +30,7 @@
   en título (familia conocida c.845/c.852/c.1079/c.1102/c.1165); «ahora» no
   ancla (consistente con clases anteriores).
 - **Tests**: suite UNIÓN OK (9565, medida sobre la misma base de código —
-  CERO cambios de producto en este ciclo), smoke dominio 25/25.
+  CERO cambios de producto en este ciclo), smoke dominio 25/25. POST-INTEGRACIÓN (el hermano cerró c.1174 «currículum» durante mi ventana; rebase limpio — regiones disjuntas): suite UNIÓN final re-medida OK (9585 = 9565 + 20 c.1174, aritmética exacta), smoke 25/25.
 - **Docs**: fila BACKLOG VIGÉSIMA (candidata (a) ABIERTA), CURRENT_STATE
   cerrado, sonda documentada con la medida exacta.
 - **Commits**: `e6f74681` (marcador), `14e6097a` (addendum c.1175, previo),
