@@ -1140,8 +1140,17 @@ object ContextIntentEngine {
     // ERRAND_BEAUTY_RUN_FLOOR (la clase cubre ya lugar+servicio de
     // belleza) y la guard [pastErrandCopulaGoverns] cubre los nuevos
     // nominales por la misma constante — lockstep íntegro.
+    // c.1258 (lateral (c) MEDIA de MI auditoría c.1252 — misma clase
+    // XXXVI): el nominal de servicio «depilaci[oó]n» era NULL (PRE
+    // medido sonda efímera /tmp/probe1258: 6/6 NULL). Gate c.751:
+    // monosemántico-servicio (sesión inequívoca de cuidado); CERO
+    // keyword — floor-only; «cera» FUERA (polisémica: vela/coche/oído
+    // — paridad «uñas»/«cejas» c.1257, sonda G2; «depilación con cera»
+    // queda cubierta por el nominal). La guard
+    // [pastErrandCopulaGoverns] cubre el nominal nuevo por la misma
+    // constante — lockstep íntegro (piso + plantilla matchBeautyRun).
     private val ERRAND_BEAUTY_RUN_FLOOR =
-        Regex("""\b(?<!no )(?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura)\b""")
+        Regex("""\b(?<!no )(?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura|depilaci[oó]n)\b""")
     // Piso analítica de sangre acotado al objeto (c.862, candidata 4/7 de
     // la sonda persistida `EighthClassAdminProbe.kt` c.857 — OCTAVA clase,
     // gestiones de adulto — salud cotidiana; sonda PRE
@@ -4620,8 +4629,8 @@ object ContextIntentEngine {
 
     /**
      * Detecta si el nominal ERRAND «(la |mi )?(peluquer[ií]a|barber[ií]a|
-     * manicura|pedicura)» (c.1256 + extensión c.1257 por la MISMA
-     * constante) está GOBERNADO por una copulativa en pretérito pospuesta
+     * manicura|pedicura|depilaci[oó]n)» (c.1256 + extensiones c.1257/c.1258
+     * por la MISMA constante) está GOBERNADO por una copulativa en pretérito pospuesta
      * con marcador de pasado inmediato (c.1256 anti-overreach — hermano
      * posicional de c.1235 EXERCISE, ver [PAST_ERRAND_COPULA_PATTERN]):
      * «la peluquería fue ayer». La cópula «(fue|era)
@@ -7089,15 +7098,17 @@ object ContextIntentEngine {
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchIrDestino != null) return capitalizeFirst(matchIrDestino.groupValues[1])
-                // "peluquería / la peluquería / mi barbería" → "Peluquería" /
-                // "La peluquería" / "Mi barbería" (c.1256, lockstep DOS puntos
-                // con [ERRAND_BEAUTY_RUN_FLOOR]): el match arranca en el
-                // nominal de lugar, así el acuse/prefijo temporal ("en la
-                // peluquería el viernes") no ensucia el título (lección
-                // c.616 — paridad matchClase c.1250); residuo temporal de
-                // cola depurado por [sanitizeTitle].
+                // "peluquería / la peluquería / mi barbería / manicura /
+                // pedicura / depilación" → "Peluquería" / "La peluquería" /
+                // "Mi barbería" / "La depilación" (c.1256 + c.1257 + c.1258,
+                // lockstep DOS puntos con [ERRAND_BEAUTY_RUN_FLOOR]): el
+                // match arranca en el nominal de lugar o servicio, así el
+                // acuse/prefijo temporal ("en la peluquería el viernes",
+                // "cita para la depilación el jueves") no ensucia el título
+                // (lección c.616 — paridad matchClase c.1250); residuo
+                // temporal de cola depurado por [sanitizeTitle].
                 val matchBeautyRun = Regex(
-                    """\b(?<!no )((?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura)\b.*)""",
+                    """\b(?<!no )((?:la\s+|mi\s+)?(?:peluquer[ií]a|barber[ií]a|manicura|pedicura|depilaci[oó]n)\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchBeautyRun != null) {
