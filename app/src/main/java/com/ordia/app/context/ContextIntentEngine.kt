@@ -3399,6 +3399,11 @@ object ContextIntentEngine {
             // monosemáticos → floor-only, CERO keywords nuevas;
             // objeto EXIGIDO acotado a electrónica; grafía c.653).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:apagar|encender)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:ordenador(?:es)?|computadoras?|port[áa]til(?:es)?|tablets?|routers?|m[óo]vil(?:es)?|celulares?|wifi|tele(?:visi[oó]n|visor)?|tv)\b""").containsMatchIn(lower)
+            // c.1242: piso acotado «conectar (el) wifi/bluetooth»
+            // (lateral (a-bis) de MI auditoría c.1240, clase XXXI;
+            // gate c.751 — «conectar» bivalente → objeto EXIGIDO
+            // acotado a red/conectividad; CERO keyword nueva).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )conectar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:wifi|bluetooth)\b""").containsMatchIn(lower)
             // c.865: piso acotado «reclamar la factura» — séptimo y
             // último gap medido NULL en c.857 por la sonda persistida
             // tools/probe/EighthClassAdminProbe.kt (octava clase:
@@ -5875,6 +5880,11 @@ object ContextIntentEngine {
                 // preservada c.653).
                 val matchApagarDispositivo = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apagar|encender)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:ordenador(?:es)?|computadoras?|port[áa]til(?:es)?|tablets?|routers?|m[óo]vil(?:es)?|celulares?|wifi|tele(?:visi[oó]n|visor)?|tv)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchApagarDispositivo != null) return "${matchApagarDispositivo.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchApagarDispositivo.groupValues[2]}"
+                // c.1242: plantilla «conectar (el) wifi/bluetooth»
+                // (ancla/guard idénticos al piso; lección c.616; grafía
+                // preservada c.653).
+                val matchConectarWifi = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(conectar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:wifi|bluetooth)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchConectarWifi != null) return "Conectar ${matchConectarWifi.groupValues[2]}"
                 // c.865: plantilla «reclamar la factura» (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en
                 // el verbo, así acuse/prefijo temporal se despojan; el

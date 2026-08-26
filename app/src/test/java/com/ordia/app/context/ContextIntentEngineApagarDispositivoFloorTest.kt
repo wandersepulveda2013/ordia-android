@@ -93,4 +93,29 @@ class ContextIntentEngineApagarDispositivoFloorTest {
         assertNotNull(r3)
         assertEquals(ContextIntentKind.TASK, r3!!.kind)
     }
+
+    @Test
+    fun `conectar wifi y bluetooth captura task c1242`() {
+        val r1 = analyze("conectar el wifi en casa")
+        assertNotNull(r1)
+        assertEquals(ContextIntentKind.TASK, r1!!.kind)
+        assertTrue(r1.title.startsWith("Conectar el wifi"))
+
+        val r2 = analyze("conectar el bluetooth")
+        assertNotNull(r2)
+        assertEquals(ContextIntentKind.TASK, r2!!.kind)
+        assertEquals("Conectar el bluetooth", r2.title)
+
+        val r3 = analyze("mañana conectar el wifi")
+        assertNotNull(r3)
+        assertEquals(ContextIntentKind.TASK, r3!!.kind)
+    }
+
+    @Test
+    fun `guards conectar NULL c1242`() {
+        assertNull(analyze("no conectar el wifi"))
+        assertNull(analyze("conectar a la gente"))
+        assertNull(analyze("el wifi conectado"))
+    }
+
 }

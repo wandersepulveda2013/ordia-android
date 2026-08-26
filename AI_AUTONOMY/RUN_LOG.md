@@ -1,3 +1,7 @@
+## RUN 2026-08-26 — c.1242 CERRADO «conectar (el) wifi|bluetooth» (lateral (a-bis) c.1240 XXXI)
+- HEAD inicial: push c.1241. Fix lockstep DOS puntos (c.616; gate c.751 floor-only, objeto bound).
+- TDD +2 tests → GREEN 9/9 clase; suite UNIÓN OK (10213); smoke 25/25. POST sonda D6 HIT TASK 0.45.
+- Determinista, cero IA fingida. **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1241 CERRADO «apagar/encender <dispositivo>» (lateral (a) de MI auditoría c.1240)
 - HEAD inicial: `6757652` (docs auditoría XXXI propia). HEAD final: pendiente commit feat.
 - Fix lockstep DOS puntos (oleación c.616; gate c.751 floor-only, CERO keywords): piso `(apagar|encender)` acotado objeto-electrónico + plantilla `matchApagarDispositivo`.
