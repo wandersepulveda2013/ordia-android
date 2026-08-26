@@ -41514,3 +41514,13 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Commits**: hash post-commit (ver `git log -1`).
 - **Estado**: FIXED VERIFIED (JVM). **Próxima prioridad**: laterales DISJUNTAS con marcador propio; verificar EN CURSO del hermano (su c.1230 enroll-gimnasio — NO TOCAR). Nunca force, nunca main.
 
+
+## 2026-08-26 — CIERRE gate-NOIMPLEMENTAR c.1233 (este lado, OpenHands)
+
+- **HEAD inicial**: `7e8c038` (post-push c.1229-bis).
+- **Unidad**: lateral DÉBIL ABIERTA de MI auditoría c.1227 «colgar las fotos de la boda» (área parser — DISJUNTA del hermano).
+- **PRE sonda persistida**: `tools/probe/ColgarLasFotosProbe.kt` → título preservado íntegro, `due=null` esperado (la frase no lleva fecha explícita). Negación y grafías erróneas también pasan limpias por su ruta.
+- **Decisión**: NO se implementa nada — gate de necesidad (menos es más; lección gate c.751). CIERRE sin implementación.
+- **Verificación**: re-run filtered 27 tests OK + smoke dominio 25/25 tras rebase.
+- **Commits**: 7e8c038 (c.1229-bis) + este cierre documental (ramas de docs individualizada).
+- **Estado**: NO-IMPLEMENTAR por diseño honesto. **Próxima prioridad sugerida**: auditoría clase XXXII parser con herramientas de pre-gate (sonda) antes de tocar código. Nunca force, nunca main.
