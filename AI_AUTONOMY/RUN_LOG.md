@@ -39428,3 +39428,13 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 
 
 - 2026-08-26 · AUDITORÍA c.1199 (clase XXIV hogar/limpieza) — 9/10 HIT heredado (HOUSEHOLD 0.45); gap débil «hacer la limpieza» NULL POR DISEÑO (pin no-re-auditar en BACKLOG); sonda efímera; CERO cambios producto.
+## 2026-08-26 — ciclo c.1198b — DELTA COLISIONADO (consolidación de pins; anti-duplicidad)
+
+- **HEAD inicial:** `a3b42b16` (post-merge del hermano; mi c.1198 original 893f9a0 quedó aplicado tras rebase pero resultó redundante).
+- **Problema:** el rebase del push rechazado reveló que el hermano cerró la MISMA lateral (a) «hacer la transferencia…» (c.1197) POR DISEÑO con pin canónico `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (10 tests) + cierre en producción de la rendija PLURAL del filtro (`ContextPrivacyFilter.kt`, recalibrado a plurales `transferencias?|depósitos?|depositos?|retiros?|saldos?|estados? de cuenta`). Mi pin duplicado (`ContextIntentEngineTransferPrivacyPinTest`, 14 tests) colisionó en propósito.
+- **Resolución anti-duplicidad (doctrina primer-push c.1077; anti-actividad-falsa):** mi pin ELIMINADO; los deltas no cubiertos se MERGEAN al pin del hermano: (i) 5 formas verbales adicionales NULL por privacidad (envolvente «recuérdame…», «tengo que…», pasado «ya hice…», subjuntivo «quizá haga…», negación «no voy a hacer…»); (ii) 5 pins vecinos byte-idénticos (pagar alquiler → PAYMENT 0.45; ingresar/retirar/depositar → ERRAND 0.45; cobrar nómina → TASK 0.45) — garantizan que re-tensar el filtro no rompa pisos hermanos. Pin consolidado: **19 tests**.
+- **Sonda persistida actualizada al contrato vigente** (`tools/probe/TransferPrivacyPinProbe.kt`): plural → NULL-BLOQUEADO (rendija cerrada del hermano), comentarios alineados.
+- **Colisión calculada:** mi caso «plural byte-idéntico» del pin original es absorbido por la recalibración plural del hermano (re-pin legítimo, precedente c.1188).
+- **Archivos:** `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (+9 tests), `ContextIntentEngineTransferPrivacyPinTest.kt` (eliminado), `tools/probe/TransferPrivacyPinProbe.kt` (contrato actualizado), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (dedup fila stale c.1197 ABIERTA + marcadores delta). CERO producto de este lado.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK). Nunca force, nunca main.
+---
