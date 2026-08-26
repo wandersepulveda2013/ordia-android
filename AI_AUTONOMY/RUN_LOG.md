@@ -1,4 +1,4 @@
-## 2026-08-26 — run c.1201 — «sacar el billete (de tren)» NULL→TASK 0.45 — FIXED VERIFIED (este lado)
+## 2026-08-26 — run c.1201→c.1202 (renumerado por colisión cycle-ID con SU c.1201 mensualidad) — «sacar el billete (de tren)» NULL→TASK 0.45 — FIXED VERIFIED (este lado)
 
 - HEAD inicial: 3fa210f (cierra auditoría c.1200 clase XXV viajes — candidata (a) ABIERTA p/ c.1201).
 - Seleccionado: candidata (a) «sacar el billete de tren mañana» (verbo-fuerte + objeto concreto; el olvido más caro de la clase viajes junto a salir-aeropuerto c.1150 y facturar-vuelo c.1140). Decisión de dominio: **TASK** (reserva/gestión provisoria; la doctrina ERRAND c.842/c.862 gobierna sólo el desplazamiento físico) — registrada en DECISIONS.md. Marcador propio DISJUNTO de hermanos (primer-marcador-gana c.1077).
@@ -39443,3 +39443,27 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 
 
 - 2026-08-26 · AUDITORÍA c.1199 (clase XXIV hogar/limpieza) — 9/10 HIT heredado (HOUSEHOLD 0.45); gap débil «hacer la limpieza» NULL POR DISEÑO (pin no-re-auditar en BACKLOG); sonda efímera; CERO cambios producto.
+## 2026-08-26 — ciclo c.1198b — DELTA COLISIONADO (consolidación de pins; anti-duplicidad)
+
+- **HEAD inicial:** `a3b42b16` (post-merge del hermano; mi c.1198 original 893f9a0 quedó aplicado tras rebase pero resultó redundante).
+- **Problema:** el rebase del push rechazado reveló que el hermano cerró la MISMA lateral (a) «hacer la transferencia…» (c.1197) POR DISEÑO con pin canónico `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (10 tests) + cierre en producción de la rendija PLURAL del filtro (`ContextPrivacyFilter.kt`, recalibrado a plurales `transferencias?|depósitos?|depositos?|retiros?|saldos?|estados? de cuenta`). Mi pin duplicado (`ContextIntentEngineTransferPrivacyPinTest`, 14 tests) colisionó en propósito.
+- **Resolución anti-duplicidad (doctrina primer-push c.1077; anti-actividad-falsa):** mi pin ELIMINADO; los deltas no cubiertos se MERGEAN al pin del hermano: (i) 5 formas verbales adicionales NULL por privacidad (envolvente «recuérdame…», «tengo que…», pasado «ya hice…», subjuntivo «quizá haga…», negación «no voy a hacer…»); (ii) 5 pins vecinos byte-idénticos (pagar alquiler → PAYMENT 0.45; ingresar/retirar/depositar → ERRAND 0.45; cobrar nómina → TASK 0.45) — garantizan que re-tensar el filtro no rompa pisos hermanos. Pin consolidado: **19 tests**.
+- **Sonda persistida actualizada al contrato vigente** (`tools/probe/TransferPrivacyPinProbe.kt`): plural → NULL-BLOQUEADO (rendija cerrada del hermano), comentarios alineados.
+- **Colisión calculada:** mi caso «plural byte-idéntico» del pin original es absorbido por la recalibración plural del hermano (re-pin legítimo, precedente c.1188).
+- **Archivos:** `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (+9 tests), `ContextIntentEngineTransferPrivacyPinTest.kt` (eliminado), `tools/probe/TransferPrivacyPinProbe.kt` (contrato actualizado), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (dedup fila stale c.1197 ABIERTA + marcadores delta). CERO producto de este lado.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK). Nunca force, nunca main.
+---
+
+## c.1201 — 2026-08-26 (este lado) — CIERRE finanzas unidad (c)
+
+- **Branch**: openhands/autonomous-ordia
+- **HEAD inicial**: 59c492f
+- **Problema**: unidad (c) ABIERTA de MI auditoría c.1197 (clase VIGESIMOTERCERA, finanzas domésticas): «adelantar la mensualidad (del coche/el lunes…)» era NULL silencioso (olvido < umbral).
+- **Prioridad**: P1 (captura determinista; evitar olvidos — pago anticipado de mensualidad).
+- **Causa raíz**: comando-de-usuario real — keyword-OBJETO «mensualidad» ya en PAYMENT (gate c.751 satisfecho, CERO keywords nuevas); sólo faltaba el infinitivo «adelantar» en el piso PAYMENT_VERBS (lockstep: piso + plantilla de título, lección c.616/c.652).
+- **Solución**: (1) PAYMENT_VERBS = «pagar|recargar|adelantar» (~l.69; alimenta PAYMENT_FLOOR, guard imperativeIsNegated compartido, bonus branch); (2) plantilla PAYMENT de extractTitle (~l.5663) ya conserva el verbo tras c.1198 (doctrina c.653) — se confirma para «adelantar». Marcador ABIERTA del hermano en RecargarTarjetaTest → CERRADA (doctrina primero-empuja-gana, lección c.616).
+- **Tests**: TDD estricto — ContextIntentEngineAdelantarMensualidadTest.kt 6 tests NUEVOS: RED exacto 3 fallos → GREEN 6/6. Pin adicional de consistencia envolvente (medido: «recuérdame + (pagar|recargar|adelantar)» → TASK byte-idéntico). Marcador del hermano re-pin legítimo (NULL → PAYMENT + título). Suite UNIÓN OK (9814 = 9808 + 6). Sonda persistida tools/probe/AdelantarMensualidadProbe.kt. Domain smoke 25/25.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Cambios**: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (PAYMENT_VERBS + lockstep); app/src/test/java/com/ordia/app/context/ContextIntentEngineAdelantarMensualidadTest.kt (nuevo, 6 tests); app/src/test/.../ContextIntentEngineRecargarTarjetaTest.kt (marcador ABIERTA→CERRADA); tools/probe/AdelantarMensualidadProbe.kt (nuevo); AI_AUTONOMY/*.
+- **Próxima prioridad**: (a) «sacar el billete de tren mañana» ABIERTA (auditoría c.1200, clase XXV viajes; verbo-fuerte + objeto concreto; precedente «sacar basura c.717» intacto).
+- **Estado**: FIXED+VERIFIED (JVM).

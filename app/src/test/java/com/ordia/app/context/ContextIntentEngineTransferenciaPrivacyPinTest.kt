@@ -86,4 +86,78 @@ class ContextIntentEngineTransferenciaPrivacyPinTest {
     fun `estados de cuenta plural NULL por privacidad`() {
         assertNull(analyze("estados de cuenta se descargan hoy"))
     }
+
+    // --- DELTA COLISIONADO c.1198 (este lado): formas verbales no cubiertas ---
+
+    @Test
+    fun `envolvente recuerdame NULL por privacidad`() {
+        assertNull(analyze("recuérdame hacer la transferencia al casero"))
+    }
+
+    @Test
+    fun `envolvente tengo que NULL por privacidad`() {
+        assertNull(analyze("tengo que hacer la transferencia del mes"))
+    }
+
+    @Test
+    fun `pasado ya hice NULL por privacidad`() {
+        assertNull(analyze("ya hice la transferencia ayer"))
+    }
+
+    @Test
+    fun `duda subjuntivo quiza haga NULL por privacidad`() {
+        assertNull(analyze("quizá haga la transferencia mañana"))
+    }
+
+    @Test
+    fun `negacion no voy a hacer NULL por privacidad`() {
+        assertNull(analyze("no voy a hacer la transferencia hoy"))
+    }
+
+    // --- DELTA COLISIONADO c.1198 (este lado): pisos vecinos intactos ---
+
+    @Test
+    fun `pagar el alquiler al casero sigue PAYMENT`() {
+        val i = analyze("pagar el alquiler al casero el lunes")
+        org.junit.Assert.assertNotNull(i)
+        org.junit.Assert.assertEquals(ContextIntentKind.PAYMENT, i!!.kind)
+        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
+        org.junit.Assert.assertEquals("Pagar el alquiler al casero", i.title)
+    }
+
+    @Test
+    fun `ingresar dinero en el cajero sigue ERRAND`() {
+        val i = analyze("ingresar dinero en el cajero")
+        org.junit.Assert.assertNotNull(i)
+        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
+        org.junit.Assert.assertEquals("Ingresar dinero en el cajero", i.title)
+    }
+
+    @Test
+    fun `retirar dinero en el cajero sigue ERRAND`() {
+        val i = analyze("retirar dinero en el cajero mañana")
+        org.junit.Assert.assertNotNull(i)
+        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
+        org.junit.Assert.assertEquals("Retirar dinero en el cajero", i.title)
+    }
+
+    @Test
+    fun `depositar el cheque en el banco sigue ERRAND`() {
+        val i = analyze("depositar el cheque en el banco")
+        org.junit.Assert.assertNotNull(i)
+        org.junit.Assert.assertEquals(ContextIntentKind.ERRAND, i!!.kind)
+        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
+        org.junit.Assert.assertEquals("Depositar el cheque en el banco", i.title)
+    }
+
+    @Test
+    fun `cobrar la nomina sigue TASK`() {
+        val i = analyze("cobrar la nómina mañana")
+        org.junit.Assert.assertNotNull(i)
+        org.junit.Assert.assertEquals(ContextIntentKind.TASK, i!!.kind)
+        org.junit.Assert.assertEquals(0.45f, i.confidence, 1e-6f)
+        org.junit.Assert.assertEquals("Cobrar la nómina", i.title)
+    }
 }

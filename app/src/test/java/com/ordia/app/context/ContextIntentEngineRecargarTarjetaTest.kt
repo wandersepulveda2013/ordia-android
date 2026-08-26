@@ -125,10 +125,16 @@ class ContextIntentEngineRecargarTarjetaTest {
         assertNull(analyze("hacer la recarga de la tarjeta"))
     }
 
-    // ─── Unidad (c) permanece ABIERTA lateral documentada ─────────
+    // ─── Unidad (c) CERRADA en c.1201 (PAYMENT_VERBS + extractTitle) ───
 
     @Test
-    fun `adelantar la mensualidad sigue ABIERTA en null lateral`() {
-        assertNull(analyze("adelantar la mensualidad del coche"))
+    fun `adelantar la mensualidad CERRADA en c1201 piso PAYMENT completo`() {
+        // c.1201: el piso paga|recarga|adelanta cubre el infinitivo «adelantar»
+        // (keyword «mensualidad» ya estaba en PAYMENT, gate c.751).
+        // Marcador ABIERTA → CERRADA según doctrina primero-empuja-gana.
+        val intent = analyze("adelantar la mensualidad del coche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.PAYMENT, intent!!.kind)
+        assertEquals("Adelantar la mensualidad del coche", intent.title)
     }
 }
