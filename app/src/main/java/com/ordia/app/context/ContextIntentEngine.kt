@@ -634,6 +634,22 @@ object ContextIntentEngine {
     // heredado (?<!no ) + cláusula dedicada en [imperativeIsNegated].
     private val HOUSEHOLD_BATHE_PET_FLOOR =
         Regex("""\b(?<!no )bañar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+    // Piso mascota "cepillar al perro/gato" (c.1226 — lateral (a) ABIERTA
+    // por la auditoría c.1225, clase VIGESIMONOVENA hogar+mascotas, sonda
+    // `HogarMascotasClassXXIXProbe.kt` M4; PRE medido 5/5 NULL en sonda
+    // persistida `tools/probe/CepillarMascotaProbe.kt` — olvido
+    // silencioso): higiene del pelaje, hermana estructural de "bañar"
+    // (c.761). "cepillar" suelto es BIVALENTE (los dientes / reflexivo
+    // "cepillarse"), así se ACOTA al objeto mascota
+    // `(?:perrit[oa]|perr[oa]|gatit[oa]|gat[oa])s?` — el destinatario
+    // humano queda FUERA (anti-overreach; verbos disjuntos
+    // bañar/vacunar/desparasitar/castrar/cepillar — sin solape). Lockstep
+    // 2 puntos (lección c.616; hermano c.1017/c.1202 sin keyword-verb —
+    // gate c.751 intacto): piso acotado + plantilla de título.
+    // `\b` final: "cepillarse" (reflexivo) no casa; guard de negación
+    // heredado (?<!no ).
+    private val PET_BRUSH_FLOOR =
+        Regex("""\b(?<!no )cepillar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perrit[oa]|perr[oa]|gatit[oa]|gat[oa])s?\b""")
     // c.898 (familia NOVENA 5/8, sonda `HacerCenaProbe.kt`): «hacer/preparar
     // la cena/el almuerzo/la comida/el desayuno/la merienda» — verbos
     // bivalentes acotados al objeto comida (familia «hacer la cama» c.728 /
@@ -651,7 +667,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR, HOUSEHOLD_FURNITURE_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR, HOUSEHOLD_STAIN_FLOOR, HOUSEHOLD_FERTILIZE_FLOOR, HOUSEHOLD_COVER_PLANTS_FLOOR, HOUSEHOLD_STORE_CLOTHES_FLOOR, HOUSEHOLD_FURNITURE_FLOOR, PET_BRUSH_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6302,6 +6318,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchBanarMascota != null) {
                     return "${capitalizeFirst(matchBanarMascota.groupValues[1])} ${matchBanarMascota.groupValues[2]}"
+                }
+                // Piso "cepillar al perro/gato" (c.1226 — lateral (a) de la
+                // auditoría c.1225): titular lo acotado al objeto mascota
+                // (alineado con [PET_BRUSH_FLOOR]; hermano estructural de
+                // [HOUSEHOLD_BATHE_PET_FLOOR] c.761 / [HOUSEHOLD_NEUTER_FLOOR]
+                // c.1202).
+                val matchCepillarMascota = Regex(
+                    """\b(cepillar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perrit[oa]|perr[oa]|gatit[oa]|gat[oa])s?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchCepillarMascota != null) {
+                    return "${capitalizeFirst(matchCepillarMascota.groupValues[1])} ${matchCepillarMascota.groupValues[2]}"
                 }
                 // Piso "podar el jardín" (c.748 provisional): titular lo
                 // acotado al objeto jardín (alineado con
