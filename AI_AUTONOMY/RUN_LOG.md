@@ -19606,6 +19606,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: completar c.1186 (EN CURSO de este lado — «hacer el check-in del hotel» del piso c.1140, PRE medido por el run anterior, implementación pendiente) o c.1185 («el CV»). Después: laterales P2 de las filas c.1176/c.1178 (suegros/esposa, UNA por ciclo si demanda).
 - Nunca force, nunca main, cero pérdida de trabajo válido.
 ## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
+## Cierre real c.1190 (renum de c.1185 propio) — push retrasado por colisión de numeración
+
+- Al intentar push se descubrió que el hermano había asignado c.1185 (esposa-médico) en paralelo a mi reclamo c.1185 (CV-entrevista) publicado en `6f598fc/8349577`. Renumeré todo mi trabajo a **c.1190** y rebase no-destructivo (`git rebase origin/…` con union-merge solo en AI_AUTONOMY). Resolución: mis dos marcadores EN CURSO antiguos eliminados (trabajo propio cerrado); marcadores del hermano intactos.
+- Re-medida la suite UNIÓN tras rebase: **OK (9684 tests)**, smoke dominio 25/25. Estado: FIXED+VERIFIED (JVM).
+
 ## Run c.1190 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
 >>>>>>> b2e4c5b (docs(autonomy): cierre c.1190 (renum de c.1185 propio) — «el CV» del piso entrevista FIXED+VERIFIED (RED 4/10 → GREEN 10/10; suite re-medida tras rebase ver RUN_LOG; pin c.1174 invertido a captura))
 
