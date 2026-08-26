@@ -771,7 +771,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // objeto queda acotado en el piso `plantar + cultivo` (lista
         // cerrada de cultivos) — sin él la notificación sin palabra
         // gatillo no llega al análisis en producción (lección c.757).
-        "veterinario", "veterinaria", "podar", "plantar", "vacunar", "bañar", "casa")),
+        "veterinario", "veterinaria", "podar", "plantar", "vacunar", "bañar", "casa",
+        // c.1217: keyword-OBJETO «botón/es» (lateral (b) ABIERTA de la
+        // auditoría c.1209 clase VIGESIMOCTAVA ROPA/VESTIMENTA; lockstep
+        // con el piso `coser (el|los)? botón/es` — precedente c.717/c.732
+        // «polvo»/«mesa»). LAS DOS FORMAS LITERALES: la tilde rompe la
+        // subcadena («botón» no es subcadena de «boton»; la forma sin
+        // tilde cubre el plural «botones»). 0.12 sola bajo el umbral:
+        // «el botón de la chaqueta vino suelto» (declarativo) descartado
+        // (canary en `ContextIntentEngineSewButtonFloorTest`). El verbo
+        // «coser» NO va (también es bivalente — «coser y cantar» —
+        // lección c.616: palabra objeto, hermano).
+        "botón", "boton")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {

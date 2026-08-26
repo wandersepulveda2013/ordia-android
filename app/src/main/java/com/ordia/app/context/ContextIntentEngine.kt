@@ -352,6 +352,16 @@ object ContextIntentEngine {
     // `\b` final sin derrame nominal.
     private val HOUSEHOLD_HANG_LAUNDRY_FLOOR =
         Regex("""\b(?<!no )(?:colgar|doblar)\s+(?:la\s+|las\s+|mi\s+|mis\s+)?ropas?\b""")
+    // Piso faena doméstica "coser (el|los)? botón(es)" (c.1217, lateral (b)
+    // ABIERTA de mi auditoría c.1209 clase VIGESIMOCTAVA ROPA/VESTIMENTA):
+    // coser un botón (mending) — el verbo "coser" suelto también es
+    // bivalente (idioma «coser y cantar»), así se ACOTA al objeto
+    // bot[oó]n(es)? (lección c.616: palabra objeto; familia ROPA colgar/
+    // doblar c.743/c.1209). Artículo opcional («coser botones» bare; el
+    // lector tacha los artículos como sus propios quehaceres). \b final
+    // sin derrame nominal.
+    private val HOUSEHOLD_SEW_BUTTON_FLOOR =
+        Regex("""\b(?<!no )coser\s+(?:(?:el|los)\s+)?bot[oó]n(?:es)?\b""")
     // Piso faena doméstica "alimentar al gato" (c.744 provisional, mascota
     // 2/8 — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela a
     // Chore c.734): el cuidado diario del gato. "alimentar" suelto es
@@ -583,7 +593,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_SEW_BUTTON_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -5959,6 +5969,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchColgar != null) {
                     return "${capitalizeFirst(matchColgar.groupValues[1])} ${matchColgar.groupValues[2]}"
+                }
+                // "coser (el|los)? botón(es) …" → "Coser el botón…" (c.1217,
+                // lateral (b) ABIERTA de la auditoría c.1209 clase
+                // VIGESIMOCTAVA ROPA/VESTIMENTA; lockstep con
+                // [HOUSEHOLD_SEW_BUTTON_FLOOR]): verbo preservado, objeto
+                // restringido, residuo temporal de cola depurado por
+                // [sanitizeTitle]; el match arranca en el verbo, así el
+                // acuse/prefijo temporal no ensucia el título (lección
+                // c.616). La proscripción de «no » cubre la negación aquí
+                // también.
+                val matchSew = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )((?:coser)\s+(?:(?:el|los)\s+)?bot[oó]n(?:es)?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSew != null) {
+                    return capitalizeFirst(matchSew.groupValues[1])
                 }
                 // "cortar (el) césped(es) …" → "Cortar el césped …" (c.731):
                 // verbo preservado y objeto restringido como en
