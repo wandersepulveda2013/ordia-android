@@ -510,6 +510,14 @@ object ContextIntentEngine {
     // "perrito" c.740); guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_GARDEN_FLOOR =
         Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:jard(?:ín|ines)|rosal(?:es)?|setos?|árbol(?:es)?|arbustos?)\b""")
+    // Piso jardín "trasplantar el bonsái" (c.1216 — lateral ABIERTA de la
+    // auditoría clase XXVII c.1211): «trasplantar» es monovalente
+    // (jardinería), no keyword nueva (gate c.751); objetos trasplantables
+    // en la MISMA alternancia que la plantilla matchTrasplantarPlanta
+    // (lockstep c.616). `\b` final: "bonsaito" no casa (como "perrito"
+    // c.740); guard de negación heredado de la familia (?<!no ).
+    private val HOUSEHOLD_TRANSPLANT_FLOOR =
+        Regex("""\b(?<!no )trasplantar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:bonsái(?:s)?|orquídea(?:s)?|suculenta(?:s)?|planta(?:s)?|rosal(?:es)?|setos?|árbol(?:es)?|arbustos?)\b""")
     // Piso hogar "pintar la casa" (c.758 — sonda
     // `FourthClassVerbDiscoveryProbe.kt` c.740; selección por dispersión
     // determinista epoch-day tras descartar RESERVA "bañar al perro"
@@ -575,7 +583,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR, HOUSEHOLD_TRANSPLANT_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -6176,6 +6184,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchPodarJardin != null) {
                     return "${capitalizeFirst(matchPodarJardin.groupValues[1])} ${matchPodarJardin.groupValues[2]}"
+                }
+                // Piso "trasplantar el bonsái" (c.1216 — lateral ABIERTA
+                // auditoría clase XXVII c.1211): objetos en la MISMA
+                // alternancia que el piso [HOUSEHOLD_TRANSPLANT_FLOOR]
+                // (lockstep piso↔plantilla lección c.616; grafía
+                // preservada c.653).
+                val matchTrasplantarPlanta = Regex(
+                    """\b(trasplantar) ((?:(?:el|la|los|las|mi|tu|su) )?(?:bonsái(?:s)?|orquídea(?:s)?|suculenta(?:s)?|planta(?:s)?|rosal(?:es)?|setos?|árbol(?:es)?|arbustos?).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchTrasplantarPlanta != null) {
+                    return "${capitalizeFirst(matchTrasplantarPlanta.groupValues[1])} ${matchTrasplantarPlanta.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.

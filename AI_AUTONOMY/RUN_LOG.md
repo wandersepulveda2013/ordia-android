@@ -41289,3 +41289,14 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Próxima prioridad: laterales restantes de mi auditoría c.1209: (b) «coser
   el botón», (d) «quitar mancha de la camisa», (e) «guardar la ropa».
 
+
+
+## 2026-08-26 — c.1219 (renum. c.1216→c.1217→c.1219) — Sesión 2 [OpenHands]
+
+- **HEAD inicial**: 235210d (c.1211 auditoría cl.XXVII, post-rebase sobre hermano). Dos rebase por primer-push-gana (hermano c.1216 «tintorería», luego c.1218 «coser el botón»; mi ciclo renum. →c.1219). Tras marcador 4b06749 empujado → brother push c.1216 → rebase marcador renumerado (c29b794) sobre puntas hermano.
+- **Problema**: «trasplantar (el|la|los|las) + planta» devolvía SILENT-NULL (lateral ABIERTA de MI auditoría c.1211, clase VIGESIMOSÉPTIMA jardinería/plantas). Medido PRE con sonda: A1–A6 `null`/`null`/`"null"`. Brecha del hermano c.1213/c.1211 GATE CERO: ERROR DE FILTRO de piso vs plantilla (lección c.616).
+- **Causa raíz**: `matchTrasplantarPlanta` no existía en extractTitle; ningún piso coincidía («podar» floor excluye trasplantar).
+- **Solución**: piso NUEVO `HOUSEHOLD_TRANSPLANT_FLOOR` (alternancia: bonsái|orquídea|suculentas|planta|rosal) + template lockstep DOS puntos (MISMA alternancia + misma grafía) + captura(2) strip/temporal/acuse. Sin keyword nueva (gate c.751: «trasplantar» monosemántico del dominio; negation guard heredado). 3 archivos nuevos/modificados: engine (piso+template+commendation list), test (12), sonda persistida.
+- **Tests**: PRE A1–A6 NULL (4/4-equivalente daño). RED: 12 tests 6 fallas (exactas). POST: A1–A6 HOUSEHOLD 0.45 títulos exactos (temporal/acuse strip incl.); G1–G5 NULL (pasado/negación/sustantivo/TI/acuse); R1–R3 regresión intacta; filtrado OK (12); suite UNIÓN OK (9977 tests = 9965 hermano + 12 mío), exit 0; smoke 25/25. LIMITACIÓN: gradle/lint/assemble NO VERIFICADO (entorno JVM, sin SDK).
+- **Commits**: 4b06749 (marcador, luego renum c29b794) → ahora cierre fix c.1219 (hash post-commit). HEAD final = HEAD inicial + 2.
+- **Próxima prioridad**: laterales ABIERTAS c.1211: «echar a tus plantas + (abono|fertilizante)» / «cubrir plantas + frío» / «sacar muebles + terraza». Tras plantar (c.1215 hermano EN CURSO → cerrar su lateral entonces).
