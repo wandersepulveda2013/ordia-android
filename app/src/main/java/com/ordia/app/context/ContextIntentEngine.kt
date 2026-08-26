@@ -6423,7 +6423,7 @@ object ContextIntentEngine {
         }
 
         // "mañana" como día siguiente. Solo si NO forma parte de una hora del día
-        // ("de la mañana", "por la mañana", "en la mañana", "de/por/en mañana"):
+        // ("de la mañana", "por la mañana", "en la mañana", "por/en mañana"):
         // antes, "reunión a las 9 de la mañana" caía aquí y se fechaba para MAÑANA.
         // Pero la frase "mañana por la mañana" / "mañana a las 9 de la mañana" tiene
         // DOS "mañana": el primer token es el adverbio de día siguiente y el segundo
@@ -6431,7 +6431,17 @@ object ContextIntentEngine {
         // adverbio cuando TODOS los "mañana" del texto forman parte de un sufijo de
         // hora. Si hay más tokens "mañana" que sufijos de meridiano, sobra al menos
         // un "mañana" que sí significa día siguiente.
-        val mananaSuffix = Regex("""\b(de la|por la|en la|de|por|en)\s+mañana\b""", RegexOption.IGNORE_CASE)
+        // c.1188: el genitivo-temporal «de mañana» ("la reunión de mañana",
+        // "examen de mañana") NO es sufijo de meridiano — el meridiano exige el
+        // artículo («de LA mañana») — sino el posesivo del día siguiente, y el
+        // NaturalTaskParser ya lo resuelve así (paridad de rutas). Antes el «de»
+        // desnudo estaba en la alternancia y TODA la familia nacía SIN dueAt
+        // (olvido silencioso P1: sin recordatorio ni What Now; medido en la sonda
+        // `tools/probe/GenitivoDeMananaEngineProbe.kt`: dueAt=false en piso y
+        // envolvente, y "la reunión de mañana a las 5" caía a HOY 05:00 = pasado).
+        // Lockstep: `sanitizeTitle` despoja la cola «de mañana» (guard c.690
+        // reducido) para que el título no conserve el residuo ya resuelto.
+        val mananaSuffix = Regex("""\b(de la|por la|en la|por|en)\s+mañana\b""", RegexOption.IGNORE_CASE)
         val mananaTokens = Regex("""\bmañana\b""", RegexOption.IGNORE_CASE).findAll(lower).count()
         val mananaSuffixMatches = mananaSuffix.findAll(lower).count()
         val manaanaComoDiaSiguiente = targetDate == null && lower.contains("mañana") &&
@@ -7053,11 +7063,23 @@ object ContextIntentEngine {
             // lo consume la alternativa `date` de `tail` en la siguiente
             // iteración; si el bareTail corta "mañana" primero, queda un
             // "pasado" huérfano en el título ("Entregar el informe pasado").
+            // c.1188: EXCEPCIÓN del guard c.690 — el genitivo-temporal
+            // «de mañana» ya NO se conserva: extractDateTime lo resuelve a
+            // día siguiente (lockstep), así que despojarlo evita el residuo
+            // redundante en el título ('Reunión: de mañana' → 'Reunión').
+            // El ':' huérfano del prefijo "Reunión: "/"Estudio: " también se
+            // despoja (mismo patrón que orphanPara). Los demás genitivos del
+            // set («de hoy», «de ayer», «para mañana», …) quedan protegidos:
+            // laterales abiertas medidas en la sonda del ciclo.
             val m = bareTail.find(current)
             if (m != null) {
                 val before = current.substring(0, m.range.first)
                 val prevWord = Regex("""(?i)\b(\S+)\s*$""").find(before)?.groupValues?.get(1)
-                if (prevWord == null || prevWord.lowercase() !in setOf("de", "del", "para", "hasta", "desde", "después", "despues", "antes", "pasado")) {
+                val tailWord = m.value.trim().trimEnd('.', ',', ';', ':', '!', '?').lowercase()
+                if (prevWord?.lowercase() == "de" && (tailWord == "mañana" || tailWord == "manana")) {
+                    current = Regex("""\s+de\s+ma[nñ]ana\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE).replace(current, "").trim()
+                    current = Regex("""\s*:\s*$""").replace(current, "").trim()
+                } else if (prevWord == null || prevWord.lowercase() !in setOf("de", "del", "para", "hasta", "desde", "después", "despues", "antes", "pasado")) {
                     current = bareTail.replace(current, "").trim()
                 }
             }

@@ -278,6 +278,62 @@ class ContextIntentEngineDateTimeTest {
         assertEquals(2L, ChronoUnit.DAYS.between(today, dPm))
     }
 
+    // --- Genitivo-temporal «de mañana» (c.1188) ---
+    // El «de» desnudo se eliminó de la alternancia de sufijos de meridiano
+    // (el meridiano exige artículo: «de LA mañana»): el genitivo es el
+    // posesivo del día siguiente, paridad con NaturalTaskParser. PRE medido
+    // en `tools/probe/GenitivoDeMananaEngineProbe.kt`: dueAt NULL en toda la
+    // familia, y con hora explícita la fecha caía a HOY (pasado).
+
+    @Test
+    fun deManana_isTomorrow() {
+        val due = ContextIntentEngine.extractDateTime("la reunión de mañana")
+        assertNotNull("el genitivo «de mañana» debe resolver a día siguiente", due)
+        val z = ZoneId.systemDefault()
+        val d = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals(1L, ChronoUnit.DAYS.between(today, d))
+    }
+
+    @Test
+    fun deManana_withExplicitHour_keepsTomorrowNotToday() {
+        // PRE: "la reunión de mañana a las 5" perdía la fecha y caía a HOY
+        // 05:00 (pasado si ya son más de las 5). POST: mañana a las 5.
+        val due = ContextIntentEngine.extractDateTime("la reunión de mañana a las 5")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dd = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        val today = LocalDate.now(z)
+        assertEquals(1L, ChronoUnit.DAYS.between(today, dd.toLocalDate()))
+        assertEquals(5, dd.hour)
+    }
+
+    @Test
+    fun deLaMananaMeridian_isNotTomorrow() {
+        // Control anti-colisión: el meridiano con artículo NO se fecha para
+        // mañana (sufijo de hora, no adverbio de día siguiente).
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dd = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        val today = LocalDate.now(z)
+        assertEquals(0L, ChronoUnit.DAYS.between(today, dd.toLocalDate()))
+        assertEquals(9, dd.hour)
+    }
+
+    @Test
+    fun mananaPorLaManana_isTomorrowAt9() {
+        // Doble «mañana»: el primero es adverbio de día siguiente, el segundo
+        // sufijo de banda horaria (conteo de tokens vs. sufijos).
+        val due = ContextIntentEngine.extractDateTime("revisión mañana por la mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dd = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        val today = LocalDate.now(z)
+        assertEquals(1L, ChronoUnit.DAYS.between(today, dd.toLocalDate()))
+        assertEquals(9, dd.hour)
+    }
+
     // --- Noche / Tarde: sufijo de hora del día vs. señal de fecha ---
     // A diferencia de "mañana" (donde el sufijo horario "de la mañana" colisionaba
     // con el adverbio de día siguiente "mañana"), aquí la señal de fecha es la

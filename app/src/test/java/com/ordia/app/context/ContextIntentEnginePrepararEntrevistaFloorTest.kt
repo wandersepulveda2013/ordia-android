@@ -34,17 +34,17 @@ class ContextIntentEnginePrepararEntrevistaFloorTest {
     // ---------- captura (4/4 NULL en PRE) ----------
 
     @Test
-    fun `preparar la entrevista de mañana captura TASK conservando el genitivo`() {
+    fun `preparar la entrevista de mañana captura TASK resolviendo el genitivo a dia siguiente`() {
         val r = analyze("preparar la entrevista de mañana")!!
         assertEquals(ContextIntentKind.TASK, r.kind)
         assertTrue(r.confidence >= 0.45f)
-        // El guard anti-genitivo de [stripTrailingTemporalResidue] (c.690)
-        // protege «de mañana»: el título lo conserva (idéntico al de la
-        // envolvente c.613) y el genitivo temporal no parsea a dueAt
-        // (familia conocida de colas, hermana del lateral de la
-        // envolvente «recuérdame preparar la entrevista de mañana»).
-        assertNull(r.dueAt)
-        assertEquals("Preparar la entrevista de mañana", r.title)
+        // c.1188: el genitivo-temporal «de mañana» ya se resuelve a día
+        // siguiente (antes el «de» desnudo de mananaSuffix lo suprimía y
+        // nacía SIN dueAt — olvido silencioso P1, sonda
+        // `tools/probe/GenitivoDeMananaEngineProbe.kt`) y el título se
+        // despoja del residuo en lockstep (excepción del guard c.690).
+        assertTrue(r.dueAt != null)
+        assertEquals("Preparar la entrevista", r.title)
     }
 
     @Test

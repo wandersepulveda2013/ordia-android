@@ -150,4 +150,42 @@ class ContextIntentEngineTitleResidueFixTest {
         assertNotNull(intent)
         assertEquals("Regar las plantas", intent!!.title)
     }
+
+    // --- (c) c.1188: genitivo-temporal «de mañana» se despoja en lockstep
+    // con extractDateTime (que ahora lo resuelve a día siguiente; PRE en
+    // `tools/probe/GenitivoDeMananaEngineProbe.kt`: título conservaba el
+    // residuo Y dueAt era NULL — olvido silencioso P1) ---
+
+    @Test
+    fun deMananaTailIsStrippedOnceResolved() {
+        val intent = analyze("la reunión de mañana")
+        assertNotNull(intent)
+        assertEquals("Reunión", intent!!.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun deMananaTailIsStrippedKeepingObject() {
+        val intent = analyze("la cita con el médico de mañana")
+        assertNotNull(intent)
+        assertEquals("Cita con el médico", intent!!.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun deMananaWithExplicitHourLeavesCleanTitle() {
+        val intent = analyze("la reunión de mañana a las 5")
+        assertNotNull(intent)
+        assertEquals("Reunión", intent!!.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun deHoyGenitiveStillProtected() {
+        // Control c.690: los demás genitivos («de hoy») siguen conservados
+        // (lateral abierta medida en la sonda del ciclo, no en alcance).
+        val intent = analyze("escribir el diario de hoy")
+        assertNotNull(intent)
+        assertEquals("Escribir el diario de hoy", intent!!.title)
+    }
 }
