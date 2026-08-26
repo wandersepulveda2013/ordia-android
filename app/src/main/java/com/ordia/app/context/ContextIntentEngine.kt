@@ -598,8 +598,15 @@ object ContextIntentEngine {
     // proyecto de ciencias» (NULL PRE medido sonda c.1127 C17, re-pin
     // legítimo del pin c.1141) — con este objeto la familia (a) queda
     // AGOTADA (5/5 laterales cerrados).
+    // c.1172: lateral P2 de c.1170 — objeto posesivo singular
+    // «a mi/tu/su hija/o»: sub-patrón de parentesco nuclear menor
+    // hermano del piso aeropuerto c.1158 (mi|tu|su + hij[oa]s?),
+    // ACOTADO (sin padres/abuelos/mujer/marido — pin «a mi mujer al
+    // colegio» NULL). «a la hija» casa vía ` la\s+` — deliberado,
+    // coherente con c.1158. Piso médico c.776 con hij[oa]s? queda
+    // lateral ABIERTA. Lockstep con matchSchoolRun (lección c.616).
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?)|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -5898,8 +5905,11 @@ object ContextIntentEngine {
                 // temporal de cola depurado por [sanitizeTitle]; el match
                 // arranca en el verbo, así el acuse/prefijo temporal no
                 // ensucia el título (lección c.616).
+                // c.1172: lockstep con el piso — objeto posesivo
+                // singular «a mi/tu/su hija/o» (sub-patrón c.1158
+                // acotado a parentesco nuclear menor).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?(?:niñ[oa]s?|hij[oa]s?)|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {

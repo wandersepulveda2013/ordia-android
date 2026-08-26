@@ -206,12 +206,20 @@ class ContextIntentEngineLlevarNinosFiestaColeFloorTest {
         assertNull(intent)
     }
 
+    // c.1172: re-pin legítimo de este pin (misma doctrina que los re-pins
+    // c.1133/c.1141/c.1144 de esta familia): la lateral «a mi hija» se
+    // cierra con el objeto posesivo singular del piso escolar — pasa de
+    // pin NULL a captura ERRAND verificada (también cubierta por
+    // ContextIntentEngineLlevarMiHijoEscuelaFloorTest).
     @Test
-    fun `pin objeto mi hija sigue fuera`() {
+    fun `repin c1172 objeto mi hija capturado`() {
         val intent = ContextIntentEngine.analyze(
             ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi hija a la fiesta del cole el viernes", 1000)
         )
-        assertNull(intent)
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mi hija a la fiesta del cole", intent.title)
+        assertNotNull(intent.dueAt)
     }
 
     @Test
