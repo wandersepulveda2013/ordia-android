@@ -19248,7 +19248,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Nunca force, nunca main, cero pérdida de trabajo válido (el mío era redundante; el del hermano, intacto).
 
 ---
-
 ## Ciclo c.1171 (2026-08-25) — feat(context): lateral (d-bis) de c.1169 — presente 1ª persona «hago la mudanza» → TASK
 - HEAD inicial: `ec8c5c21` (mi marcador EN CURSO, primer-marcador-gana; remoto previo `673728f7`). Sync limpio; durante la ventana el remoto avanzó 3 commits (`ec8c5c21..ca2332da`: c.1170 fiesta-cole del hermano, c.1157b oficina, marcador c.1172) → integración NO destructiva: stash → `git pull --ff-only` → stash pop (auto-merge limpio, regiones disjuntas).
 - Problema (P1 olvido silencioso en captura pasiva): «hago la mudanza (el sábado)» caía a NULL en `ContextIntentEngine.analyze` — el plan de mudanza dicho en presente (compromiso habitual del habla real) no se registraba; la mudanza es la gestión doméstica de mayor coste de coordinación.
@@ -19261,11 +19260,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. Nunca force, nunca main.
 - Laterales ABIERTAS (BACKLOG/UNA por ciclo): futuro «haré la mudanza», subjuntivo «haga la mudanza», 3ª persona «él hace la mudanza».
 - HEAD final: este commit.
-
----
-
 ## 2026-08-25 — ciclo c.1172 (piso escolar: objeto posesivo singular «a mi/tu/su hija/o»)
-
 - HEAD inicial del run: `f7a59ec` (cierre c.1149). Run anterior dejó c.1172 marcada EN CURSO con PRE medido (sonda persistida `tools/probe/SchoolRunMiHijoProbe.kt`: 5/5 capturas NULL, guards 2/2 NULL, regresiones 6/6 HIT, pines NULL, envolvente TASK 0.49).
 - Problema: lateral P2 del piso escolar c.1170/c.773 — el hermano pinó P2 «llevar a mi hija a la fiesta del cole el viernes» NULL deliberado (anti-overreach) al cerrar c.1170. Causa raíz: el alternador del piso cubría los|las|mis|tus|sus pero NO el singular mi|tu|su, y el objeto era solo niñ[oa]s? (asimetría hermana del piso médico c.776 y del aeropuerto c.1158, que SÍ cubren parentesco singular).
 - Solución lockstep 2 puntos (lección c.616; CERO keywords nuevas, gate c.751): objeto de `ERRAND_SCHOOL_RUN_FLOOR` extendido al sub-patrón c.1158 ACOTADO a parentesco nuclear menor (mi|tu|su + niñ[oa]s?|hij[oa]s? — SIN padres/abuelos/mujer/marido) + MISMO objeto en la plantilla `matchSchoolRun` (grafía preservada c.653). «a la hija» sin posesivo casa vía la-alternador — deliberado, coherente con c.1158.
@@ -19278,3 +19273,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO**: gradle/lint/assemble/UI/Room DAOs reales (sin Android SDK).
 - Próxima prioridad: lateral espejo ABIERTA piso médico c.776 con hij[oa]s? («llevar a mi hijo al médico», pin P3 medido NULL) — DISJUNTA si el hermano no la marca; si la marca, auditoría de clase NUEVA. Marcadores activos del hermano respetados: c.1171 «hago la mudanza», c.1173 auditoría DECIMONOVENA.
 - Nunca force, nunca main, cero pérdida de trabajo válido.
+## Run c.1173 (este lado, 2026-08-25) — AUDITORÍA clase DECIMONOVENA (comunicaciones pendientes)
+**HEAD inicial:** `06d960a` (post-integración del fix «felicitar» del hermano, c.1167 `c83c9e8`; mi base de medida PRE fue `9220964` marcador propio, re-medida final tras ff-only pull).
+**Ciclo:** c.1173 — auditoría de descubrimiento (CERO cambios de producto; convención c.822/c.1165).
+**Contexto:** clase XVIII (vida social) resuelta — (a) «felicitar» por el hermano (c.1167), (b) «fiesta del cole» por mí (c.1170 FIXED VERIFIED, suite 9460), (c) «colgar las fotos» DÉBIL pendiente. Hermanos con marcadores activos: c.1171 («hago la mudanza»), c.1172 («a mi hija/hijo»), c.1174 («llevar el currículum») — todos DISJUNTOS del mío.
+**Medida (sonda persistida `tools/probe/NineteenthClassCommsProbe.kt`, motor real `ContextIntentEngine.analyze`):**
+- 14 candidatas (comunicaciones pendientes dichas como se hablan): 12/14 HITs por cobertura heredada; 2 gaps NULL:
+  - **(a) FUERTE** «contestar el WhatsApp de Marta esta noche» (C3 NULL) — asimetría de keyword: «contestar el correo» SÍ captura (C8 TASK) pero «WhatsApp» no es keyword. El WhatsApp sin contestar es el olvido social canónico moderno.
+  - **(b)** «responder el mail de trabajo esta noche» (C13 NULL) — anglicismo «mail» sin keyword mientras «correo» SÍ (C2 HIT). Fix barato: keyword sinónima (evaluar «email»).
+- 8/8 regresiones HIT sobre la base final (UNIÓN verificada: fiesta del cole c.1170 propio; facturar maleta c.1168, mudanza c.1169, felicitar c.1167 del hermano — R8 NULL en PRE `9220964` por fix aún no integrado, HIT TASK 0.45 en base final).
+- 8/8 controles NULL correctos (negación compuesta, duda subjuntivo, pasado ×2, sustantivo aislado, verbo aislado, estado pasado, pasivo-pasado «me llamaron del banco»).
+- Lateral P2: «devolver la llamada a/de…» captura con kind ERRAND discutible (hermana del hallazgo «campamento» c.1165) — registrada en BACKLOG sin implementar.
+**Tests:** suite UNIÓN `run_domain_tests.sh` OK (9499) sobre `06d960a`; smoke dominio 25/25; automation 9/9. Entorno: kotlinc 2.1.20 reinstalado (/tmp/kotlinc-home), JDK 21 /tmp/jdk21, jars /tmp/libs íntegros.
+**Archivos:** creado `tools/probe/NineteenthClassCommsProbe.kt`; docs CURRENT_STATE/BACKLOG/RUN_LOG (python UTF-8, lección c.817).
+**Commit:** ver git log. **HEAD final:** tras push.
+**Próxima prioridad:** resolver UNA candidata c.1173 por ciclo (sugiero (a) «contestar el WhatsApp» FUERTE) con marcador disjunto; o candidata (c) DÉBIL «colgar las fotos de la boda» de c.1165 si se decide.
