@@ -126,6 +126,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // español). Bivalente medido en sonda PRE: «la carta del
         // restaurante/menú» 0.12 < umbral sola, inerte.
         "carta",
+        // c.1177: keyword-OBJETO "whatsapp" (lockstep con la extensión del
+        // piso «contestar…» c.1177; candidata (a) FUERTE de la auditoría
+        // c.1173 — «contestar el WhatsApp de <persona>» era NULL porque la
+        // frase no contenía ninguna keyword previa). Cubre el plural por
+        // subcadena. 0.12 sola inerte: «me llegó un whatsapp» / «el
+        // whatsapp sonó dos veces» siguen NULL (guard en test c.1177).
+        "whatsapp",
         // c.881: keyword-OBJETO "tatuaje" (lockstep con la extensión del
         // piso «hacerse» c.862; 0.12 sola inerte y el piso exige el verbo
         // reflexivo + objeto acotado, anti-overreach).
