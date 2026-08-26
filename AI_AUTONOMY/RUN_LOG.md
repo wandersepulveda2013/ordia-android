@@ -19620,7 +19620,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK, nunca fingido).
 - Laterales ABIERTAS (UNA por ciclo, anti-overreach): genitivos «de hoy»/«de ayer»/«de anteayer» (guard c.690 los conserva hoy; medir si «de hoy» debe resolver a HOY — la sonda deja el control pineado conservado); honestidad-de-kind P2 «apuntar a <personas> al campamento» (captura EXERCISE por keyword heredada c.1146; el kind correcto sería social/logística).
 - Próxima prioridad: lateral «de hoy»/«de ayer» si libre, o MI ciclo-candidato c.1174 original verificando DISJUNCIÓN con el piso reflexivo c.1180 del hermano (ya FIXED) y su c.1185 «el CV» EN CURSO (regiones de pisos). NO TOCAR c.1184/c.1185/c.1186/c.1187 activos del hermano.
->>>>>>> d2e0a53 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio (c.1192, renumerado c.1175→c.1194→c.1193 primer-marcador-gana; 8 tests nuevos, suite UNIÓN 9644 OK sobre 38cd726, smokes 25/25 y 9/9))
 - Nunca force, nunca main, cero pérdida de trabajo válido.
 ## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
 ## Cierre real c.1190 (renum de c.1185 propio) — push retrasado por colisión de numeración
@@ -19629,7 +19628,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Re-medida la suite UNIÓN tras rebase: **OK (9684 tests)**; tras el segudo rebase por c.1186 del hermano (check-in hotel) la UNIÓN final es **OK (9699 tests)**, smoke dominio 25/25. Estado: FIXED+VERIFIED (JVM).
 
 ## Run c.1190 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
->>>>>>> b2e4c5b (docs(autonomy): cierre c.1190 (renum de c.1185 propio) — «el CV» del piso entrevista FIXED+VERIFIED (RED 4/10 → GREEN 10/10; suite re-medida tras rebase ver RUN_LOG; pin c.1174 invertido a captura))
 
 - HEAD inicial: `8349577` (marcador doble c.1190 de la unión anterior; base real del fix `d3f8669` (cierre c.1180).
 - Ciclo TDD completo: RED 4/10 exactos (4 targets) → fix lockstep piso+plantilla → GREEN 10/10 → suite UNIÓN re-medida 9634/9634 OK → smoke dominio 25/25. Pin de lateral-abierta de la clase c.1174 invertido a captura.
@@ -19637,7 +19635,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Commit feat: `f406bf3`; commit docs: el siguiente. Estado: **FIXED+VERIFIED (JVM)**. NO VERIFICADO: Android SDK/gradle/UI.
 - Próxima prioridad: laterales (b) «el informe/portfolio» y (c) destino poseedor «mi entrevista» (UNA por ciclo); verificar marcadores del hermano.
 - Nunca force, nunca main. Determinista, cero random, IA honesta.
->>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))escartado, punta del hermano adoptada
 
 - HEAD inicial `38cd726`. Seleccionado c.1187 «contestar el mail» (marcador propio
   de la punta). TDD completo local: sonda re-medida PRE 5/5 NULL sobre `38cd726`,
@@ -39193,7 +39190,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 **NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
 **Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
 **Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
-<<<<<<< HEAD
 
 ## 2026-08-25 — ciclo c.1187 (este lado, OpenHands)
 
@@ -39259,7 +39255,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK, nunca fingido).
 - Laterales ABIERTAS (UNA por ciclo, anti-overreach): genitivos «de hoy»/«de ayer»/«de anteayer» (guard c.690 los conserva hoy; medir si «de hoy» debe resolver a HOY — la sonda deja el control pineado conservado); honestidad-de-kind P2 «apuntar a <personas> al campamento» (captura EXERCISE por keyword heredada c.1146; el kind correcto sería social/logística).
 - Próxima prioridad: lateral «de hoy»/«de ayer» si libre, o MI ciclo-candidato c.1174 original verificando DISJUNCIÓN con el piso reflexivo c.1180 del hermano (ya FIXED) y su c.1185 «el CV» EN CURSO (regiones de pisos). NO TOCAR c.1184/c.1185/c.1186/c.1187 activos del hermano.
->>>>>>> d2e0a53 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio (c.1188, renumerado c.1175→c.1188 primer-marcador-gana; 8 tests nuevos, suite UNIÓN 9644 OK sobre 38cd726, smokes 25/25 y 9/9))
 - Nunca force, nunca main, cero pérdida de trabajo válido.
 
 
@@ -39311,8 +39306,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Colisiones: hermano puso c.1186/c.1187/c.1192/c.1192 durante mi ciclo — stash→rebase→pop con union-merge solo-docs, re-verificado tras cada rebase
 - HEAD final: 319257b4 (push tras tercer fetch; la última rebase fue clean, sin re-medir suite full [smoke 25/25 re-verificado])
 - Lección: ante doble divergencia, pipeline fetch→rebase→test→push con union-merge assistido por python funciona
->>>>>>> 61794f2 (fix(context): genitivo-temporal «de mañana» NULL → mañana + título limpio + cierre c.1192)
->>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))
 
 ---
 
@@ -39327,7 +39320,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Verde inicial: OK (9707) — tras remeasure del árbol integrado con la feat simultánea del hermano (`fb90338`, 28 tests suyos), UNIÓN FINAL **OK (9735)** | smoke dominio 25/25 | automation 9/9 | gradle/lint/assemble NO VERIFICADO (sin SDK).
 - Commit: (se actualiza tras push).
 - Próxima prioridad: lateral (c) «mi entrevista» destino posesivo (si no la toma el hermano), o nueva clase probe (P0 ahorita none).
->>>>>>> 7c74411 (feat(context): piso entrevista captura «el informe|portfolio» (c.1191) — lockstep piso+plantilla, re-pin legítimo 3 pins invertidos a captura; POST probe persistido; RED 4 → GREEN 9707)
 
 Nota c.1194: el commit  lleva mensaje con id c.1193, contenido renumerado c.1194 (re-num postened al rebase puede variar el mensaje; procedente, no es force amend post-push).
 Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumeado c.1194 (el rnum fue docs-only tras el rebase).
@@ -39342,7 +39334,6 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Decision: descubrimiento (a) ABIERTA → c.1196. Audit cerrada (c.822 docs-only).
 - Smoke dominio 25/25 re-medido; suite no aplicada (docs-only).
 - Próxima prioridad: c.1196 fix «castrar» mascota (disjunto hermano c.1193 temporal).
-<<<<<<< HEAD
 
 ---
 ## 2026-08-26 run — c.1190 CIERRE/post-merge recuperación + LIMPIEZA + VALIDACIÓN
