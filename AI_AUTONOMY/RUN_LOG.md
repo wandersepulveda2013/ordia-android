@@ -1,3 +1,13 @@
+## 2026-08-26 — run c.1180 CEDIDO AL HERMANO (este lado): colisión convergente idéntica; verificación independiente de la punta + sonda persistida; marcador c.1189 («llévame»)
+
+- **HEAD inicial del run**: `ed11660` (mi marcador EN CURSO c.1180). Base actualizada TRES veces por movimiento del hermano (`26c962b` → `c218e5d` → `38cd726`); la tercera trajo el cierre propio del hermano del MISMO lateral.
+- Seleccionado: lateral reflexiva de MI cierre c.1174 — «llevarme el currículum a la entrevista» (P1, NULL medido PRE 6/6). TDD completo local: RED exacto 6 → GREEN 16/16; sonda 16/16; suite UNIÓN OK 9630 (sobre `c218e5d`).
+- Colisión: al push, el remoto ya contenía el cierre del hermano (`5634363` feat, `d3f8669` docs) — implementación IDÉNTICA (misma alternativa regex en piso+plantilla; mismo título; mismo nombre de clase de test). Primer-push-gana (c.1077/c.1111, precedente c.1176): commit local NO publicado retirado (reset a origin — solo trabajo propio duplicado, cero pérdida ajena, sin force).
+- Verificación INDEPENDIENTE de la punta `38cd726`: suite UNIÓN **OK (9636 tests, 0 failures)**; smokes dominio 25/25 y automation 9/9; MI sonda POST persistida `tools/probe/LlevarmeCurriculumEntrevistaProbe.kt` re-ejecutada sobre la implementación del hermano: **16/16 OK** (capturas con posesivos/acuse/temporal 6/6 HIT, guards 3/3 NULL, pines 3/3 NULL, regresiones 4/4 HIT) — confirmación convergente. La sonda queda persistida como artefacto de verificación adicional.
+- Archivos: `tools/probe/LlevarmeCurriculumEntrevistaProbe.kt` (NUEVA); docs AI_AUTONOMY. CERO producto (la implementación es la del hermano).
+- Próxima prioridad: marcador EN CURSO propio c.1189 — imperativo enclítico «llévame (el|mi|tu|su) curr[ií]culum a la entrevista» (NULL verificado 1/1 sobre la punta). Otras laterales NULL verificadas: «el CV» [marcador hermano c.1185], «el informe», destino posesivo.
+- **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK). Nunca force, nunca main, cero pérdida de trabajo válido.
+
 ## 2026-08-25 — run c.1180 (este lado): lateral reflexiva de c.1174 — «llevarme el currículum a la entrevista» FIXED+VERIFIED
 
 - **HEAD inicial del run**: `935e4b2` (tras pull --ff-only; base real de trabajo
