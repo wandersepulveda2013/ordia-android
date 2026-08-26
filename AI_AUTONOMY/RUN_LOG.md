@@ -41488,3 +41488,10 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - **Archivos**: ContextIntentEngine (+EXERCISE_MATCH_SPORT_FLOOR +matchPartido), test nuevo 11 pins, sonda persistida, BACKLOG (c.1231 FIXED + laterales restantes d/e/f/g), CURRENT_STATE (FIXED VERIFIED), RUN_LOG (este append).
 - **Commits**: d0419f7 (implementación completa c.1231).
 - **Próxima prioridad**: laterales de MI auditoría c.1227 — (d) «ir a pilates el lunes» MEDIA; (e) «salir en bici» DÉBIL; (g) «clase de yoga mañana» DÉBIL (con-keyword-bajo-umbral). Nunca force, nunca main.
+## 2026-08-26 — STALE_RUN (este lado, OpenHands)
+
+- **HEAD local inicial**: `8f8970f` (el marcador EN CURSO c.1228 ya estaba tomado por otra ejecución paralela).
+- **Descubrimiento**: el remoto avanzó y ya contenía el ciclo completo (6254a58 fix c.1228 «jugar (al|a la) <deporte>», 7f9dc43 fix c.1229 parser sujeto-nominal, 2e66959 marcador c.1230 disjunta, d0419f7 fix c.1231 «partido de <deporte>» + 5519dfc run_log hash). Mi trabajo local era DUPLICADO exacto (razón: botón de sync previo no actualizó la base; la misma SESIÓN es paralela). Descartado con `git stash clear` tras verificar equivalencia con el remoto; NADA destructivo.
+- **Acción**: `git pull --ff-only` → remoto `5519dfc`; duplicados descartados.
+- **Verificación**: `bash tools/run_domain_tests.sh` → **OK (10140 tests)**, 0 failures (re-verificado en este run).
+- **Estado**: STALE_RUN (sin cambios destructivos). **Próxima prioridad sugerida**: laterales ABIERTAS restantes de MI auditoría c.1227 — (c) «pilates» / (d) «bici» / (e) «entrenamiento de fútbol» / (f) «apuntarme al gimnasio» (familia enroll) — o auditoría clase XXXI si el hermano las toma. Nunca force, nunca main.
