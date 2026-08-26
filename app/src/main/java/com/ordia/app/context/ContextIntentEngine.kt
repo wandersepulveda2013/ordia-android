@@ -599,7 +599,7 @@ object ContextIntentEngine {
     // legítimo del pin c.1141) — con este objeto la familia (a) queda
     // AGOTADA (5/5 laterales cerrados).
     private val ERRAND_SCHOOL_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque)\b""")
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))\b""")
     // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
     // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
     // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
@@ -5852,7 +5852,7 @@ object ContextIntentEngine {
                 // arranca en el verbo, así el acuse/prefijo temporal no
                 // ensucia el título (lección c.616).
                 val matchSchoolRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque)).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:(?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?|la\s+merienda|el\s+almuerzo|el\s+dinero\s+de\s+la\s+excursi[oó]n|la\s+ropa\s+de\s+recambio|el\s+proyecto\s+de\s+ciencias)\s+a(?:l| la)\s+(?:colegio|cole|escuela|guarder[ií]a|parque|fiesta\s+del\s+(?:cole|colegio))).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSchoolRun != null) {
