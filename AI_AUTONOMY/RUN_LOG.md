@@ -41767,3 +41767,20 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Commits: b04c885 (docs marcador) → 6ef1db4 (feat) → amend docs.
 - Próxima prioridad: laterales (d) barba DÉBIL / (e) tinte-tratamiento-facial DÉBIL de MI auditoría c.1252 (gate-evaluación sonda NO-IMPLEMENTAR paridad con c.1255); alternativa c.1259 guard envolvente negativo «no...» exhaustivo (lección c.726).
 - NO VERIFICADO gradle/Android/UI/Room real.
+
+## c.1259 (2026-08-26, OpenHands)
+- HEAD inicio: 10a7f4d (mi marcador docs c.1259 EN CURSO) | Sync: ff-only OK, working tree limpio (grafted clone fresco).
+- Problema elegido: gate-evaluación de las laterales DÉBILES de MI auditoría c.1252 (clase XXXVI belleza/cuidado personal) — (d) barba «recortar/afeitar/arreglar/cortar(me) la barba» y (e) «tinte (del pelo)» / «tratamiento facial». Paridad c.1255. CERO producto (gate).
+- Sonda persistida `tools/probe/GateDebilBellezaProbe.kt` (8 directas + 4 envolventes + 10 guards + 8 regresiones), PRE medido sobre HEAD 10a7f4d vía `tools/run_probe.sh`:
+  - Directas bare D1–D8: 8/8 NULL (omisión silenciosa: «recortar la barba mañana», «afeitarme la barba mañana», «arreglarme la barba el sábado», «cortarme la barba el viernes», «tinte del pelo el miércoles», «hacerme el tinte el jueves», «tratamiento facial mañana», «hacerme un tratamiento facial el lunes»).
+  - Envolventes E1–E4: 4/4 HIT con contenido ÍNTEGRO — E1 «recuérdame recortarme la barba mañana» → TASK 0.45 «Recortarme la barba» dueAt; E2 «recuérdame hacerme el tinte el jueves» → TASK 0.54 «Hacerme el tinte» dueAt; E3 «tengo que afeitarme la barba mañana» → TASK 0.45 «Afeitarme la barba» dueAt; E4 «recuérdame el tratamiento facial del lunes» → TASK 0.45 «El tratamiento facial» dueAt.
+  - Guards G1–G10: 10/10 NULL correctos (negación «no voy a recortarme la barba»; pretérito «me recorté la barba ayer»; 3ª persona «mi hermano se afeita la barba los lunes»; dominio médico ×2 «el tratamiento de la diabetes» / «el tratamiento para la alergia funciona»; bare «el tinte»; mención «habla del tratamiento facial»; posesivo declarativo «la barba de mi padre es blanca»; bivalentes «recortar gastos» / «recortar la foto del documento»).
+  - Regresiones R1–R8: 8/8 HIT (peluquería/manicura/depilación ERRAND belleza c.1256–c.1258, recuérdame TASK, médico APPOINTMENT, leche SHOPPING, yoga EXERCISE, luz PAYMENT).
+- Decisión de gate (c.1233 necesidad / c.751 keywords): **NO-IMPLEMENTAR ambas**.
+  - (e) nominales: un piso nominal siempre-activo «tinte»/«tratamiento facial» dispararía sobre menciones (FP medida en hermanos c.1256: «habla de la peluquería» HIT aceptada) — G7 «habla del tratamiento facial» rompería; «tinte» polisémico (tinte de ropa — G6 «el tinte» es guard); dominio médico adyacente («tratamiento de/para <enfermedad>» hoy NULL por no existir piso).
+  - (d) verbos: estructuralmente implementable (objeto «la barba» exigido, precedente c.1249/c.1251), PERO kind-ambigua — ERRAND (doctrina c.842 «la diligencia gobierna», barbería) vs TASK (autocuidado en casa: afeitarse/recortarse suele ser doméstico) — misclasificación garantizada en uno de los dos mundos; cobertura envolvente íntegra (E1/E3) y rating DÉBIL de la propia auditoría → gate de necesidad negativo.
+- CERO producto. Verificación: suite UNIÓN `tools/run_domain_tests.sh` **OK (10292 tests, exit 0)** (bits idénticos — número re-medido igual que c.1258); smoke dominio 25/25; automation smoke 9/9; sonda compila y corre sobre bits idénticos.
+- Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room DAOs reales (sin SDK, JVM pura).
+- Auditoría c.1252 AGOTADA desde este lado: (a) c.1256, (b) c.1257, (c) c.1258, (d)+(e) NO-IMPLEMENTAR aquí, (a2) «salón» polisémico FUERA documentado.
+- Commits: (docs+sonda c.1259, ver git log). HEAD final: commit actual.
+- Próxima prioridad: descubrimiento documentado c.1255 — verbos de captura «anota/apunta <objeto>» sin trigger («anota la audición del sábado» NULL) — sonda PRE nueva y gate; o auditoría fresca clase XXXVII. Primer-marcador-gana (c.1077). Nunca force, nunca main.
