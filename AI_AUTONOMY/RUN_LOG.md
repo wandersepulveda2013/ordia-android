@@ -39438,3 +39438,17 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - **Archivos:** `ContextIntentEngineTransferenciaPrivacyPinTest.kt` (+9 tests), `ContextIntentEngineTransferPrivacyPinTest.kt` (eliminado), `tools/probe/TransferPrivacyPinProbe.kt` (contrato actualizado), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md` (dedup fila stale c.1197 ABIERTA + marcadores delta). CERO producto de este lado.
 - NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin SDK). Nunca force, nunca main.
 ---
+
+## c.1201 — 2026-08-26 (este lado) — CIERRE finanzas unidad (c)
+
+- **Branch**: openhands/autonomous-ordia
+- **HEAD inicial**: 59c492f
+- **Problema**: unidad (c) ABIERTA de MI auditoría c.1197 (clase VIGESIMOTERCERA, finanzas domésticas): «adelantar la mensualidad (del coche/el lunes…)» era NULL silencioso (olvido < umbral).
+- **Prioridad**: P1 (captura determinista; evitar olvidos — pago anticipado de mensualidad).
+- **Causa raíz**: comando-de-usuario real — keyword-OBJETO «mensualidad» ya en PAYMENT (gate c.751 satisfecho, CERO keywords nuevas); sólo faltaba el infinitivo «adelantar» en el piso PAYMENT_VERBS (lockstep: piso + plantilla de título, lección c.616/c.652).
+- **Solución**: (1) PAYMENT_VERBS = «pagar|recargar|adelantar» (~l.69; alimenta PAYMENT_FLOOR, guard imperativeIsNegated compartido, bonus branch); (2) plantilla PAYMENT de extractTitle (~l.5663) ya conserva el verbo tras c.1198 (doctrina c.653) — se confirma para «adelantar». Marcador ABIERTA del hermano en RecargarTarjetaTest → CERRADA (doctrina primero-empuja-gana, lección c.616).
+- **Tests**: TDD estricto — ContextIntentEngineAdelantarMensualidadTest.kt 6 tests NUEVOS: RED exacto 3 fallos → GREEN 6/6. Pin adicional de consistencia envolvente (medido: «recuérdame + (pagar|recargar|adelantar)» → TASK byte-idéntico). Marcador del hermano re-pin legítimo (NULL → PAYMENT + título). Suite UNIÓN OK (9814 = 9808 + 6). Sonda persistida tools/probe/AdelantarMensualidadProbe.kt. Domain smoke 25/25.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Cambios**: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (PAYMENT_VERBS + lockstep); app/src/test/java/com/ordia/app/context/ContextIntentEngineAdelantarMensualidadTest.kt (nuevo, 6 tests); app/src/test/.../ContextIntentEngineRecargarTarjetaTest.kt (marcador ABIERTA→CERRADA); tools/probe/AdelantarMensualidadProbe.kt (nuevo); AI_AUTONOMY/*.
+- **Próxima prioridad**: (a) «sacar el billete de tren mañana» ABIERTA (auditoría c.1200, clase XXV viajes; verbo-fuerte + objeto concreto; precedente «sacar basura c.717» intacto).
+- **Estado**: FIXED+VERIFIED (JVM).
