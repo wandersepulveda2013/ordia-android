@@ -134,9 +134,17 @@ class ContextIntentEngineLlevarCurriculumEntrevistaFloorTest {
 
     // ---- Pines anti-overreach (NULL deliberado) ----
 
+    // c.1190: la lateral (a) «el CV» se CERRÓ (objeto abreviado admitido,
+    // lockstep piso↔plantilla; batería completa en
+    // [ContextIntentEngineLlevarCvEntrevistaFloorTest]). Este pin se
+    // invierte a captura para vigilar que el cierre no se rompe.
     @Test
-    fun `pin CV abreviado fuera`() {
-        assertNull(analyze("llevar el CV a la entrevista mañana"))
+    fun `captura CV abreviado cierre c1190`() {
+        val intent = analyze("llevar el CV a la entrevista mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals(0.45f, intent.confidence, 1e-6f)
+        assertEquals("Llevar el CV a la entrevista", intent.title)
     }
 
     @Test

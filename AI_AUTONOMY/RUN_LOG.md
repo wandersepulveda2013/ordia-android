@@ -19605,3 +19605,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: (este run) addendum test-only c.1178-colisión + este RUN_LOG.
 - **Próxima prioridad**: completar c.1186 (EN CURSO de este lado — «hacer el check-in del hotel» del piso c.1140, PRE medido por el run anterior, implementación pendiente) o c.1185 («el CV»). Después: laterales P2 de las filas c.1176/c.1178 (suegros/esposa, UNA por ciclo si demanda).
 - Nunca force, nunca main, cero pérdida de trabajo válido.
+## Run c.1185 — 2026-08-25 (cierre: «el CV» objeto abreviado del piso entrevista c.1174)
+
+- HEAD inicial: `8349577` (marcador doble c.1185 de la unión anterior; base real del fix `d3f8669` (cierre c.1180).
+- Ciclo TDD completo: RED 4/10 exactos (4 targets) → fix lockstep piso+plantilla → GREEN 10/10 → suite UNIÓN re-medida 9634/9634 OK → smoke dominio 25/25. Pin de lateral-abierta de la clase c.1174 invertido a captura.
+- Sonda efímera PRE `/tmp/probe1185lat.kt` (vía `tools/run_probe.sh`): 10/10 targets NULL medidos (ejecutada dos veces en base + marcadores).
+- Commit feat: `f406bf3`; commit docs: el siguiente. Estado: **FIXED+VERIFIED (JVM)**. NO VERIFICADO: Android SDK/gradle/UI.
+- Próxima prioridad: laterales (b) «el informe/portfolio» y (c) destino poseedor «mi entrevista» (UNA por ciclo); verificar marcadores del hermano.
+- Nunca force, nunca main. Determinista, cero random, IA honesta.
+>>>>>>> 4f52959 (feat(context): piso entrevista admite objeto abreviado «el CV» — lockstep piso+plantilla (renum c.1190 tras colisión c.1185 doble))

@@ -751,8 +751,19 @@ object ContextIntentEngine {
     // llevarme el currículum a la entrevista») del mismo acarreo P1;
     // objeto y destino EXIGIDOS se mantienen («llevarme el informe» /
     // «llevarme a la entrevista», transporte propio, siguen NULL).
+    // c.1190 (lateral ABIERTA del cierre c.1174): objeto abreviado
+    // «cv» — el acrónimo hablado dominante («llevar el CV a la
+    // entrevista») quedaba huérfano mientras su sinónimo «currículum»
+    // capturaba (asimetría dentro del MISMO piso, olvido silencioso
+    // P1: sin el piso, keyword «llevar» 0.12 + bono temporal 0.1 =
+    // 0.22 < umbral). El piso casa sobre `lower`, así «CV»/«cv»
+    // colapsan a «cv»; `\b` tras «cv» descarta prefijos largos
+    // («cvd»). Lockstep con la plantilla matchInterviewRun de
+    // [extractTitle] (lección c.616; grafía «CV» preservada en el
+    // título, doctrina c.653). CERO keywords nuevas (gate c.751
+    // satisfecho: «llevar» ya es keyword histórica).
     private val ERRAND_INTERVIEW_RUN_FLOOR =
-        Regex("""\b(?<!no )(llevarme|llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista\b""")
+        Regex("""\b(?<!no )(llevarme|llevar|llevo)\s+(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv)\b\s+a\s+la\s+entrevista\b""")
     // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
     // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
     // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
@@ -6039,8 +6050,12 @@ object ContextIntentEngine {
                 // c.1180: enclítico «llevarme» preservado en el título
                 // («Llevarme el currículum a la entrevista», doctrina
                 // c.653; lockstep con [ERRAND_INTERVIEW_RUN_FLOOR]).
+                // c.1190: objeto abreviado «cv» (lockstep con
+                // [ERRAND_INTERVIEW_RUN_FLOOR]); IGNORE_CASE casa «CV»
+                // y la grafía del usuario se preserva intacta en el
+                // título («Llevar el CV a la entrevista», c.653).
                 val matchInterviewRun = Regex(
-                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevarme|llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?curr[ií]culum\s+a\s+la\s+entrevista).*)""",
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevarme|llevar|llevo)\s+((?:(?:(?:el|mi|tu|su)\s+)?(?:curr[ií]culum|cv)\b\s+a\s+la\s+entrevista).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchInterviewRun != null) {
