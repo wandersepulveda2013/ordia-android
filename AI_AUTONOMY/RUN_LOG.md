@@ -39509,3 +39509,17 @@ Nota c.1194: el commit fb90338 lleva un mensaje con ID c.1193, contenido renumea
 - Marcador del hermano «EN CURSO c.1201 sacar el billete de tren mañana» INTACTO (no tocar).
 - Head final: pendiente de este commit docs.
 
+
+## 2026-08-26 — run c.1202 (este lado)
+- **HEAD inicial**: f4cc70d (sincronizado con origin; marcador propio c.1202 pusheado como 753f735 tras primer-marcador-gana c.1077)
+- **Problema seleccionado**: candidata (a) ABIERTA de MI auditoría c.1195 (clase VIGESIMOSEGUNDA mascotas) — «castrar al perro/gato» NULL silencioso (P1, olvido de cita veterinaria) mientras hermanas laterales «vacunar/bañar/desparasitar» capturaban.
+- **Prioridad**: P1 (evitar olvidos; persistencia de captura).
+- **Causa raíz**: el verbo fuera de keyword maps y ningún piso mascota lo cubría (objeto-mascota guardado pero sin verbo acotado).
+- **Solución**: lockstep DOS puntos (lección c.616/c.751; hermano estructural c.1017, CERO keyword-verb): (1) `HOUSEHOLD_NEUTER_FLOOR` (~l.373) + registro en `HOUSEHOLD_FLOORS` (~l.536); (2) plantilla `matchCastrarMascota` en `extractTitle` (~l.5948), título capitalizado con grafía preservada (c.653).
+- **Bugs**: ninguno lateral.
+- **Features**: captura «castrar al perro/gato» (posesivo si/no-plural) con título limpio y dueAt cuando hay temporal.
+- **Tests**: TDD estricto — `ContextIntentEngineCastrarMascotaTest` 11 tests NUEVOS: RED EXACTO 4 fallos (las 4 capturas) → GREEN 11/11. Suite UNIÓN FINAL OK (**9825 = 9814 base + 11**). Domain smoke 25/25. Sonda persistida `tools/probe/CastrarMascotaProbe.kt` PRE(4/4 NULL targets, 5/5 guards NULL) → POST(4/4 targets HOUSEHOLD 0.45, T4 dueAt=true, guards NULL, R1-R3 byte-idénticas, E1/E2 TASK 0.45).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Cambios**: app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt (piso+lista+plantilla); app/src/test/java/com/ordia/app/context/ContextIntentEngineCastrarMascotaTest.kt (nuevo, 11 tests); tools/probe/CastrarMascotaProbe.kt (nuevo); AI_AUTONOMY/*.
+- **Próxima prioridad**: ABIERTAS documentadas de MI auditoría c.1197: (b) «recargar la tarjeta» (infinitivo de keyword «recarga»); laterales ABIERTAS de MI auditoría c.1195 (vgr. «esterilizar al perro»). «hacer la transferencia»: PIN de privacidad POR DISEÑO c.1198 — NO re-auditar.
+- **Estado**: FIXED+VERIFIED (JVM).
