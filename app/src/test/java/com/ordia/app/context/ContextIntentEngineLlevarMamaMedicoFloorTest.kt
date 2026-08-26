@@ -196,4 +196,106 @@ class ContextIntentEngineLlevarMamaMedicoFloorTest {
         )
         assertNotNull(intent)
     }
+
+    // ---- Addendum c.1178-colisión (este lado): pines complementarios
+    // ----
+    // Colisión convergente: este lado implementó el MISMO fix en su
+    // ventana (duplicado no publicado, retirado sin pérdida ajena;
+    // precedente cesión c.1176). Estas 10 aserciones son el residuo
+    // ÚNICO de la clase de este lado (no presentes en la clase del
+    // hermano): medidas 10/10 con sonda efímera sobre el árbol
+    // integrado (HEAD f2979037) antes de aportarlas. CERO cambio de
+    // producto — hardening anti-regresión de las formas FUERA y de las
+    // variantes de captura.
+
+    @Test
+    fun `pin suegro fuera`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi suegro al médico mañana", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `pin destino no medico mama fuera`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mamá al cine mañana", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `pin plural mis padres fuera`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mis padres al médico mañana", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `negacion no llevo mi padre descartada`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "no llevo a mi padre al médico", 1000)
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `captura mi madre medico manana`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi madre al médico mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mi madre al médico", intent.title)
+    }
+
+    @Test
+    fun `captura presente primera persona mama dentista`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevo a mamá al dentista esta tarde", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevo a mamá al dentista", intent.title)
+    }
+
+    @Test
+    fun `captura la madre articulo medico`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a la madre al médico mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a la madre al médico", intent.title)
+    }
+
+    @Test
+    fun `regresion escolar c1172`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mi hija a la fiesta del cole el viernes", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mi hija a la fiesta del cole", intent.title)
+    }
+
+    @Test
+    fun `regresion portatil trabajo c1157`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar el portátil al trabajo mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+    }
+
+    @Test
+    fun `regresion mama desnuda aeropuerto c1158`() {
+        val intent = ContextIntentEngine.analyze(
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "llevar a mamá al aeropuerto mañana", 1000)
+        )
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Llevar a mamá al aeropuerto", intent.title)
+    }
 }
