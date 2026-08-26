@@ -1,3 +1,7 @@
+## RUN 2026-08-26 — c.1243 AUDITORÍA-CERRADA clase XXXII luz/iluminación hogar
+- HEAD inicial: 5042bea (c.1242 push). Sonda persistida `IluminacionClassXXXIIProbe.kt` (14D+8G+8R): 6/14 HIT, 8/14 NULL en dos familias — (a) verbos-de-posición [DÉBIL], (b) «encender/apagar calefacción/aire/chimenea» [FUERTE; próxima lateral].
+- Guards NULL correctos 8/8; regresiones estables 8/8. Suite OK (10213) medida. CERO producto (convención c.1127/c.1165/c.1194/c.1225).
+- **NO VERIFICADO** gradle/lint/Android/UI/Room. Nunca force, nunca main.
 ## RUN 2026-08-26 — c.1242 CERRADO «conectar (el) wifi|bluetooth» (lateral (a-bis) c.1240 XXXI)
 - HEAD inicial: push c.1241. Fix lockstep DOS puntos (c.616; gate c.751 floor-only, objeto bound).
 - TDD +2 tests → GREEN 9/9 clase; suite UNIÓN OK (10213); smoke 25/25. POST sonda D6 HIT TASK 0.45.
