@@ -313,9 +313,11 @@ object ContextIntentEngine {
     // BED c.728 / WASHER c.729 / DISHWASHER c.738 / VACUUM_CLEANER
     // c.742). Interop c.639: "tender la ropa" captura vía keyword-verb
     // "tender"; aquí es el verbo "colgar" con sustantivo — no hay solape.
+    // c.1209: "doblar" + ropa(s) se añade alternando con "colgar";
+    // "doblar" suelto es material/fotos, así también se acota a ropa(s).
     // `\b` final sin derrame nominal.
     private val HOUSEHOLD_HANG_LAUNDRY_FLOOR =
-        Regex("""\b(?<!no )colgar\s+(?:la\s+|las\s+)?ropas?\b""")
+        Regex("""\b(?<!no )(?:colgar|doblar)\s+(?:la\s+|las\s+|mi\s+|mis\s+)?ropas?\b""")
     // Piso faena doméstica "alimentar al gato" (c.744 provisional, mascota
     // 2/8 — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela a
     // Chore c.734): el cuidado diario del gato. "alimentar" suelto es
@@ -5868,12 +5870,12 @@ object ContextIntentEngine {
                 if (matchAspiradora != null) {
                     return "${capitalizeFirst(matchAspiradora.groupValues[1])} ${matchAspiradora.groupValues[2]}"
                 }
-                // "colgar (la|las) ropa(s) …" → "Colgar la ropa…"
-                // (c.743 provisional): verbo preservado y objeto
+                // "colgar/doblar (la|las|mi|mis) ropa(s) …" → "Colgar/Doblar la ropa…"
+                // (c.743 provisional / c.1209): verbo preservado y objeto
                 // restringido como en [HOUSEHOLD_HANG_LAUNDRY_FLOOR]
-                // (lockstep c.717).
+                // (lockstep c.717; alternancia c.1209).
                 val matchColgar = Regex(
-                    """\b(?<!no )(colgar)\s+((?:la\s+|las\s+)?ropas?\b.*)""",
+                    """\b(?<!no )(colgar|doblar)\s+((?:la\s+|las\s+|mi\s+|mis\s+)?ropas?\b.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchColgar != null) {
