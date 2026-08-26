@@ -41702,3 +41702,16 @@ Problema: familia «contar» c.950 parser (P1 — compromiso vencido falso + tí
 - Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint (sin SDK). Nunca force, nunca main.
 - Próxima prioridad: (a) «peluquería/salón» FUERTE o toma del hermano; luego (b)–(e) en orden.
 - HEAD final: commit docs(ai) c.1252 (siguiente).
+
+## c.1251 (este lado, OpenHands) — 2026-08-26 — FIXED+VERIFIED real (rebase limpio)
+
+- Rama: openhands/autonomous-ordia. HEAD inicial: 6161193 → base rebaseada 8738ae2 (tras 10a6963/f17986f del hermano; limpio, disjunto → primer-marcador-gana mantenida).
+- Selección: lateral (b) FUERTE de MI AUDITORÍA c.1248 (clase XXXV música/instrumentos): «afinar <instrumento>» — se ofrecía como NULL en silencio mientras el usuario afinaba/calibraba el instrumento, pero usarlo por la envolvente enrutaba con título capturado-defensiva. Disjunta del hermano: NUNCA toca su c.1252-audit clause XXXVI ni sus c.1249/c.1250.
+- Problema: «afinar (el|la|los|las|mi|tu|su)? <instrumento acotado>» NO enviaba sort TASK: bare-form fracasaba (T1–T6 NULL en PRE) pasado por las envolventes que enrutaban con título disparado (E1/E2 TASK pero título «Afinar la guitarra» NO recortado limpio hasta el piso). Olvido silencioso P1 (compromiso de práctica musical).
+- Causa raíz: monosemántico «afinar» no entraba en ninguno de los pisos y el floor-only de gate c.751 (precedente c.752 «votar»/c.864 «escanear»/c.1241/c.1244/c.1247 piso-clima-brico del hermano) exige DOS puntos (piso+plantilla); la ausencia del piso o del template provocaba O ROUTING-O ó título-molesto.
+- Solución (lockstep DOS puntos; CERO keywords nuevas — gate c.751; guard (?<!no ) heredado; ancla TASK_FLOOR_TEMPORAL/ACK_PREFIX): p.1 piso acotado nuevo en `hasStrongTaskImperative` (objeto EXIGIDO del conjunto cerrado piano/guitarra/violín/viola/violonchelo/flauta/clarinete/saxofón/trompeta/acordeón/ukelele, plural tolerante, grafía [ií]/[oó]); p.2 plantilla `matchAfinarInstrumento` en la rama verbos-bare de `extractTitle` (misma ancla/guard — lección c.616; grafía preservada c.653).
+- TDD estricto: tests nuevos `ContextIntentEngineAfinarInstrumentoFloorTest` — RED EXACTO 4 fallos (los 4 grupos de captura; guards y envolvente verdes desde RED) → GREEN 7/7.
+- Sondas persistidas: PRE y POST `tools/probe/AfinarInstrumentoProbe.kt`. PRE: T1–T6 NULL / G1–G8 NULL / E1-E2 TASK (enruta enverdad pero título parcial). POST: T1–T6 HIT (T3 dueAt=true), G1–G7 guards NULL (negación/pretérito/dubitativo/copulativa/verbo-solo/sustantivo «afinación»/figurado puntería/detalles), E1/E2 HIT, R1–R4 «llamar/taladrar/sincronizar/apagar» HIT.
+- VERIFIED: suite UNIÓN post-rebase OK (**10249**, exit 0) + smoke dominio 25/25 + automation 9/9. Determinista (regex), cero random, cero IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/UI/Room (JVM pura).
+- Commits: `8738ae2` feat(context) producto+test+sonda → (docs commit el actual marcador, empujar).
+- Próximas: laterales (c)/(d)/«concierto» DÉBILES ABIERTAS de la auditoría c.1248; el hermano está en su c.1252-audit XXXVI (disjoint-flota); nomimales-bit recurridos con prioridad de gate-evaluación-nuevas-sondas.
