@@ -270,6 +270,20 @@ object ContextIntentEngine {
     // «poda» c.1211).
     private val HOUSEHOLD_WEED_FLOOR =
         Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:malas?\s+)?hierbas?\b""")
+    // Piso faena doméstica "plantar (los) tomates / plantar la orquídea"
+    // (c.1215 — lateral ABIERTA de la auditoría clase VIGESIMOSÉPTIMA
+    // hermano c.1211, tercera sonda del dominio a propósito). «plantar»
+    // es monosemántico de jardinería, hermano estructural de «podar»
+    // c.748/c.1211 — lockstep TRES puntos (keyword-VERBO en ContextIntent
+    // + piso + plantilla). Objetos CERRADOS de cultivos (tomates/
+    // orquídeas/árboles/jardín/menta/tomillo/hierbabuena): "plantar"
+    // suelto no casa (canary anti-bivalencia pinado). Artículos e
+    // indefinidos (el|la|los|las|un|una) + posesivos (mi|tu|su) como el
+    // piso GARDEN (c.756). Guard negación heredado (?<!no ). El futuro
+    // «plantaré…» queda FUERA (pin en el test, misma lateral que
+    // «quitaré» c.1214 / «la poda» c.1211).
+    private val HOUSEHOLD_PLANTING_FLOOR =
+        Regex("""\b(?<!no )plantar\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?(?:tomates?|orquídeas?|árbol(?:es)?|jard(?:ín|ines)|menta|tomillo|hierbabuena)\b""")
     // Piso faena doméstica "sacar al perro" (c.740, primera mascota del
     // dominio — sonda NUEVA `FourthClassVerbDiscoveryProbe.kt` c.740,
     // paralela a Chore c.734): el quehacer diario con mascota canónico.
@@ -561,7 +575,7 @@ object ContextIntentEngine {
         // c.898. \b final: "carne(em)" ~cerveza/carne-em. Guard de
         // negación heredado (?<!no ).
         Regex("""\b(?<!no )(descongelar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:carnes?|pollos?|pescados?)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_VACCINE_DATIVE_FLOOR, HOUSEHOLD_PILL_DATIVE_FLOOR, HOUSEHOLD_NAIL_DATIVE_FLOOR, HOUSEHOLD_DEWORM_FLOOR, HOUSEHOLD_NEUTER_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_WALK_DOG_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR, HOUSEHOLD_MEAL_FLOOR, HOUSEHOLD_DEFROST_FLOOR, HOUSEHOLD_WEED_FLOOR, HOUSEHOLD_PLANTING_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -5993,6 +6007,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchQuitarHierbas != null) {
                     return "${capitalizeFirst(matchQuitarHierbas.groupValues[1])} ${matchQuitarHierbas.groupValues[2]}"
+                }
+                // "plantar (los) tomates / plantar la orquídea …" →
+                // "Plantar los tomates …" (c.1215): verbo preservado y
+                // objeto restringido como en [HOUSEHOLD_PLANTING_FLOOR]
+                // (segunda jardinería-transversal tras podar c.1211;
+                // artículos/indefinidos + posesivos como el piso c.756).
+                val matchPlantar = Regex(
+                    """\b(?<!no )(plantar)\s+((?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|mi\s+|tu\s+|su\s+)?(?:tomates?|orquídeas?|árbol(?:es)?|jard(?:ín|ines)|menta|tomillo|hierbabuena)\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPlantar != null) {
+                    return "${capitalizeFirst(matchPlantar.groupValues[1])} ${matchPlantar.groupValues[2]}"
                 }
                 // Piso "sacar al perro" (c.740; c.756 añade artículo
                 // directo; c.1050 extiende el objeto mascota a gato,

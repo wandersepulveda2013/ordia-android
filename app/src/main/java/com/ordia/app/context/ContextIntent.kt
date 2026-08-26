@@ -766,7 +766,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // veranda — así se alinea el OBJETO restringido, sonda
         // `FourthClassVerbDiscoveryProbe.kt`).
         "lavavajillas", "perro", "perra", "aspiradora", "ropa", "gato", "gata",
-        "veterinario", "veterinaria", "podar", "vacunar", "bañar", "casa")),
+        // c.1215: verbo keyword-LOCKSTEP «plantar» (hermano estructural de
+        // «podar» c.748 — monosemántico de jardinería; gate c.751). El
+        // objeto queda acotado en el piso `plantar + cultivo` (lista
+        // cerrada de cultivos) — sin él la notificación sin palabra
+        // gatillo no llega al análisis en producción (lección c.757).
+        "veterinario", "veterinaria", "podar", "plantar", "vacunar", "bañar", "casa")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {

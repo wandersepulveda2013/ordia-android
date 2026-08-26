@@ -1,3 +1,15 @@
+## 2026-08-26 — c.1215 CERRADO «plantar (los) tomates/cultivo» (lateral ABIERTA del hermano c.1211 — audit clase XXVII jardinería) + marcador c.1218 ABIERTO
+
+- HEAD inicial: `e56897b` → (marcador hermano c.1215 pre-push ya estaba en remoto `dfa7196`; base adoptada segura).
+- Cambios (lockstep TRES puntos): (1) piso NUEVO `HOUSEHOLD_PLANTING_FLOOR` en `ContextIntentEngine.kt` + lista maestra; (2) keyword-VERBO «plantar» en `ContextIntent.kt` (gate c.751 satisfecho, precedente «podar» c.748 keyword-VERBO monosemántico satisfecho); (3) plantilla `matchPlantar` (grafía preservada c.653).
+- Plural irregular correcto `árbol(?:es)?` desde el primer intent (canary JUnit atrapó el primer `árboles?` — exigía la «e»).
+- TDD estricto RED EXACTO (6/13 fallos, las 6 capturas) → GREEN.
+- Suite final (tras rebase sobre punta hermana) **OK (9963 = 9951 + 12 hermano — aritmética exacta)** + smoke dominio **25/25**. Sonda POST `tools/probe/PlantarCultivoProbe.kt`: 6/6 capturas + 4/4 guards NULL + 3/3 regresiones byte-idénticas.
+- Commits: (pendiente uno).
+- HEAD final: `PENDIENTE push (commit local rebase sobre punta hermana)`.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI (JVM pura, sin SDK).
+- Estado: **VERIFIED** (fix piso + keyword + plantilla) / marcador EN CURSO c.1218 (renum. c.1217 por primer-push-gana hermano) «lavar (el) coche / (la) camioneta» ABIERTO con gate pre-satisfecho («lavar» + «coche» keywords existen) para la siguiente ejecución.
+
 ## 2026-08-26 — run c.1211 STALE_RUN CONVERGENTE + re-pin aditiva (este lado; OpenHands)
 
 - HEAD inicial `e56897b` (mi marker EN CURSO). Implementación completa duplicada del fix (a) «podar el rosal/los setos» (lockstep DOS puntos; el hermano «2166cfd» la empujó primero — primer-push-gana c.1077, precedente c.1187 STALE_RUN).
