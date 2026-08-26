@@ -19460,3 +19460,22 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO** gradle/lint/assemble/UI/Room (sin Android SDK). Marcadores activos del hermano NO tocados: c.1177 (WhatsApp), c.1180 (currículum reflexivo).
 - Próxima prioridad: laterales abiertas registradas por el hermano — abuelos/suegros del piso médico (UNA por ciclo si demanda), (a) «tirar la basura» de la auditoría VIGÉSIMA c.1179; verificar marcadores activos antes de tomar cualquiera.
 - Nunca force, nunca main, cero pérdida de trabajo válido.
+
+## Run c.1182 (este lado, 2026-08-25) — feat(context): keyword «mail» del piso «responder…» (candidata (b) auditoría c.1173) FIXED VERIFIED
+
+**HEAD inicial:** tras integración de mi c.1177 + docs del hermano (sync pull --ff-only).
+**Problema (P1, evitar olvidos):** «responder el mail de trabajo esta noche» → NULL medido PRE (sonda persistida `tools/probe/NineteenthClassCommsProbe.kt` C13 re-medida sobre HEAD 6e33d27; anglicismo «mail» dominante en español hablado real). Cierre de la segunda abierta de MI clase DECIMONOVENA (auditoría c.1173) — clase ahora 14/14 HITs COMPLETA.
+**Causa raíz:** keyword-OBJETO ausente («correo»/«email»/«mensaje» c.867 no casan con «mail») → la frase no pasaba el gate de keywords. Asimetría de keyword (mismo patrón que c.1177).
+**Fix lockstep TRES puntos (lección c.616):**
+1. `ContextIntent.kt`: keyword-OBJETO «mail» en ERRAND tras «email» (subcadena, cubre plural; 0.12 sola inerte < umbral gate c.751).
+2. `ContextIntentEngine.kt` piso «responder…» (hasStrongTaskImperative): objeto `mails?` junto a `correos?|emails?|mensajes?`.
+3. Plantilla `matchResponderCorreo` (extractTitle): MISMO objeto (grafía preservada c.653).
+**TDD estricto (archivo NUEVO `ContextIntentEngineResponderMailFloorTest.kt`, 12 tests):**
+- **RED:** 5 fallos — 5 capturas NULL (singular/plural/posesivo/ack-prefijo/temporal-prefijo).
+- **GREEN:** 12/12 en 1 iteración (5 capturas TASK 0.45 con título limpio/dueAt + 4 guards NULL [negada/pasada/estado recibido/keyword sola inerte] + 3 regresiones hermanas [c.860 correo, c.867 email, c.1177 whatsapp]).
+**Sonda POST (motor real vía tools/run_probe.sh, sonda persistida re-ejecutada):** C13 NULL→TASK 0.45 «Responder el mail de trabajo» dueAt; clase 14/14.
+**Tests:** suite UNIÓN `run_domain_tests.sh` OK (9626 = 9614 + 12 — aritmética exacta); smokes dominio 25/25 y automation 9/9.
+**Archivos:** mod `app/src/main/java/com/ordia/app/context/ContextIntent.kt` (keyword), mod `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (piso+plantilla), add `app/src/test/java/com/ordia/app/context/ContextIntentEngineResponderMailFloorTest.kt`.
+**NO VERIFICADO:** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+**Laterales ABIERTAS (UNA por ciclo):** «contestar el mail…» (hermana del piso; no implementada en este ciclo).
+**Commit:** ver git log. **HEAD final:** tras push. Primer-marcador-gana (c.1077). Nunca force, nunca main.
