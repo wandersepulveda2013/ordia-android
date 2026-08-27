@@ -2,6 +2,21 @@
 
 > Solo decisiones técnicas significativas y duraderas.
 
+## DEC-004 (2026-08-27) — Sesión de draft del editor en `SavedStateHandle` con commit síncrono
+
+El estado de draft (`draftId` + `draftWasNew`) es la frontera de integridad entre
+el editor y la persistencia. RUN 009 lo respalda en un `SavedStateHandle`
+(provee `NotepadViewModelFactory` vía `createSavedStateHandle()`), de modo que
+sobrevive a rotación / proceso-muerte y el autosave posterior actualiza la fila
+original en vez de duplicarla. Además, `commitDraft` se reestructuró para que el
+snapshot del contenido que persiste el coroutine quede desacoplado de la limpieza
+de sesión, que ocurre de forma síncrona; así ningún `beginDraft` intercalado ve
+un estado de sesión inconsistente. `doPersist` (autosave, liga el draft) y
+`doPersistCommit` (persistencia final) quedaron como caminos separados.
+Alternativas descartadas: hacer el commit totalmente síncrono en el hilo de la
+UI (bloquea el back), o mantener el estado fuera del ViewModel (exigiría
+persistir la sesión en disco: más latencia y complejidad sin beneficio claro).
+
 ## DEC-003 (2026-08-27) — Título de nota: dato de una línea (no solo vista)
 
 El campo de título del editor es `singleLine=true` Y su `onValueChange` aplana

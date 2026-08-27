@@ -3,6 +3,32 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 009 — 2026-08-27
+
+- **Objetivo:** P1 — cerrar la integridad del ciclo de draft del editor: el estado
+  de draft se limpiaba de forma asíncrona y no sobrevivía a rotación/proceso-muerte,
+  con riesgo de notas duplicadas o cross-contaminadas (BUG-006).
+- **Hallazgo (evidencia):** `commitDraft` limpiaba `draftId`/`draftWasNew` DENTRO del
+  `launch` (tras persistir). Salir de una nota y abrir otra antes de que ese
+  coroutine corriera hacía que el autosave de la nota nueva fuese bajo un draft
+  vacío → fila duplicada (test de regresión reproducía `expected:<2> but was:<3>`).
+  Además el draft solo vivía en memoria: rotación/proceso-muerte reseteaban el id y
+  el siguiente autosave insertaba otra nota distinta.
+- **Cambio:** sesión de draft respaldada por `SavedStateHandle` (factory con
+  `createSavedStateHandle()`); `commitDraft` hace snapshot y limpia la sesión de
+  forma SÍNCRONA y pasa el snapshot al coroutine (`doPersistCommit`, que ya no toca
+  la sesión); `beginDraft` solo hace resume-guard cuando `existingId == null` (la
+  recomposición de una nota nueva con draft en vuelo), nunca para ids explícitos;
+  `doPersist` (autosave) separado de `doPersistCommit` (contenido final).
+- **Tests:** +4 de regresión en `NotepadViewModelTest` (resume en recreación,
+  proceso-muerte, back→abrir otra nota existente, back→"+" nota nueva). Suite total:
+  **44/44 verdes en las 3 variantes** (`previewSafe`/`Advanced`/`Full`).
+  `assembleRelease` 3 variantes → BUILD SUCCESSFUL.
+- **Commit:** `fix(notes): sync draft commit and survive recreation/process death`.
+- **Estado:** commit creado; push pendiente al cierre.
+- **Siguiente tarea:** ver NEXT_TASKS (P2 tests de UI del editor / accesibilidad /
+  fecha relativa). Backlog sano y sin regresiones.
+
 ## RUN 008 — 2026-08-27
 
 - **Objetivo:** P1 — arreglar la búsqueda muerta en la UI (icono sin efecto) y el

@@ -5,7 +5,9 @@
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (10 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (18 tests).
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (22 tests,
+  RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
+  commit→beginDraft hacia otra nota, y nota nueva tras back).
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (2 tests).
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
@@ -13,6 +15,13 @@
 
 ## Último resultado
 
+- 2026-08-27 (ejecución 009): `testPreviewSafeDebugUnitTest` → **44 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL); `testPreviewAdvancedDebugUnitTest`
+  → **44/44**; `testPreviewFullDebugUnitTest` → **44/44**. `assembleRelease`
+  3 variantes → OK. Añadidas 4 regresiones del ciclo de draft (BUG-006):
+  resume tras recreación, restauración de la sesión tras proceso-muerte,
+  carrera commit→abrir otra nota existente, y nota nueva tras back. Pre-fix
+  ambas regresiones de carrera fallaban (duplicado, `expected:<2> but was:<3>`).
 - 2026-08-27 (ejecución 003): `testPreviewSafeDebugUnitTest` → **29 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL).
 - 2026-08-27 (ejecución 004): `testPreviewSafeDebugUnitTest` → **30 tests,
@@ -35,6 +44,14 @@
 
 ## Tests recientemente agregados
 
+- `NotepadViewModelTest` RUN 009 (+4, BUG-006, ciclo de draft):
+  `beginDraftAgain_resumesLiveDraft_doesNotDuplicateNote` (recomposición de una
+  nota nueva cuyo autosave ya creó fila → no duplica), `processDeath_restoresDraftId_avoidsDuplicateNote`
+  (sesión de draft restaurada desde `SavedStateHandle`), `beginDraft_afterCommitLaunched_switchesDraftToNewNote`
+  (carrera commit→abrir otra nota existente: el rebind prevalece, sin
+  cross-contaminación) y `beginDraft_nullAfterCommitLaunched_startsFreshNewNote`
+  (carrera commit→"+": la nota nueva se crea fresca, sin volver al draft anterior).
+  Antes del fix, las de carrera fallaban con filas duplicadas.
 - `NotesListSearchInteractiveTest` (RUN 008, nuevo): regresión UI de BUG-005 —
   el icono de búsqueda era un "no-op" porque `isSearching` se derivaba del texto
   de la query y el icono solo llamaba `onSearchQueryChange("")`. Verifica el
@@ -67,4 +84,8 @@
 - Primer test de UI (Compose) añadido: `NoteEditorBackSaveTest` (back del sistema
   en el editor). La navegación lista↔editor y el snackbar de deshacer se siguen
   validando principalmente de forma manual.
-- Sin tests de proceso-muerte (`rememberSaveable` del editor) más allá del back-save.
+- Proceso-muerte del editor cubierto parcialmente desde RUN 009: la sesión de
+  draft del ViewModel (`draftId`/`draftWasNew`) se restaura desde
+  `SavedStateHandle` con test de regresión a nivel ViewModel. Sigue sin UI test
+  Compose que ejercite `rememberSaveable` del editor + recreación real de
+  actividad.

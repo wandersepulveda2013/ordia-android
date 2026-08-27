@@ -3,6 +3,25 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 009 (integridad del ciclo de draft del editor, P1)
+
+- **Duplicados / cross-contaminación al cambiar de nota en ráfaga (BUG-006):**
+  se eliminó la carrera entre `commitDraft` (persistencia lanzada) y un
+  `beginDraft` posterior. `commitDraft` ahora captura un snapshot y limpia la
+  sesión SÍNCRONAMENTE, pasando ese snapshot al coroutine
+  (`doPersistCommit`); `beginDraft` ya no puede ver un draft a medio limpiar.
+  Cierre de la nota anterior y apertura de otra existente o de una nota nueva
+  funcionan en cualquier orden, sin notas duplicadas ni escrituras cruzadas.
+- **El draft sobrevive a rotación/proceso-muerte:** la sesión de draft
+  (`draftId` + `draftWasNew`) vive ahora en un `SavedStateHandle`, de modo que un
+  ViewModel recreado restaura el id y el siguiente autosave actualiza la nota
+  original (no inserta una copia). `NotepadViewModelFactory` expone
+  `createSavedStateHandle()` y `MainActivity` lo usa vía `viewModel(factory=...)`.
+- **Tests:** +4 regresiones en `NotepadViewModelTest` (recreación, proceso-muerte,
+  dos carreras commit→beginDraft). Pre-fix las 2 de carrera fallaban con filas
+  duplicadas. Suite: **44/44 verdes en las 3 variantes**; `assembleRelease` 3
+  variantes OK.
+
 ## 2026-08-27 — Ejecución 008 (búsqueda utilizable + layout sin solape, P1)
 
 - **BUG-005 (a): la búsqueda era inalcanzable desde la UI.** El icono de la

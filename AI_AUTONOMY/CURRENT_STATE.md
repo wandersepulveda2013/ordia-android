@@ -23,7 +23,11 @@
   (`onAutosave` por cambio de texto, `onCommit` al atrás/"Hecho").
 - Persistencia del editor: `ui/NotepadViewModel.kt` — ciclo de draft
   `beginDraft`/`autosave`/`commitDraft`, persistencia compartida bajo `draftId`,
-  debounce 800 ms.
+  debounce 800 ms. RUN 009: la sesión de draft (id + flag de nota nueva) vive en
+  un `SavedStateHandle` (sobrevive a rotación/proceso-muerte) y `commitDraft`
+  hace snapshot + limpieza síncrona (sin carrera con un `beginDraft` posterior).
+  `MainActivity` construye el ViewModel con `NotepadViewModelFactory` +
+  `createSavedStateHandle()`.
 - Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer y
   búsqueda (filtro por título/contenido; RUN 008: modo búsqueda conmutable desde
   la lupa + layout en `Column` sin solapes).
@@ -32,7 +36,8 @@
 
 - `ui/NotepadViewModel.kt` (+`restore`, guardia de nota vacía en `save`; y en RUN 003
   el ciclo de draft `beginDraft`/`autosave`/`commitDraft` + `persist` compartida; en
-  RUN 005 `searchQuery`/`searchResults` con `flatMapLatest`).
+  RUN 005 `searchQuery`/`searchResults` con `flatMapLatest`; en RUN 009 sesión de
+  draft en `SavedStateHandle` + `doPersist`/`doPersistCommit`).
 - `ui/screens/NotesListScreen.kt` (snackbar undo; en RUN 005 campo de búsqueda con
   contador de resultados y estado "sin resultados").
 - `ui/NotepadApp.kt` (cableado de `onRestoreNote`; en RUN 003 llama a `beginDraft`
@@ -48,10 +53,12 @@
   regresión BUG-005 + aserción de bounds anti-solape).
 
 ## Fix esta ejecución
-- RUN 008: búsqueda utilizable (BUG-005) — `isSearching` explícito conmutado por el
-  icono de la lupa y apagado al limpiar la query; layout del Scaffold envuelto en
-  una `Column` (el SearchHeader ya no tapa la primera fila). +3 tests de UI y
-  aserción de bounds anti-solape.
+- RUN 009: integridad del ciclo de draft (BUG-006, P1) — la sesión de draft
+  (`draftId` + `draftWasNew`) se respalda en `SavedStateHandle` (sobrevive a
+  rotación/proceso-muerte); `commitDraft` hace snapshot + limpieza síncrona y el
+  coroutine aplica el contenido final sin tocar la sesión; `beginDraft` solo
+  resume cuando es una nota nueva en vuelo. Elimina duplicados/cross-contaminación
+  al cambiar de nota en ráfaga. +4 tests de regresión.
 
 ## Fix ejecución anterior
 - RUN 007: undo seguro ante reutilización de ids (BUG-004) — `restore` reutiliza el
@@ -74,6 +81,7 @@
 
 ## Estado de tests
 
-- Última ejecución: 40/40 verdes (`testPreviewSafeDebugUnitTest`, RUN 008):
-  10 DAO + 7 Repo + 2 UI + 18 ViewModel + 3 UI búsqueda. `assembleRelease`
+- Última ejecución: 44/44 verdes en las 3 variantes (RUN 009):
+  `testPreviewSafeDebugUnitTest` = 44 (10 DAO + 7 Repo + 2 UI + 22 ViewModel + 3 UI
+  búsqueda); `previewAdvanced` y `previewFull` también 44/44. `assembleRelease`
   3 variantes OK. Detalle en `TEST_STATUS.md`.

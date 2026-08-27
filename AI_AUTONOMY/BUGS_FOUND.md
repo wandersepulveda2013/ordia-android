@@ -2,6 +2,42 @@
 
 > Formato: bug · impacto · reproducción · causa · estado · commit.
 
+## BUG-006 — Duplicados/cross-contaminación por limpieza asíncrona del draft y draft en memoria (P1)
+
+- **Impacto:** (a) salir de una nota y abrir otra en ráfaga podía (i) crear una
+  nota duplicada — el autosave de la nota nueva se hacía bajo un `draftId` ya
+  vacío → insert de nueva fila — o (ii) escribir el contenido de una nota dentro
+  de la fila de la anterior; (b) rotación / proceso-muerte perdía el id del draft
+  en memoria y el siguiente autosave insertaba una segunda nota distinta del
+  mismo borrador. Zona crítica de la misión (cambio rápido entre notas,
+  reinstanciación, cierre inesperado).
+- **Reproducción:** (a) abrir nota A → escribir → back → abrir nota B al instante
+  → escribir → puede haber 3 filas (A, A, B) o B escrita sobre A. Test de
+  regresión: `beginDraft_afterCommitLaunched_switchesDraftToNewNote`, antes del
+  fix `expected:<2> but was:<3>`. (b) nota nueva → escribir (autosave crea la
+  fila) → rotar/recrear → escribir → duplicado; test:
+  `beginDraftAgain_resumesLiveDraft_doesNotDuplicateNote` y
+  `processDeath_restoresDraftId_avoidsDuplicateNote`.
+- **Causa:** (a) `commitDraft` limpiaba `draftId`/`draftWasNew` dentro del
+  coroutine lanzado, tras persistir: un `beginDraft` posterior podía
+  intercalarse y ver el draft aún vivo (para id explícito rebind) o ya muerto
+  (para nueva nota → insert duplicado). El fallo era estructural
+  (uso asíncrono del estado mutable de sesión), no de temporización; de ahí que
+  los tests deterministas con `StandardTestDispatcher` lo reprodujeran siempre.
+  (b) el draft solo vivía en memoria del ViewModel (no se restauraba).
+- **Estado:** FIXED — sesión de draft respaldada por `SavedStateHandle`;
+  `commitDraft` hace snapshot + limpieza síncrona y pasa el snapshot al
+  coroutine (`doPersistCommit`, que nunca toca la sesión); `beginDraft` solo hace
+  resume-guard para `existingId == null` con draft en vuelo; separados
+  `doPersist` (autosave, liga el draft) y `doPersistCommit` (contenido final).
+- **Commit:** RUN 009 en `openhands/autonomous-notes`.
+- **Test:** 4 regresiones en `NotepadViewModelTest`:
+  `beginDraftAgain_resumesLiveDraft_doesNotDuplicateNote`,
+  `processDeath_restoresDraftId_avoidsDuplicateNote`,
+  `beginDraft_afterCommitLaunched_switchesDraftToNewNote`,
+  `beginDraft_nullAfterCommitLaunched_startsFreshNewNote`.
+  Antes del fix: las 2 de la carrera fallan (duplicado); tras el fix: todas verdes.
+
 ## BUG-001 — Eliminación de nota sin confirmación ni deshacer (P0)
 
 - **Impacto:** un toque accidental en "Eliminar" destruye la nota de forma
