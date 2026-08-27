@@ -2,10 +2,12 @@
 
 ## Suites disponibles
 
-- `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric 4.14.1, sdk=33):
+- `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (10 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (17 tests).
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (18 tests).
+  - `NoteEditorBackSaveTest` — UI Compose/Robolectric (2 tests).
+  - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
   específicos de flavor por ahora).
 
@@ -25,9 +27,21 @@
   0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de regresión del undo
   (BUG-004): `restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId`
   (el caso de id libre lo cubre `deleteThenRestore_keepsSameIdAndContent`).
+- 2026-08-27 (ejecución 008): `testPreviewSafeDebugUnitTest` → **40 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido `NotesListSearchInteractiveTest`
+  (3 tests, BUG-005): la lupa abre el campo y filtra, toggle off sale de búsqueda,
+  limpiar la query restaura la lista; + aserción de bounds (el campo no solapa la
+  primera fila). `assembleRelease` 3 variantes OK.
 
 ## Tests recientemente agregados
 
+- `NotesListSearchInteractiveTest` (RUN 008, nuevo): regresión UI de BUG-005 —
+  el icono de búsqueda era un "no-op" porque `isSearching` se derivaba del texto
+  de la query y el icono solo llamaba `onSearchQueryChange("")`. Verifica el
+  flujo real: abrir desde la lupa con query vacía, filtrar tecleando, salir del
+  modo y restauración de la lista al limpiar; además comprueba por `boundsInRoot`
+  que el `SearchHeader` termina por encima de la primera fila de la lista
+  (regresión de layout).
 - `NotepadViewModelTest` avanzado con el ciclo de draft (autosave): debounce
   (nada se persiste antes de 800 ms), cancelación por tecleo rápido, no duplicado
   al hacer back tras autosave, guardia de nota nueva en blanco (autosave y commit),

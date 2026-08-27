@@ -60,6 +60,31 @@
 - **Resuelto por:** eliminar el `LaunchedEffect` de reseed en `NoteEditorScreen`.
   Pendiente: añadir un UI test Compose (androidTest) que verifique que la rotación
   preserva el texto sin persistir.
+## BUG-005 — El icono de búsqueda era inalcanzable y el campo tapaba la lista (P1)
+
+- **Impacto:** (a) la búsqueda de RUN 005 no se podía abrir desde la UI: tocar la
+  lupa no hacía nada, `isSearching` se derivaba de `searchQuery.isNotBlank()` y el
+  icono solo llamaba `onSearchQueryChange("")`, así que el estado nunca pasaba a
+  verdadero; (b) además, al activarse la búsqueda, el campo se dibujaba ENCIMA de
+  la primera fila de la lista (ambos hacían `fillMaxSize().padding()` por separado
+  dentro del `Box` del Scaffold), ocultando/truncando la primera nota.
+- **Reproducción:** (a) abrir la lista → tocar la lupa → no aparece el campo;
+  (b) con el campo visible, la primera nota quedaba tapada por el SearchHeader.
+- **Causa:** (a) el icono llamaba `onSearchQueryChange("")` en vez de conmutar un
+  estado de "modo búsqueda"; el modo se infería del texto de la query, por lo que
+  era imposible entrar con query vacía. Introducido en RUN 005 con la búsqueda.
+  (b) estructura de layout: `SearchHeader` y `NoteList` eran hermanos en el `Box`
+  del Scaffold, cada uno reaplicando `padding`.
+- **Estado:** FIXED — `isSearching` pasa a ser un `rememberSaveable` explícito
+  conmutado por el icono (y reseteado a false cuando la query queda en blanco al
+  limpiar, `LaunchedEffect(searchQuery)`); el contenido del Scaffold se envuelve
+  en una `Column` que aplica el padding de insets una sola vez y apila header +
+  lista (`NoSearchResults`/`EmptyState` con `Modifier.weight(1f)`).
+- **Commit:** RUN 008 en `openhands/autonomous-notes`.
+- **Test:** `NotesListSearchInteractiveTest` (3 tests de regresión: abrir y
+  filtrar desde la UI, toggle off, limpiar query; + aserción de bounds que el
+  campo no solape la primera fila).
+
 ## BUG-004 — "Deshacer" de una nota borrada podía sobrescribir otra nota (P1)
 
 - **Impacto:** SQLite reutiliza rowids tras un borrado (`INTEGER PRIMARY KEY`

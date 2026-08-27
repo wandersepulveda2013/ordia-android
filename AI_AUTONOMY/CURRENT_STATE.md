@@ -25,9 +25,10 @@
   `beginDraft`/`autosave`/`commitDraft`, persistencia compartida bajo `draftId`,
   debounce 800 ms.
 - Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer y
-  búsqueda (filtro por título/contenido).
+  búsqueda (filtro por título/contenido; RUN 008: modo búsqueda conmutable desde
+  la lupa + layout en `Column` sin solapes).
 
-## Áreas recientemente modificadas (ejecuciones 001-006)
+## Áreas recientemente modificadas (ejecuciones 001-008)
 
 - `ui/NotepadViewModel.kt` (+`restore`, guardia de nota vacía en `save`; y en RUN 003
   el ciclo de draft `beginDraft`/`autosave`/`commitDraft` + `persist` compartida; en
@@ -40,11 +41,19 @@
 - `ui/screens/NoteEditorScreen.kt` (`BackHandler` BUG-003; en RUN 003 cambia a
   `onAutosave`/`onCommit`, el `BackHandler` ejecuta `onCommit`; en RUN 006 el título
   pasa a `singleLine=true` y se aplanan `\n` en `onValueChange` → dato de una línea).
-- `src/test/.../NotepadViewModelTest.kt` (nuevo, 17 tests tras RUN 005).
+- `src/test/.../NotepadViewModelTest.kt` (nuevo, 18 tests tras RUN 007).
 - `src/test/.../NoteEditorBackSaveTest.kt` (RUN 004 back-save; RUN 006 +test
   single-line del título).
+- `src/test/.../NotesListSearchInteractiveTest.kt` (RUN 008, nuevo, 3 tests de
+  regresión BUG-005 + aserción de bounds anti-solape).
 
 ## Fix esta ejecución
+- RUN 008: búsqueda utilizable (BUG-005) — `isSearching` explícito conmutado por el
+  icono de la lupa y apagado al limpiar la query; layout del Scaffold envuelto en
+  una `Column` (el SearchHeader ya no tapa la primera fila). +3 tests de UI y
+  aserción de bounds anti-solape.
+
+## Fix ejecución anterior
 - RUN 007: undo seguro ante reutilización de ids (BUG-004) — `restore` reutiliza el
   id original solo si sigue libre; si otra nota lo reutilizó, inserta bajo id nuevo
   y nunca sobrescribe una nota viva.
@@ -65,6 +74,6 @@
 
 ## Estado de tests
 
-- Última ejecución: 37/37 verdes (`testPreviewSafeDebugUnitTest`, RUN 007):
-  10 DAO + 7 Repo + 2 UI + 18 ViewModel. `assembleRelease` 3 variantes OK.
-  Detalle en `TEST_STATUS.md`.
+- Última ejecución: 40/40 verdes (`testPreviewSafeDebugUnitTest`, RUN 008):
+  10 DAO + 7 Repo + 2 UI + 18 ViewModel + 3 UI búsqueda. `assembleRelease`
+  3 variantes OK. Detalle en `TEST_STATUS.md`.

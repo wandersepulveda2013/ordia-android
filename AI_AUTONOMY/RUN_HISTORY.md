@@ -3,6 +3,27 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 008 — 2026-08-27
+
+- **Objetivo:** P1 — arreglar la búsqueda muerta en la UI (icono sin efecto) y el
+  solape del campo con la lista (BUG-005).
+- **Hallazgo:** el icono de la lupa llamaba `onSearchQueryChange("")` y el "modo
+  búsqueda" se infería de `searchQuery.isNotBlank()`: imposible entrar con query
+  vacía → la búsqueda de RUN 005 era inalcanzable. Y al activarla, el
+  `SearchHeader` y la `LazyColumn` eran hermanos en el `Box` del Scaffold (cada
+  uno con `fillMaxSize().padding()`), así que el campo se dibujaba encima de la
+  primera fila.
+- **Cambio:** `isSearching` explícito (`rememberSaveable`, conmutado por el icono,
+  apagado al limpiar la query); contenido del Scaffold envuelto en una `Column`
+  que aplica el padding una vez y apila header + lista (vacíos con `weight(1f)`).
+- **Tests:** `testPreviewSafeDebugUnitTest` → **40/40 verdes** (10 DAO + 7 Repo +
+  2 UI + 18 ViewModel + 3 `NotesListSearchInteractiveTest`). `assembleRelease`
+  3 variantes → BUILD SUCCESSFUL.
+- **Commit:** `fix(notes): make search reachable from UI and stop header overlapping list`.
+- **Estado:** commit creado; **falta push** al cierre (se hará al final).
+- **Siguiente tarea:** candados de búsqueda resueltos; ver NEXT_TASKS (P2 #2
+  confirmación de borrado / P3 accesibilidad / extender tests de UI del editor).
+
 ## RUN 007 — 2026-08-27
 
 - **Objetivo:** P1 — hacer que el "Deshacer" de borrado sea seguro ante la

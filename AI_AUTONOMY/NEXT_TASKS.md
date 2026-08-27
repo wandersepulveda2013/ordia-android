@@ -9,7 +9,8 @@ _(vacío tras la ejecución 001: eliminación sin deshacer y notas vacías queda
 
 ## P1 — Alto impacto
 
-_(vacío tras la ejecución 003: autosave del editor resuelto — ver DEC-002)_
+_(vacío; RUN 008 resolvió BUG-005: la búsqueda era inalcanzable desde la UI y el
+campo tapaba la primera fila — ver BUGS_FOUND.md. RUN 003 resolvió el autosave.)_
 
 ## P2 — Calidad de producto
 

@@ -3,6 +3,23 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 008 (búsqueda utilizable + layout sin solape, P1)
+
+- **BUG-005 (a): la búsqueda era inalcanzable desde la UI.** El icono de la
+  toolbar llamaba `onSearchQueryChange("")` y `isSearching` se derivaba de
+  `searchQuery.isNotBlank()`, así que nunca podía entrar en modo búsqueda con
+  query vacía. Ahora `isSearching` es un `rememberSaveable` explícito conmutado
+  por el icono y apagado cuando se limpia la query. Detallado en
+  `BUGS_FOUND.md`.
+- **BUG-005 (b): el campo de búsqueda tapaba la primera nota.** `SearchHeader` y
+  `NoteList` eran hermanos en el `Box` del Scaffold, cada uno con
+  `fillMaxSize().padding()`; al activar la búsqueda el campo se dibujaba encima
+  de la primera fila. El contenido se envuelve ahora en una `Column` con el
+  padding de insets aplicado una vez (estados vacíos con `Modifier.weight(1f)`).
+- **Tests:** 40/40 verdes (`NotesListSearchInteractiveTest` +3: abrir/filtrar,
+  toggle off, limpiar query; aserción de bounds anti-solape). `assembleRelease`
+  de las 3 variantes → OK.
+
 ## 2026-08-27 — Ejecución 007 (undo seguro ante reutilización de ids, P1)
 
 - **"Deshacer" ya no puede sobrescribir una nota viva (BUG-004):**
