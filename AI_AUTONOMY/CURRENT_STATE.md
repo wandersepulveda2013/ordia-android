@@ -27,7 +27,7 @@
 - Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer y
   búsqueda (filtro por título/contenido).
 
-## Áreas recientemente modificadas (ejecuciones 001-005)
+## Áreas recientemente modificadas (ejecuciones 001-006)
 
 - `ui/NotepadViewModel.kt` (+`restore`, guardia de nota vacía en `save`; y en RUN 003
   el ciclo de draft `beginDraft`/`autosave`/`commitDraft` + `persist` compartida; en
@@ -38,11 +38,14 @@
   y pasa `onAutosave`/`onCommit`; en RUN 005 sirve `searchResults` si el query no
   está en blanco).
 - `ui/screens/NoteEditorScreen.kt` (`BackHandler` BUG-003; en RUN 003 cambia a
-  `onAutosave`/`onCommit`, el `BackHandler` ejecuta `onCommit`).
-- `src/test/.../NotepadViewModelTest.kt` (nuevo, 14 tests tras RUN 003).
+  `onAutosave`/`onCommit`, el `BackHandler` ejecuta `onCommit`; en RUN 006 el título
+  pasa a `singleLine=true` y se aplanan `\n` en `onValueChange` → dato de una línea).
+- `src/test/.../NotepadViewModelTest.kt` (nuevo, 17 tests tras RUN 005).
+- `src/test/.../NoteEditorBackSaveTest.kt` (RUN 004 back-save; RUN 006 +test
+  single-line del título).
 
 ## Fix esta ejecución
-- RUN 005: implementada la búsqueda de notas (P2 #1) — DAO/repo/ViewModel/UI.
+- RUN 006: título del editor en una línea (visual + datos) — P2 #1; test de regresión.
 
 ## Riesgos abiertos
 
@@ -60,6 +63,6 @@
 
 ## Estado de tests
 
-- Última ejecución: 35/35 verdes (`testPreviewSafeDebugUnitTest`, RUN 005):
-  10 DAO + 7 Repo + 17 ViewModel + 1 UI. `assembleRelease` 3 variantes OK.
+- Última ejecución: 36/36 verdes (`testPreviewSafeDebugUnitTest`, RUN 006):
+  10 DAO + 7 Repo + 2 UI + 17 ViewModel. `assembleRelease` 3 variantes OK.
   Detalle en `TEST_STATUS.md`.

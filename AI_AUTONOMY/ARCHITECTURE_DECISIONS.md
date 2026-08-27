@@ -2,6 +2,16 @@
 
 > Solo decisiones técnicas significativas y duraderas.
 
+## DEC-003 (2026-08-27) — Título de nota: dato de una línea (no solo vista)
+
+El campo de título del editor es `singleLine=true` Y su `onValueChange` aplana
+los saltos de línea (sustituye `\n` por espacio) antes de actualizar el estado y
+el autosave. Motivo: la lista pinta los títulos con `maxLines=1`, así que un
+`\n` persistido en el título quedaría invisible pero almacenado — incoherencia
+de datos verificada por test (`singleLine` por sí solo no filtra un pegado). No
+hay migración Room (no se altera el esquema); es saneamiento en la capa de
+entrada de UI.
+
 ## DEC-002 (2026-08-27) — Autosave del editor con ciclo de draft (debounce 800 ms)
 
 El editor ya no persiste "solo al volver atrás": el `NotepadViewModel` mantiene

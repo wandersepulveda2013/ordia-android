@@ -3,6 +3,15 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 006 (título del editor en una línea, P2 #1)
+
+- **Título de una línea de verdad (visual + datos):** `NoteEditorScreen` ahora fija
+  `singleLine=true` y, lo más importante, aplanar los saltos `\n` en el
+  `onValueChange` del campo de título. El test de regresión probó que `singleLine`
+  por sí solo NO impedía que un **pegado** introdujera `\n` en los datos (títulos
+  multilínea invisibles, ya que la lista muestra `maxLines=1`). Ahora el dato es
+  estrictamente de una línea, coherente con la lista.
+
 ## 2026-08-27 — Ejecución 005 (búsqueda de notas)
 
 - **Búsqueda de notas (P2 #1):** nuevo campo de búsqueda que filtra por título y

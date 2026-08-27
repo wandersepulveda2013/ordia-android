@@ -13,8 +13,9 @@ _(vacío tras la ejecución 003: autosave del editor resuelto — ver DEC-002)_
 
 ## P2 — Calidad de producto
 
-1. **`NoteEditorScreen`: título largo.** `TextField` de título de una línea no
-   está limitado; cosmético. Revisar `singleLine`/`maxLines` deseado.
+1. **`NoteEditorScreen`: título largo.** RESUELTO en RUN 006 — título de una línea
+   (visual + datos): `singleLine=true` y aplanado de `\n` en `onValueChange` del
+   título para no persistir títulos multilínea. Cobertura: test de UI de regresión.
 2. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
    evaluar si el snackbar de deshacer es suficiente (probablemente sí).
 3. **Búsqueda con acentos/tilde.** La búsqueda actual usa `LIKE` case-insensitive

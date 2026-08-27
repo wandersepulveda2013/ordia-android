@@ -18,6 +18,9 @@
 - 2026-08-27 (ejecución 005): `testPreviewSafeDebugUnitTest` → **35 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadida la búsqueda de notas
   (P2) + `@OptIn` por `flatMapLatest`. `assembleRelease` 3 variantes OK.
+- 2026-08-27 (ejecución 006): `testPreviewSafeDebugUnitTest` → **36 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de regresión del
+  título de una línea. `assembleRelease` 3 variantes OK.
 
 ## Tests recientemente agregados
 
@@ -29,6 +32,8 @@
 - `NoteEditorBackSaveTest` (NUEVO, Robolectric+Compose): regresión UI del bug P0
   de pérdida de datos — el retroceso del sistema en el editor debe hacer `onCommit`
   de la edición en curso antes de navegar. Verifica back-save, autosave y navegación.
+  RUN 006: `titleField_isSingleLine_dropsEmbeddedNewline` — pegar `\n` en el título
+  no debe persistir títulos multilínea (dato aplanado).
 - `NoteDaoTest`/`NotepadViewModelTest` (búsqueda, P2): filters por título y
   contenido case-insensitive (DAO, 3 tests), filtro por query en el ViewModel,
   restaurar todas al limpiar y query por defecto (ViewModel, 3 tests).

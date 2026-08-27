@@ -82,3 +82,20 @@ Hallazgo: la rama remota ya resolvía el bug P0 (BackHandler + autosave + guarda
 Cambio: descarté mis commits redundantes (reset --hard a origin/openhands/autonomous-notes), añadí deps de test de UI (ui-test-junit4, activity-compose) y reescribí NoteEditorBackSaveTest contra la API onAutosave/onCommit.
 Tests: testPreviewSafeDebugUnitTest → 30/30 verdes (8 DAO + 7 Repo + 14 ViewModel + 1 UI).
 Commit: test(editor): cover system-back save.
+
+## 2026-08-27 — RUN 006 — título de una línea (P2 #1)
+- **Objetivo:** resolver P2 #1 (título del editor no limitado en la UI minimalista).
+- **Hallazgo:** `singleLine=true` es solo visual; al **pegar** texto, el `\n` entraba
+  igual en los datos (lo demostró el test de regresión al fallar). La lista muestra
+  títulos con `maxLines=1`, así que los saltos incrustados quedaban invisibles pero
+  persistidos → anomalía de datos real.
+- **Cambio:** en `NoteEditorScreen`, `singleLine=true` + aplanar `\n` en
+  `onValueChange` del título (se sustituye por espacio) para que el dato sea de una
+  línea de verdad, no solo la vista. Test: `titleField_isSingleLine_dropsEmbeddedNewline`.
+- **Tests:** `testPreviewSafeDebugUnitTest` → 36/36 verdes (10 DAO + 7 Repo + 2 UI + 17
+  VM). `assembleRelease` 3 variantes OK (3m43s).
+- **Commit:** `fix(editor): enforce single-line title in data and view`.
+- **Estado:** limpio; pendiente push a `origin/openhands/autonomous-notes`.
+- **Siguiente tarea:** P2 #2 (confirmación de borrado — probablemente OK con undo) o
+  ampliar tests de UI del editor (back tras autosave no duplica; "Hecho"/flecha hace
+  commit como el back).
