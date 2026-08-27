@@ -54,3 +54,10 @@ duplicado redundante → lo descarté adoptando la rama remota). Bug nuevo: el r
 `LaunchedEffect(note?.id)` en NoteEditorScreen borraba lo escrito al recrear la pantalla
 (instantánea obsoleta de la BD vs texto en `rememberSaveable`). Cambio: eliminar el reseed.
 Tests: 29 JVM (previewSafe) verdes; compila las 3 variantes. Commit: pendiente.
+
+## 2026-08-27 — test de regresión UI del back-save
+Objetivo: reconciliar la rama con el trabajo remoto avanzado y aportar valor no duplicado.
+Hallazgo: la rama remota ya resolvía el bug P0 (BackHandler + autosave + guarda de blancas); mi fix local era redundante. Valor único: test de regresión UI del back del sistema.
+Cambio: descarté mis commits redundantes (reset --hard a origin/openhands/autonomous-notes), añadí deps de test de UI (ui-test-junit4, activity-compose) y reescribí NoteEditorBackSaveTest contra la API onAutosave/onCommit.
+Tests: testPreviewSafeDebugUnitTest → 30/30 verdes (8 DAO + 7 Repo + 14 ViewModel + 1 UI).
+Commit: test(editor): cover system-back save.

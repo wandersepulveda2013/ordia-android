@@ -13,6 +13,8 @@
 
 - 2026-08-27 (ejecución 003): `testPreviewSafeDebugUnitTest` → **29 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL).
+- 2026-08-27 (ejecución 004): `testPreviewSafeDebugUnitTest` → **30 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de UI para el editor.
 
 ## Tests recientemente agregados
 
@@ -21,6 +23,9 @@
   al hacer back tras autosave, guardia de nota nueva en blanco (autosave y commit),
   ghost autodestruida si el usuario vacía todo, save-after-delete (no resucitar),
   draft sobre nota existente que conserva `createdAt`.
+- `NoteEditorBackSaveTest` (NUEVO, Robolectric+Compose): regresión UI del bug P0
+  de pérdida de datos — el retroceso del sistema en el editor debe hacer `onCommit`
+  de la edición en curso antes de navegar. Verifica back-save, autosave y navegación.
 
 ## Flakiness
 
@@ -28,6 +33,7 @@
 
 ## Cobertura relevante / huecos conocidos
 
-- Sin tests de UI (Compose). La navegación lista↔editor y el snackbar de
-  deshacer se validan solo manualmente.
-- Sin tests de proceso-muerte (`rememberSaveable` del editor).
+- Primer test de UI (Compose) añadido: `NoteEditorBackSaveTest` (back del sistema
+  en el editor). La navegación lista↔editor y el snackbar de deshacer se siguen
+  validando principalmente de forma manual.
+- Sin tests de proceso-muerte (`rememberSaveable` del editor) más allá del back-save.

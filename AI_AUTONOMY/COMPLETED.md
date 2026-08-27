@@ -39,3 +39,10 @@
   001 y 002): conservados undo de borrado, guardia de nota vacía y BackHandler.
 - **`NotepadViewModelTest`** ampliado a 7 tests (+ título en blanco con
   contenido, + no recrear nota inexistente por `existingId`).
+
+## 2026-08-27 — Ejecución 004 (test de regresión UI del back-save)
+
+- **Test de regresión UI para el bug P0 del back del sistema** (BUG-003):
+  `NoteEditorBackSaveTest` usa Robolectric+Compose para disparar el retroceso del
+  sistema y verifica que el editor hace `onCommit` de la edición antes de navegar;
+  cubre el hueco de "sin tests de UI" del editor. Suite: 30/30 verdes.
