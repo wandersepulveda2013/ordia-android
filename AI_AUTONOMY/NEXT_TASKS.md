@@ -9,12 +9,7 @@ _(vacío tras la ejecución 001: eliminación sin deshacer y notas vacías queda
 
 ## P1 — Alto impacto
 
-1. **Edición sin autosave.** El editor solo persiste al pulsar atrás/"Hecho". Si el
-   proceso muere o la actividad se destruye sin saved-state, el texto se pierde.
-   _Comprobar:_ teclear texto, `onStop` + destrucción, reabrir → el contenido debe
-   estar en la base de datos. Solución razonable: guardado debounced en el
-   ViewModel (evitar crear nota hasta que haya contenido; cuidar la carrera
-   save-after-delete).
+_(vacío tras la ejecución 003: autosave del editor resuelto — ver DEC-002)_
 
 ## P2 — Calidad de producto
 

@@ -3,6 +3,21 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 003 (autosave del editor)
+
+- **Autosave debounced en el editor** (P1): el ViewModel ya no espera a "atrás/
+  Hecho" para persistir. Ciclo de draft (`beginDraft`/`autosave`/`commitDraft`)
+  guarda el texto tras 800 ms sin escribir, de modo que un proceso muerto o una
+  actividad destruida sin saved-state ya no deja de perder el contenido.
+- **Sin duplicados ni notas fantasma:** el back-save posterior reutiliza el mismo
+  `draftId` (no inserta una nota nueva); se preserva la guardia de BUG-002 (nada
+  se crea si no hay contenido) y se elimina la note fantasma si el usuario vació
+  todo antes de salir; no se resucita una nota borrada durante la edición
+  (save-after-delete).
+- **`NotepadViewModelTest`** ampliado a 15 tests (+8: debounce, cancelación por
+  tecleo rápido, no duplicado en back, guardia de nota en blanco, ghost
+  autodestruida, save-after-delete, draft sobre nota existente).
+
 ## 2026-08-26 — Ejecución 001 (baseline + integridad de datos)
 
 - **Baseline del producto rebuild** (bloc de notas minimalista, commit `ceb1ff3`):

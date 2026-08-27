@@ -3,6 +3,24 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 003 — 2026-08-27
+
+- **Objetivo:** P1 — autosave debounced en el editor (NEXT_TASKS).
+- **Hallazgo:** editor solo persistía al volver atrás; proceso muerto o actividad
+  destruida sin saved-state perdía el texto. Riesgo real de pérdida de datos.
+- **Cambio:** `NotepadViewModel` con ciclo de draft (`beginDraft`/`autosave`/
+  `commitDraft`) y persistencia compartida `persist` bajo un `draftId`; debounce
+  de 800ms; UI cableada (`NoteEditorScreen` desacoplado a `onAutosave`/`onCommit`,
+  `NotepadApp` llama a `beginDraft`). Se preservan BUG-002 (sin notas fantasma
+  vacías), sin duplicado en back-save (mismo `draftId`) y save-after-delete
+  (ya no resucita una nota borrada mientras se escribe).
+- **Tests:** `testPreviewSafeDebugUnitTest` → **29/29 verdes** (8 nuevos: debounce,
+  cancelación por tecleo rápido, no duplicado en back, nota en blanco, ghost
+  autodestruido, save-after-delete, draft sobre nota existente).
+- **Commit:** ver `git log openhands/autonomous-notes`.
+- **Estado:** limpio; push a `origin/openhands/autonomous-notes`.
+- **Siguiente tarea:** P2 — búsqueda de notas (filtro título/contenido).
+
 ## RUN 002 — 2026-08-26
 
 - **Objetivo:** continuar ejecución 001 (estado incompleto tras reset de sesión)

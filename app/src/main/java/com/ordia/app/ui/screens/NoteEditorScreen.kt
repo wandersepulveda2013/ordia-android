@@ -37,7 +37,8 @@ import com.ordia.app.data.NoteEntity
 fun NoteEditorScreen(
     note: NoteEntity?,
     onBack: () -> Unit,
-    onSave: (title: String, content: String, id: Long?) -> Unit,
+    onAutosave: (title: String, content: String) -> Unit,
+    onCommit: (title: String, content: String) -> Unit,
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
@@ -50,7 +51,7 @@ fun NoteEditorScreen(
     }
 
     BackHandler {
-        onSave(title, content, note?.id)
+        onCommit(title, content)
         onBack()
     }
 
@@ -59,7 +60,7 @@ fun NoteEditorScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = {
-                        onSave(title, content, note?.id)
+                        onCommit(title, content)
                         onBack()
                     }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver") }
                 },
@@ -71,7 +72,7 @@ fun NoteEditorScreen(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .clickable {
-                                onSave(title, content, note?.id)
+                                onCommit(title, content)
                                 onBack()
                             },
                     )
@@ -94,7 +95,7 @@ fun NoteEditorScreen(
         ) {
             TextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = { title = it; onAutosave(title, content) },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.fillMaxWidth(),
@@ -102,7 +103,7 @@ fun NoteEditorScreen(
             )
             TextField(
                 value = content,
-                onValueChange = { content = it },
+                onValueChange = { content = it; onAutosave(title, content) },
                 placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.fillMaxWidth(),

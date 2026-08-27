@@ -7,8 +7,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -145,5 +147,109 @@ class NotepadViewModelTest {
 
         assertTrue(dao.notes.isEmpty())
         assertNull(dao.getById(99L))
+    }
+
+    @Test
+    fun autosave_debounced_noNoteBeforeDelay() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("Borrador", "en curso")
+
+        // 800ms debounce: nothing persisted yet.
+        advanceTimeBy(NotepadViewModel.AUTOSAVE_DEBOUNCE_MS - 1)
+        runCurrent()
+        assertTrue(dao.notes.isEmpty())
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(1, dao.notes.size)
+    }
+
+    @Test
+    fun autosave_previousEdit_cancelledByRapidTyping() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("v1", "contenido v1")
+        viewModel.autosave("v2", "contenido v2 final")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals("v2", dao.notes[0].title)
+        assertEquals("contenido v2 final", dao.notes[0].content)
+    }
+
+    @Test
+    fun autosave_thenBackSave_doesNotDuplicateNote() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("Borrador", "cuerpo")
+        advanceUntilIdle()
+        val autosavedId = dao.notes.single().id
+
+        viewModel.commitDraft("Borrador", "cuerpo editado")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals(autosavedId, dao.notes[0].id)
+        assertEquals("cuerpo editado", dao.notes[0].content)
+    }
+
+    @Test
+    fun autosave_blankNewDraft_createsNothing_onAutosaveOrCommit() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("", "")
+        advanceUntilIdle()
+        assertTrue(dao.notes.isEmpty())
+
+        viewModel.commitDraft("", "")
+        advanceUntilIdle()
+        assertTrue(dao.notes.isEmpty())
+    }
+
+    @Test
+    fun commitDraft_newNoteEndedBlank_deletesGhost() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("título", "contenido")
+        advanceUntilIdle()
+        assertEquals(1, dao.notes.size)
+
+        // User typed something (autosave created it) then cleared everything.
+        viewModel.commitDraft("", "")
+        advanceUntilIdle()
+
+        assertTrue(dao.notes.isEmpty())
+    }
+
+    @Test
+    fun autosave_existingNote_deletedInFlight_notResurrected() = runTest(dispatcher) {
+        viewModel.save("Nota", "cuerpo")
+        advanceUntilIdle()
+        val note = dao.notes.single()
+        viewModel.beginDraft(note.id)
+
+        // Delete manually while a debounced autosave write is pending.
+        viewModel.delete(note)
+        viewModel.autosave("Nota", "cuerpo editado")
+        advanceUntilIdle()
+
+        assertTrue(dao.notes.isEmpty())
+    }
+
+    @Test
+    fun autosave_updatesExisting_draftIdKeptOnLaterBack() = runTest(dispatcher) {
+        viewModel.save("Original", "cuerpo")
+        advanceUntilIdle()
+        val note = dao.notes.single()
+        viewModel.beginDraft(note.id)
+
+        viewModel.autosave("Autosaved", "cuerpo autosave")
+        advanceUntilIdle()
+        assertEquals(1, dao.notes.size)
+        assertEquals("Autosaved", dao.notes[0].title)
+
+        viewModel.commitDraft("Final", "cuerpo final")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals(note.id, dao.notes[0].id)
+        assertEquals("Final", dao.notes[0].title)
+        assertEquals(note.createdAt, dao.notes[0].createdAt)
     }
 }

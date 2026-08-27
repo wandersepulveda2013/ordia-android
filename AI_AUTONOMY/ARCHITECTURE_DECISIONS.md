@@ -2,6 +2,19 @@
 
 > Solo decisiones técnicas significativas y duraderas.
 
+## DEC-002 (2026-08-27) — Autosave del editor con ciclo de draft (debounce 800 ms)
+
+El editor ya no persiste "solo al volver atrás": el `NotepadViewModel` mantiene
+un estado de draft (id efectivo + flag de nota nueva) entre `beginDraft`,
+`autosave` (debounced 800 ms) y `commitDraft` (back/"Hecho"). Todo escribe a una
+persistencia compartida bajo un único `draftId`, lo que evita que el back-save
+posterior cree una segunda nota (mismo id), preserva la guardia de nota nueva
+vacía (BUG-002) y no resucita una nota borrada a mitad de edición
+(save-after-delete). El id del draft se reutiliza aunque la nota se creara por
+autosave (en lugar de por guardado manual), así que no hay duplicados. Decisión
+pragmática: el debounce y el borrado de la nota fantasma se gestionan en el
+ViewModel (una capa), sin tocar Room ni la navegación.
+
 ## DEC-001 (2026-08-26) — Restaurar notas borradas reinsertando con el mismo id
 
 El undo de borrado reutiliza `NoteDao.insert(REPLACE)` con la entidad original:

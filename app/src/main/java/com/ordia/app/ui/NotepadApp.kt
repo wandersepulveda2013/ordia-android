@@ -1,6 +1,7 @@
 package com.ordia.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,14 +26,20 @@ fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
 
         when {
             creating || (editingId != null && current != null) -> {
+                LaunchedEffect(editingId, current?.id, creating) {
+                    viewModel.beginDraft(if (creating) null else editingId)
+                }
                 NoteEditorScreen(
                     note = if (creating) null else current,
                     onBack = {
                         creating = false
                         editingId = null
                     },
-                    onSave = { title, content, id ->
-                        viewModel.save(title, content, id)
+                    onAutosave = { title, content ->
+                        viewModel.autosave(title, content)
+                    },
+                    onCommit = { title, content ->
+                        viewModel.commitDraft(title, content)
                     },
                 )
             }
