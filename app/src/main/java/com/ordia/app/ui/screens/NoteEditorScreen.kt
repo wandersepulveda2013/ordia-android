@@ -87,9 +87,16 @@ fun NoteEditorScreen(
         ) {
             TextField(
                 value = title,
-                onValueChange = { title = it; onAutosave(title, content) },
+                onValueChange = {
+                    // El título es un dato de una línea (la lista lo muestra con
+                    // maxLines=1); al pegar texto con saltos se aplanan para no
+                    // persistir títulos multilínea inconsistentes.
+                    title = it.replace('\n', ' ')
+                    onAutosave(title, content)
+                },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = bareFieldColors(),
             )

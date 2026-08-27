@@ -63,4 +63,38 @@ class NoteEditorBackSaveTest {
         assertTrue("La edición fue autosaveada durante la sesión", autosaved)
         assertTrue("Tras el commit debe navegar hacia atrás", navigated)
     }
+
+    @Test
+    fun titleField_isSingleLine_dropsEmbeddedNewline() {
+        // NEXT_TASKS P2 #1: el campo de título del editor debe ser de una línea
+        // (coherente con la lista) y no admitir saltos de línea incrustados.
+        val commit = arrayOfNulls<Pair<String, String>>(1)
+        var navigated = false
+
+        compose.setContent {
+            NoteEditorScreen(
+                note = null,
+                onBack = { navigated = true },
+                onAutosave = { _, _ -> },
+                onCommit = { title, content -> commit[0] = title to content },
+            )
+        }
+
+        val textFields = compose.onAllNodes(hasSetTextAction())
+        textFields[0].performTextInput("Título\nsegunda línea")
+
+        (compose.activity as OnBackPressedDispatcherOwner)
+            .onBackPressedDispatcher
+            .onBackPressed()
+
+        compose.waitForIdle()
+
+        val saved = commit[0]
+        assertTrue("El back del sistema debe hacer commit antes de salir", saved != null)
+        assertTrue(
+            "El título de una línea no debe contener saltos de línea incrustados",
+            saved!!.first.none { it == '\n' },
+        )
+        assertTrue("El salto de línea incrustado no debe perderse como contenido", saved.second.isEmpty())
+    }
 }
