@@ -4,13 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.data.NoteRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
     internal companion object {
         const val AUTOSAVE_DEBOUNCE_MS = 800L
@@ -18,6 +23,19 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
 
     val notes: StateFlow<List<NoteEntity>> =
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    /** Notes matching [searchQuery]; equal to [notes] while the query is blank. */
+    val searchResults: StateFlow<List<NoteEntity>> =
+        _searchQuery
+            .flatMapLatest(repo::observeSearch)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
     private var draftId: Long? = null
 

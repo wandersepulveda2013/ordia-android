@@ -13,8 +13,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +25,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
@@ -55,9 +59,12 @@ fun NotesListScreen(
     onDeleteNote: (NoteEntity) -> Unit,
     onRestoreNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
+    val isSearching = searchQuery.isNotBlank()
 
     LaunchedEffect(pendingUndo) {
         val note = pendingUndo ?: return@LaunchedEffect
@@ -75,6 +82,11 @@ fun NotesListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Buscar notas")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -90,21 +102,129 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin) { deleted ->
+        if (isSearching) {
+            SearchHeader(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth().padding(padding),
+            )
+            if (notes.isEmpty()) {
+                NoSearchResults(padding)
+            } else {
+                NoteList(
+                    notes = notes,
+                    searchQuery = searchQuery,
+                    padding = padding,
+                    onOpenNote = onOpenNote,
+                    onTogglePin = onTogglePin,
+                    onDeleteNote = { deleted ->
                         onDeleteNote(deleted)
                         pendingUndo = deleted
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    },
+                )
+            }
+        } else if (notes.isEmpty()) {
+            EmptyState(padding)
+        } else {
+            NoteList(
+                notes = notes,
+                searchQuery = searchQuery,
+                padding = padding,
+                onOpenNote = onOpenNote,
+                onTogglePin = onTogglePin,
+                onDeleteNote = { deleted ->
+                    onDeleteNote(deleted)
+                    pendingUndo = deleted
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        placeholder = { Text("Buscar notas") },
+        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Limpiar búsqueda")
                 }
             }
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+        ),
+    )
+}
+
+@Composable
+private fun NoteList(
+    notes: List<NoteEntity>,
+    searchQuery: String,
+    padding: PaddingValues,
+    onOpenNote: (NoteEntity) -> Unit,
+    onTogglePin: (NoteEntity) -> Unit,
+    onDeleteNote: (NoteEntity) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        if (searchQuery.isNotBlank()) {
+            item(key = "result-count") {
+                Text(
+                    "Notas: ${notes.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
+            }
+        }
+        items(notes, key = { it.id }) { note ->
+            NoteRow(note, onOpenNote, onTogglePin) { deleted ->
+                onDeleteNote(deleted)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        }
+    }
+}
+
+@Composable
+private fun NoSearchResults(padding: PaddingValues) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                Icons.Outlined.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp),
+            )
+            Text(
+                "Sin resultados",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Text(
+                "Ninguna nota coincide con la búsqueda.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

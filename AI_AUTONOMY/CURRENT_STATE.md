@@ -24,21 +24,25 @@
 - Persistencia del editor: `ui/NotepadViewModel.kt` — ciclo de draft
   `beginDraft`/`autosave`/`commitDraft`, persistencia compartida bajo `draftId`,
   debounce 800 ms.
-- Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer.
+- Lista: `ui/screens/NotesListScreen.kt` — borrado con snackbar de deshacer y
+  búsqueda (filtro por título/contenido).
 
-## Áreas recientemente modificadas (ejecuciones 001-003)
+## Áreas recientemente modificadas (ejecuciones 001-005)
 
 - `ui/NotepadViewModel.kt` (+`restore`, guardia de nota vacía en `save`; y en RUN 003
-  el ciclo de draft `beginDraft`/`autosave`/`commitDraft` + `persist` compartida).
-- `ui/screens/NotesListScreen.kt` (snackbar undo).
-- `ui/NotepadApp.kt` (cableado de `onRestoreNote`; en RUN 003 llama a
-  `beginDraft` al abrir el editor y pasa `onAutosave`/`onCommit`).
+  el ciclo de draft `beginDraft`/`autosave`/`commitDraft` + `persist` compartida; en
+  RUN 005 `searchQuery`/`searchResults` con `flatMapLatest`).
+- `ui/screens/NotesListScreen.kt` (snackbar undo; en RUN 005 campo de búsqueda con
+  contador de resultados y estado "sin resultados").
+- `ui/NotepadApp.kt` (cableado de `onRestoreNote`; en RUN 003 llama a `beginDraft`
+  y pasa `onAutosave`/`onCommit`; en RUN 005 sirve `searchResults` si el query no
+  está en blanco).
 - `ui/screens/NoteEditorScreen.kt` (`BackHandler` BUG-003; en RUN 003 cambia a
   `onAutosave`/`onCommit`, el `BackHandler` ejecuta `onCommit`).
 - `src/test/.../NotepadViewModelTest.kt` (nuevo, 14 tests tras RUN 003).
 
 ## Fix esta ejecución
-- Eliminado el reseed del editor (pérdida de texto al recrear).
+- RUN 005: implementada la búsqueda de notas (P2 #1) — DAO/repo/ViewModel/UI.
 
 ## Riesgos abiertos
 
@@ -46,7 +50,8 @@
   snackbar de deshacer).
 - Notas existentes pueden quedar vacías si el usuario las borra todo (decisión
   deliberada, no se autodestruyen).
-- Sin búsqueda de notas (P2, siguiente tarea).
+- La búsqueda no normaliza acentos (p. ej. "café" no encuentra "cafe"); aceptado
+  de momento, ver NEXT_TASKS P2 #3.
 
 ## Bloqueos actuales
 
@@ -55,5 +60,6 @@
 
 ## Estado de tests
 
-- Última ejecución: 29/29 verdes (`testPreviewSafeDebugUnitTest`, ejecución 003).
+- Última ejecución: 35/35 verdes (`testPreviewSafeDebugUnitTest`, RUN 005):
+  10 DAO + 7 Repo + 17 ViewModel + 1 UI. `assembleRelease` 3 variantes OK.
   Detalle en `TEST_STATUS.md`.

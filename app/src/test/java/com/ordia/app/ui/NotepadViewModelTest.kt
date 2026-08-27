@@ -5,7 +5,9 @@ import com.ordia.app.data.NoteEntity
 import com.ordia.app.data.NoteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -28,6 +30,10 @@ class NotepadViewModelTest {
         val notes = mutableListOf<NoteEntity>()
 
         override fun observeAll() = flowOf(sorted())
+        override fun observeSearch(query: String) =
+            flowOf(sorted().filter {
+                it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true)
+            })
         override suspend fun getById(id: Long) = notes.find { it.id == id }
         override suspend fun insert(note: NoteEntity): Long {
             val id = if (note.id == 0L) (notes.maxOfOrNull { it.id } ?: 0L) + 1 else note.id
@@ -251,5 +257,56 @@ class NotepadViewModelTest {
         assertEquals(note.id, dao.notes[0].id)
         assertEquals("Final", dao.notes[0].title)
         assertEquals(note.createdAt, dao.notes[0].createdAt)
+    }
+
+    // --- Search ---
+
+    @Test
+    fun search_defaultsToBlankQueryAndAllNotes() = runTest(dispatcher) {
+        val job = launch(dispatcher) { viewModel.searchResults.collect {} }
+        viewModel.save("Título", "cuerpo")
+        viewModel.save("Otro", "contenido")
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.searchQuery.value)
+        assertEquals(2, viewModel.searchResults.value.size)
+        job.cancel()
+    }
+
+    @Test
+    fun setSearchQuery_filtersResults() = runTest(dispatcher) {
+        viewModel.save("Receta de paella", "azafrán")
+        viewModel.save("Lista de la compra", "paella congelada")
+        viewModel.save("Ideas", "otra cosa")
+        advanceUntilIdle()
+
+        // Subscribe first so stateIn(WhileSubscribed) propagates upstream.
+        val job = launch(dispatcher) { viewModel.searchResults.collect {} }
+        viewModel.setSearchQuery("paella")
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.searchResults.value.size)
+        assertTrue(viewModel.searchResults.value.all {
+            it.title.contains("paella", ignoreCase = true) || it.content.contains("paella", ignoreCase = true)
+        })
+        job.cancel()
+    }
+
+    @Test
+    fun clearingSearch_restoresAllNotes() = runTest(dispatcher) {
+        val job = launch(dispatcher) { viewModel.searchResults.collect {} }
+        viewModel.save("Receta", "contenido")
+        viewModel.save("Lista", "leche")
+        advanceUntilIdle()
+        assertEquals(2, viewModel.searchResults.value.size)
+
+        viewModel.setSearchQuery("leche")
+        advanceUntilIdle()
+        assertEquals(1, viewModel.searchResults.value.size)
+
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+        assertEquals(2, viewModel.searchResults.value.size)
+        job.cancel()
     }
 }

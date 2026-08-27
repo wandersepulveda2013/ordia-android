@@ -13,13 +13,14 @@ _(vacío tras la ejecución 003: autosave del editor resuelto — ver DEC-002)_
 
 ## P2 — Calidad de producto
 
-1. **Sin búsqueda.** Con muchas notas no hay forma de localizar una. Un campo de
-   búsqueda que filtre por título/contenido (consulta SQL `LIKE` o filtrado en
-   memoria) mejoraría mucho la utilidad. _Comprobar:_ test de repositorio/DAO.
-2. **`NoteEditorScreen`: título largo.** `TextField` de título de una línea no
-   está limitado; cosmetico. Revisar `singleLine`/`maxLines` deseado.
-3. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
+1. **`NoteEditorScreen`: título largo.** `TextField` de título de una línea no
+   está limitado; cosmético. Revisar `singleLine`/`maxLines` deseado.
+2. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
    evaluar si el snackbar de deshacer es suficiente (probablemente sí).
+3. **Búsqueda con acentos/tilde.** La búsqueda actual usa `LIKE` case-insensitive
+   de Room que NO normaliza acentos (`café` no encuentra `cafe`). Si el usuario
+   español lo pide, valorar normalizar (columna normalizada o coincidencias
+   multi-plantilla). De momento queda como mejora opcional consciente.
 
 ## P3 — Mejoras opcionales
 

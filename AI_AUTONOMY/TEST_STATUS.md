@@ -3,9 +3,9 @@
 ## Suites disponibles
 
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric 4.14.1, sdk=33):
-  - `NoteDaoTest` — Room in-memory (8 tests).
+  - `NoteDaoTest` — Room in-memory (10 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (15 tests).
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (17 tests).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
   específicos de flavor por ahora).
 
@@ -15,6 +15,9 @@
   0 fallos, 0 errores** (BUILD SUCCESSFUL).
 - 2026-08-27 (ejecución 004): `testPreviewSafeDebugUnitTest` → **30 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de UI para el editor.
+- 2026-08-27 (ejecución 005): `testPreviewSafeDebugUnitTest` → **35 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadida la búsqueda de notas
+  (P2) + `@OptIn` por `flatMapLatest`. `assembleRelease` 3 variantes OK.
 
 ## Tests recientemente agregados
 
@@ -26,6 +29,9 @@
 - `NoteEditorBackSaveTest` (NUEVO, Robolectric+Compose): regresión UI del bug P0
   de pérdida de datos — el retroceso del sistema en el editor debe hacer `onCommit`
   de la edición en curso antes de navegar. Verifica back-save, autosave y navegación.
+- `NoteDaoTest`/`NotepadViewModelTest` (búsqueda, P2): filters por título y
+  contenido case-insensitive (DAO, 3 tests), filtro por query en el ViewModel,
+  restaurar todas al limpiar y query por defecto (ViewModel, 3 tests).
 
 ## Flakiness
 

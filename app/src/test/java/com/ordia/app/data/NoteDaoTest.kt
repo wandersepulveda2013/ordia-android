@@ -109,4 +109,31 @@ class NoteDaoTest {
         val all = dao.observeAll().first()
         assertEquals("Nueva", all.first().title)
     }
+
+    @Test
+    fun observeSearch_matchesTitleAndContentIgnoringCase() = runTest {
+        dao.insert(note("Receta de paella", "Azafrán y arroz"))
+        dao.insert(note("Lista de la compra", "Leche, paella congelada"))
+        dao.insert(note("Ideas", "Otra cosa"))
+
+        val byTitle = dao.observeSearch("paella").first()
+        assertEquals(2, byTitle.size)
+
+        val byContent = dao.observeSearch("leche").first()
+        assertEquals(1, byContent.size)
+        assertEquals("Lista de la compra", byContent.first().title)
+
+        val caseInsensitive = dao.observeSearch("PAELLA").first()
+        assertEquals(2, caseInsensitive.size)
+
+        val noMatch = dao.observeSearch("inexistente").first()
+        assertTrue(noMatch.isEmpty())
+    }
+
+    @Test
+    fun observeSearch_blankQueryReturnsAll() = runTest {
+        dao.insert(note("Uno"))
+        dao.insert(note("Dos"))
+        assertEquals(2, dao.observeSearch("").first().size)
+    }
 }

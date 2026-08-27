@@ -17,6 +17,8 @@ import com.ordia.app.ui.theme.NotepadTheme
 fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
     NotepadTheme {
         val notes by viewModel.notes.collectAsState()
+        val searchQuery by viewModel.searchQuery.collectAsState()
+        val searchResults by viewModel.searchResults.collectAsState()
         var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
         var creating by rememberSaveable { mutableStateOf(false) }
 
@@ -45,12 +47,14 @@ fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
             }
             else -> {
                 NotesListScreen(
-                    notes = notes,
+                    notes = if (searchQuery.isBlank()) notes else searchResults,
                     onOpenNote = { editingId = it.id },
                     onCreateNote = { creating = true },
                     onDeleteNote = { viewModel.delete(it) },
                     onRestoreNote = { viewModel.restore(it) },
                     onTogglePin = { viewModel.togglePinned(it) },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = viewModel::setSearchQuery,
                 )
             }
         }

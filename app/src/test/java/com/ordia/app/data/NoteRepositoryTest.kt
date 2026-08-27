@@ -16,6 +16,8 @@ class NoteRepositoryTest {
 
     private class FakeDao(var notes: MutableList<NoteEntity> = mutableListOf()) : NoteDao {
         override fun observeAll() = flowOf(notes.toList())
+        override fun observeSearch(query: String) =
+            flowOf(notes.filter { it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true) })
         override suspend fun getById(id: Long) = notes.firstOrNull { it.id == id }
         override suspend fun insert(note: NoteEntity): Long {
             val nextId = (notes.maxOfOrNull { it.id } ?: 0L) + 1

@@ -3,6 +3,27 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 005 — 2026-08-27
+
+- **Objetivo:** P2 — búsqueda de notas (filtro título/contenido).
+- **Hallazgo:** con muchas notas no hay forma de localizar una; es la carencia de
+  mayor valor pendiente (P2 #1). El flujo existente (lista → editor) no tenía
+  ninguna vía de filtrado.
+- **Cambio:** `observeSearch(query)` en DAO (`LIKE` case-insensitive sobre
+  título/contenido), `NoteRepository.observeSearch`, el ViewModel obtiene
+  `searchQuery`/`searchResults` con `flatMapLatest`, y `NotesListScreen` añade
+  campo de búsqueda (icono lupa en la top bar, campo con limpiar, contador de
+  resultados, estado "sin resultados"). `NotepadApp` sirve `searchResults` cuando
+  el query no está en blanco. Se eliminó `distinctUntilChanged()` obsoleto
+  (redundante sobre StateFlow) y se añadió `@OptIn(ExperimentalCoroutinesApi)`.
+- **Tests:** `testPreviewSafeDebugUnitTest` → **35/35 verdes** (10 DAO + 7 Repo +
+  17 ViewModel + 1 UI): 3 tests de búsqueda en ViewModel + 3 del DAO. `assembleRelease`
+  de las 3 variantes → BUILD SUCCESSFUL.
+- **Commit:** feat(notes): add note search (título/contenido).
+- **Estado:** pendiente de commit/push al cierre.
+- **Siguiente tarea:** decidir P2 (título largo del editor o confirmacíón de borrado
+  de fijadas), o test de UI/búsqueda; ver NEXT_TASKS.
+
 ## RUN 003 — 2026-08-27
 
 - **Objetivo:** P1 — autosave debounced en el editor (NEXT_TASKS).

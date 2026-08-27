@@ -3,6 +3,20 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 005 (búsqueda de notas)
+
+- **Búsqueda de notas (P2 #1):** nuevo campo de búsqueda que filtra por título y
+  contenido. `NoteDao.observeSearch(query)` (`LIKE` case-insensitive),
+  `NoteRepository.observeSearch`, el ViewModel expone `searchQuery`/`searchResults`
+  (con `flatMapLatest`), y `NotesListScreen` añade el campo (icono lupa en la top
+  bar, limpiar, contador de resultados y estado "sin resultados"). `NotepadApp`
+  sirve `searchResults` cuando el query no está en blanco.
+- **Limpieza de código:** se eliminó `distinctUntilChanged()` obsoleto (redundante
+  sobre StateFlow) y se añadió `@OptIn(ExperimentalCoroutinesApi)` por `flatMapLatest`.
+- **Tests:** `NotepadViewModelTest` (+3 de búsqueda: filtro por query, restaurar
+  todas al limpiar, query por defecto), `NoteDaoTest` (+3 del `LIKE`). Suite:
+  **35/35 verdes**. `assembleRelease` 3 variantes OK.
+
 ## 2026-08-27 — Ejecución 003 (autosave del editor)
 
 - **Autosave debounced en el editor** (P1): el ViewModel ya no espera a "atrás/
