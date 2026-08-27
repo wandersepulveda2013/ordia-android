@@ -42,3 +42,21 @@
 - **Commit:** ejecución 002 en `openhands/autonomous-notes`.
 - **Test:** validado por compilación y comportamiento; pendiente test de UI de
   Compose (hueco conocido en `TEST_STATUS.md`).
+
+
+## BUG-003 — El reseed del editor borraba lo escrito al recrearse la pantalla
+- **Bug:** `NoteEditorScreen` tenía un `LaunchedEffect(note?.id)` que reasignaba
+  `title`/`content` partiendo de la instantánea obsoleta `note` de la BD. Tras una
+  recreación (rotación / proceso con estado guardado), `rememberSaveable` restaura el
+  texto en curso, pero el effect lo sobrescribía con el contenido viejo de la BD —
+  perdiendo los últimos caracteres aún no persistidos dentro de la ventana de debounce
+  del autosave (800 ms).
+- **Impacto:** alto — pérdida silenciosa de texto al girar/recrear justo tras escribir.
+- **Reproducción:** abrir una nota, escribir, rotar la pantalla antes de que el autosave
+  debounceado persista.
+- **Causa:** reseed redundante y perjudicial desde una instantánea de BD potencialmente
+  obsoleta. El seed inicial de `rememberSaveable` (note?.title/content) ya es correcto.
+- **Estado:** FIXED (pendiente de confirmar commit).
+- **Resuelto por:** eliminar el `LaunchedEffect` de reseed en `NoteEditorScreen`.
+  Pendiente: añadir un UI test Compose (androidTest) que verifique que la rotación
+  preserva el texto sin persistir.

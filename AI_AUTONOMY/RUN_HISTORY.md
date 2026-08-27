@@ -46,3 +46,11 @@
 - **Commit:** ver `git log openhands/autonomous-notes`.
 - **Estado:** limpio; push a `origin/openhands/autonomous-notes`.
 - **Siguiente tarea:** P1 — autosave en el editor (guardado debounced).
+
+## 2026-08-27 — openhands/autonomous-notes — fix reseed (sesión en paralelo detectada)
+Objetivo: integrar rama remota más avanzada y buscar valor nuevo. Hallazgo: la rama remota
+ya contenía BackHandler, guarda de blancas y autosave debounceado (mi trabajo local era
+duplicado redundante → lo descarté adoptando la rama remota). Bug nuevo: el reseed
+`LaunchedEffect(note?.id)` en NoteEditorScreen borraba lo escrito al recrear la pantalla
+(instantánea obsoleta de la BD vs texto en `rememberSaveable`). Cambio: eliminar el reseed.
+Tests: 29 JVM (previewSafe) verdes; compila las 3 variantes. Commit: pendiente.

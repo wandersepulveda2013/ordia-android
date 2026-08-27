@@ -35,7 +35,10 @@
   `beginDraft` al abrir el editor y pasa `onAutosave`/`onCommit`).
 - `ui/screens/NoteEditorScreen.kt` (`BackHandler` BUG-003; en RUN 003 cambia a
   `onAutosave`/`onCommit`, el `BackHandler` ejecuta `onCommit`).
-- `src/test/.../NotepadViewModelTest.kt` (nuevo, 15 tests tras RUN 003).
+- `src/test/.../NotepadViewModelTest.kt` (nuevo, 14 tests tras RUN 003).
+
+## Fix esta ejecución
+- Eliminado el reseed del editor (pérdida de texto al recrear).
 
 ## Riesgos abiertos
 
