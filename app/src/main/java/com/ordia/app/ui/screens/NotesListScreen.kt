@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +65,15 @@ fun NotesListScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
-    val isSearching = searchQuery.isNotBlank()
+    // Search mode is independent of the query text: opening it from the toolbar
+    // must show the empty search field. Seeded from a lingering query so a
+    // recreated screen (rotation/process death) keeps filtering consistently.
+    var isSearching by rememberSaveable { mutableStateOf(searchQuery.isNotEmpty()) }
+
+    // Clearing the field exits the search mode (back to the full list).
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isBlank()) isSearching = false
+    }
 
     LaunchedEffect(pendingUndo) {
         val note = pendingUndo ?: return@LaunchedEffect
@@ -83,7 +92,12 @@ fun NotesListScreen(
             TopAppBar(
                 title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
                 actions = {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
+                    IconButton(
+                        onClick = {
+                            isSearching = !isSearching
+                            onSearchQueryChange("")
+                        },
+                    ) {
                         Icon(Icons.Outlined.Search, contentDescription = "Buscar notas")
                     }
                 },
@@ -102,19 +116,29 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (isSearching) {
-            SearchHeader(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth().padding(padding),
-            )
-            if (notes.isEmpty()) {
-                NoSearchResults(padding)
+        // The header and the list share the Scaffold Box; wrapping them in a Column
+        // (with the inset padding applied once) keeps the header stacked above the
+        // list instead of being drawn over the first row.
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (isSearching) {
+                SearchHeader(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val showEmpty = if (isSearching) {
+                searchQuery.isNotBlank() && notes.isEmpty()
             } else {
-                NoteList(
+                notes.isEmpty()
+            }
+            when {
+                showEmpty && isSearching -> NoSearchResults(Modifier.weight(1f))
+                showEmpty -> EmptyState(Modifier.weight(1f))
+                else -> NoteList(
                     notes = notes,
                     searchQuery = searchQuery,
-                    padding = padding,
+                    modifier = Modifier.weight(1f),
                     onOpenNote = onOpenNote,
                     onTogglePin = onTogglePin,
                     onDeleteNote = { deleted ->
@@ -123,20 +147,6 @@ fun NotesListScreen(
                     },
                 )
             }
-        } else if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            NoteList(
-                notes = notes,
-                searchQuery = searchQuery,
-                padding = padding,
-                onOpenNote = onOpenNote,
-                onTogglePin = onTogglePin,
-                onDeleteNote = { deleted ->
-                    onDeleteNote(deleted)
-                    pendingUndo = deleted
-                },
-            )
         }
     }
 }
@@ -172,13 +182,13 @@ private fun SearchHeader(
 private fun NoteList(
     notes: List<NoteEntity>,
     searchQuery: String,
-    padding: PaddingValues,
+    modifier: Modifier = Modifier,
     onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         if (searchQuery.isNotBlank()) {
@@ -201,9 +211,9 @@ private fun NoteList(
 }
 
 @Composable
-private fun NoSearchResults(padding: PaddingValues) {
+private fun NoSearchResults(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -230,9 +240,9 @@ private fun NoSearchResults(padding: PaddingValues) {
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun EmptyState(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
