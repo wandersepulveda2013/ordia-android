@@ -3,6 +3,25 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 007 — 2026-08-27
+
+- **Objetivo:** P1 — hacer que el "Deshacer" de borrado sea seguro ante la
+  reutilización de ids por SQLite (BUG-004).
+- **Hallazgo:** `restore` llamaba a `repo.save(note)` (REPLACE) sin comprobar si el
+  id original seguía libre; si otra nota lo reutilizaba, el undo pisaba la nota viva
+  (_lost update_), coherente con la reutilización de rowids de SQLite.
+- **Cambio:** `NotepadViewModel.restore` comprueba `repo.get(note.id)`: id libre →
+  reutiliza (respeta `createdAt`/id); id reutilizado → reinserta bajo id nuevo
+  (0 → autoGenerate) conservando título/contenido. Nunca sobrescribe una nota viva.
+- **Tests:** `testPreviewSafeDebugUnitTest` → **37/37 verdes** (10 DAO + 7 Repo +
+  2 UI + 18 ViewModel): +1 test de regresión del restore (el caso id-libre ya lo
+  cubría `deleteThenRestore_keepsSameIdAndContent`).
+- **Commit:** fix(notes): safe restore when original id was reused by another note.
+- **Estado:** commit + push realizados.
+- **Siguiente tarea:** decidir entre P2 #3 (búsqueda con acentos), test de UI de
+  borrado guardado/rotación del editor, o la confirmación de borrado de fijadas;
+  ver NEXT_TASKS.
+
 ## RUN 005 — 2026-08-27
 
 - **Objetivo:** P2 — búsqueda de notas (filtro título/contenido).

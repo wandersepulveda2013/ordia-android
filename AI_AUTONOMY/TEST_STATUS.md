@@ -21,6 +21,10 @@
 - 2026-08-27 (ejecución 006): `testPreviewSafeDebugUnitTest` → **36 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de regresión del
   título de una línea. `assembleRelease` 3 variantes OK.
+- 2026-08-27 (ejecución 007): `testPreviewSafeDebugUnitTest` → **37 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL). Añadido test de regresión del undo
+  (BUG-004): `restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId`
+  (el caso de id libre lo cubre `deleteThenRestore_keepsSameIdAndContent`).
 
 ## Tests recientemente agregados
 
@@ -34,6 +38,8 @@
   de la edición en curso antes de navegar. Verifica back-save, autosave y navegación.
   RUN 006: `titleField_isSingleLine_dropsEmbeddedNewline` — pegar `\n` en el título
   no debe persistir títulos multilínea (dato aplanado).
+- `NotepadViewModelTest` RUN 007 (+1, undo seguro BUG-004): reinsertar bajo id nuevo
+  cuando otra nota reutilizó el id del borrado (no sobrescribir la nota viva).
 - `NoteDaoTest`/`NotepadViewModelTest` (búsqueda, P2): filters por título y
   contenido case-insensitive (DAO, 3 tests), filtro por query en el ViewModel,
   restaurar todas al limpiar y query por defecto (ViewModel, 3 tests).

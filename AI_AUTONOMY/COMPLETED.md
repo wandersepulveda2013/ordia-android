@@ -3,6 +3,20 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-27 — Ejecución 007 (undo seguro ante reutilización de ids, P1)
+
+- **"Deshacer" ya no puede sobrescribir una nota viva (BUG-004):**
+  `NotepadViewModel.restore` verificaba directamente `repo.save(note)` (REPLACE),
+  con riesgo de pisar una nota que hubiera reutilizado el id del borrado (SQLite
+  reutiliza rowids). Ahora `restore` comprueba `repo.get(note.id)`: si el id sigue
+  libre lo reutiliza (respeta `createdAt`/id); si fue reutilizado por otra nota,
+  reinserta bajo un id nuevo conservando título/contenido. Nunca sobrescribe una
+  nota viva (lost update / save-after-reuse).
+- **Tests:** +1 en `NotepadViewModelTest`
+  (`restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId`; el caso de
+  id libre ya lo cubre `deleteThenRestore_keepsSameIdAndContent`). Suite: **37/37
+  verdes**.
+
 ## 2026-08-27 — Ejecución 006 (título del editor en una línea, P2 #1)
 
 - **Título de una línea de verdad (visual + datos):** `NoteEditorScreen` ahora fija

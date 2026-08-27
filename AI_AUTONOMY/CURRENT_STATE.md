@@ -45,7 +45,9 @@
   single-line del título).
 
 ## Fix esta ejecución
-- RUN 006: título del editor en una línea (visual + datos) — P2 #1; test de regresión.
+- RUN 007: undo seguro ante reutilización de ids (BUG-004) — `restore` reutiliza el
+  id original solo si sigue libre; si otra nota lo reutilizó, inserta bajo id nuevo
+  y nunca sobrescribe una nota viva.
 
 ## Riesgos abiertos
 
@@ -63,6 +65,6 @@
 
 ## Estado de tests
 
-- Última ejecución: 36/36 verdes (`testPreviewSafeDebugUnitTest`, RUN 006):
-  10 DAO + 7 Repo + 2 UI + 17 ViewModel. `assembleRelease` 3 variantes OK.
+- Última ejecución: 37/37 verdes (`testPreviewSafeDebugUnitTest`, RUN 007):
+  10 DAO + 7 Repo + 2 UI + 18 ViewModel. `assembleRelease` 3 variantes OK.
   Detalle en `TEST_STATUS.md`.

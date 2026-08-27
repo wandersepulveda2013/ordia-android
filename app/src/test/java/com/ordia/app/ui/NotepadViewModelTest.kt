@@ -124,6 +124,31 @@ class NotepadViewModelTest {
     }
 
     @Test
+    fun restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId() = runTest(dispatcher) {
+        viewModel.save("Original", "cuerpo")
+        advanceUntilIdle()
+        val original = dao.notes[0]
+        val originalId = original.id
+
+        // Delete, then let a new note take the freed rowid (SQLite id reuse).
+        viewModel.delete(original)
+        advanceUntilIdle()
+        viewModel.save("Reemplazo", "contenido")
+        advanceUntilIdle()
+        assertEquals(originalId, dao.notes[0].id)
+
+        // Undo must not overwrite the live note.
+        viewModel.restore(original)
+        advanceUntilIdle()
+
+        val replacement = dao.notes.single { it.title == "Reemplazo" }
+        val restored = dao.notes.single { it.title == "Original" }
+        assertEquals(originalId, replacement.id)
+        assertTrue(restored.id != originalId)
+        assertEquals(restored.content, original.content)
+    }
+
+    @Test
     fun togglePinned_flipsFlag() = runTest(dispatcher) {
         viewModel.save("A", "")
         advanceUntilIdle()

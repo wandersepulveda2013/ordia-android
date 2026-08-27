@@ -60,3 +60,21 @@
 - **Resuelto por:** eliminar el `LaunchedEffect` de reseed en `NoteEditorScreen`.
   Pendiente: añadir un UI test Compose (androidTest) que verifique que la rotación
   preserva el texto sin persistir.
+## BUG-004 — "Deshacer" de una nota borrada podía sobrescribir otra nota (P1)
+
+- **Impacto:** SQLite reutiliza rowids tras un borrado (`INTEGER PRIMARY KEY`
+  autoincremental). Si el id de una nota borrada quedaba libre y después se creaba
+  una nota nueva reutilizando ese mismo id, pulsar "Deshacer" hacía `REPLACE`
+  sobre esa nota nueva: la nota viva se perdía y la restaurada quedaba con datos
+  mezclados/perdidos (_lost update_ / _ID reutilizado_, sección 15 de la misión).
+- **Reproducción:** crear nota A → borrarla → crear nota B (toma el id de A) →
+  "Deshacer" de A.
+- **Causa:** `NotepadViewModel.restore` hacía `repo.save(note)` sin comprobar si
+  el id original seguía libre; `NoteDao.insert` con `OnConflictStrategy.REPLACE`
+  sobrescribía la nota viva.
+- **Estado:** FIXED — `restore` comprueba `repo.get(note.id)`; si el id quedó
+  libre lo reutiliza (respeta `createdAt` e id), si fue reutilizado por otra nota
+  reinserta bajo un id nuevo (0 → autoGenerate) conservando título/contenido.
+  Nunca sobrescribe una nota viva.
+- **Commit:** ejecución 007 en `openhands/autonomous-notes`.
+- **Test:** `restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId`.

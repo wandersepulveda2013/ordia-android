@@ -110,9 +110,17 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
         viewModelScope.launch { repo.delete(note) }
     }
 
-    /** Reinserts a previously deleted note, keeping its original id. */
+    /**
+     * Reinserts a previously deleted note. Keeps its original id when that slot
+     * is still free; otherwise, if it was reused by another note (SQLite rowid
+     * reuse after delete), reinserts under a fresh id so undo never overwrites
+     * a live note.
+     */
     fun restore(note: NoteEntity) {
-        viewModelScope.launch { repo.save(note) }
+        viewModelScope.launch {
+            val free = repo.get(note.id) == null
+            repo.save(if (free) note else note.copy(id = 0L))
+        }
     }
 
     fun togglePinned(note: NoteEntity) {

@@ -17,7 +17,9 @@ _(vacío tras la ejecución 003: autosave del editor resuelto — ver DEC-002)_
    (visual + datos): `singleLine=true` y aplanado de `\n` en `onValueChange` del
    título para no persistir títulos multilínea. Cobertura: test de UI de regresión.
 2. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
-   evaluar si el snackbar de deshacer es suficiente (probablemente sí).
+   evaluar si el snackbar de deshacer es suficiente (probablemente sí). RUN 007:
+   el deshacer ya es seguro ante reutilización de ids (BUG-004): reinserta bajo id
+   nuevo si el original fue reutilizado, nunca sobrescribe una nota viva.
 3. **Búsqueda con acentos/tilde.** La búsqueda actual usa `LIKE` case-insensitive
    de Room que NO normaliza acentos (`café` no encuentra `cafe`). Si el usuario
    español lo pide, valorar normalizar (columna normalizada o coincidencias
