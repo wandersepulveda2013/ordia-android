@@ -1,5 +1,6 @@
 package com.ordia.app.ui
 
+import androidx.lifecycle.SavedStateHandle
 import com.ordia.app.data.NoteDao
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.data.NoteRepository
@@ -282,6 +283,127 @@ class NotepadViewModelTest {
         assertEquals(note.id, dao.notes[0].id)
         assertEquals("Final", dao.notes[0].title)
         assertEquals(note.createdAt, dao.notes[0].createdAt)
+    }
+
+    // --- Draft session survives configuration change / process death ---
+
+    /**
+     * Regression: after an autosave created the note, the editor's LaunchedEffect
+     * re-invokes beginDraft(null) on recreation (rotation, process death). That
+     * reset the in-flight draft id, so the next keystroke autosaved into a brand
+     * new row, leaving a duplicate note behind.
+     */
+    @Test
+    fun beginDraftAgain_resumesLiveDraft_doesNotDuplicateNote() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("Borrador", "primera versión")
+        advanceUntilIdle()
+        assertEquals(1, dao.notes.size)
+        val autosavedId = dao.notes.single().id
+
+        // Mirror of what NotepadApp does when the composition is recreated.
+        viewModel.beginDraft(null)
+        viewModel.autosave("Borrador", "primera versión + editada")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals(autosavedId, dao.notes[0].id)
+        assertEquals("primera versión + editada", dao.notes[0].content)
+    }
+
+    /**
+     * Regression (process death): the draft id lives only in memory, and a
+     * recreated ViewModel starts from a blank draft. Autosaving again then
+     * inserts a duplicate row. The draft session must be restored from saved
+     * state so the recreated ViewModel keeps updating the original note.
+     */
+    @Test
+    fun processDeath_restoresDraftId_avoidsDuplicateNote() = runTest(dispatcher) {
+        // First session: new-note editor autosaves and creates a row.
+        val firstVm = NotepadViewModel(NoteRepository(dao))
+        firstVm.beginDraft(null)
+        firstVm.autosave("Borrador", "antes del reinicio")
+        advanceUntilIdle()
+        assertEquals(1, dao.notes.size)
+        val autosavedId = dao.notes.single().id
+
+        // Saved state shipped across process death: the framework restores the
+        // ViewModel's SavedStateHandle with the draft session it had stored.
+        val restored = SavedStateHandle(
+            mapOf<String, Any>(
+                "draftId" to autosavedId,
+                "draftWasNew" to true,
+            ),
+        )
+        val secondVm = NotepadViewModel(NoteRepository(dao), restored)
+        // NotepadApp recreates the editor with creating=true → beginDraft(null).
+        secondVm.beginDraft(null)
+        secondVm.autosave("Borrador", "después del reinicio")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals(autosavedId, dao.notes[0].id)
+        assertEquals("después del reinicio", dao.notes[0].content)
+    }
+
+    /**
+     * Regression (fast note switching): commitDraft clears the draft inside the
+     * launched coroutine. If the user backs out of one note and immediately
+     * opens another, beginDraft(new) must rebind the draft to the new note even
+     * though the previous commit coroutine has not run yet — otherwise the new
+     * note is edited under a cleared draft and the eventual autosave inserts a
+     * duplicate row for it.
+     */
+    @Test
+    fun beginDraft_afterCommitLaunched_switchesDraftToNewNote() = runTest(dispatcher) {
+        viewModel.save("Primera", "nota 1")
+        viewModel.save("Segunda", "nota 2")
+        advanceUntilIdle()
+        val firstId = dao.notes.single { it.title == "Primera" }.id
+        val secondId = dao.notes.single { it.title == "Segunda" }.id
+
+        viewModel.beginDraft(firstId)
+        viewModel.autosave("Primera", "editada en primer editor")
+        advanceUntilIdle()
+
+        // Back: commit launched but the coroutine has NOT run yet (StandardTestDispatcher).
+        viewModel.commitDraft("Primera", "nota 1 final")
+
+        // Immediately open the second note.
+        viewModel.beginDraft(secondId)
+        viewModel.autosave("Segunda", "nota 2")
+        advanceUntilIdle()
+
+        assertEquals(2, dao.notes.size)
+        val first = dao.notes.single { it.id == firstId }
+        val second = dao.notes.single { it.id == secondId }
+        assertEquals("nota 1 final", first.content)
+        assertEquals("nota 2", second.content)
+    }
+
+    /**
+     * Regression (back + new note in quick succession): after backing out of a
+     * committed note the draft session must already be cleared synchronously;
+     * tapping "+" and typing must start a brand-new note instead of resuming
+     * (or cloning) the previous one.
+     */
+    @Test
+    fun beginDraft_nullAfterCommitLaunched_startsFreshNewNote() = runTest(dispatcher) {
+        viewModel.beginDraft(null)
+        viewModel.autosave("Borrador", "contenido")
+        advanceUntilIdle()
+        assertEquals(1, dao.notes.size)
+
+        viewModel.commitDraft("Borrador", "contenido")
+        // New-note editor opens before commit coroutine has run.
+        viewModel.beginDraft(null)
+        viewModel.autosave("Segundo borrador", "nuevo contenido")
+        advanceUntilIdle()
+
+        assertEquals(2, dao.notes.size)
+        assertEquals(1, dao.notes.count { it.title == "Borrador" })
+        val fresh = dao.notes.single { it.title == "Segundo borrador" }
+        assertTrue(fresh.id != dao.notes.single { it.title == "Borrador" }.id)
     }
 
     // --- Search ---
