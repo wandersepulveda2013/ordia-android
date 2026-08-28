@@ -3,6 +3,31 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 012 — 2026-08-28
+
+- **Objetivo:** P2 — cerrar el hueco de tests de UI del editor: recreación/rotación
+  (BUG-003: el reseed del editor borraba lo tecleado al recrearse) y que la acción
+  "Hecho" de la toolbar haga commit como el back del sistema.
+- **Hallazgo:** `NoteEditorRecreationTest.kt` tenía un `performTextInput` tras un
+  seed inicial que se insertaba en la posición del cursor (0), no al final —
+  aparentaba concatenación; el fix fue `performTextClearance()` antes de escribir las
+  inserciones deterministas + aserción de reemplazo limpio ("Nuevo titulo",
+  no concatenación); también `NoteEditorBackSaveTest.kt` no cubría aún la acción
+  "Hecho" (solo back del sistema).
+- **Cambio:** nuevo `NoteEditorRecreationTest` (2 tests, `StateRestorationTester`:
+  emula restauración de instancia guardada y verifica que el texto en curso sobrevive
+  y que el back posterior persiste lo tecleado, no la instantánea de la BD — nota
+  persistida en edición y nota nueva en curso); `NoteEditorBackSaveTest` +1 test)
+  `toolbarDone_commitsAndNavigates` ("Hecho" hace commit y navega). Solo cambios
+  de tests, sin cambios de producción.
+- **Tests:** `testPreviewSafeDebugUnitTest` → **49/49**; `testPreviewAdvancedDebugUnitTest`
+  → **49/49**; `testFullDebugUnitTest` → BUILD SUCCESSFUL (sin tests en su source set).
+  Archivo de test ASCII-clean verificado.
+- **Commit:** `test(editor): cover recreation/rotation and done-commit UI paths` (pendiente push).
+- **Estado:** pendiente push y revisión humana; trabajo listo en `openhands/autonomous-notes`.
+- **Siguiente tarea:** revisar `NEXT_TASKS.md` — P2 #2 (confirmación de borrado —
+  probablemente suficiente con undo), P2 #3 (búsqueda con acentos) y P3.
+
 ## RUN 011 — 2026-08-28
 
 - **Objetivo:** P3 — accesibilidad de la lista de notas: que TalkBack anuncie

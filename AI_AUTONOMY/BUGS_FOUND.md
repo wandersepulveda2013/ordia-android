@@ -76,8 +76,8 @@
 - **Estado:** FIXED — `NoteEditorScreen` registra un `BackHandler` que ejecuta el
   mismo guardado que la flecha de la toolbar antes de volver a la lista.
 - **Commit:** ejecución 002 en `openhands/autonomous-notes`.
-- **Test:** validado por compilación y comportamiento; pendiente test de UI de
-  Compose (hueco conocido en `TEST_STATUS.md`).
+- **Test:** `NoteEditorBackSaveTest.systemBack_savesUncommittedEditsBeforeNavigating`
+  (UI Compose/Robolectric, RUN 004) cubre el back del sistema en el editor.
 
 
 ## BUG-003 — El reseed del editor borraba lo escrito al recrearse la pantalla
@@ -92,10 +92,13 @@
   debounceado persista.
 - **Causa:** reseed redundante y perjudicial desde una instantánea de BD potencialmente
   obsoleta. El seed inicial de `rememberSaveable` (note?.title/content) ya es correcto.
-- **Estado:** FIXED (pendiente de confirmar commit).
+- **Estado:** FIXED — verificado por `NoteEditorRecreationTest` (RUN 012):
+  `StateRestorationTester.emulateSavedInstanceStateRestore` + back del sistema
+  preservan el texto en curso (sin persistir) y el commit posterior persiste lo
+  tecleado, no la instantánea vieja de la BD.
 - **Resuelto por:** eliminar el `LaunchedEffect` de reseed en `NoteEditorScreen`.
-  Pendiente: añadir un UI test Compose (androidTest) que verifique que la rotación
-  preserva el texto sin persistir.
+  Cobertura de regresión añadida en RUN 012 (`NoteEditorRecreationTest`, 2 tests
+  Compose/Robolectric: nota persistida en edición y nota nueva en curso).
 ## BUG-005 — El icono de búsqueda era inalcanzable y el campo tapaba la lista (P1)
 
 - **Impacto:** (a) la búsqueda de RUN 005 no se podía abrir desde la UI: tocar la

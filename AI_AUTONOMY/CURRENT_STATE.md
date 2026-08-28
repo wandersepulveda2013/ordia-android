@@ -68,6 +68,14 @@
   Robolectric: rótulo de acción + pin describe título + fallback sin título).
 
 ## Fix ejecución anterior
+- RUN 012 (P2, tests): hueco de BUG-003 cerrado—nuevo
+  `NoteEditorRecreationTest` (2 tests Compose/Robolectric con
+   `StateRestorationTester`: recreación preserva el texto en curso antes del
+  autosave y el commit posterior persiste lo tecleado, no la instantánea de la
+  BD) + `NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`
+  (la acción "Hecho" de la toolbar hace commit y navega como el back del sistema).
+  3 tests de UI nuevos; suite → 49/49 en previewSafe y previewAdvanced.
+## Fix ejecución anterior
 - RUN 010: `togglePinned` pasa a ser un flip atómico SQL
   (`UPDATE notes SET pinned = NOT pinned WHERE id = :id`), eliminando la
   carrera read-modify-write del pin (antes `setPinned(id, !note.pinned)` calculaba
@@ -105,7 +113,10 @@
 
 ## Estado de tests
 
-- Última ejecución: 44/44 verdes en las 3 variantes (RUN 009):
-  `testPreviewSafeDebugUnitTest` = 44 (10 DAO + 7 Repo + 2 UI + 22 ViewModel + 3 UI
-  búsqueda); `previewAdvanced` y `previewFull` también 44/44. `assembleRelease`
-  3 variantes OK. Detalle en `TEST_STATUS.md`.
+- Última ejecución (RUN 012): 49/49 verdes — `testPreviewSafeDebugUnitTest`
+  y `testPreviewAdvancedDebugUnitTest` → 49 tests, 0 fallos; `testFullDebugUnitTest`
+  → BUILD SUCCESSFUL (sin tests en su source set. Añadidos 3 tests de UI Compose:
+  `NoteEditorRecreationTest` (2: BUG-003, recreación preserva el texto en curso
+   y el commit persiste lo tecleado, no la instantánea de la BD) y
+  `NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates` ("Hecho" hace commit y
+  navega). Detalle en `TEST_STATUS.md`.

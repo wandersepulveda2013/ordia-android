@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.ordia.app.ui.screens.NoteEditorScreen
 import org.junit.Assert.assertEquals
@@ -61,6 +63,37 @@ class NoteEditorBackSaveTest {
         assertEquals("Mi nota", saved!!.first)
         assertEquals("contenido", saved.second)
         assertTrue("La edición fue autosaveada durante la sesión", autosaved)
+        assertTrue("Tras el commit debe navegar hacia atrás", navigated)
+    }
+
+    @Test
+    fun toolbarDone_commitsAndNavigates() {
+        // La acción "Hecho" de la toolbar debe persistir la edición y volver a la
+        // lista, igual que el back del sistema (NEXT_TASKS P2: "Hecho"/flecha
+        // vuelven hacen commit igual que el back del sistema").
+        val commit = arrayOfNulls<Pair<String, String>>(1)
+        var navigated = false
+
+        compose.setContent {
+            NoteEditorScreen(
+                note = null,
+                onBack = { navigated = true },
+                onAutosave = { _, _ -> },
+                onCommit = { title, content -> commit[0] = title to content },
+            )
+        }
+
+        val textFields = compose.onAllNodes(hasSetTextAction())
+        textFields[0].performTextInput("Nota final")
+        textFields[1].performTextInput("contenido final")
+
+        compose.onNodeWithText("Hecho").performClick()
+        compose.waitForIdle()
+
+        val saved = commit[0]
+        assertTrue("El botón Hecho debe hacer commit antes de navegar", saved != null)
+        assertEquals("Nota final", saved!!.first)
+        assertEquals("contenido final", saved.second)
         assertTrue("Tras el commit debe navegar hacia atrás", navigated)
     }
 

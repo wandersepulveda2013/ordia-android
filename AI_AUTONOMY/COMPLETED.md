@@ -1,7 +1,25 @@
 # COMPLETED — Ordía (bloc de notas)
 
-> Solo mejoras importantes completadas por la automatización
+> Solo mejoras importantes completadas por la automatización.
+
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
+
+
+## 2026-08-28 — Ejecución 012 (tests de UI del editor: recreación/rotación BUG-003 y "Hecho" hace commit; P2)
+
+- **Hueco de cobertura cerrado:** el UI test Compose de recreación/rotación del
+  editor — pendiente desde BUG-003 (reseed) y la P2 de extender tests de UI —
+  quedó añadido con `NoteEditorRecreationTest` (2 tests Compose/Robolectric).
+  Usa `StateRestorationTester.emulateSavedInstanceStateRestore()` para simular
+  rotación/proceso-muerte tras teclear sin esperar el debounce (800 ms, del autosave); y
+  verifica que (a)el texto en curso se preserva y no se sobrescribe con la instantánea
+  vieja de la BD;y (b)el commit posterior (back del sistema,persiste lo tecleado,
+  no el contenido viejo — cubriendo nota persistida en edición y nota nueva en curso.
+- **"Hecho" de la toolbar cubierto:** `NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`
+  verifica que la acción "Hecho" hace commit y navega a la lista igual que el back del
+  sistema (hasta ahora solo se cubría el back del sistema).
+- **Tests:** suite completa → **49/49 verdes en `previewSafe` y `previewAdvanced`**;
+  `testFullDebugUnitTest` BUILD SUCCESSFUL (sin tests en su source set).
 
 ##2026-08-28 — Ejecución 011 (accesibilidad de la lista: rótulos para TalkBack, P3)
 

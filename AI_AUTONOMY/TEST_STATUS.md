@@ -8,7 +8,13 @@
   - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (22 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
   commit→beginDraft hacia otra nota, y nota nueva tras back).
-  - `NoteEditorBackSaveTest` — UI Compose/Robolectric (2 tests).
+  - `NoteEditorBackSaveTest` — UI Compose/Robolectric (3 tests; RUN 012
+    añade `toolbarDone_commitsAndNavigates` — "Hecho" hace commit y navega).
+  - `NoteEditorRecreationTest` — UI Compose/Robolectric (2 tests, RUN 012):
+    regresión de BUG-003 — la recreación (rotación/proceso-muerte, via
+    `StateRestorationTester`) preserva el texto en curso sin persistir y el commit
+    posterior persiste lo tecleado, no la instantánea vieja.
+
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
@@ -16,9 +22,17 @@
 
 ## Último resultado
 
+- 2026-08-28 (ejecución 012): `testPreviewSafeDebugUnitTest` → **49 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL; `testPreviewAdvancedDebugUnitTest`
+  → **49/49**. Añadidos `NoteEditorRecreationTest` (2 tests Compose/Robolectric
+  de regresión de BUG-003: recreación preserva lo tecleado sin persistir; el commit
+  posterior persiste lo tecleado, no la instantánea de la BD — nota persistida y nota
+  nueva en curso) y `NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`
+  (la acción "Hecho" de la toolbar hace commit y navega igual que el back del sistema).
+  `testFullDebugUnitTest` → BUILD SUCCESSFUL (sin tests en su source set).
 - 2026-08-28 (ejecución 011): `testPreviewFullDebugUnitTest` → **46 tests,
   0 fallos,, 0 errores** (BUILD SUCCESSFUL. Añadido `NotesListAccessibilityTest`
-  (2 tests Compose/Robolectric, P3): la fila expone `onClickLabel` con
+  (2 tests Compose/Robolectric, P3):la fila expone `onClickLabel` con
   "Abrir nota: <título>" (y fallback "Abrir nota sin título"`; el pin
   describe "Fijada: <título>". Fuente: `NoteRow` en `NotesListScreen.kt`.).
 
