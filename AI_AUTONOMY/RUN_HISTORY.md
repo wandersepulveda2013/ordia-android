@@ -3,6 +3,28 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 011 — 2026-08-28
+
+- **Objetivo:** P3 — accesibilidad de la lista de notas: que TalkBack anuncie
+  la acción de la fila con un rótulo descriptivo ("Abrir nota: <título>") y
+  que el pin distinga qué nota está fijada (el `contentDescription` plano
+  "Fijada" no identificaba la nota..
+- **Hallazgo (evidencia):** `NoteRow` usaba `clickable { ... }` sin
+  `onClickLabel`, así que TalkBack anunciaba un nodo genérico sin el
+  título; y el pin tenía `contentDescription = "Fijada"` sin contexto.
+
+- **Cambio:** `NoteRow` pasa `onClickLabel = rowLabel` (`"Abrir nota:
+  ${note.title}"` / fallback `"Abrir nota sin título"`) y el icono de pin
+  describe `"Fijada: ${note.title}"` (`"Fijada, sin título"` si no hay).
+  Nuevo `NotesListAccessibilityTest` (2 tests Compose/Robolectric: rótulo de
+  acción con título + pin describe título + fallback sin título).
+- **Tests:** `testPreviewFullDebugUnitTest` → **46/46 verdes, 0 fallos**
+  (10 DAO + 7 Repo + 22 VM + 2 BackSave + 3 Search + 2 nuevo).
+- **Commit:** `feat(notes): announce row action and pin with descriptive TalkBack labels`.
+- **Estado:** commit creado; push hacia `origin/openhands/autonomous-notes`.
+- **Siguiente tarea:** P2 — tests de UI del editor Compose (recreación/rotación
+  real del editor, `rememberSaveable` + `SavedStateHandle`, ver NEXT_TASKS).
+
 ## RUN 010 — 2026-08-28
 
 - **Objetivo:** P2 — eliminar la carrera read-modify-write del pin de la lista

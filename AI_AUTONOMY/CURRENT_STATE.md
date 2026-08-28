@@ -49,13 +49,25 @@
 - `src/test/.../NotepadViewModelTest.kt` (nuevo, 18 tests tras RUN 007).
 - `src/test/.../NoteEditorBackSaveTest.kt` (RUN 004 back-save; RUN 006 +test
   single-line del título).
-- `src/test/.../NotesListSearchInteractiveTest.kt` (RUN 008, nuevo, 3 tests de
-  regresión BUG-005 + aserción de bounds anti-solape).
+- `src/test/.../NotesListSearchInteractiveTest.kt` (RUN 008, nuevo,,3 tests de
+  regresión BUG-005 + aserción de bounds anti-solape.
+- `src/test/.../NotesListAccessibilityTest.kt` (RUN 011, nuevo,,2 tests Compose/
+  Robolectric de accesibilidad de la lista: rótulo de acción de la fila + pin
+  describe el título + fallback sin título..
+- `ui/screens/NotesListScreen.kt` (RUN 011: `NoteRow` pasa `onClickLabel`
+  "Abrir nota: <título>" y el icono de pin "Fijada: <título>").
 - `data/NoteDao.kt` / `NoteRepository.kt` / `ui/NotepadViewModel.kt` /
   `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 
 ## Fix esta ejecución
+- RUN 011 (P3, accesibilidad): `NoteRow` anuncia ahora su acción con
+  `onClickLabel` "Abrir nota: <título>" (fallback "Abrir nota sin
+  título"); el pin describe "Fijada: <título>" ("Fijada, sin título" para
+  nota sin título). Nuevo `NotesListAccessibilityTest` (2 tests Compose/
+  Robolectric: rótulo de acción + pin describe título + fallback sin título).
+
+## Fix ejecución anterior
 - RUN 010: `togglePinned` pasa a ser un flip atómico SQL
   (`UPDATE notes SET pinned = NOT pinned WHERE id = :id`), eliminando la
   carrera read-modify-write del pin (antes `setPinned(id, !note.pinned)` calculaba

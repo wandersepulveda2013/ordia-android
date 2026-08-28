@@ -274,10 +274,11 @@ private fun NoteRow(
     }
     val preview = remember(note.content) { note.content.take(120) }
 
+    val rowLabel = if (note.title.isBlank()) "Abrir nota sin título" else "Abrir nota: ${note.title}"
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenNote(note) }
+            .clickable(onClickLabel = rowLabel) { onOpenNote(note) }
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -309,9 +310,10 @@ private fun NoteRow(
             )
         }
         if (note.pinned) {
+            val pinLabel = if (note.title.isBlank()) "Fijada, sin título" else "Fijada: ${note.title}"
             Icon(
                 Icons.Outlined.PushPin,
-                contentDescription = "Fijada",
+                contentDescription = pinLabel,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp).padding(top = 2.dp),
             )

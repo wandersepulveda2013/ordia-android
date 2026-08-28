@@ -3,7 +3,19 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
-## 2026-08-28 — Ejecución 010 (el pin de la lista conmuta de forma atómica, P2)
+##2026-08-28 — Ejecución 011 (accesibilidad de la lista: rótulos para TalkBack, P3)
+
+- **La fila de nota anuncia ahora su acción con el título:** el `clickable` de
+  `NoteRow` pasa `onClickLabel` ("Abrir nota: <título>" o "Abrir nota
+  sin título" si no hay título), de modo que TalkBack anuncia una acción
+  descriptiva en vez del nodo genérico. El pin incluye el título
+  ("Fijada: <título>" / "Fijada, sin título") para distinguir qué nota está fijada..
+- **Tests:** nuevo `NotesListAccessibilityTest` (2 tests Compose/Robolectric):
+  la fila expone el rótulo de la acción con el título y el pin describe la nota
+  fijada (y la nota no fijada no expone pin); fallback para nota sin título. Suite
+  completa → **46/46 en `previewFull`** (sin regresiones).
+
+##2026-08-28 — Ejecución 010 (el pin de la lista conmuta de forma atómica, P2)
 
 - **Carrera read-modify-write del pin eliminada:** el pin se conmutaba con
   `setPinned(id, !note.pinned)` — valor calculado en la UI sobre un snapshot del

@@ -10,10 +10,17 @@
   commit→beginDraft hacia otra nota, y nota nueva tras back).
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (2 tests).
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
+- `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
   específicos de flavor por ahora).
 
 ## Último resultado
+
+- 2026-08-28 (ejecución 011): `testPreviewFullDebugUnitTest` → **46 tests,
+  0 fallos,, 0 errores** (BUILD SUCCESSFUL. Añadido `NotesListAccessibilityTest`
+  (2 tests Compose/Robolectric, P3): la fila expone `onClickLabel` con
+  "Abrir nota: <título>" (y fallback "Abrir nota sin título"`; el pin
+  describe "Fijada: <título>". Fuente: `NoteRow` en `NotesListScreen.kt`.).
 
 - 2026-08-28 (ejecución 010): `testPreviewSafeDebugUnitTest` → **44 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL); `testPreviewAdvancedDebugUnitTest`
@@ -51,6 +58,11 @@
   primera fila). `assembleRelease` 3 variantes OK.
 
 ## Tests recientemente agregados
+
+- `NotesListAccessibilityTest` (RUN 011, nuevo, P3: accesibilidad de la lista —
+  la fila expone `onClickLabel` "Abrir nota: <título>" (o "Abrir nota
+  sin título"`; el pin describe "Fijada: <título>"` y la nota no fijada no
+  expone pin. Verifica además que la acción sigue abriendo la nota.
 
 - `NotepadViewModelTest` RUN 009 (+4, BUG-006, ciclo de draft):
   `beginDraftAgain_resumesLiveDraft_doesNotDuplicateNote` (recomposición de una
