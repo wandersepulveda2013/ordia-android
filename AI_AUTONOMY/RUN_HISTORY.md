@@ -23,8 +23,8 @@
 - **Tests:** `testPreviewSafeDebugUnitTest` → **49/49**; `testPreviewAdvancedDebugUnitTest`
   → **49/49**; `testFullDebugUnitTest` → BUILD SUCCESSFUL (sin tests en su source set).
   Archivo de test ASCII-clean verificado.
-- **Commit:** `test(editor): cover recreation/rotation and done-commit UI paths` (pendiente push).
-- **Estado:** pendiente push y revisión humana; trabajo listo en `openhands/autonomous-notes`.
+- **Commit:** `92bfe76` — test(editor): cover toolbar "Hecho" commit and recreation/rotation (BUG-003); push OK a `origin/openhands/autonomous-notes`.
+- **Estado:** commit + push realizados; trabajo listo en `openhands/autonomous-notes`.
 - **Siguiente tarea:** revisar `NEXT_TASKS.md` — P2 #2 (confirmación de borrado —
   probablemente suficiente con undo), P2 #3 (búsqueda con acentos) y P3.
 
