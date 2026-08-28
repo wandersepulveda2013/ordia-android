@@ -51,8 +51,20 @@
   single-line del título).
 - `src/test/.../NotesListSearchInteractiveTest.kt` (RUN 008, nuevo, 3 tests de
   regresión BUG-005 + aserción de bounds anti-solape).
+- `data/NoteDao.kt` / `NoteRepository.kt` / `ui/NotepadViewModel.kt` /
+  `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
+  atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 
 ## Fix esta ejecución
+- RUN 010: `togglePinned` pasa a ser un flip atómico SQL
+  (`UPDATE notes SET pinned = NOT pinned WHERE id = :id`), eliminando la
+  carrera read-modify-write del pin (antes `setPinned(id, !note.pinned)` calculaba
+  en la UI sobre un snapshot que podía estar obsoleto si dos toggles ocurrían
+  en ráfaga). `NotepadViewModel.togglePinned(id)` y `onTogglePin: (Long) -> Unit`.
+  Tests de DAO/repo/VM ajustados a doble toggle (el net de dos toggles
+  es el estado original).
+
+## Fix ejecución anterior
 - RUN 009: integridad del ciclo de draft (BUG-006, P1) — la sesión de draft
   (`draftId` + `draftWasNew`) se respalda en `SavedStateHandle` (sobrevive a
   rotación/proceso-muerte); `commitDraft` hace snapshot + limpieza síncrona y el

@@ -13,10 +13,11 @@
 | P2 | UX | Sin exportar/importar notas | ausente en UI | OPEN |
 | P3 | UX | Cerrar nota al tocar fuera; pulido visual | OPEN |
 
-## Completados (2026-08-26)
+## Completados (2026-08-26, 2026-08-28)
 
 | PRIORIDAD | AREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|-----------|--------|
+| P2 | Integridad | Carrera read-modify-write del pin: el toggle calculaba [!note.pinned] sobre un snapshot del flujo y podia sobrescribir el estado con valor obsoleto | `togglePinned(id)` atomico en SQL (UPDATE pinned=NOT pinned); tests de doble toggle; RUN 010 | FIXED |
 | P0 | Integridad | Back del sistema en editor cerraba la app y perdia la nota | BackHandler guarda; compila; BUGS_FOUND.md BUG-003 | FIXED |
 | P0 | UX/Integridad | Eliminacion instantanea sin Deshacer | snackbar Deshacer + restore; NotepadViewModelTest.deleteThenRestore; BUG-001 | FIXED |
 | P1 | UX/Integridad | Notas vacias fantasma al abrir/salir del editor | guard save(); NotepadViewModelTest.save_blankNewNote_isNotPersisted; BUG-002 | FIXED |

@@ -16,7 +16,7 @@ class NoteRepository(private val dao: NoteDao) {
 
     suspend fun delete(note: NoteEntity) = dao.delete(note)
 
-    suspend fun togglePinned(id: Long, pinned: Boolean) = dao.setPinned(id, pinned)
+    suspend fun togglePinned(id: Long) = dao.togglePinned(id)
 
     suspend fun create(title: String, content: String): Long {
         val now = System.currentTimeMillis()

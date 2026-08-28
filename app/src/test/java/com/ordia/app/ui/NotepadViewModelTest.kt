@@ -47,9 +47,9 @@ class NotepadViewModelTest {
             if (i >= 0) notes[i] = note
         }
         override suspend fun delete(note: NoteEntity) { notes.removeIf { it.id == note.id } }
-        override suspend fun setPinned(id: Long, pinned: Boolean) {
+        override suspend fun togglePinned(id: Long) {
             val i = notes.indexOfFirst { it.id == id }
-            if (i >= 0) notes[i] = notes[i].copy(pinned = pinned)
+            if (i >= 0) notes[i] = notes[i].copy(pinned = !notes[i].pinned)
         }
         override suspend fun clear() { notes.clear() }
         private fun sorted() = notes.sortedWith(
@@ -154,11 +154,11 @@ class NotepadViewModelTest {
         viewModel.save("A", "")
         advanceUntilIdle()
 
-        viewModel.togglePinned(dao.notes[0])
+        viewModel.togglePinned(dao.notes[0].id)
         advanceUntilIdle()
         assertTrue(dao.notes[0].pinned)
 
-        viewModel.togglePinned(dao.notes[0])
+        viewModel.togglePinned(dao.notes[0].id)
         advanceUntilIdle()
         assertTrue(!dao.notes[0].pinned)
     }

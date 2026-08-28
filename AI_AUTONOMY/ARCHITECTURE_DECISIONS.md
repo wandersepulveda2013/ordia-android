@@ -2,6 +2,23 @@
 
 > Solo decisiones técnicas significativas y duraderas.
 
+## DEC-005 (2026-08-28) — Toggle de fijado atómico en SQL
+
+El pin (campo booleano `pinned`) se conmutabacon una operación compuesta
+`setPinned(id, !note.pinned)`:la UI leía un snapshot del flujo y calculaba el
+nuevo valor fuera de la base de datos, introduciendo una carrera read-modify-write
+(si dos toggles ocurrían en ráfaga, el segundo podía escribir el estado previo).
+
+`NoteDao.togglePinned(id: Long)` reemplaza a `setPinned`: la propia SQL
+(`UPDATE notes SET pinned= NOT pinned WHERE id = :id`) calcula el nuevo valor
+respecto del estado ACTUAL en disco,y queda atómico en el motor SQLite. El
+repo envuelve el flip en una transacción con verificación de filas afectadas. Se
+eliminó `setPinned` de DAO/repo/VM; los tests verifican que el doble toggle
+neto mantiene el estado original. Alternativas descartadas: CASO por columna
+normalizada / trigger(complejidad innecesaria para un único booleano con
+probabilidad baja de carrera; la carrera existe aunque sea rara, así que la
+semántica atómica es la corrección correcta a coste ~0 líneas de SQL).
+
 ## DEC-004 (2026-08-27) — Sesión de draft del editor en `SavedStateHandle` con commit síncrono
 
 El estado de draft (`draftId` + `draftWasNew`) es la frontera de integridad entre

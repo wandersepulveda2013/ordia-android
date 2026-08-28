@@ -3,6 +3,32 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 010 — 2026-08-28
+
+- **Objetivo:** P2 — eliminar la carrera read-modify-write del pin de la lista
+  de notas: el toggle era `setPinned(id, !note.pinned)` calculado sobre el
+  note emitido por el flujo, pero si dos toggles ocurrían en ráfaga (o un
+  refresh del flujo intercalaba un snapshot obsoleto, el segundo toggle podía
+  escribir el estado anterior del primero.
+- **Hallazgo (evidencia):** `NoteDao.setPinned(id, pinned)` imponía un valor
+  calculado fuera de la base de datos; el test de doble toggle en la suite de
+  DAO/repo/VM describía el comportamiento race. La solución correcta es que la
+  propia SQL calcule el nuevo valor respecto del estado ACTUAL en disco.
+- **Cambio:** `NoteDao.togglePinned(id: Long)` ejecuta `UPDATE notes SET
+  pinned = NOT pinned WHERE id = :id` (flip atómico en SQL); `NoteRepository`
+  envuelve el flip en una transacción con verificación de filas; `NotepadViewModel
+  .togglePinned(id)` expone la llamada; `NotesListScreen` usa
+  `onTogglePin: (Long) -> Unit`. `setPinned` eliminado de DAO/repo/VM.
+  Tests de DAO/repo/VM ajustados: el doble toggle net queda como estado original.
+- **Tests:** suite completa → **44/44 en las 3 variantes** (`previewSafe`
+  /`Advanced`/`Full`); `assemblePreviewSafeRelease` → BUILD SUCCESSFUL.
+
+- **Commit:** `fix(notes): make pin toggle atomic in SQL to avoid stale overwrites`.
+- **Estado:** commit creado y pusheado a `origin/openhands/autonomous-notes`.
+- **Siguiente tarea:** P2/P3 — tests de UI del editor Compose (recreación/
+  rotación real del editor, ver NEXT_TASKS) y mejoras de accesibilidad en la lista
+
+
 ## RUN 009 — 2026-08-27
 
 - **Objetivo:** P1 — cerrar la integridad del ciclo de draft del editor: el estado

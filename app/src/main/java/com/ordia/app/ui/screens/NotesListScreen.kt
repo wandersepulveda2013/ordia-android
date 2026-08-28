@@ -59,7 +59,7 @@ fun NotesListScreen(
     onCreateNote: () -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
     onRestoreNote: (NoteEntity) -> Unit,
-    onTogglePin: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
 ) {
@@ -184,7 +184,7 @@ private fun NoteList(
     searchQuery: String,
     modifier: Modifier = Modifier,
     onOpenNote: (NoteEntity) -> Unit,
-    onTogglePin: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
     LazyColumn(
@@ -265,7 +265,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 private fun NoteRow(
     note: NoteEntity,
     onOpenNote: (NoteEntity) -> Unit,
-    onTogglePin: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -323,7 +323,7 @@ private fun NoteRow(
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
                     text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
+                    onClick = { menuOpen = false; onTogglePin(note.id) },
                 )
                 DropdownMenuItem(
                     text = { Text("Eliminar") },

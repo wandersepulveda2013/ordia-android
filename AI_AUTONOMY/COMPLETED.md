@@ -3,6 +3,22 @@
 > Solo mejoras importantes completadas por la automatización
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-08-28 — Ejecución 010 (el pin de la lista conmuta de forma atómica, P2)
+
+- **Carrera read-modify-write del pin eliminada:** el pin se conmutaba con
+  `setPinned(id, !note.pinned)` — valor calculado en la UI sobre un snapshot del
+  flujo,, con riesgo de que dos toggles en ráfaga (o un refresh intercalado)
+  sobrescribieran el estado con un valor obsoleto. `NoteDao.togglePinned(id: Long)`
+  ejecuta ahora `UPDATE notes SET pinned = NOT pinned WHERE id = :id` — flip
+  atómico calculado por SQLite respecto del estado actual en disco, con transacción
+  y verificación de filas en el repo. El VM expone `togglePinned(id)` y la lista
+  recibe un callback `(Long) -> Unit`, sin dependencia de snapshots del flujo;
+  `setPinned` eliminado de DAO/repo/VM.
+- **Tests:** tests de DAO/repo/VM ajustados a doble toggle (el net de dos toggles == estado original>;
+  suite completa → **44/44 en las 3 variantes**; `assemblePreviewSafeRelease` OK.
+
+
+
 ## 2026-08-27 — Ejecución 009 (integridad del ciclo de draft del editor, P1)
 
 - **Duplicados / cross-contaminación al cambiar de nota en ráfaga (BUG-006):**

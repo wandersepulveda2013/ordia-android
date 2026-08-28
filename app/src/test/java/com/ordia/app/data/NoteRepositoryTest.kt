@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -30,9 +31,9 @@ class NoteRepositoryTest {
             if (idx >= 0) notes[idx] = note
         }
         override suspend fun delete(note: NoteEntity) { notes.removeAll { it.id == note.id } }
-        override suspend fun setPinned(id: Long, pinned: Boolean) {
+        override suspend fun togglePinned(id: Long) {
             val idx = notes.indexOfFirst { it.id == id }
-            if (idx >= 0) notes[idx] = notes[idx].copy(pinned = pinned)
+            if (idx >= 0) notes[idx] = notes[idx].copy(pinned = !notes[idx].pinned)
         }
         override suspend fun clear() { notes.clear() }
     }
@@ -71,8 +72,12 @@ class NoteRepositoryTest {
 
     @Test
     fun togglePinned_flipsFlag() = runTest {
-        repo.togglePinned(1, true)
-        assertEquals(true, repo.get(1)?.pinned)
+        val id = repo.create("A fijar", "")
+        assertFalse(repo.get(id)!!.pinned)
+        repo.togglePinned(id)
+        assertTrue(repo.get(id)!!.pinned)
+        repo.togglePinned(id)
+        assertFalse(repo.get(id)!!.pinned)
     }
 
     @Test

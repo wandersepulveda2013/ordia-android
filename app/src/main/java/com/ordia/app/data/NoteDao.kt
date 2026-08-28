@@ -34,8 +34,8 @@ interface NoteDao {
     @Delete
     suspend fun delete(note: NoteEntity)
 
-    @Query("UPDATE notes SET pinned = :pinned WHERE id = :id")
-    suspend fun setPinned(id: Long, pinned: Boolean)
+    @Query("UPDATE notes SET pinned = NOT pinned WHERE id = :id")
+    suspend fun togglePinned(id: Long)
 
     @Query("DELETE FROM notes")
     suspend fun clear()

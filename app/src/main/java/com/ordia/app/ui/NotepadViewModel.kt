@@ -176,7 +176,7 @@ class NotepadViewModel(
         }
     }
 
-    fun togglePinned(note: NoteEntity) {
-        viewModelScope.launch { repo.togglePinned(note.id, !note.pinned) }
+    fun togglePinned(id: Long) {
+        viewModelScope.launch { repo.togglePinned(id) }
     }
 }

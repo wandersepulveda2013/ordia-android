@@ -15,6 +15,14 @@
 
 ## Último resultado
 
+- 2026-08-28 (ejecución 010): `testPreviewSafeDebugUnitTest` → **44 tests,
+  0 fallos, 0 errores** (BUILD SUCCESSFUL); `testPreviewAdvancedDebugUnitTest`
+  → **44/44**; `testPreviewFullDebugUnitTest` → **44/44**. `assemblePreviewSafeRelease`
+  → BUILD SUCCESSFUL. `togglePinned` refactorizado a flip atómico SQL
+  (`UPDATE notes SET pinned = NOT pinned WHERE id = :id`) — sin estado
+  intermedio `setPinned(id, pinned)`; tests de DAO/repo/VM ajustados a doble
+  toggle (el net de dos toggles == estado original).
+
 - 2026-08-27 (ejecución 009): `testPreviewSafeDebugUnitTest` → **44 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL); `testPreviewAdvancedDebugUnitTest`
   → **44/44**; `testPreviewFullDebugUnitTest` → **44/44**. `assembleRelease`

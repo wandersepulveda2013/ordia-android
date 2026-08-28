@@ -86,11 +86,11 @@ class NoteDaoTest {
     }
 
     @Test
-    fun setPinned_togglesFlag() = runTest {
+    fun togglePinned_flipsFlagAndDoubleToggleNetsOriginal() = runTest {
         val id = dao.insert(note("A fijar", pinned = false))
-        dao.setPinned(id, true)
+        dao.togglePinned(id)
         assertTrue(dao.getById(id)!!.pinned)
-        dao.setPinned(id, false)
+        dao.togglePinned(id)
         assertFalse(dao.getById(id)!!.pinned)
     }
 
