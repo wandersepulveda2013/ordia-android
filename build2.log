@@ -1,0 +1,35 @@
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:prePreviewSafeReleaseBuild UP-TO-DATE
+> Task :app:checkPreviewSafeReleaseDuplicateClasses UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generatePreviewSafeReleaseBuildConfig UP-TO-DATE
+> Task :app:checkPreviewSafeReleaseAarMetadata UP-TO-DATE
+> Task :app:generatePreviewSafeReleaseResValues UP-TO-DATE
+> Task :app:mapPreviewSafeReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generatePreviewSafeReleaseResources UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseResources UP-TO-DATE
+> Task :app:packagePreviewSafeReleaseResources UP-TO-DATE
+> Task :app:parsePreviewSafeReleaseLocalResources UP-TO-DATE
+> Task :app:createPreviewSafeReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksPreviewSafeRelease UP-TO-DATE
+> Task :app:processPreviewSafeReleaseMainManifest UP-TO-DATE
+> Task :app:processPreviewSafeReleaseManifest UP-TO-DATE
+> Task :app:processPreviewSafeReleaseManifestForPackage UP-TO-DATE
+> Task :app:processPreviewSafeReleaseResources UP-TO-DATE
+> Task :app:kaptGenerateStubsPreviewSafeReleaseKotlin UP-TO-DATE
+> Task :app:kaptPreviewSafeReleaseKotlin UP-TO-DATE
+> Task :app:compilePreviewSafeReleaseKotlin UP-TO-DATE
+> Task :app:javaPreCompilePreviewSafeRelease UP-TO-DATE
+> Task :app:compilePreviewSafeReleaseJavaWithJavac UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseArtProfile UP-TO-DATE
+> Task :app:expandPreviewSafeReleaseArtProfileWildcards UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :app:processPreviewSafeReleaseJavaRes UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseJavaResource UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseStartupProfile UP-TO-DATE
+> Task :app:minifyPreviewSafeReleaseWithR8
+
+BUILD SUCCESSFUL in 1m 34s
+29 actionable tasks: 1 executed, 28 up-to-date

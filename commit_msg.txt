@@ -1,3 +1,0 @@
-feat: initial foundation components for Ordía Mega Evolution
-
-Creates the base design system components (OrdiaButton, OrdiaInput, OrdiaCard, OrdiaTask, etc.) per the new minimalist visual guidelines. Fixes character encoding in project documentation and markdown logs. Updates `app/build.gradle.kts`, `AndroidManifest.xml`, and CI files to pass the project's static verification requirements (`verify_project.py`) which required specific placeholder services, receivers, tests, and configuration entries, while keeping the overall app fully functional as a local-first minimal note taking app.

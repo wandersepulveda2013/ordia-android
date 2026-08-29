@@ -1,0 +1,434 @@
+> Task :app:clean
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:prePreviewAdvancedDebugBuild UP-TO-DATE
+> Task :app:generatePreviewAdvancedDebugBuildConfig
+> Task :app:generatePreviewAdvancedDebugResValues
+> Task :app:checkPreviewAdvancedDebugAarMetadata
+> Task :app:mapPreviewAdvancedDebugSourceSetPaths
+> Task :app:generatePreviewAdvancedDebugResources
+> Task :app:packagePreviewAdvancedDebugResources
+> Task :app:parsePreviewAdvancedDebugLocalResources
+> Task :app:createPreviewAdvancedDebugCompatibleScreenManifests
+> Task :app:mergePreviewAdvancedDebugResources
+> Task :app:extractDeepLinksPreviewAdvancedDebug
+> Task :app:processPreviewAdvancedDebugMainManifest
+> Task :app:processPreviewAdvancedDebugManifest
+> Task :app:processPreviewAdvancedDebugManifestForPackage
+> Task :app:javaPreCompilePreviewAdvancedDebug
+> Task :app:prePreviewAdvancedDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewAdvancedDebugUnitTest
+> Task :app:mergePreviewAdvancedDebugShaders
+> Task :app:compilePreviewAdvancedDebugShaders NO-SOURCE
+> Task :app:generatePreviewAdvancedDebugAssets UP-TO-DATE
+> Task :app:mergePreviewAdvancedDebugAssets
+> Task :app:buildKotlinToolingMetadata
+> Task :app:prePreviewAdvancedReleaseBuild UP-TO-DATE
+> Task :app:generatePreviewAdvancedReleaseBuildConfig
+> Task :app:checkPreviewAdvancedReleaseAarMetadata
+> Task :app:generatePreviewAdvancedReleaseResValues
+> Task :app:mapPreviewAdvancedReleaseSourceSetPaths
+> Task :app:generatePreviewAdvancedReleaseResources
+> Task :app:processPreviewAdvancedDebugResources
+> Task :app:mergePreviewAdvancedReleaseResources
+> Task :app:packagePreviewAdvancedDebugUnitTestForUnitTest
+> Task :app:generatePreviewAdvancedDebugUnitTestConfig
+> Task :app:packagePreviewAdvancedReleaseResources
+> Task :app:parsePreviewAdvancedReleaseLocalResources
+> Task :app:createPreviewAdvancedReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksPreviewAdvancedRelease
+> Task :app:processPreviewAdvancedReleaseMainManifest
+> Task :app:processPreviewAdvancedReleaseManifest
+> Task :app:processPreviewAdvancedReleaseManifestForPackage
+> Task :app:processPreviewAdvancedReleaseResources
+
+> Task :app:kaptGenerateStubsPreviewAdvancedDebugKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewAdvancedReleaseKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewAdvancedDebugKotlin
+> Task :app:kaptPreviewAdvancedReleaseKotlin
+> Task :app:compilePreviewAdvancedDebugKotlin
+> Task :app:compilePreviewAdvancedReleaseKotlin
+> Task :app:compilePreviewAdvancedDebugJavaWithJavac
+> Task :app:bundlePreviewAdvancedDebugClassesToRuntimeJar
+> Task :app:bundlePreviewAdvancedDebugClassesToCompileJar
+> Task :app:processPreviewAdvancedDebugJavaRes
+> Task :app:javaPreCompilePreviewAdvancedRelease
+> Task :app:compilePreviewAdvancedReleaseJavaWithJavac
+> Task :app:bundlePreviewAdvancedReleaseClassesToRuntimeJar
+> Task :app:bundlePreviewAdvancedReleaseClassesToCompileJar
+
+> Task :app:kaptGenerateStubsPreviewAdvancedDebugUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewAdvancedReleaseUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewAdvancedDebugUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:kaptPreviewAdvancedReleaseUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:compilePreviewAdvancedDebugUnitTestKotlin
+> Task :app:compilePreviewAdvancedDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processPreviewAdvancedDebugUnitTestJavaRes
+> Task :app:compilePreviewAdvancedReleaseUnitTestKotlin
+> Task :app:testPreviewAdvancedDebugUnitTest
+> Task :app:prePreviewAdvancedReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewAdvancedReleaseUnitTest
+> Task :app:mergePreviewAdvancedReleaseShaders
+> Task :app:compilePreviewAdvancedReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compilePreviewAdvancedReleaseShaders NO-SOURCE
+> Task :app:generatePreviewAdvancedReleaseAssets UP-TO-DATE
+> Task :app:mergePreviewAdvancedReleaseAssets
+> Task :app:processPreviewAdvancedReleaseJavaRes
+> Task :app:processPreviewAdvancedReleaseUnitTestJavaRes
+> Task :app:prePreviewFullDebugBuild UP-TO-DATE
+> Task :app:generatePreviewFullDebugBuildConfig
+> Task :app:checkPreviewFullDebugAarMetadata
+> Task :app:generatePreviewFullDebugResValues
+> Task :app:mapPreviewFullDebugSourceSetPaths
+> Task :app:generatePreviewFullDebugResources
+> Task :app:convertLinkedResourcesToBinaryPreviewAdvancedRelease
+> Task :app:packagePreviewAdvancedReleaseUnitTestForUnitTest
+> Task :app:generatePreviewAdvancedReleaseUnitTestConfig
+> Task :app:mergePreviewFullDebugResources
+> Task :app:testPreviewAdvancedReleaseUnitTest
+> Task :app:packagePreviewFullDebugResources
+> Task :app:createPreviewFullDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksPreviewFullDebug
+> Task :app:parsePreviewFullDebugLocalResources
+> Task :app:processPreviewFullDebugMainManifest
+> Task :app:processPreviewFullDebugManifest
+> Task :app:processPreviewFullDebugManifestForPackage
+> Task :app:javaPreCompilePreviewFullDebug
+> Task :app:prePreviewFullDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewFullDebugUnitTest
+> Task :app:mergePreviewFullDebugShaders
+> Task :app:compilePreviewFullDebugShaders NO-SOURCE
+> Task :app:generatePreviewFullDebugAssets UP-TO-DATE
+> Task :app:mergePreviewFullDebugAssets
+> Task :app:prePreviewFullReleaseBuild UP-TO-DATE
+> Task :app:generatePreviewFullReleaseBuildConfig
+> Task :app:checkPreviewFullReleaseAarMetadata
+> Task :app:generatePreviewFullReleaseResValues
+> Task :app:mapPreviewFullReleaseSourceSetPaths
+> Task :app:generatePreviewFullReleaseResources
+> Task :app:processPreviewFullDebugResources
+> Task :app:mergePreviewFullReleaseResources
+> Task :app:packagePreviewFullDebugUnitTestForUnitTest
+> Task :app:generatePreviewFullDebugUnitTestConfig
+> Task :app:packagePreviewFullReleaseResources
+> Task :app:parsePreviewFullReleaseLocalResources
+> Task :app:createPreviewFullReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksPreviewFullRelease
+> Task :app:processPreviewFullReleaseMainManifest
+> Task :app:processPreviewFullReleaseManifest
+> Task :app:processPreviewFullReleaseManifestForPackage
+> Task :app:processPreviewFullReleaseResources
+
+> Task :app:kaptGenerateStubsPreviewFullDebugKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewFullReleaseKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewFullDebugKotlin
+> Task :app:kaptPreviewFullReleaseKotlin
+> Task :app:compilePreviewFullDebugKotlin
+> Task :app:compilePreviewFullReleaseKotlin
+> Task :app:compilePreviewFullDebugJavaWithJavac
+> Task :app:bundlePreviewFullDebugClassesToCompileJar
+> Task :app:bundlePreviewFullDebugClassesToRuntimeJar
+> Task :app:processPreviewFullDebugJavaRes
+> Task :app:javaPreCompilePreviewFullRelease
+> Task :app:compilePreviewFullReleaseJavaWithJavac
+> Task :app:bundlePreviewFullReleaseClassesToRuntimeJar
+> Task :app:bundlePreviewFullReleaseClassesToCompileJar
+
+> Task :app:kaptGenerateStubsPreviewFullDebugUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewFullReleaseUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewFullDebugUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:kaptPreviewFullReleaseUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:compilePreviewFullDebugUnitTestKotlin
+> Task :app:compilePreviewFullDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processPreviewFullDebugUnitTestJavaRes
+> Task :app:compilePreviewFullReleaseUnitTestKotlin
+> Task :app:testPreviewFullDebugUnitTest
+> Task :app:prePreviewFullReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewFullReleaseUnitTest
+> Task :app:mergePreviewFullReleaseShaders
+> Task :app:compilePreviewFullReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compilePreviewFullReleaseShaders NO-SOURCE
+> Task :app:generatePreviewFullReleaseAssets UP-TO-DATE
+> Task :app:mergePreviewFullReleaseAssets
+> Task :app:processPreviewFullReleaseJavaRes
+> Task :app:processPreviewFullReleaseUnitTestJavaRes
+> Task :app:prePreviewSafeDebugBuild UP-TO-DATE
+> Task :app:generatePreviewSafeDebugBuildConfig
+> Task :app:checkPreviewSafeDebugAarMetadata
+> Task :app:generatePreviewSafeDebugResValues
+> Task :app:mapPreviewSafeDebugSourceSetPaths
+> Task :app:generatePreviewSafeDebugResources
+> Task :app:convertLinkedResourcesToBinaryPreviewFullRelease
+> Task :app:packagePreviewFullReleaseUnitTestForUnitTest
+> Task :app:generatePreviewFullReleaseUnitTestConfig
+> Task :app:mergePreviewSafeDebugResources
+> Task :app:testPreviewFullReleaseUnitTest
+> Task :app:packagePreviewSafeDebugResources
+> Task :app:createPreviewSafeDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksPreviewSafeDebug
+> Task :app:parsePreviewSafeDebugLocalResources
+> Task :app:processPreviewSafeDebugMainManifest
+> Task :app:processPreviewSafeDebugManifest
+> Task :app:processPreviewSafeDebugManifestForPackage
+> Task :app:javaPreCompilePreviewSafeDebug
+> Task :app:prePreviewSafeDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewSafeDebugUnitTest
+> Task :app:mergePreviewSafeDebugShaders
+> Task :app:compilePreviewSafeDebugShaders NO-SOURCE
+> Task :app:generatePreviewSafeDebugAssets UP-TO-DATE
+> Task :app:mergePreviewSafeDebugAssets
+> Task :app:prePreviewSafeReleaseBuild UP-TO-DATE
+> Task :app:generatePreviewSafeReleaseBuildConfig
+> Task :app:checkPreviewSafeReleaseAarMetadata
+> Task :app:generatePreviewSafeReleaseResValues
+> Task :app:mapPreviewSafeReleaseSourceSetPaths
+> Task :app:generatePreviewSafeReleaseResources
+> Task :app:processPreviewSafeDebugResources
+> Task :app:mergePreviewSafeReleaseResources
+> Task :app:packagePreviewSafeDebugUnitTestForUnitTest
+> Task :app:generatePreviewSafeDebugUnitTestConfig
+> Task :app:packagePreviewSafeReleaseResources
+> Task :app:parsePreviewSafeReleaseLocalResources
+> Task :app:createPreviewSafeReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksPreviewSafeRelease
+> Task :app:processPreviewSafeReleaseMainManifest
+> Task :app:processPreviewSafeReleaseManifest
+> Task :app:processPreviewSafeReleaseManifestForPackage
+> Task :app:processPreviewSafeReleaseResources
+
+> Task :app:kaptGenerateStubsPreviewSafeDebugKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewSafeReleaseKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewSafeDebugKotlin
+> Task :app:kaptPreviewSafeReleaseKotlin
+> Task :app:compilePreviewSafeDebugKotlin
+> Task :app:compilePreviewSafeDebugJavaWithJavac
+> Task :app:bundlePreviewSafeDebugClassesToRuntimeJar
+> Task :app:bundlePreviewSafeDebugClassesToCompileJar
+> Task :app:compilePreviewSafeReleaseKotlin
+> Task :app:processPreviewSafeDebugJavaRes
+> Task :app:javaPreCompilePreviewSafeRelease
+> Task :app:compilePreviewSafeReleaseJavaWithJavac
+> Task :app:bundlePreviewSafeReleaseClassesToRuntimeJar
+> Task :app:bundlePreviewSafeReleaseClassesToCompileJar
+
+> Task :app:kaptGenerateStubsPreviewSafeDebugUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptGenerateStubsPreviewSafeReleaseUnitTestKotlin
+w: Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+
+> Task :app:kaptPreviewSafeDebugUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:kaptPreviewSafeReleaseUnitTestKotlin
+warning: The following options were not recognized by any processor: '[room.schemaLocation, kapt.kotlin.generated, room.incremental]'
+
+> Task :app:compilePreviewSafeDebugUnitTestKotlin
+> Task :app:compilePreviewSafeDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processPreviewSafeDebugUnitTestJavaRes
+> Task :app:compilePreviewSafeReleaseUnitTestKotlin
+> Task :app:testPreviewSafeDebugUnitTest
+> Task :app:prePreviewSafeReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePreviewSafeReleaseUnitTest
+> Task :app:mergePreviewSafeReleaseShaders
+> Task :app:compilePreviewSafeReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compilePreviewSafeReleaseShaders NO-SOURCE
+> Task :app:generatePreviewSafeReleaseAssets UP-TO-DATE
+> Task :app:mergePreviewSafeReleaseAssets
+> Task :app:processPreviewSafeReleaseJavaRes
+> Task :app:processPreviewSafeReleaseUnitTestJavaRes
+> Task :app:prePreviewAdvancedDebugAndroidTestBuild SKIPPED
+> Task :app:generatePreviewAdvancedDebugAndroidTestResValues
+> Task :app:generatePreviewAdvancedDebugAndroidTestLintModel
+> Task :app:extractProguardFiles
+> Task :app:convertLinkedResourcesToBinaryPreviewSafeRelease
+> Task :app:packagePreviewSafeReleaseUnitTestForUnitTest
+> Task :app:generatePreviewSafeReleaseUnitTestConfig
+> Task :app:generatePreviewAdvancedDebugLintReportModel
+> Task :app:testPreviewSafeReleaseUnitTest
+> Task :app:test
+> Task :app:generatePreviewAdvancedDebugUnitTestLintModel
+> Task :app:lintAnalyzePreviewAdvancedDebugAndroidTest
+> Task :app:lintAnalyzePreviewAdvancedDebugUnitTest
+> Task :app:mergePreviewAdvancedDebugNativeDebugMetadata NO-SOURCE
+> Task :app:compressPreviewAdvancedDebugAssets
+> Task :app:checkPreviewAdvancedDebugDuplicateClasses
+> Task :app:desugarPreviewAdvancedDebugFileDependencies
+> Task :app:lintAnalyzePreviewAdvancedDebug
+> Task :app:mergeExtDexPreviewAdvancedDebug
+
+> Task :app:lintReportPreviewAdvancedDebug
+Wrote HTML report to file:///app/app/build/reports/lint-results-previewAdvancedDebug.html
+
+> Task :app:mergeLibDexPreviewAdvancedDebug
+> Task :app:lintPreviewAdvancedDebug
+> Task :app:lint
+> Task :app:dexBuilderPreviewAdvancedDebug
+> Task :app:mergePreviewAdvancedDebugGlobalSynthetics
+> Task :app:mergeProjectDexPreviewAdvancedDebug
+> Task :app:mergePreviewAdvancedDebugJniLibFolders
+> Task :app:mergePreviewAdvancedDebugNativeLibs
+
+> Task :app:stripPreviewAdvancedDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:validateSigningPreviewAdvancedDebug
+> Task :app:writePreviewAdvancedDebugAppMetadata
+> Task :app:writePreviewAdvancedDebugSigningConfigVersions
+> Task :app:mergePreviewFullDebugNativeDebugMetadata NO-SOURCE
+> Task :app:compressPreviewFullDebugAssets
+> Task :app:checkPreviewFullDebugDuplicateClasses
+> Task :app:desugarPreviewFullDebugFileDependencies
+> Task :app:mergePreviewAdvancedDebugJavaResource
+> Task :app:mergeExtDexPreviewFullDebug
+> Task :app:mergeLibDexPreviewFullDebug
+> Task :app:dexBuilderPreviewFullDebug
+> Task :app:mergePreviewFullDebugGlobalSynthetics
+> Task :app:packagePreviewAdvancedDebug
+> Task :app:createPreviewAdvancedDebugApkListingFileRedirect
+> Task :app:assemblePreviewAdvancedDebug
+> Task :app:mergeProjectDexPreviewFullDebug
+> Task :app:mergePreviewFullDebugJniLibFolders
+> Task :app:mergePreviewFullDebugNativeLibs
+
+> Task :app:stripPreviewFullDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:validateSigningPreviewFullDebug
+> Task :app:writePreviewFullDebugAppMetadata
+> Task :app:writePreviewFullDebugSigningConfigVersions
+> Task :app:mergePreviewSafeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:compressPreviewSafeDebugAssets
+> Task :app:checkPreviewSafeDebugDuplicateClasses
+> Task :app:desugarPreviewSafeDebugFileDependencies
+> Task :app:mergePreviewFullDebugJavaResource
+> Task :app:mergeExtDexPreviewSafeDebug
+> Task :app:mergeLibDexPreviewSafeDebug
+> Task :app:dexBuilderPreviewSafeDebug
+> Task :app:mergePreviewSafeDebugGlobalSynthetics
+> Task :app:packagePreviewFullDebug
+> Task :app:createPreviewFullDebugApkListingFileRedirect
+> Task :app:assemblePreviewFullDebug
+> Task :app:mergeProjectDexPreviewSafeDebug
+> Task :app:mergePreviewSafeDebugJniLibFolders
+> Task :app:mergePreviewSafeDebugNativeLibs
+
+> Task :app:stripPreviewSafeDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:validateSigningPreviewSafeDebug
+> Task :app:writePreviewSafeDebugAppMetadata
+> Task :app:writePreviewSafeDebugSigningConfigVersions
+> Task :app:mergePreviewAdvancedReleaseJniLibFolders
+> Task :app:mergePreviewAdvancedReleaseNativeLibs
+
+> Task :app:stripPreviewAdvancedReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:extractPreviewAdvancedReleaseNativeSymbolTables
+> Task :app:mergePreviewAdvancedReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkPreviewAdvancedReleaseDuplicateClasses
+> Task :app:mergePreviewAdvancedReleaseArtProfile
+> Task :app:mergePreviewSafeDebugJavaResource
+> Task :app:packagePreviewSafeDebug
+> Task :app:createPreviewSafeDebugApkListingFileRedirect
+> Task :app:assemblePreviewSafeDebug
+> Task :app:assembleDebug
+> Task :app:mergePreviewAdvancedReleaseGeneratedProguardFiles
+> Task :app:expandPreviewAdvancedReleaseArtProfileWildcards
+> Task :app:mergePreviewAdvancedReleaseStartupProfile
+> Task :app:compressPreviewAdvancedReleaseAssets
+> Task :app:mergePreviewAdvancedReleaseJavaResource
+> Task :app:extractPreviewAdvancedReleaseVersionControlInfo
+> Task :app:generatePreviewAdvancedReleaseLintVitalReportModel
+> Task :app:lintVitalAnalyzePreviewAdvancedRelease
+> Task :app:lintVitalReportPreviewAdvancedRelease SKIPPED
+> Task :app:lintVitalPreviewAdvancedRelease SKIPPED
+> Task :app:collectPreviewAdvancedReleaseDependencies
+> Task :app:sdkPreviewAdvancedReleaseDependencyData
+> Task :app:writePreviewAdvancedReleaseAppMetadata
+> Task :app:writePreviewAdvancedReleaseSigningConfigVersions
+> Task :app:mergePreviewFullReleaseJniLibFolders
+> Task :app:mergePreviewFullReleaseNativeLibs
+
+> Task :app:stripPreviewFullReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:extractPreviewFullReleaseNativeSymbolTables
+> Task :app:mergePreviewFullReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkPreviewFullReleaseDuplicateClasses
+> Task :app:mergePreviewFullReleaseArtProfile
+> Task :app:expandPreviewFullReleaseArtProfileWildcards
+> Task :app:mergePreviewFullReleaseGeneratedProguardFiles
+> Task :app:mergePreviewFullReleaseJavaResource
+> Task :app:mergePreviewFullReleaseStartupProfile
+> Task :app:compressPreviewFullReleaseAssets
+> Task :app:extractPreviewFullReleaseVersionControlInfo
+> Task :app:generatePreviewFullReleaseLintVitalReportModel
+> Task :app:lintVitalAnalyzePreviewFullRelease
+> Task :app:lintVitalReportPreviewFullRelease SKIPPED
+> Task :app:lintVitalPreviewFullRelease SKIPPED
+> Task :app:collectPreviewFullReleaseDependencies
+> Task :app:sdkPreviewFullReleaseDependencyData
+> Task :app:writePreviewFullReleaseAppMetadata
+> Task :app:writePreviewFullReleaseSigningConfigVersions
+> Task :app:mergePreviewSafeReleaseJniLibFolders
+> Task :app:mergePreviewSafeReleaseNativeLibs
+
+> Task :app:stripPreviewSafeReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so.
+
+> Task :app:extractPreviewSafeReleaseNativeSymbolTables
+> Task :app:mergePreviewSafeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkPreviewSafeReleaseDuplicateClasses
+> Task :app:mergePreviewSafeReleaseArtProfile
+> Task :app:expandPreviewSafeReleaseArtProfileWildcards
+> Task :app:mergePreviewSafeReleaseGeneratedProguardFiles
+> Task :app:mergePreviewSafeReleaseJavaResource
+> Task :app:mergePreviewSafeReleaseStartupProfile
+> Task :app:compressPreviewSafeReleaseAssets
+> Task :app:extractPreviewSafeReleaseVersionControlInfo
+> Task :app:generatePreviewSafeReleaseLintVitalReportModel
+> Task :app:minifyPreviewAdvancedReleaseWithR8
+> Task :app:lintVitalAnalyzePreviewSafeRelease
+> Task :app:lintVitalReportPreviewSafeRelease SKIPPED
+> Task :app:lintVitalPreviewSafeRelease SKIPPED
+> Task :app:collectPreviewSafeReleaseDependencies
+> Task :app:sdkPreviewSafeReleaseDependencyData
+> Task :app:writePreviewSafeReleaseAppMetadata
+> Task :app:writePreviewSafeReleaseSigningConfigVersions
+> Task :app:convertShrunkResourcesToBinaryPreviewAdvancedRelease
+> Task :app:optimizePreviewAdvancedReleaseResources
+> Task :app:compilePreviewAdvancedReleaseArtProfile
+> Task :app:packagePreviewAdvancedRelease
+> Task :app:createPreviewAdvancedReleaseApkListingFileRedirect
+> Task :app:assemblePreviewAdvancedRelease
+> Task :app:minifyPreviewFullReleaseWithR8
