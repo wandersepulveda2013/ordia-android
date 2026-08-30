@@ -22,6 +22,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,11 +42,14 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(note?.id) {
         if (note != null) {
             title = note.title
             content = note.content
+        } else {
+            focusRequester.requestFocus()
         }
     }
 
@@ -99,7 +104,9 @@ fun NoteEditorScreen(
                 onValueChange = { content = it },
                 placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
                 colors = bareFieldColors(),
             )
         }
