@@ -15,6 +15,14 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
 
     fun save(title: String, content: String, existingId: Long? = null) {
         viewModelScope.launch {
+            if (title.isBlank() && content.isBlank()) {
+                if (existingId != null) {
+                    val current = repo.get(existingId)
+                    if (current != null) repo.delete(current)
+                }
+                return@launch
+            }
+
             if (existingId != null) {
                 val current = repo.get(existingId)
                 val now = System.currentTimeMillis()
