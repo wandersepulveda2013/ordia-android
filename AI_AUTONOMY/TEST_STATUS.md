@@ -22,6 +22,12 @@
 
 ## Último resultado
 
+- 2026-08-31 (ejecución 013, reconciliación): `testPreviewSafeDebugUnitTest`
+  replanteado y verificado en el sandbox → **49 tests,  ​0 fallos,  ​0 errores** (BUILD
+  SUCCESSFUL, 33s). Sin cambios de producción; decisión documentada en
+  `NEXT_TASKS.md` P2 #2 (undo-snackbar suficiente, sin diálogo de confirmación).
+  Deuda anotada: warnings de deprecación de `createAndroidComposeRule` v1 en
+  los 4 archivos de tests de UI (P3).
 - 2026-08-28 (ejecución 012): `testPreviewSafeDebugUnitTest` → **49 tests,
   0 fallos, 0 errores** (BUILD SUCCESSFUL; `testPreviewAdvancedDebugUnitTest`
   → **49/49**. Añadidos `NoteEditorRecreationTest` (2 tests Compose/Robolectric

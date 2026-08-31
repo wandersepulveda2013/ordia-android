@@ -3,6 +3,26 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 013 — 2026-08-31 (reconciliación del sandbox con el linaje)
+
+- **Objetivo:** sanear un sandbox que había divergido con commits redundantes contra el
+  linaje compartido `openhands/autonomous-notes` (RUNs 1–12).
+- **Hallazgo:** el linaje remoto ya contenía versiones más completas de los mismos cambios
+  (undo-snackbar, BackHandler commit, autosave+draft, pin atómico, búsqueda,
+  TalkBack; mis commits locales eran duplicados que añadían fricción de confirmación.
+
+- **Cambio:** `reset --hard` al tip del linaje (`6bde78b`) descartando los duplicados;
+  verificación local de **49/49 tests verdes** en `testPreviewSafeDebugUnitTest`; decisión
+  documentada: P2 #2 (confirmación de borrado) RESUELTO — undo-snackbar suficiente,
+  sin diálogo previo (implementación paralela descartada; nuevo ítem P3 anotado
+  (migrar tests de UI al API v2 de Compose test rule, warnings actuales).
+- **Tests:** `testPreviewSafeDebugUnitTest` → 49/49 verdes (10 DAO + 7 Repo +  ​22 VM + 10 UI (3+2+3+2). Sin cambios de producción.
+- **Commit:** `4aed1c6` — docs(autonomy): reconcile sandbox with lineage; decide undo-over-confirm; note v2 test-rule debt
+
+- **Estado:** commit + push a `origin/openhands/autonomous-notes`.; trabajo consistente.
+- **Siguiente tarea:** ninguno bloqueante; próximos: P1 del backlog a evaluar (navegación
+  tipada, doble guardado estático, autosave ya resuelto pragmáticamente) o el P3
+  de migración v2 de los tests de UI.
 ## RUN 012 — 2026-08-28
 
 - **Objetivo:** P2 — cerrar el hueco de tests de UI del editor: recreación/rotación

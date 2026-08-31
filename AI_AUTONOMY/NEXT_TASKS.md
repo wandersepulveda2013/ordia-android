@@ -19,9 +19,15 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    (visual + datos): `singleLine=true` y aplanado de `\n` en `onValueChange` del
    título para no persistir títulos multilínea. Cobertura: test de UI de regresión.
 2. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
-   evaluar si el snackbar de deshacer es suficiente (probablemente sí). RUN 007:
-   el deshacer ya es seguro ante reutilización de ids (BUG-004): reinserta bajo id
-   nuevo si el original fue reutilizado, nunca sobrescribe una nota viva.
+   RESUELTO — el snackbar de deshacer es suficiente y NO se añade un diálogo de
+   confirmación previa. RUN 013: evaluación concluyente con base en el diseño del
+   linaje (RUN 007, BUG-004: el deshacer reinserta bajo id nuevo si el original
+   fue reutilizado — nunca sobrescribe una nota viva) y en una implementación
+   paralela descartada que añadía un `AlertDialog` previo: doble protección =
+   fricción (dos pasos para la acción más común) sin valor real frente al undo,
+   y el patrón Material recomienda undo sobre confirmaciones destructivas. El
+   `togglePinned` actual es atómico SQL (RUN 010), así que el riesgo de la
+   fijada es el mismo que cualquier nota — cubierto por el undo.
 3. **Búsqueda con acentos/tilde.** La búsqueda actual usa `LIKE` case-insensitive
    de Room que NO normaliza acentos (`café` no encuentra `cafe`). Si el usuario
    español lo pide, valorar normalizar (columna normalizada o coincidencias
@@ -44,3 +50,4 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    cubierta (`NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`: hace commit y
    navega igual que el back del sistema). RESUELTO — 3 tests de UI nuevos.
    _Comprobar:_ `testPreviewSafeDebugUnitTest` → 49/49 verdes.
+3. **Migrar tests de UI al API v2 de Compose test rule** — 4 archivos
