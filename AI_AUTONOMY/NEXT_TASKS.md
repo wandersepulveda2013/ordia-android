@@ -77,3 +77,11 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
 5. **Ejecución 015 resuelto (registro):** skip-write en `saveCurrent` y preview
    de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
    **verificados en RUN 016**: 59/59 en las tres variantes (ver TEST_STATUS.md).
+
+6. **Auditar iconos deprecados restantes en `src/main` (RUN 018):** los iconos que
+   conservan direccionalidad contextual (búsqueda, pin, menú ⋮, adición) no
+   requieren AutoMirrored aún; la sesión histórica de auto-mirroring en RUN_LOG.md
+   tocó archivos del linaje pre-rebuild que ya no existen en `src/main` (`AppComponents.kt`,
+   `ProjectsScreen.kt`, etc.). Punto de verificación: `grep -rn "Icons" app/src/main`
+   lista solo `Outlined.Search/Add/Close/PushPin/MoreVert` + `AutoMirrored.Outlined.ArrowBack`.
+   No hay acción pendiente salvo cuando la dirección contextual de Search/Close lo requiera en RTL.

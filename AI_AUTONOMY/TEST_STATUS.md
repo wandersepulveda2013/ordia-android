@@ -29,6 +29,9 @@
   SUCCESSFUL). `NoteDaoTest` pasa de 10 a 11 tests: añadido
   `observeSearch_wildcardsAreTreatedLiterally` (regresión de BUG-007: los
   comodines `%`/`_`/`\` se buscan como literales, no como patrones SQL.)
+  Re-ejecutado sobre el commit `3da47ef` (ya commiteado y pusheado): **60/60, 0 fallos** confirmado en este sandbox
+  (categorías: 4+3+11+2+5+23+3+7+2).
+
   Compilación `:app:compilePreviewSafeDebugKotlin` también verde.
 
 - 2026-08-31 (ejecución 017, migración v2 de Compose test rule): verificado

@@ -12,6 +12,8 @@
   `ceb1ff3` el 2026-08-26). RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
+  RUN 019: verificación post-commit 60/60 sobre `3da47ef` + auditoría RTL
+  de iconos cerrada (NEXT_TASKS #6); P0/P1 vacios; BUG-005 cerrado.
 - **Arquitectura:** `MainActivity` → `NotepadApp` (navegación lista↔editor por
   estado, sin Navigation component en uso) → `NotepadViewModel` →
   `NoteRepository` → `NoteDao` (Room v1, `exportSchema = true`).

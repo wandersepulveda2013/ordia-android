@@ -1,3 +1,31 @@
+## RUN 019 - 2026-08-31 (verificacion post-commit + auditoria RTL pendiente registrada)
+- **Objetivo:** cerrar el ciclo de la ejecucion 018: re-verificar la suite sobre el
+  commit ya pusheado (3da47ef); impulsar el memorial para el siguiente ciclo.
+- **Hallazgo:** el informe heredado apuntaba erroneamente al icono pendiente P2 #4
+  (`Icons.AutoMirrored.Outlined.InsertDriveFile`); tal sesion de AutoMirrored en
+  RUN_LOG.md es del linaje pre-rebuild (`jules/autonomous-ordia`) — los archivos que
+  tocaba (AppComponents.kt, ProjectsScreen.kt, etc.) no existen en `src/main`.
+  `grep Icons app/src/main` lista solo los iconos actuales sin direccion contextual
+  RTL pendiente (Search/Add/Close/PushPin/MoreVert + ArrowBack AutoMirrored).
+- **Cambio:** (a) memoria corregida: `RUN_LOG.md` siguiente-tarea actualizado,
+  `NEXT_TASKS.md` nueva entrada #6 (auditoria RTL cerrada), `TEST_STATUS.md`
+  resena la re-ejecucion 60/60 sobre el commit pusheado. (b) ninguna deuda tecnica
+  nueva: P0/P1 vacios; BUG-005 previamente cerrado con `notes/search/scroll tap`
+  (RUN_LOG: fix abrio la busqueda con lupa; verificacion 3-variantes en RUN 017).
+- **Tests:** `testPreviewSafeDebugUnitTest` re-ejecutado sobre `3da47ef`:
+  **60 tests, 0 fallos, 0 errores** (BUILD SUCCESSFUL; categorias:
+  NoteDaoTest 11, NoteRepositoryTest 7, NotepadViewModelTest 23,
+  NoteEditorBackSaveTest 3, NoteEditorRecreationTest  ​2,
+  NotesListSearchInteractiveTest 3, NotesListAccessibilityTest  ​2, RelativeDateTest  ​5).
+- **Commit:** `3da47ef` (fix NOTAS LIKE wildcards — ya pusheado en RUN 018);
+  esta entrada es documental (sin codigo nuevo; ver git status).
+- **Estado:** `git status` limpio tras commit/push (rama `openhands/autonomous-notes`).
+
+- **Siguiente tarea:** revisar NEXT_TASKS P2: queda solo el item del indice
+  accent-insensitive (bloqueado por peticion explicita del usuario; candidatos
+  P3: focus indicators de la lista (accesibilidad); tambien se puede evaluar
+  cobertura/resiliencia del editor (fondo de autosave en cierre inesperado.
+
 ## RUN 017 - 2026-08-31 (P3: migrar UI tests al API v2 de Compose test rule + verificación completa)
 
 - **Objetivo:** cerrar el P3 pendiente (warnings de deprecación de `createAndroidComposeRule`
@@ -373,5 +401,5 @@ Commit: test(editor): cover system-back save.
 - **Commit:** pendiente en esta ejecución (fix + test + memoria.
 - **Estado:** BUG-007 FIXED y cubierto; suite completa de la variante previewSafe verde. 
 - **Siguiente tarea:** correr las2 variantes restantes (`previewFull`/`previewAdvanced`)
-  para el veredicto 3-variantes(ya verificadas en RUN 016/017 con la misma suite),
-  o P2 #4 (`Icons.AutoMirrored.Outlined.InsertDriveFile`).
+  para el veredicto 3-variantes(ya verificadas en RUN 016/017 con la misma suite);
+  revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
