@@ -22,7 +22,7 @@ class NoteEntityPreviewTest {
     @Test
     fun preview_capsLengthAtMaxChars() {
         val text = "x".repeat(500)
-        assertEquals(160, NoteEntity.preview(text,.length)
+        assertEquals(160, NoteEntity.preview(text).length)
         assertEquals(200, NoteEntity.preview(text, maxChars = 200).length)
     }
 
