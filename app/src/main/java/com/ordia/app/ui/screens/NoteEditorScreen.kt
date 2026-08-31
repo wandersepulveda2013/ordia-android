@@ -28,7 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,12 +56,12 @@ fun NoteEditorScreen(
                     IconButton(onClick = {
                         onCommit(title, content)
                         onBack()
-                    }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver") }
+                    }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 },
-                title = { Text("Editar", style = MaterialTheme.typography.titleMedium) },
+                title = { Text(stringResource(R.string.edit_note), style = MaterialTheme.typography.titleMedium) },
                 actions = {
                     Text(
-                        "Hecho",
+                        stringResource(R.string.done),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
@@ -94,7 +96,7 @@ fun NoteEditorScreen(
                     title = it.replace('\n', ' ')
                     onAutosave(title, content)
                 },
-                placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
+                placeholder = { Text(stringResource(R.string.title_hint), style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -103,7 +105,7 @@ fun NoteEditorScreen(
             TextField(
                 value = content,
                 onValueChange = { content = it; onAutosave(title, content) },
-                placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
+                placeholder = { Text(stringResource(R.string.content_hint), style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.fillMaxWidth(),
                 colors = bareFieldColors(),

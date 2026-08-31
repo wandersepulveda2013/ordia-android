@@ -302,3 +302,29 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** migrar strings hardcodeados del editor/lista (`Ordia`,
   `Límpiar búsqueda`, `Abrir nota sin título`, etc.) a `strings.xml` (i18n/decaf,
   P2), o instalar toolchain JDK+SDK para ejecutar la suite completa.
+
+## 2026-08-31 — RUN 016 — strings a resources + verificación RUN 015
+- **Objetivo:** cerrar el seguimiento de RUN 015 (tests que no corrieron en sandbox previo)
+ y executar la migración i18n pendiente (strings hardcode de editor/lista).
+- **Hallazgo:** el toolchain (JDK 21 + Android SDK 36) existe en este sandbox —
+  los tests pendientes de RUN 015 corren y pasan ahora (59/59 en las  ​3 variantes).
+  La migración de strings estaba empezada (uncommitted) en el working tree.
+.
+- **Cambio:** commit del fix de sintaxis de aserción en `NoteEntityPreviewTest`
+  (`42e7d66`, parse `assertEquals(160, NoteEntity.preview(text).length)`) ;
+  finalizada y verificada la migración de strings a `res/values/strings.xml` (23 strings:
+  títulos, placeholders, contentDescriptions, snackbar, menús, estados vacíos,
+  rutas de accesibilidad) con `stringResource(...)` en las  ​2 pantallas coreiOS.
+  Ningún hardcode visible resta (`grep` limpio)..
+- **Tests:** `testPreviewSafeDebugUnitTest`/`testPreviewFullDebugUnitTest`/
+  `testPreviewAdvancedDebugUnitTest` → **59/59** cada una, 0 fallos,,  ​0 errores
+  (incluye `NoteEntityPreviewTest` 4 tests + skip-write regression del VM).
+- **Commit:** `test(notes): fix preview assertion syntax to enable compile`+
+  `refactor(strings): extract all visible UI strings to resources` (pendiente).
+- **Estado:** trabajo del RUN 015 heredado committeado y verificado; la migración
+  de strings lista para commit/push de esta ejecución.
+
+  Siguiente tarea: (2) P2 #3 búsqueda accent-insensitive (opcional,, bloqueada
+  por petición explícita del usuario)– o crear un plan pequeño para UI tests de
+  "Hecho"/back tras autosave en suite PreviewFull; continuar revisando accesibilidad/
+  UX de bajo coste..

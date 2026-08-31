@@ -37,6 +37,8 @@
   `beginDraft_afterCommitLaunched_switchesDraftToNewNote`,
   `beginDraft_nullAfterCommitLaunched_startsFreshNewNote`.
   Antes del fix: las 2 de la carrera fallan (duplicado); tras el fix: todas verdes.
+- **Re-verificado en RUN 016:** las 4 regresiones del ciclo de draft
+  siguen verdes en la suite completa (59/59 en las  ​3 variantes; ver TEST_STATUS.md.
 
 ## BUG-001 — Eliminación de nota sin confirmación ni deshacer (P0)
 

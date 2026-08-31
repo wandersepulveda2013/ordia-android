@@ -25,14 +25,20 @@
 
 ## Último resultado
 
+- 2026-08-31 (ejecución 016, strings + RUN 015 heredado): verificado en este
+  sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  / `testPreviewAdvancedDebugUnitTest`)**59 tests,,  0 fallos,,  0 errores** (BUILD
+  SUCCESSFUL). Incluye los 4 tests de `NoteEntityPreviewTest` y el test de
+  regresión del skip-write (ambos de RUN 015,, que no pudieron ejecutarse en el
+  sandbox anterior por falta de JDK/Android SDK) — ahora verificados.
 - 2026-08-31 (ejecución 014, fecha relativa): verificado en el sandbox
   → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
-  / `testPreviewAdvancedDebugUnitTest`)**54 tests,  ​0 fallos,, 0 errores** (BUILD
+  / `testPreviewAdvancedDebugUnitTest`)**54 tests,  0 fallos,, 0 errores** (BUILD
   SUCCESSFUL). Añadido `RelativeDateTest` (5 tests, P3: "Hoy"/"Ayer" con
   límite de día natural local (medianoche local)y fallback MEDIUM; incluye los dos
   límites exactos de medianoche). fuente `RelativeDate.kt` + `NotesListScreen`.
 - 2026-08-31 (ejecución 013, reconciliación): `testPreviewSafeDebugUnitTest`
-  replanteado y verificado en el sandbox → **49 tests,  ​0 fallos,  ​0 errores** (BUILD
+  replanteado y verificado en el sandbox → **49 tests,  0 fallos,  0 errores** (BUILD
   SUCCESSFUL, 33s). Sin cambios de producción; decisión documentada en
   `NEXT_TASKS.md` P2 #2 (undo-snackbar suficiente, sin diálogo de confirmación).
   Deuda anotada: warnings de deprecación de `createAndroidComposeRule` v1 en
@@ -144,11 +150,11 @@
   Compose que ejercite `rememberSaveable` del editor + recreación real de
   actividad.
 
-## Run 015 — nota de ejecución (no ejecutada en este sandbox)
+## Run 015 — nota de ejecución (**VERIFICADA en RUN 016**)
 
 - Este sandbox carece de JDK 17 y Android SDK (no `java` en `PATH`, no `/usr/lib/jvm`,
   no `$ANDROID_HOME`); `./gradlew` falla con `exec: java: not found`. La suite completa
-  (54/54 en las  ​3 variantes al cierre de RUN 014) **no se pudo re-ejecutar**.
+  (54/54 en las  3 variantes al cierre de RUN 014) **no se pudo re-ejecutar**.
 - Añadidos sin ejecutar: `NoteEntityPreviewTest` (4 tests, puro JUnit/Kotlin:
  blank,
  2 líneas trim, cap length, single long line capped) y

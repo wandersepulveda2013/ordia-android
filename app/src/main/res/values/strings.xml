@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">Ordía</string>
+    <string name="back">Volver</string>
+    <string name="edit_note">Editar</string>
+    <string name="done">Hecho</string>
+    <string name="title_hint">Título</string>
+    <string name="content_hint">Escribe lo que piensas…</string>
+    <string name="note_deleted">Nota eliminada</string>
+    <string name="undo">Deshacer</string>
+    <string name="search_notes">Buscar notas</string>
+    <string name="new_note">Nueva nota</string>
+    <string name="clear_search">Limpiar búsqueda</string>
+    <string name="result_count">Notas: %1$d</string>
+    <string name="no_results_title">Sin resultados</string>
+    <string name="no_results_body">Ninguna nota coincide con la búsqueda.</string>
+    <string name="empty_title">Una página en blanco&#10;es donde empieza todo.</string>
+    <string name="empty_body">Toca + para escribir.</string>
+    <string name="row_open_note">Abrir nota: %1$s</string>
+    <string name="row_open_note_untitled">Abrir nota sin título</string>
+    <string name="pinned_note">Fijada: %1$s</string>
+    <string name="pinned_untitled">Fijada, sin título</string>
+    <string name="more_actions">Más</string>
+    <string name="unpin">Desfijar</string>
+    <string name="pin">Fijar</string>
+    <string name="delete">Eliminar</string>
 </resources>

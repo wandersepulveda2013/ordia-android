@@ -81,6 +81,16 @@
    (4 tests:: blank,, trim/2 líneas,, cap length,, single long line capped).
   Validación estática((sin JDK en sandbox;; `git diff --check` limpio)).
 
+## Fix esta ejecución
+- RUN 016 (P3, i18n): todos los strings visibles de las pantallas core
+  (`NoteEditorScreen`, `NotesListScreen`) — títulos, placeholders, contentDescriptions,
+  snackbar, menús, estados vacíos — movidos a `res/values/strings.xml`
+  (23 strings nuevos) y referenciados via `stringResource(...)`. Ningún
+  hardcode queda en las  ​2 pantallas (`grep` limpio). Mejora mantenibilidad
+  (single source of truth) y prepara localización futura.
+  RUN 015 heredado verificado: suite completa **59/59** en las  ​3 variantes
+  (incluye `NoteEntityPreviewTest` 4 tests + skip-write regression).
+
 ## Fix ejecución anterior
 - RUN 011 (P3, accesibilidad): `NoteRow` anuncia ahora su acción con
   `onClickLabel` "Abrir nota: <título>" (fallback "Abrir nota sin

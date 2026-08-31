@@ -28,10 +28,11 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    y el patrón Material recomienda undo sobre confirmaciones destructivas. El
    `togglePinned` actual es atómico SQL (RUN 010), así que el riesgo de la
    fijada es el mismo que cualquier nota — cubierto por el undo.
-3. **Búsqueda con acentos/tilde.** La búsqueda actual usa `LIKE` case-insensitive
-   de Room que NO normaliza acentos (`café` no encuentra `cafe`). Si el usuario
-   español lo pide, valorar normalizar (columna normalizada o coincidencias
-   multi-plantilla). De momento queda como mejora opcional consciente.
+3. **Búsqueda con acentos/tilde — SOLO bajo petición explícita del usuario.**
+   La búsqueda actual usa `LIKE` case-insensitive de Room que NO normaliza acentos
+   (`café` no encuentra `cafe`). Resuelto el núcleo: búsqueda por título/contenido
+   en RUN 013. El índice accent-insensitive queda **opt-in**, solo si el usuario
+   lo pide explícitamente; mientras tanto, permanecerá documentado, no implementado.
 
 ## P3 — Mejoras opcionales
 1. Fecha relativa en la lista: **RESUELTO en RUN 014** — `RelativeDate.kt`
@@ -56,13 +57,13 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    navega igual que el back del sistema). RESUELTO — 3 tests de UI nuevos.
    _Comprobar:_ `testPreviewSafeDebugUnitTest` → 49/49 verdes.
 3. **Migrar tests de UI al API v2 de Compose test rule** — 4 archivos
-4. **Migrar strings hardcodeados a `strings.xml`** — `NoteEditorScreen` y `NotesListScreen`
-   tienen strings visibles en Kotlin (`Ordia`, `Límpiar búsqueda`, `Abrir nota sin título`,
-   `Fijada`, `Ninguna nota coincide`, `Hecho`, content descriptions, etc.). Moverlas a
-   recursos permite i18n real y decaf de las cadenas; riesgo bajo (solo reemplazo
-   literal→`stringResource`), pero toca muchos `@Composable`. _Comprobar:_ buscar
-   `Text("` y `contentDescription = "` en `app/src/main` → 0 resultados en código
-   (excepto tests y casos que ya usen recursos); build + 3 variantes verdes。
+4. **Migrar strings hardcodeados a `strings.xml`**: **RESUELTO en RUN 016** —
+   todos los strings visibles de `NoteEditorScreen` y `NotesListScreen` (títulos,
+   placeholders, contentDescriptions, snackbar, menús, estados vacíos, rutas de
+   accesibilidad) movidos a `res/values/strings.xml` (23 strings) y referenciados
+   via `stringResource(...)`; ningún hardcode resta en las dos pantallas (`grep` limpio).
+   Verificado: build + `testPreviewSafeDebugUnitTest` verdes. Pendiente opcional: localizaciones.
+
 5. **Ejecución 015 resuelto (registro):** skip-write en `saveCurrent` y preview
    de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
-   pendientes de ejecutar por falta de JDK en el sandbox (ver TEST_STATUS).
+   **verificados en RUN 016**: 59/59 en las tres variantes (ver TEST_STATUS.md).

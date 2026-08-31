@@ -45,8 +45,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.ui.util.relativeLabel
 
@@ -74,11 +76,14 @@ fun NotesListScreen(
         if (searchQuery.isBlank()) isSearching = false
     }
 
-    LaunchedEffect(pendingUndo) {
+    val noteDeletedMessage = stringResource(R.string.note_deleted)
+    val undoAction = stringResource(R.string.undo)
+
+    LaunchedEffect(pendingUndo,) {
         val note = pendingUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Nota eliminada",
-            actionLabel = "Deshacer",
+            message = noteDeletedMessage,
+            actionLabel = undoAction,
             duration = SnackbarDuration.Short,
         )
         if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
@@ -89,7 +94,7 @@ fun NotesListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
+                title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) },
                 actions = {
                     IconButton(
                         onClick = {
@@ -97,7 +102,7 @@ fun NotesListScreen(
                             onSearchQueryChange("")
                         },
                     ) {
-                        Icon(Icons.Outlined.Search, contentDescription = "Buscar notas")
+                        Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_notes))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -111,7 +116,7 @@ fun NotesListScreen(
                 onClick = onCreateNote,
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+            ) { Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.new_note)) }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -160,12 +165,12 @@ private fun SearchHeader(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text("Buscar notas") },
+        placeholder = { Text(stringResource(R.string.search_notes)) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Limpiar búsqueda")
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.clear_search))
                 }
             }
         },
@@ -193,7 +198,7 @@ private fun NoteList(
         if (searchQuery.isNotBlank()) {
             item(key = "result-count") {
                 Text(
-                    "Notas: ${notes.size}",
+                    stringResource(R.string.result_count, notes.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -223,13 +228,13 @@ private fun NoSearchResults(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(28.dp),
             )
             Text(
-                "Sin resultados",
+                stringResource(R.string.no_results_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(top = 12.dp),
             )
             Text(
-                "Ninguna nota coincide con la búsqueda.",
+                stringResource(R.string.no_results_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
@@ -246,12 +251,12 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Una página en blanco\nes donde empieza todo.",
+                stringResource(R.string.empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                "Toca + para escribir.",
+                stringResource(R.string.empty_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
@@ -273,7 +278,11 @@ private fun NoteRow(
     }
     val preview = remember(note.content) { NoteEntity.preview(note.content) }
 
-    val rowLabel = if (note.title.isBlank()) "Abrir nota sin título" else "Abrir nota: ${note.title}"
+    val rowLabel = if (note.title.isBlank()) {
+        stringResource(R.string.row_open_note_untitled)
+} else {
+        stringResource(R.string.row_open_note, note.title)
+}
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,7 +318,12 @@ private fun NoteRow(
             )
         }
         if (note.pinned) {
-            val pinLabel = if (note.title.isBlank()) "Fijada, sin título" else "Fijada: ${note.title}"
+            val pinLabel = if (note.title.isBlank()) {
+                stringResource(R.string.pinned_untitled)
+
+            } else {
+                stringResource(R.string.pinned_note, note.title)
+            }
             Icon(
                 Icons.Outlined.PushPin,
                 contentDescription = pinLabel,
@@ -319,15 +333,15 @@ private fun NoteRow(
         }
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_actions))
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+                    text = { Text(if (note.pinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
                     onClick = { menuOpen = false; onTogglePin(note.id) },
                 )
                 DropdownMenuItem(
-                    text = { Text("Eliminar") },
+                    text = { Text(stringResource(R.string.delete)) },
                     onClick = { menuOpen = false; onDeleteNote(note) },
                 )
             }
