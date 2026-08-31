@@ -17,11 +17,20 @@
 
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
+- `RelativeDateTest` — unit tests puros (5 tests, RUN 014: "Hoy"/"Ayer"
+  con límite de día natural local y fallback MEDIUM; incluye los dos límites
+  exactos de medianoche).
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
   específicos de flavor por ahora).
 
 ## Último resultado
 
+- 2026-08-31 (ejecución 014, fecha relativa): verificado en el sandbox
+  → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  / `testPreviewAdvancedDebugUnitTest`)**54 tests,  ​0 fallos,, 0 errores** (BUILD
+  SUCCESSFUL). Añadido `RelativeDateTest` (5 tests, P3: "Hoy"/"Ayer" con
+  límite de día natural local (medianoche local)y fallback MEDIUM; incluye los dos
+  límites exactos de medianoche). fuente `RelativeDate.kt` + `NotesListScreen`.
 - 2026-08-31 (ejecución 013, reconciliación): `testPreviewSafeDebugUnitTest`
   replanteado y verificado en el sandbox → **49 tests,  ​0 fallos,  ​0 errores** (BUILD
   SUCCESSFUL, 33s). Sin cambios de producción; decisión documentada en
@@ -79,6 +88,11 @@
 
 ## Tests recientemente agregados
 
+- `RelativeDateTest` (RUN 014, nuevo, P3: fecha relativa en la lista —
+  "Hoy"/"Ayer" contra el día natural local y fallback `DateFormat.MEDIUM` para
+  notas más antiguas. Verifica `today_timestamp_isLabeledHoy`,
+  `yesterday_timestamp_isLabeledAyer`, `olderTimestamp_fallsBackToMediumDate`
+  y los dos límites exactos de medianoche de hoy/ayer).
 - `NotesListAccessibilityTest` (RUN 011, nuevo, P3: accesibilidad de la lista —
   la fila expone `onClickLabel` "Abrir nota: <título>" (o "Abrir nota
   sin título"`; el pin describe "Fijada: <título>"` y la nota no fijada no

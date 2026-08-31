@@ -34,7 +34,12 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    multi-plantilla). De momento queda como mejora opcional consciente.
 
 ## P3 — Mejoras opcionales
-1. Fecha relativa en la lista ("hoy", "ayer") en vez de solo fecha media.
+1. Fecha relativa en la lista: **RESUELTO en RUN 014** — `RelativeDate.kt`
+   (`relativeLabel(timestampMs, now = Date())`) etiqueta "Hoy" / "Ayer"
+   (límite = día natural local, no ventana de 24 h) con fallback a fecha
+   MEDIUM para días anteriores. La lista usa `relativeLabel(note.updatedAt)`
+   en vez de `DateFormat.MEDIUM`. Cobertura: `RelativeDateTest` (5 tests:
+   hoy, ayer, fallback MEDIUM, y los dos límites exactos de medianoche).
 2. Accesibilidad de la lista: RESUELTO en RUN 011 — la fila anuncia su acción ("Abrir nota: <título>" / "Abrir nota sin título") y el pin describe la nota fijada ("Fijada: <título>"). Pendiente opcional: estados de foco visibles para navegación por teclado/TalkBack (focus indicators).
 
 ## 2026-08-27 — P2 adicional (tras ejecución 004; actualizado en RUN 012)

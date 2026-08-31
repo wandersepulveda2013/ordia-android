@@ -3,6 +3,31 @@
 > Un resumen breve por ejecución de la automatización
 > `openhands/autonomous-notes`. Entradas nuevas arriba.
 
+## RUN 014 - 2026-08-31 (fecha relativa en la lista: "Hoy"/"Ayer", P3)
+
+- **Objetivo:** P3 del backlog - la lista mostraba solo la fecha MEDIUM para todo; hacerla
+  distinguir "Hoy" / "Ayer" para notas recientes y fecha MEDIUM para las demas.
+
+- **Hallazgo:** no habia utilidad de fecha relativa; `NoteRow` formateaba con
+  `DateFormat.MEDIUM` sin distinguir el dia actual del ayer.
+
+- **Cambio:** nuevo `ui/util/RelativeDate.kt` con `relativeLabel(timestampMs, now = Date())`:
+  limite de "ayer" calculado contra la medianoche local (no ventana de 24 h);
+  fallback `DateFormat.MEDIUM` para notas antiguas. `NoteRow` usa
+  `relativeLabel(note.updatedAt)`. Nuevo (`RelativeDateTest` 5 tests: hoy, ayer,
+  fallback MEDIUM y los limites exactos de medianoche.
+
+- **Tests:** las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  / `testPreviewAdvancedDebugUnitTest`)**54/54**,0 fallos,, 0 errores. `RelativeDateTest` 5/5.
+   Fix extra: error de sintaxis heredado en `RelativeDateTest.kt` (doble coma en
+   `Calendar.set(...)`) corregido durante la verificacion inicial.
+
+- **Commit:** ver git log tras el push.
+- **Estado:** trabajo completo y tests verdes; memoria actualizada; commit/push en curso.
+- **Siguiente tarea:** P3 pendiente - migrar los tests de UI al API v2 de Compose
+  test rule (warnings de deprecacion en los 4 archivos de UI tests); o revisar
+  la P1 del backlog (navegacion tipada.
+
 ## RUN 013 — 2026-08-31 (reconciliación del sandbox con el linaje)
 
 - **Objetivo:** sanear un sandbox que había divergido con commits redundantes contra el

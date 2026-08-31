@@ -61,6 +61,14 @@
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 
 ## Fix esta ejecución
+- RUN 014 (P3): fecha relativa en la lista — nuevo
+  `ui/util/RelativeDate.kt`: `relativeLabel(timestampMs, now = Date())` etiqueta
+  "Hoy" / "Ayer" contra el día natural local (no ventana de 24 h)) con fallback
+  a `DateFormat.MEDIUM`. `NoteRow` usa `relativeLabel(note.updatedAt)` en vez de
+  `DateFormat.MEDIUM`. Nuevo `RelativeDateTest` (5 tests: hoy, ayer, fallback,
+  y límites exactos de medianoche hoy/ayer). Suite completa **54/54 en las 3 variantes**.
+
+## Fix ejecución anterior
 - RUN 011 (P3, accesibilidad): `NoteRow` anuncia ahora su acción con
   `onClickLabel` "Abrir nota: <título>" (fallback "Abrir nota sin
   título"); el pin describe "Fijada: <título>" ("Fijada, sin título" para
@@ -113,10 +121,9 @@
 
 ## Estado de tests
 
-- Última ejecución (RUN 012): 49/49 verdes — `testPreviewSafeDebugUnitTest`
-  y `testPreviewAdvancedDebugUnitTest` → 49 tests, 0 fallos; `testFullDebugUnitTest`
-  → BUILD SUCCESSFUL (sin tests en su source set. Añadidos 3 tests de UI Compose:
-  `NoteEditorRecreationTest` (2: BUG-003, recreación preserva el texto en curso
-   y el commit persiste lo tecleado, no la instantánea de la BD) y
-  `NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates` ("Hecho" hace commit y
-  navega). Detalle en `TEST_STATUS.md`.
+- Última ejecución (RUN 014):**54/54 verdes en las 3 variantes** —
+  `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest` → 54 tests, 0 fallos (10 DAO + 7 Repo +%3 22 VM +%3 12 UI
+  (3+2+3+2+2 accesibilidad +%3 5 RelativeDateTest). Añadido
+  `RelativeDateTest` (5 tests: fecha relativa "Hoy"/"Ayer" con límite de día
+  natural local y fallback MEDIUM). Detalle en `TEST_STATUS.md`.

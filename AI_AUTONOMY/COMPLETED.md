@@ -5,6 +5,16 @@
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
 
+##2026-08-31 — Ejecución 014 (fecha relativa en la lista:"Hoy"/"Ayer", P3)
+- **La lista distingue ahora "Hoy" y "Ayer"** — nuevo `RelativeDate.kt`
+  (`fun relativeLabel(timestampMs: Long, now: Date = Date()): String`):
+  el límite de "ayer" se calcula contra el **día natural local** (medianoche
+  local, no ventana de 24 h), con fallback a `DateFormat.MEDIUM` para
+  notas más antiguas. `NotesListScreen` (`NoteRow`) usa `relativeLabel(note.updatedAt)`
+  en vez de `DateFormat.MEDIUM`. Cobertura: `RelativeDateTest` (5 tests:
+  hoy, ayer, fallback MEDIUM,, y límites exactos de medianoche de hoy/ayer).
+
+
 ## 2026-08-28 — Ejecución 012 (tests de UI del editor: recreación/rotación BUG-003 y "Hecho" hace commit; P2)
 
 - **Hueco de cobertura cerrado:** el UI test Compose de recreación/rotación del
