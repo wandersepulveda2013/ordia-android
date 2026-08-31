@@ -48,8 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
-import java.text.DateFormat
-import java.util.Date
+import com.ordia.app.ui.util.relativeLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -270,7 +269,7 @@ private fun NoteRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
+        relativeLabel(note.updatedAt)
     }
     val preview = remember(note.content) { note.content.take(120) }
 
