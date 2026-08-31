@@ -283,3 +283,22 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** P2 #2 (confirmación de borrado — probablemente OK con undo) o
   ampliar tests de UI del editor (back tras autosave no duplica; "Hecho"/flecha hace
   commit como el back).
+
+## 2026-08-31 — RUN 015 — integridad de writes + preview de lista
+- **Objetivo:** continuar el foco data-integrity/UX creada por la ejecución previa + el
+  prompt de notas (foco en no-persistir vacíos, no writes innecesarios, string resources).
+- **Hallazgo:** `saveCurrent` escribía incondicionalmente (`updatedAt` bump + disk write)
+  aunque `title`/`content` no hubieran cambiado; la lista hacía `content.take(120)` crudo
+  que cortaba en mitad de línea (preview feo/multi-espacio). El scan Unicode encontró
+  solo acentos legítimos (false positive; sin soft-hyphens ni zero-widths en app/src)..
+- **Cambio:** guardia skip-write en `saveCurrent` (compare antes de update) + lista usa
+  `NoteEntity.preview` (2 líneas, trim, cap 160) + `NoteEntityPreviewTest` (nuevo,
+  4 tests: blank, 2 líneas con trim, cap length, single long line capped) + test de
+  regresión VM (`save_existingNoteWithUnchangedContent_doesNotRewriteUpdatedAt`)..
+- **Tests:** no ejecutables en este sandbox (sin JDK/Android SDK) — validación estática
+  (firmas, patrones, bytes, references) en su lugar. `git diff --check` OK..
+- **Commit realizado:** (pendiente push).
+- **Estado:** cambios listos en `openhands/autonomous-notes` (detached? no — rama local).
+- **Siguiente tarea:** migrar strings hardcodeados del editor/lista (`Ordia`,
+  `Límpiar búsqueda`, `Abrir nota sin título`, etc.) a `strings.xml` (i18n/decaf,
+  P2), o instalar toolchain JDK+SDK para ejecutar la suite completa.

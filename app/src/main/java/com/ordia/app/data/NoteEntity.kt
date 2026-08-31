@@ -14,6 +14,13 @@ data class NoteEntity(
     val pinned: Boolean = false
 ) {
     companion object {
-        fun preview(text: String): String = text.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty()
+        /** First two non-blank lines, capped at [maxChars] chars, for list previews. */
+        fun preview(text: String, maxChars: Int = 160): String =
+        text.lineSequence()
+            .filter { it.isNotBlank() }
+            .map { it.trim() }
+            .take(2)
+            .joinToString("\n")
+            .take(maxChars)
     }
 }

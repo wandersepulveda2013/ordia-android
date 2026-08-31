@@ -155,6 +155,7 @@ class NotepadViewModel(
             // never resurrect it.
             return false
         }
+        if (current.title == title && current.content == content) return true
         repo.update(current.copy(title = title, content = content, updatedAt = System.currentTimeMillis()))
         return true
     }

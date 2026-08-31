@@ -175,3 +175,18 @@
   `NoteEditorBackSaveTest` usa Robolectric+Compose para disparar el retroceso del
   sistema y verifica que el editor hace `onCommit` de la edición antes de navegar;
   cubre el hueco de "sin tests de UI" del editor. Suite: 30/30 verdes.
+
+## 2026-08-31 — Ejecución 015 (integridad de writes + preview de lista)
+
+
+
+
+
+- **Sin writes innecesarios al guardar sin cambios** (P2): `NotepadViewModel.saveCurrent`
+  ahora compara `title`/`content` con la fila persistida y devuelve `true` sin tocar
+  `updatedAt` ni escribir si no hay cambios reales. Protege contra `updatedAt` bumps
+  gratuitos y writes de disco evitable en el camino autosave/commit (integridad,
+  menos wear/stale-write).
+- **Preview de lista de 2 líneas** (P2, UX): la lista ahora usa
+  `NoteEntity.preview` (primeras dos líneas no vacías, trim, cap 160) en vez de
+  `content.take(120)` crudo que cortaba en mitad de línea y mostraba espacios.

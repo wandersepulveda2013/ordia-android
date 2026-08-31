@@ -60,13 +60,26 @@
   `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 
-## Fix esta ejecución
-- RUN 014 (P3): fecha relativa en la lista — nuevo
+
+## Fix ejecución anterior
+- RUN 014 (P3): fecha relativa en la lista— nuevo
   `ui/util/RelativeDate.kt`: `relativeLabel(timestampMs, now = Date())` etiqueta
-  "Hoy" / "Ayer" contra el día natural local (no ventana de 24 h)) con fallback
+
+  "Hoy" / "Ayer" contra el día natural local((no ventana de 24 h))) con fallback
+
   a `DateFormat.MEDIUM`. `NoteRow` usa `relativeLabel(note.updatedAt)` en vez de
   `DateFormat.MEDIUM`. Nuevo `RelativeDateTest` (5 tests: hoy, ayer, fallback,
-  y límites exactos de medianoche hoy/ayer). Suite completa **54/54 en las 3 variantes**.
+  y límites exactos de medianoche hoy/ayer. Suite completa **54/54 en las  ​3 variantes**.
+
+## Fix esta ejecución
+- RUN 015 (P2, integridad+UX): `NotepadViewModel.saveCurrent` ahora
+  salta la escritura si `title` y `content` no cambiaron((no `updatedAt` bump
+  gratuito, no write de disco evitable; test de regresión
+  `save_existingNoteWithUnchangedContent_doesNotRewriteUpdatedAt`)). La lista
+  usa `NoteEntity.preview`(2 primeras líneas no vacías,, trim,, cap 160) en vez de
+  `content.take(120)` crudo((cortaba a mitad de línea)). Nuevo `NoteEntityPreviewTest`
+   (4 tests:: blank,, trim/2 líneas,, cap length,, single long line capped).
+  Validación estática((sin JDK en sandbox;; `git diff --check` limpio)).
 
 ## Fix ejecución anterior
 - RUN 011 (P3, accesibilidad): `NoteRow` anuncia ahora su acción con

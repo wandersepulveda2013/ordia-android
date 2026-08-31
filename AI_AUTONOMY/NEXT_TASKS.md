@@ -56,3 +56,13 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    navega igual que el back del sistema). RESUELTO — 3 tests de UI nuevos.
    _Comprobar:_ `testPreviewSafeDebugUnitTest` → 49/49 verdes.
 3. **Migrar tests de UI al API v2 de Compose test rule** — 4 archivos
+4. **Migrar strings hardcodeados a `strings.xml`** — `NoteEditorScreen` y `NotesListScreen`
+   tienen strings visibles en Kotlin (`Ordia`, `Límpiar búsqueda`, `Abrir nota sin título`,
+   `Fijada`, `Ninguna nota coincide`, `Hecho`, content descriptions, etc.). Moverlas a
+   recursos permite i18n real y decaf de las cadenas; riesgo bajo (solo reemplazo
+   literal→`stringResource`), pero toca muchos `@Composable`. _Comprobar:_ buscar
+   `Text("` y `contentDescription = "` en `app/src/main` → 0 resultados en código
+   (excepto tests y casos que ya usen recursos); build + 3 variantes verdes。
+5. **Ejecución 015 resuelto (registro):** skip-write en `saveCurrent` y preview
+   de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
+   pendientes de ejecutar por falta de JDK en el sandbox (ver TEST_STATUS).

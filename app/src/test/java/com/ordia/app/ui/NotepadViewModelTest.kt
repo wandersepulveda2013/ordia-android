@@ -106,6 +106,23 @@ class NotepadViewModelTest {
     }
 
     @Test
+    fun save_existingNoteWithUnchangedContent_doesNotRewriteUpdatedAt() = runTest(dispatcher) {
+        viewModel.save("Original", "Cuerpo")
+        advanceUntilIdle()
+        val id = dao.notes.single().id
+        val updatedBefore = dao.notes.single().updatedAt
+
+        // Same title/content: no data changed, so the write must be skipped
+        // (no gratuitous updatedAt bump, no disk write). A regression guard for
+        // unnecessary writes en the autosave/commit path.
+        viewModel.save("Original", "Cuerpo", existingId = id)
+        advanceUntilIdle()
+
+        assertEquals(updatedBefore, dao.notes.single().updatedAt)
+        assertEquals(1, dao.notes.size)
+    }
+
+    @Test
     fun deleteThenRestore_keepsSameIdAndContent() = runTest(dispatcher) {
         viewModel.save("Nota", "Cuerpo")
         advanceUntilIdle()

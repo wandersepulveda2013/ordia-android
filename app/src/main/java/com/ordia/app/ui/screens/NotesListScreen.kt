@@ -271,7 +271,7 @@ private fun NoteRow(
     val date = remember(note.updatedAt) {
         relativeLabel(note.updatedAt)
     }
-    val preview = remember(note.content) { note.content.take(120) }
+    val preview = remember(note.content) { NoteEntity.preview(note.content) }
 
     val rowLabel = if (note.title.isBlank()) "Abrir nota sin título" else "Abrir nota: ${note.title}"
     Row(

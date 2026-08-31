@@ -143,3 +143,20 @@
   `SavedStateHandle` con test de regresión a nivel ViewModel. Sigue sin UI test
   Compose que ejercite `rememberSaveable` del editor + recreación real de
   actividad.
+
+## Run 015 — nota de ejecución (no ejecutada en este sandbox)
+
+- Este sandbox carece de JDK 17 y Android SDK (no `java` en `PATH`, no `/usr/lib/jvm`,
+  no `$ANDROID_HOME`); `./gradlew` falla con `exec: java: not found`. La suite completa
+  (54/54 en las  ​3 variantes al cierre de RUN 014) **no se pudo re-ejecutar**.
+- Añadidos sin ejecutar: `NoteEntityPreviewTest` (4 tests, puro JUnit/Kotlin:
+ blank,
+ 2 líneas trim, cap length, single long line capped) y
+  `NotepadViewModelTest.save_existingNoteWithUnchangedContent_doesNotRewriteUpdatedAt`
+  (regresión del skip-write en `saveCurrent`). Ambos siguen el estilo de tests existentes;
+validación estática OK (`firmas`, `patrones`, `git diff --check``); falta correrlos con
+  JDK+SDK instalados.
+
+- **Siguiente:** instalar el toolchain (JDK 17 + Android SDK 36) en un sandbox con
+  red y correr `:app:testDebugUnitTest` + `assembleRelease` 3 variantes; o
+  ejecutar la suite en CI.
