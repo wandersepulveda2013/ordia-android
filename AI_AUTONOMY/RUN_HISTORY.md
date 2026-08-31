@@ -22,7 +22,7 @@
    Fix extra: error de sintaxis heredado en `RelativeDateTest.kt` (doble coma en
    `Calendar.set(...)`) corregido durante la verificacion inicial.
 
-- **Commit:** ver git log tras el push.
+- **Commit:** `edbe8be` — feat(notes): relative date labels; `ed245d1` — docs(autonomy): record RUN 014; push OK a `origin/openhands/autonomous-notes`.
 - **Estado:** trabajo completo y tests verdes; memoria actualizada; commit/push en curso.
 - **Siguiente tarea:** P3 pendiente - migrar los tests de UI al API v2 de Compose
   test rule (warnings de deprecacion en los 4 archivos de UI tests); o revisar
