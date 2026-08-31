@@ -3,46 +3,72 @@ package com.ordia.app.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.ordia.app.ui.screens.CaptureScreen
+import com.ordia.app.ui.screens.HomeScreen
 import com.ordia.app.ui.screens.NoteEditorScreen
 import com.ordia.app.ui.screens.NotesListScreen
+import com.ordia.app.ui.screens.SearchScreen
+import com.ordia.app.ui.screens.TodayScreen
 import com.ordia.app.ui.theme.NotepadTheme
 
 @Composable
 fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
     NotepadTheme {
-        val notes by viewModel.notes.collectAsState()
-        var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
-        var creating by rememberSaveable { mutableStateOf(false) }
+        val navController = rememberNavController()
 
-        val current = remember(editingId, notes) {
-            editingId?.let { id -> notes.firstOrNull { it.id == id } }
-        }
-
-        when {
-            creating || (editingId != null && current != null) -> {
-                NoteEditorScreen(
-                    note = if (creating) null else current,
-                    onBack = {
-                        creating = false
-                        editingId = null
-                    },
-                    onSave = { title, content, id ->
-                        viewModel.save(title, content, id)
-                    },
+        NavHost(navController = navController, startDestination = "home") {
+            composable("home") {
+                HomeScreen(
+                    onNavigateToToday = { navController.navigate("today") },
+                    onNavigateToSearch = { navController.navigate("search") },
+                    onNavigateToCapture = { navController.navigate("capture") },
+                    onNavigateToNotes = { navController.navigate("notes") }
                 )
             }
-            else -> {
+
+            composable("today") {
+                TodayScreen()
+            }
+
+            composable("search") {
+                SearchScreen()
+            }
+
+            composable("capture") {
+                CaptureScreen()
+            }
+
+            composable("notes") {
+                val notes by viewModel.notes.collectAsState()
                 NotesListScreen(
                     notes = notes,
-                    onOpenNote = { editingId = it.id },
-                    onCreateNote = { creating = true },
+                    onOpenNote = { navController.navigate("note_editor/${it.id}") },
+                    onCreateNote = { navController.navigate("note_editor/new") },
                     onDeleteNote = { viewModel.delete(it) },
                     onTogglePin = { viewModel.togglePinned(it) },
+                )
+            }
+
+            composable("note_editor/{noteId}") { backStackEntry ->
+                val noteIdStr = backStackEntry.arguments?.getString("noteId")
+                val notes by viewModel.notes.collectAsState()
+
+                val currentNote = if (noteIdStr != "new") {
+                    val id = noteIdStr?.toLongOrNull()
+                    notes.firstOrNull { it.id == id }
+                } else null
+
+                NoteEditorScreen(
+                    note = currentNote,
+                    onBack = { navController.popBackStack() },
+                    onSave = { title, content, id ->
+                        viewModel.save(title, content, id)
+                        navController.popBackStack()
+                    }
                 )
             }
         }
