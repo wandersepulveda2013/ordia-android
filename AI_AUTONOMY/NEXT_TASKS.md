@@ -15,6 +15,12 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
 
 ## P2 — Calidad de producto
 
+0. **Escape de comodines en búsqueda:** **RESUELTO en RUN 018** — los
+   caracteres `%`/`_` ya no actúan como comodines SQL en la búsqueda: la query
+   se escapa (`\`->`\\`,`%`->`\%`,`_`->`\_`) antes de pasar al DAO, los
+   `LIKE` usan `ESCAPE` y los comodines solos encuentran el literal (cubierto
+   por `observeSearch_wildcardsAreTreatedLiterally`, ver BUG-007).
+
 1. **`NoteEditorScreen`: título largo.** RESUELTO en RUN 006 — título de una línea
    (visual + datos): `singleLine=true` y aplanado de `\n` en `onValueChange` del
    título para no persistir títulos multilínea. Cobertura: test de UI de regresión.

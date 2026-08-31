@@ -24,6 +24,13 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-08-31 (ejecución 018, búsqueda literal): verificado en este sandbox
+  → `testPreviewSafeDebugUnitTest` **60 tests,  ​0 fallos,  ​0 errores** (BUILD
+  SUCCESSFUL). `NoteDaoTest` pasa de 10 a 11 tests: añadido
+  `observeSearch_wildcardsAreTreatedLiterally` (regresión de BUG-007: los
+  comodines `%`/`_`/`\` se buscan como literales, no como patrones SQL.)
+  Compilación `:app:compilePreviewSafeDebugKotlin` también verde.
+
 - 2026-08-31 (ejecución 017, migración v2 de Compose test rule): verificado
   en este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` /
   `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)**59 tests,

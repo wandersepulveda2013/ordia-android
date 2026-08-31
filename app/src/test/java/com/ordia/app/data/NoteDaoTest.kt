@@ -136,4 +136,30 @@ class NoteDaoTest {
         dao.insert(note("Dos"))
         assertEquals(2, dao.observeSearch("").first().size)
     }
+
+    @Test
+    fun observeSearch_wildcardsAreTreatedLiterally() = runTest {
+        val repo = NoteRepository(dao)
+        dao.insert(note("100% listo", "Otro"))
+        dao.insert(note("hola", "_guion_bajo_"))
+        dao.insert(note("back\\slash", "ruta"))
+
+        assertEquals(1, repo.observeSearch("100%").first().size)
+        assertEquals("100% listo", repo.observeSearch("100%").first().first().title)
+        val percentOnly = repo.observeSearch("%").first()
+        assertEquals(1, percentOnly.size)
+        assertEquals("100% listo", percentOnly.first().title)
+
+        assertEquals(1, repo.observeSearch("_guion_bajo_").first().size)
+        assertEquals("hola", repo.observeSearch("_guion_bajo_").first().first().title)
+        val underscoreOnly = repo.observeSearch("_").first()
+        assertEquals(1, underscoreOnly.size)
+        assertEquals("hola", underscoreOnly.first().title)
+
+        assertEquals(1, repo.observeSearch("back\\slash").first().size)
+        assertEquals("back\\slash", repo.observeSearch("back\\slash").first().first().title)
+        val backslashOnly = repo.observeSearch("\\").first()
+        assertEquals(1, backslashOnly.size)
+        assertEquals("back\\slash", backslashOnly.first().title)
+    }
 }

@@ -352,3 +352,26 @@ Commit: test(editor): cover system-back save.
   por petición explícita del usuario)– o crear un plan pequeño para UI tests de
   "Hecho"/back tras autosave en suite PreviewFull; continuar revisando accesibilidad/
   UX de bajo coste..
+
+
+## 2026-08-31 — RUN 018 — búsqueda literal (escape de comodines LIKE)
+- **Objetivo:** cerrar BUG-005/BUG-006; siguiendo la revisión de la búsqueda
+  (`NoteRepository.observeSearch` + `NoteDao.observeSearch`), detectado que la query
+  del usuario se interpolaba directa en `LIKE '%' || :query || '%'` sin escapar.
+
+- **Hallazgo (BUG-007):** `%` y `_` actuaban como comodines SQL: buscar `_`
+  devolvía TODAS las notas, y `a_b` encontraba también `abc`/`axb`; el literal
+  era inalcanzable. 
+- **Cambio:** `NoteRepository.escapeLike` escapa `\` -> `\\`, `%` -> `\%`, `_` -> `\_`
+  antes de pasar al DAO; ambos `LIKE` en `NoteDao.observeSearch` ganan `ESCAPE '\\'`.
+  La query mostrada en la UI queda intacta (escape interno).
+- **Tests:** `NoteDaoTest` +1 (`observeSearch_wildcardsAreTreatedLiterally` DAO Room
+  real + repositorio real: `100%`, `_guion_bajo_`, `back\slash`, y comodines solos
+  devuelven solo las notas con el literal correspondiente). `testPreviewSafeDebugUnitTest`
+  -> **60/60,0 fallos**; `compilePreviewSafeDebugKotlin` verde.
+
+- **Commit:** pendiente en esta ejecución (fix + test + memoria.
+- **Estado:** BUG-007 FIXED y cubierto; suite completa de la variante previewSafe verde. 
+- **Siguiente tarea:** correr las2 variantes restantes (`previewFull`/`previewAdvanced`)
+  para el veredicto 3-variantes(ya verificadas en RUN 016/017 con la misma suite),
+  o P2 #4 (`Icons.AutoMirrored.Outlined.InsertDriveFile`).

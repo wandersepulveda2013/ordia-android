@@ -2,6 +2,28 @@
 
 > Formato: bug · impacto · reproducción · causa · estado · commit.
 
+## BUG-007 — Comodines de `LIKE` sin escapar distorsionaban la búsqueda (P2
+
+- **Impacto:** al buscar, los caracteres `%` y `_` del texto tecleado actuaban como
+  comodines SQL (`%` = cualquier secuencia; `_` = un carácter cualquiera): buscar
+  `"_"` o `"%"` devolvía **todas** las notas, y `"a_b"` encontraba también
+  `"abc"`/`"axb"`. Resultados de búsqueda incorrectos (falsos positivos) para
+  cualquier consulta que contuviera esos símbolos (código, precios, rutas, etc.),
+  sin opción de buscar el literal.
+- **Reproducción:** listao → búsqueda → teclear `_` (o `%`) → aparecen todas las
+  notas aunque ninguna contenga ese carácter.
+- **Causa:** `NoteDao.observeSearch` interpolaba la query del usuario directamente
+  en `LIKE '%' || :query || '%'` sin `ESCAPE`: SQLite trata `%`/`_` como
+  comodines dentro del patrón, inyectando ruido en los resultados.
+- **Estado:** FIXED — `NoteRepository.observeSearch` escapa `\` → `\\`, `%` → `\%`,
+  `_` → `\_` antes de pasar al DAO, y el SQL de ambos `LIKE` añade `ESCAPE '\'`.
+  La query mostrada en la UI permanece intacta (el escape es interno).
+- **Commit:** RUN 018 en `openhands/autonomous-notes`.
+- **Test:** `NoteDaoTest.observeSearch_wildcardsAreTreatedLiterally` (DAORoom
+  real + `NoteRepository`: buscar `100%`, `_guion_bajo_` y `back\slash` devuelve solo
+  las notas que contienen el literal; y buscar solo `%`, `_` o `\` encuentra
+  solo la nota que realmente contiene ese carácter, no todas).
+
 ## BUG-006 — Duplicados/cross-contaminación por limpieza asíncrona del draft y draft en memoria (P1)
 
 - **Impacto:** (a) salir de una nota y abrir otra en ráfaga podía (i) crear una

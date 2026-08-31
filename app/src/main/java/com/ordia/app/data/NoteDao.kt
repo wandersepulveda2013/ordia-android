@@ -16,8 +16,8 @@ interface NoteDao {
     /** Observes notes whose title or content contains [query] (case-insensitive). */
     @Query(
         "SELECT * FROM notes " +
-            "WHERE title LIKE '%' || :query || '%' " +
-            "OR content LIKE '%' || :query || '%' " +
+            "WHERE title LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "OR content LIKE '%' || :query || '%' ESCAPE '\\' " +
             "ORDER BY pinned DESC, updatedAt DESC"
     )
     fun observeSearch(query: String): Flow<List<NoteEntity>>

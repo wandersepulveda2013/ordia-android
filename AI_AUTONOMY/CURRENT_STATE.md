@@ -9,7 +9,9 @@
 - **Producto:** bloc de notas minimalista (rebuild completo en `main`, commit
   `ceb1ff3`): lista de notas con pin, editor título+contenido, Room `ordia.db`.
 - **Branch de trabajo:** `openhands/autonomous-notes` (creada desde `main`
-  `ceb1ff3` el 2026-08-26).
+  `ceb1ff3` el 2026-08-26). RUN 018: búsqueda por `LIKE` con
+  comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
+  tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
 - **Arquitectura:** `MainActivity` → `NotepadApp` (navegación lista↔editor por
   estado, sin Navigation component en uso) → `NotepadViewModel` →
   `NoteRepository` → `NoteDao` (Room v1, `exportSchema = true`).
