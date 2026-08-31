@@ -24,6 +24,15 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-08-31 (ejecución 017, migración v2 de Compose test rule): verificado
+  en este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` /
+  `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)**59 tests,
+  0 fallos,, 0 errores** (BUILD SUCCESSFUL) Los  ​4 archivos de tests de UI
+  importan ahora `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
+  (API canónica actual, `StandardTestDispatcher`; se eliminan los warnings de
+  deprecación de la v1 legada). Sin cambios de comportamiento,: misma suite,num tests.
+
+
 
 - 2026-08-31 (ejecución 016, strings + RUN 015 heredado): verificado en este
   sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`

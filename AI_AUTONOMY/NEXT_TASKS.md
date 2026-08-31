@@ -56,14 +56,18 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    cubierta (`NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`: hace commit y
    navega igual que el back del sistema). RESUELTO — 3 tests de UI nuevos.
    _Comprobar:_ `testPreviewSafeDebugUnitTest` → 49/49 verdes.
-3. **Migrar tests de UI al API v2 de Compose test rule** — 4 archivos
-4. **Migrar strings hardcodeados a `strings.xml`**: **RESUELTO en RUN 016** —
+3. **Migrar strings hardcodeados a `strings.xml`**: **RESUELTO en RUN 016** —
    todos los strings visibles de `NoteEditorScreen` y `NotesListScreen` (títulos,
    placeholders, contentDescriptions, snackbar, menús, estados vacíos, rutas de
    accesibilidad) movidos a `res/values/strings.xml` (23 strings) y referenciados
    via `stringResource(...)`; ningún hardcode resta en las dos pantallas (`grep` limpio).
    Verificado: build + `testPreviewSafeDebugUnitTest` verdes. Pendiente opcional: localizaciones.
-
+4. **Migrar tests de UI al API v2 de Compose test rule**: **RESUELTO en RUN 017** —
+   los 4 archivos de tests de UI (`NoteEditorBackSaveTest`, `NoteEditorRecreationTest`,
+   `NotesListAccessibilityTest`, `NotesListSearchInteractiveTest`) importan ahora
+   `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` (API canónica actual,
+   StandardTestDispatcher en vez de UnconfinedTestDispatcher). Sin cambios de comportamiento:
+   las 3 variantes verdes **59/59** tras la migración (ver TEST_STATUS.md).
 5. **Ejecución 015 resuelto (registro):** skip-write en `saveCurrent` y preview
    de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
    **verificados en RUN 016**: 59/59 en las tres variantes (ver TEST_STATUS.md).

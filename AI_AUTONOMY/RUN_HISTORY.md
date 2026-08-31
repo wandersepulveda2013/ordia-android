@@ -1,7 +1,31 @@
-# RUN_HISTORY — Ordía (bloc de notas)
+## RUN 017 - 2026-08-31 (P3: migrar UI tests al API v2 de Compose test rule + verificación completa)
 
-> Un resumen breve por ejecución de la automatización
-> `openhands/autonomous-notes`. Entradas nuevas arriba.
+- **Objetivo:** cerrar el P3 pendiente (warnings de deprecación de `createAndroidComposeRule`
+  v1 en los  ​4 archivos de tests de UI) y verificar de nuevo la suite completa en
+  las  ​3 variantes tras el fix heredado de sintaxis de `NoteEntityPreviewTest`.
+- **Hallazgo:** los 4 UI tests importaban `androidx.compose.ui.test.junit4.createAndroidComposeRule`
+  (API legada, deprecada, `UnconfinedTestDispatcher`);la inspección del jar
+  confirma que `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` existe
+  en esta versión de Compose. El informe previo de exit-code-1 del wrapper era artefacto: las
+  variantes individuales compilan y corren → BUILD SUCCESSFUL.
+
+- **Cambio:** los  ​4 archivos (`NoteEditorBackSaveTest`, `NoteEditorRecreationTest`,
+  `NotesListAccessibilityTest`, `NotesListSearchInteractiveTest`) importan ahora la
+ API v2 (canónica actual, `StandardTestDispatcher`). Solo imports, sin cambios
+  de comportamiento. `git diff --check` limpio..
+- **Tests:** las  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  / `testPreviewAdvancedDebugUnitTest`)**59/59 cada una,,  ​0 fallos,,  ​0 errores** (
+  BUILD SUCCESSFUL en las  ​3; incluye `NoteDaoTest` 10/10 — histórico fix heredado
+  verificado).
+- **Commit:**(test/ui: use v2 compose test rule to clear deprecation warnings —
+  pendiente push tras esta entrada..
+- **Estado:** migración lista para commit/push de esta ejecución..
+- **Siguiente tarea:** evaluar la P1 del backlog (navegación tipada — ver NEXT_TASKS/
+  BUGS_FOUND) o continuar con accesibilidad/UX de bajo coste.; ver también P2 #3
+  (acentos, bloqueada por petición explícita del usuario..
+
+
+
 
 ## RUN 014 - 2026-08-31 (fecha relativa en la lista: "Hoy"/"Ayer", P3)
 

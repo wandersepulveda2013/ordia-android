@@ -59,6 +59,14 @@
 - `data/NoteDao.kt` / `NoteRepository.kt` / `ui/NotepadViewModel.kt` /
   `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
+## Fix esta ejecución
+- RUN 017 (P3, tests): los  ​4 archivos de tests de UI intercambian el import
+  deprecado `androidx.compose.ui.test.junit4.createAndroidComposeRule` por el
+  actual `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
+  (`StandardTestDispatcher`, API canónica). Sin cambios de comportamiento; se
+  eliminan los warnings de deprecación de la v1 legada. Verificado: suite completa
+   **59/59** en las  ​3 variantes (`testPreviewSafe/Full/AdvancedDebugUnitTest`).
+
 
 
 ## Fix ejecución anterior
@@ -144,9 +152,10 @@
 
 ## Estado de tests
 
-- Última ejecución (RUN 014):**54/54 verdes en las 3 variantes** —
+- Última ejecución (RUN 017):**59/59 verdes en las  ​3 variantes** —
   `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
-  `testPreviewAdvancedDebugUnitTest` → 54 tests, 0 fallos (10 DAO + 7 Repo +%3 22 VM +%3 12 UI
-  (3+2+3+2+2 accesibilidad +%3 5 RelativeDateTest). Añadido
-  `RelativeDateTest` (5 tests: fecha relativa "Hoy"/"Ayer" con límite de día
-  natural local y fallback MEDIUM). Detalle en `TEST_STATUS.md`.
+  `testPreviewAdvancedDebugUnitTest` →  ​59 tests,,  ​0 fallos (10 DAO + 7 Repo
+  + 22 VM + 14 UI + 4 `NoteEntityPreviewTest` + 2 `RelativeDateTest`.
+  Migrados los  ​4 UI tests al API v2 `androidx.compose.ui.test.junit4.v2
+  .createAndroidComposeRule` (canónica actual, sin warnings de deprecación).
+  Detalle en `TEST_STATUS.md`.
