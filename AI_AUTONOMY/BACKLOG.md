@@ -8,8 +8,8 @@
 | PRIORIDAD | AREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|-----------|--------|
 | P1 | Navegacion | Sin navegacion tipada; el back del sistema en la lista cierra la app | NotepadApp con selectedId; BackHandler solo en editor | OPEN (evaluar) |
-| P1 | Integridad | Doble guardado potencial: estatico en flecha/BackHandler y DisposableEffect dispose | revision codigo; repo.update es upsert, solo bump extra de updatedAt | OPEN (por confirmar) |
-| P1 | Persistencia | Save solo al salir: crash/cierre forzado pierde la edicion | editor sin autosave/debounce (ver NEXT_TASKS P1) | OPEN |
+| P1 | Integridad | Doble guardado potencial: estatico en flecha/BackHandler y DisposableEffect dispose | revision codigo; repo.update es upsert, solo bump extra de updatedAt | OPEN (por confirmar; tras el ciclo de draft RUN 003 la friccion real quedo cubierta por commit/autosave) |
+| P1 | Persistencia | Save solo al salir: crash/cierre forzado pierde la edicion | editor sin autosave/debounce | RESUELTO — autosave debounce 800 ms + ciclo draft (RUN 003/009, ver CURRENT_STATE) |
 | P2 | UX | Sin exportar/importar notas | ausente en UI | OPEN |
 | P3 | UX | Cerrar nota al tocar fuera; pulido visual | OPEN |
 
