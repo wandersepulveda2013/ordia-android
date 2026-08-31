@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Bloc de notas local-first. Sin red, sin permisos especiales. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <application
         android:name=".OrdiaApplication"
         android:allowBackup="false"
@@ -32,5 +36,10 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+
+        <service android:name=".overlay.GuardianOverlayService" android:exported="false" android:foregroundServiceType="specialUse" />
+        <activity android:name=".overlay.QuickCaptureActivity" />
+        <receiver android:name=".reminders.ReminderActionReceiver" />
+        <receiver android:name=".widget.OrdiaWidgetProvider" />
     </application>
 </manifest>

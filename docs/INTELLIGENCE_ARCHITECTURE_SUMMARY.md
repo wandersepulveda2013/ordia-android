@@ -66,7 +66,7 @@ IntelligenceSafetyGate ─── ¿Bloqueado? → Response(privacyResult=BLOCKED
     ▼
 IntelligenceRouter
     │
-    ├─ ¿Modelo local disponible? → LocalModelProvider (Gemma 2B)
+     ─ ¿Modelo local disponible? → LocalModelProvider (Gemma 2B)
     │                               Prompt con esquema JSON
     │                               MediaPipe LLM Inference
     │
@@ -76,8 +76,8 @@ IntelligenceRouter
     ▼
 IntelligenceResponse(schema, confianza, proveedor)
     │
-    ├─ IntelligenceActionPlanner → Plan ejecutable
-    ├─ IntelligenceActionExecutor → Tarea en Room DB
+     ─ IntelligenceActionPlanner → Plan ejecutable
+     ─ IntelligenceActionExecutor → Tarea en Room DB
     └─ IntelligenceMemory → Solo acciones confirmadas
 ```
 
