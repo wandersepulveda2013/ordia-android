@@ -41,7 +41,7 @@ android {
             require(candidate <= Int.MAX_VALUE) { "CI versionCode exceeds Android's Int limit" }
             candidate.toInt()
         } else 1_300_000_000
-        versionName = "3.0.0-preview"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
