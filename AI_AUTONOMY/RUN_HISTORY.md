@@ -17,7 +17,7 @@
   sin diálogo previo (implementación paralela descartada; nuevo ítem P3 anotado
   (migrar tests de UI al API v2 de Compose test rule, warnings actuales).
 - **Tests:** `testPreviewSafeDebugUnitTest` → 49/49 verdes (10 DAO + 7 Repo +  ​22 VM + 10 UI (3+2+3+2). Sin cambios de producción.
-- **Commit:** `4aed1c6` — docs(autonomy): reconcile sandbox with lineage; decide undo-over-confirm; note v2 test-rule debt
+- **Commit:** `0aee552` — docs(autonomy): reconcile sandbox with lineage; decide undo-over-confirm; note v2 test-rule debt
 
 - **Estado:** commit + push a `origin/openhands/autonomous-notes`.; trabajo consistente.
 - **Siguiente tarea:** ninguno bloqueante; próximos: P1 del backlog a evaluar (navegación
