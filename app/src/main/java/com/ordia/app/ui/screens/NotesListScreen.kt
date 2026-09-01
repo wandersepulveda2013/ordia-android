@@ -72,7 +72,9 @@ fun NotesListScreen(
             EmptyState(padding)
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
@@ -87,7 +89,9 @@ fun NotesListScreen(
 @Composable
 private fun EmptyState(padding: PaddingValues) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -158,7 +162,9 @@ private fun NoteRow(
                 Icons.Outlined.PushPin,
                 contentDescription = "Fijada",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier
+                    .size(18.dp)
+                    .padding(top = 2.dp),
             )
         }
         Box {
