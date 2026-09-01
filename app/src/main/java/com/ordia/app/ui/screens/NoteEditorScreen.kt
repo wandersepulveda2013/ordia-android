@@ -44,19 +44,18 @@ fun NoteEditorScreen(
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
 
-    BackHandler {
-        onCommit(title, content)
-        onBack()
-    }
+    // Un solo camino de salida del editor: commit del contenido + navegar. El
+    // back del sistema, la flecha de la toolbar y "Hecho" comparten esta lambda
+    // para que ninguna ruta pueda divergir (p.ej. guardar sin navegar).
+    val finishEditing: () -> Unit = { onCommit(title, content);onBack() }
+
+    BackHandler(onBack = finishEditing)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = {
-                        onCommit(title, content)
-                        onBack()
-                    }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) }
+                    IconButton(onClick = finishEditing) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 },
                 title = { Text(stringResource(R.string.edit_note), style = MaterialTheme.typography.titleMedium) },
                 actions = {
@@ -65,10 +64,7 @@ fun NoteEditorScreen(
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
-                            .clickable {
-                                onCommit(title, content)
-                                onBack()
-                            },
+                            .clickable(onClick = finishEditing),
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

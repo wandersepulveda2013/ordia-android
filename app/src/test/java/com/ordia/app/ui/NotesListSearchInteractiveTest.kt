@@ -1,6 +1,7 @@
 package com.ordia.app.ui
 
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -134,6 +135,49 @@ class NotesListSearchInteractiveTest {
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onNodeWithText("Apuntes").assertExists()
         compose.onNodeWithText("Recetas").assertExists()
+    }
+
+    @Test
+    fun systemBack_withSearchOpen_exitsSearchModeInsteadOfClosing() {
+        // REGRESIÓN (P1): con el modo búsqueda abierto, el back del sistema debe
+        // salir del modo búsqueda (volver a la lista completa) en vez de cerrar la
+        // app, que era el destino de la pila raíz antes de este guard.
+        val query = mutableStateOf("")
+        compose.setContent {
+            NotesListScreen(
+                notes = if (query.value.isBlank()) {
+                    allNotes
+                } else {
+                    allNotes.filter {
+                        it.title.contains(query.value, ignoreCase = true) || it.content.contains(query.value, ignoreCase = true)
+                    }
+                },
+                onOpenNote = {},
+                onCreateNote = {},
+                onDeleteNote = {},
+                onRestoreNote = {},
+                onTogglePin = {},
+                searchQuery = query.value,
+                onSearchQueryChange = { query.value = it },
+            )
+        }
+
+        // Abrir el modo búsqueda.
+
+        compose.onNodeWithContentDescription("Buscar notas").performClick()
+        compose.waitForIdle()
+        compose.onAllNodes(hasSetTextAction()).assertCountEquals(1)
+
+        // El back del sistema sale del modo búsqueda (no cierra la app).
+        compose.activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitForIdle()
+
+        compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
+        compose.onNodeWithText("Apuntes").assertExists()
+        compose.onNodeWithText("Recetas").assertExists()
+        // El back siguiente (ya sin búsqueda) puede propagarse a la raíz (cerrar la app.
+        compose.activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitForIdle()
     }
 
     @Test

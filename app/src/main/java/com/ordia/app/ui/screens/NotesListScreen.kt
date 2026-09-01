@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +71,13 @@ fun NotesListScreen(
     // must show the empty search field. Seeded from a lingering query so a
     // recreated screen (rotation/process death) keeps filtering consistently.
     var isSearching by rememberSaveable { mutableStateOf(searchQuery.isNotEmpty()) }
+
+    // System back exits the search mode first (standard back-stack behavior)
+    // instead of closing the app while the field is open.
+    BackHandler(enabled = isSearching) {
+        isSearching = false
+        onSearchQueryChange("")
+    }
 
     // Clearing the field exits the search mode (back to the full list).
     LaunchedEffect(searchQuery) {
