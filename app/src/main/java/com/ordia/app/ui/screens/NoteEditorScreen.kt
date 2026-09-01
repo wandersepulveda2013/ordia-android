@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,15 +22,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +43,19 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+    val focusRequester = remember { FocusRequester() }
+    val isNewNote = note == null
 
     LaunchedEffect(note?.id) {
         if (note != null) {
             title = note.title
             content = note.content
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (isNewNote) {
+            focusRequester.requestFocus()
         }
     }
 
@@ -59,15 +70,13 @@ fun NoteEditorScreen(
                 },
                 title = { Text("Editar", style = MaterialTheme.typography.titleMedium) },
                 actions = {
-                    Text(
-                        "Hecho",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .clickable {
-                                onSave(title, content, note?.id)
-                                onBack()
-                            },
+                    OrdiaAction(
+                        text = "Hecho",
+                        onClick = {
+                            onSave(title, content, note?.id)
+                            onBack()
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,7 +100,7 @@ fun NoteEditorScreen(
                 onValueChange = { title = it },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 colors = bareFieldColors(),
             )
             TextField(
