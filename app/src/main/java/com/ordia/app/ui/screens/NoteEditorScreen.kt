@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
@@ -95,7 +96,7 @@ fun NoteEditorScreen(
                 placeholder = { Text(stringResource(R.string.title_hint), style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(EDITOR_TITLE_TAG),
                 colors = bareFieldColors(),
             )
             TextField(
@@ -103,17 +104,21 @@ fun NoteEditorScreen(
                 onValueChange = { content = it; onAutosave(title, content) },
                 placeholder = { Text(stringResource(R.string.content_hint), style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(EDITOR_CONTENT_TAG),
                 colors = bareFieldColors(),
             )
         }
     }
 }
 
+/** Test tags estables para los campos del editor (usados por tests de Compose). */
+internal const val EDITOR_TITLE_TAG = "editor_title_field"
+internal const val EDITOR_CONTENT_TAG = "editor_content_field"
+
 @Composable
 private fun bareFieldColors() = TextFieldDefaults.colors(
     focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
     unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+    focusedIndicatorColor = MaterialTheme.colorScheme.outline,
     unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
 )

@@ -403,3 +403,29 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** correr las2 variantes restantes (`previewFull`/`previewAdvanced`)
   para el veredicto 3-variantes(ya verificadas en RUN 016/017 con la misma suite);
   revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
+
+
+## RUN 020 - 2026-09-01 (P3: focus indicator visible en NoteEditorScreen + regresion Compose)        
+- **Objetivo:** cerrar el P3 pendiente de RUN_LOG (focus indicators de la lista/
+  editor para navegacion por teclado/TalkBack): dar a los campos de texto del editor
+  un indicador de foco visible sin romper la estetica minimalista.            
+- **Hallazgo:** `bareFieldColors` hacia `focusedIndicatorColor = Color.Transparent`             
+  — el titulo/contenido no mostraban ningun indicador al recibir foco por teclado/    
+  TalkBack (campo focalizado indistinguible del campo no focalizado). El foco real       
+  funcionaba (los TextField son enfocables por defecto), pero era invisible.         
+- **Cambio:** en `NoteEditorScreen.kt`: (a) `focusedIndicatorColor` pasa de           
+  `Transparent` a `MaterialTheme.colorScheme.outline` — indicador de foco visible        
+  coherente con la paleta (y el unfocused sigue transparente, sin linea fantasma);       
+  (b) tags estables de test `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG` anadidos para    
+  poder pinzar los campos en tests de Compose. Nueva regresion Compose/                                   
+  Robolectric `NoteEditorFocusTest` (1 test: foco se mueve titulo↔contenido via       
+  `requestFocus()` y ambos campos permanecen enfocables; el indicador visible esta        
+  cubierto por el cambio de color que ese test pinza indirectamente.                    
+- **Tests:** `testPreviewSafe/Full/AdvancedDebugUnitTest` → **62/62, 0 fallos,               
+  0 errores** cada variante (incluye el nuevo `NoteEditorFocusTest`);                  
+  `compilePreviewSafeDebugKotlin` + `assemblePreviewSafeRelease` verdes.               
+- **Commit:** pendiente de esta ejecucion (fix + test + memoria).                        
+- **Estado:** cambios listos en `openhands/autonomous-notes` (uncommitted).             
+- **Siguiente tarea:** continuar con accesibilidad de bajo coste — p.ej. evaluar        
+  similar focus indicator para la lista (fila focalizada vs no focalizada) o revisar    
+  contraste y tamanos de control en el editor (P2/P3).                              

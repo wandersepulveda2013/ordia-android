@@ -3,9 +3,9 @@
 ## Suites disponibles
 
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
-  - `NoteDaoTest` — Room in-memory (10 tests).
+  - `NoteDaoTest` — Room in-memory (11 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (22 tests,
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (23 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
   commit→beginDraft hacia otra nota, y nota nueva tras back).
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (3 tests; RUN 012
@@ -14,9 +14,15 @@
     regresión de BUG-003 — la recreación (rotación/proceso-muerte, via
     `StateRestorationTester`) preserva el texto en curso sin persistir y el commit
     posterior persiste lo tecleado, no la instantánea vieja.
-
-  - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (3 tests, RUN 008).
+  - `NoteEditorFocusTest` — UI Compose/Robolectric (1 test, RUN 020, P3
+    accesibilidad): regresión de foco visible del editor — el foco se mueve entre
+    título↔contenido via `requestFocus()`, ambos campos enfocables; tags
+    `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`.
+  - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
+    + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
+- `NoteEntityPreviewTest` — unit tests puros (4 tests, RUN 015/016: blank,
+  2 líneas trim, cap length, single long line capped).
 - `RelativeDateTest` — unit tests puros (5 tests, RUN 014: "Hoy"/"Ayer"
   con límite de día natural local y fallback MEDIUM; incluye los dos límites
   exactos de medianoche).
@@ -24,7 +30,17 @@
   específicos de flavor por ahora).
 
 ## Último resultado
-- 2026-08-31 (ejecución 018, búsqueda literal): verificado en este sandbox
+- 2026-09-01 (ejecución 020, focus indicator del editor): verificado en este sandbox
+  → las  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+    `testPreviewAdvancedDebugUnitTest`): **62 tests,, 0 fallos,, 0 errores** (BUILD
+  SUCCESSFUL). Frente a las  ​60 de la RUN​ 019: `NoteDaoTest` 11,,
+    `NoteRepositoryTest` 7,, `NotepadViewModelTest` 23,, `NoteEditorBackSaveTest` 3,
+    `NoteEditorRecreationTest` 2,, `NotesListSearchInteractiveTest` 4,, `NotesListAccessibilityTest`
+    2,, `RelativeDateTest` 5,, + **`NoteEditorFocusTest` 1** (nueva regresión Compose/
+    Robolectric del P3 de accesibilidad: foco visible y navegable entre título↔contenido
+    en el editor—tags `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`). Sin fallos conocidos
+    ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin` +
+    `:app:assemblePreviewSafeRelease` verdes.
   → `testPreviewSafeDebugUnitTest` **60 tests,  ​0 fallos,  ​0 errores** (BUILD
   SUCCESSFUL). `NoteDaoTest` pasa de 10 a 11 tests: añadido
   `observeSearch_wildcardsAreTreatedLiterally` (regresión de BUG-007: los

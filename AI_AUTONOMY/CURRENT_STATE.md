@@ -9,7 +9,15 @@
 - **Producto:** bloc de notas minimalista (rebuild completo en `main`, commit
   `ceb1ff3`): lista de notas con pin, editor título+contenido, Room `ordia.db`.
 - **Branch de trabajo:** `openhands/autonomous-notes` (creada desde `main`
-  `ceb1ff3` el 2026-08-26). RUN 018: búsqueda por `LIKE` con
+  `ceb1ff3` el 2026-08-26). RUN 020 (P3, accesibilidad): los campos de
+  texto del editor (título/contenido) muestran ahora un **indicador de foco
+  visible** (`focusedIndicatorColor = MaterialTheme.colorScheme.outline` en vez de
+  `Transparent`) — navegación por teclado/TalkBack ya no deja el campo focalizado
+
+  indistinguible del no focalizado; el unfocused sigue transparente (sin línea
+  fantasma). Tags estables `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG` + regresión
+  Compose `NoteEditorFocusTest` (62/62 en las  ​3 variantes).
+  RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
   RUN 019: verificación post-commit 60/60 sobre `3da47ef` + auditoría RTL
