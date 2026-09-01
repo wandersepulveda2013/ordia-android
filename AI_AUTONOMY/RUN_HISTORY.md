@@ -424,8 +424,11 @@ Commit: test(editor): cover system-back save.
 - **Tests:** `testPreviewSafe/Full/AdvancedDebugUnitTest` → **62/62, 0 fallos,               
   0 errores** cada variante (incluye el nuevo `NoteEditorFocusTest`);                  
   `compilePreviewSafeDebugKotlin` + `assemblePreviewSafeRelease` verdes.               
-- **Commit:** pendiente de esta ejecucion (fix + test + memoria).                        
-- **Estado:** cambios listos en `openhands/autonomous-notes` (uncommitted).             
-- **Siguiente tarea:** continuar con accesibilidad de bajo coste — p.ej. evaluar        
-  similar focus indicator para la lista (fila focalizada vs no focalizada) o revisar    
-  contraste y tamanos de control en el editor (P2/P3).                              
+- **Commit:** `999251ad` fix(editor): visible focus indicator + regresión Compose;
+  `c4784626` chore(gitignore): artifactos locales *.deb.
+- **Estado:** pusheado a `origin/openhands/autonomous-notes` (2 commits,
+  working tree limpio).
+- **Siguiente tarea:** continuar con accesibilidad de bajo coste — p.ej.
+  evaluar similar focus indicator para la lista (fila focalizada vs
+  no focalizada) o revisar contraste y tamanos de control en
+  el editor (P2/P3.
