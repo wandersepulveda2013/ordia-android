@@ -2,43 +2,55 @@ package com.ordia.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 
-/**
- * A restrained, paper-and-ink palette. No accent colors: the only chroma is the
- * page itself, so the writing stays the focus.
- */
-private val LightPaper = lightColorScheme(
-    primary = Ink,
-    onPrimary = Page,
-    secondary = Ink,
-    onSecondary = Page,
-    background = Page,
-    onBackground = Ink,
-    surface = Page,
-    onSurface = Ink,
-    surfaceVariant = SoftPaper,
-    onSurfaceVariant = InkMuted,
-    outline = Rule,
+val White = Color(0xFFFFFFFF)
+val Black = Color(0xFF000000)
+
+val LightGray1 = Color(0xFFF7F7F7)
+val LightGray2 = Color(0xFFEFEFEF)
+val LightGray3 = Color(0xFFDFDFDF)
+val DarkGray1 = Color(0xFF1E1E1E)
+val DarkGray2 = Color(0xFF2A2A2A)
+val DarkGray3 = Color(0xFF3B3B3B)
+
+val SemanticAlert = Color(0xFFD32F2F)
+val SemanticSuccess = Color(0xFF388E3C)
+val SemanticFocus = Color(0xFF0288D1)
+
+private val LightColors = lightColorScheme(
+    primary = Black,
+    onPrimary = White,
+    secondary = DarkGray2,
+    onSecondary = White,
+    background = White,
+    onBackground = Black,
+    surface = White,
+    onSurface = Black,
+    surfaceVariant = LightGray1,
+    onSurfaceVariant = DarkGray1,
+    outline = LightGray3,
+    error = SemanticAlert,
+    onError = White
 )
 
-private val DarkPaper = darkColorScheme(
-    primary = PageOnDark,
-    onPrimary = DarkInk,
-    secondary = PageOnDark,
-    onSecondary = DarkInk,
-    background = DarkInk,
-    onBackground = PageOnDark,
-    surface = DarkInk,
-    onSurface = PageOnDark,
-    surfaceVariant = DarkInkRaised,
-    onSurfaceVariant = PageMuted,
-    outline = DarkRule,
+private val DarkColors = darkColorScheme(
+    primary = White,
+    onPrimary = Black,
+    secondary = LightGray2,
+    onSecondary = Black,
+    background = Black,
+    onBackground = White,
+    surface = Black,
+    onSurface = White,
+    surfaceVariant = DarkGray1,
+    onSurfaceVariant = LightGray1,
+    outline = DarkGray3,
+    error = SemanticAlert,
+    onError = Black
 )
 
 @Composable
@@ -46,18 +58,9 @@ fun NotepadTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val base = Typography()
-    val type = Typography(
-        bodyLarge = base.bodyLarge.copy(fontSize = 17.sp, lineHeight = 28.sp),
-        bodyMedium = base.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp),
-        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp),
-        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp),
-        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
-        labelSmall = base.labelSmall.copy(fontSize = 11.sp),
-    )
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkPaper else LightPaper,
-        typography = type,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
+        typography = OrdiaTypography,
         content = content,
     )
 }

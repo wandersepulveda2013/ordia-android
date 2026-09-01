@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
 import java.text.DateFormat
 import java.util.Date
+import com.ordia.app.ui.components.OrdiaButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
