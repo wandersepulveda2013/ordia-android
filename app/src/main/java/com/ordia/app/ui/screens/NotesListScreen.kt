@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -49,6 +51,8 @@ fun NotesListScreen(
     onDeleteNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
 ) {
+    var pendingDelete by remember { mutableStateOf<NoteEntity?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,11 +80,27 @@ fun NotesListScreen(
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                    NoteRow(
+                        note = note,
+                        onOpenNote = onOpenNote,
+                        onTogglePin = onTogglePin,
+                        onRequestDelete = { pendingDelete = it },
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }
         }
+    }
+
+    pendingDelete?.let { target ->
+        DeleteNoteDialog(
+            note = target,
+            onConfirm = {
+                pendingDelete = null
+                onDeleteNote(target)
+            },
+            onDismiss = { pendingDelete = null },
+        )
     }
 }
 
@@ -111,7 +131,7 @@ private fun NoteRow(
     note: NoteEntity,
     onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
-    onDeleteNote: (NoteEntity) -> Unit,
+    onRequestDelete: (NoteEntity) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
@@ -172,9 +192,36 @@ private fun NoteRow(
                 )
                 DropdownMenuItem(
                     text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
+                    onClick = { menuOpen = false; onRequestDelete(note) },
                 )
             }
         }
     }
+}
+
+@Composable
+private fun DeleteNoteDialog(
+    note: NoteEntity,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Eliminar nota") },
+        text = {
+            Text(
+                if (note.title.isNotBlank()) {
+                    "Se eliminará «${note.title.take(60)}». Esta acción no se puede deshacer."
+                } else {
+                    "Esta nota se eliminará definitivamente. Esta acción no se puede deshacer."
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Eliminar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        },
+    )
 }
