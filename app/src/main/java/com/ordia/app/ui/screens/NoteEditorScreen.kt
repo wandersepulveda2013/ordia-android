@@ -15,9 +15,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,30 +85,20 @@ fun NoteEditorScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextField(
+            OrdiaInput(
                 value = title,
                 onValueChange = { title = it },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.fillMaxWidth(),
-                colors = bareFieldColors(),
             )
-            TextField(
+            OrdiaInput(
                 value = content,
                 onValueChange = { content = it },
                 placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.fillMaxWidth(),
-                colors = bareFieldColors(),
             )
         }
     }
 }
-
-@Composable
-private fun bareFieldColors() = TextFieldDefaults.colors(
-    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-)
