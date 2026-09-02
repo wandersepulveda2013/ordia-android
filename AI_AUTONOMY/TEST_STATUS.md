@@ -20,9 +20,11 @@
     accesibilidad): regresión de foco visible del editor — el foco se mueve entre
     título↔contenido via `requestFocus()`, ambos campos enfocables; tags
     `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`.
-  - `NotesListDeleteConfirmTest` — UI Compose/Robolectric (2 tests, RUN 021,
-    regresión del merge): confirmar borra con diálogo + ofrece undo,y cancelar conserva;.
-    cubre BUG-008(2).
+- `NotesListDeleteConfirmTest` — UI Compose/Robolectric (2 tests, RUN 021,
+    regresión del merge): confirmar borra con diálogo + ofrece undo,y cancelar conserva;;.
+    cubre BUG-008(2). RUN 023: pinza ahora que el diálogo anuncia el
+    deshacer disponible («Podrás deshacerlo») — coherencia copy↔comportamiento.
+
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
     + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
@@ -45,7 +47,6 @@
   `searchQuery` y los `searchResults` filtrados, sin pérdida del modo búsqueda).
   Sin fallos conocidos ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin`
   verde.
-
 
 - 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
   este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
@@ -85,8 +86,6 @@
   importan ahora `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
   (API canónica actual, `StandardTestDispatcher`; se eliminan los warnings de
   deprecación de la v1 legada). Sin cambios de comportamiento,: misma suite,num tests.
-
-
 
 - 2026-08-31 (ejecución 016, strings + RUN 015 heredado): verificado en este
   sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`

@@ -405,6 +405,35 @@ Commit: test(editor): cover system-back save.
   revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
 
 
+## RUN 023 - 2026-09-02 (P2/UX: copia honesta en el diálogo de borrado — ya no contradice el deshacer)
+
+- **Objetivo:** eliminar una incoherencia real de UX detectada en el merge RUN 021:
+  el diálogo de confirmación de borrado decía "Esta acción no se puede deshacer""
+  mientras que, tras confirmar, la app muestra inmediatamente el snackbar con la
+  acción "Deshacer" para restaurar la nota». El copy contradice el comportamiento real.
+- **Hallazgo:** `strings.xml` linea 27–28 contenía "no se puede deshacer" en ambos
+  mensajes de borrado (heredado del linaje pre-undo; el undo existe desde RUN 001
+  y el dialog fue restaurado en RUN 021 conjuntamente con el snackbar — los dos
+  flujos quedaron alineados pero el texto no se actualizó).
+- **Cambio:** los dos mensajes del diálogo ahora dicen la verdad contextual:
+  «Se eliminará "…". Podrás deshacerlo.» (y «Esta nota se eliminará. Podrás
+  deshacerlo.» para nota sin título). Sin cambio de flujo/lógica..
+- **Tests:** `NotesListDeleteConfirmTest` ampliado con aserción de que el diálogo
+  anuncia el deshacer disponible («Podrás deshacerlo») antes de confirmar. Suite
+  `:app:testPreviewSafeDebugUnitTest` completa → **65/65,, 0 fallos,, 0 errores**
+  (11 XML, BUILD SUCCESSFUL.
+- **Commit:** pendiente al cierre de esta ejecución (ver git status/push..
+
+- **Estado:** working tree con 2 archivos modificados (strings.xml +
+  test); suite verde.
+
+- **Siguiente tarea:** pushear RUN 023 (fix copy + regresión + memoria); luego
+  siguiente candidato P2/P3: focus indicator de la lista para navegación por
+  teclado/TalkBack,, o cobertura/resiliencia del editor (fondo de autosave en
+  cierre inesperado); o auditoría de contraste/tamaño de controles.
+
+
+
 ## RUN 022 - 2026-09-02 (P1: BUG-009 — la query de búsqueda activa sobrevive al proceso-muerte)
 - **Objetivo:** cerrar el P1 del backlog (BUG-009): la lista se recreaba tras
   un proceso-muerte (o reinstanciación del ViewModel) mostrando el campo de

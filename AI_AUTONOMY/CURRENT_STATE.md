@@ -23,7 +23,11 @@
   ViewModel,y `setSearchQuery` escribe/elimina la clave), por lo que la
   recreación restaura el modo búsqueda, la query y el filtro. Regresión:
   `NotepadViewModelTest.processDeath_restoresSearchQuery`.
-  Suite completa **65/65,  0 fallos,  ​0 errores en las 3 variantes** (RUN 022.
+  Suite completa **65/65,  0 fallos,,  ​0 errores en las 3 variantes** (RUN 022.
+  RUN 023 (P2/UX): el diálogo de confirmación de borrado ya no contradice el
+  deshacer — el copy decía "no se puede deshacer" mientras que el snackbar de
+  undo aparece al confirmar; ahora anuncia «Podrás deshacerlo» (strings.xml + regresión
+  en `NotesListDeleteConfirmTest`).
   texto del editor (título/contenido) muestran ahora un **indicador de foco
   visible** (`focusedIndicatorColor = MaterialTheme.colorScheme.outline` en vez de
   `Transparent`) — navegación por teclado/TalkBack ya no deja el campo focalizado
@@ -178,7 +182,7 @@
 
 ## Estado de tests
 
-- **Última ejecución (RUN 022):**65/65 verdes en las  3 variantes** —
+- **Última ejecución (RUN 023):**65/65 verdes (re-ejecutada `testPreviewSafeDebugUnitTest`) —
   `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest` →  65 tests,,  0 fallos (10 DAO + 7 Repo
   +  23 VM [incluye `processDeath_restoresSearchQuery`, BUG-009] +  16 UI

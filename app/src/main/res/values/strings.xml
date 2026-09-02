@@ -24,7 +24,7 @@
     <string name="pin">Fijar</string>
     <string name="delete">Eliminar</string>
     <string name="delete_note_title">Eliminar nota</string>
-    <string name="delete_note_message">Se eliminará «%1$s». Esta acción no se puede deshacer.</string>
-    <string name="delete_note_message_untitled">Esta nota se eliminará definitivamente. Esta acción no se puede deshacer.</string>
+    <string name="delete_note_message">Se eliminará «%1$s». Podrás deshacerlo.</string>
+    <string name="delete_note_message_untitled">Esta nota se eliminará. Podrás deshacerlo.</string>
     <string name="cancel">Cancelar</string>
 </resources>

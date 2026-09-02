@@ -49,6 +49,7 @@ class NotesListDeleteConfirmTest {
 
         compose.onNodeWithText("Eliminar nota").assertIsDisplayed()
         assertFalse("No debe eliminarse sin confirmación", deleted)
+        compose.onNodeWithText("Podrás deshacerlo.", substring = true).assertIsDisplayed()
 
 
         compose.onNodeWithText("Cancelar").performClick()
