@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaButton
 import java.text.DateFormat
 import java.util.Date
 
@@ -62,14 +63,14 @@ fun NotesListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         if (notes.isEmpty()) {
-            EmptyState(padding)
+            EmptyState(padding, onCreateNote)
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
@@ -85,7 +86,7 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun EmptyState(padding: PaddingValues, onCreateNote: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize().padding(padding),
         contentAlignment = Alignment.Center,
@@ -96,11 +97,10 @@ private fun EmptyState(padding: PaddingValues) {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
-            Text(
-                "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+            OrdiaButton(
+                onClick = onCreateNote,
+                text = "Nueva nota",
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
     }
