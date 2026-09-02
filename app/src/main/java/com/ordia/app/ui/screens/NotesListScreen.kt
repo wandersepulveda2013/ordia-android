@@ -187,7 +187,7 @@ private fun SearchHeader(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text(stringResource(R.string.search_notes)) },
+        label = { Text(stringResource(R.string.search_notes)) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {

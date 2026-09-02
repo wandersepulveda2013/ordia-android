@@ -37,16 +37,17 @@
   específicos de flavor por ahora).
 
 ## Último resultado
-- 2026-09-02 (ejecución 022, BUG-009: query de búsqueda restaurada en
-  proceso-muerte): verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
+- 2026-09-02 (ejecución 024, accesibilidad: label estabile del campo de
+  búsqueda): verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
   / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **65 tests,
-  0 fallos,,  ​0 errores** (BUILD SUCCESSFUL. Frente a las​64 de la RUN 021:
-  `NotepadViewModelTest` pasa de 23 a​ ​24 tests: añadido
-  `processDeath_restoresSearchQuery` (regresión de BUG-009: el ViewModel recreado
-  desde `SavedStateHandle` con la clave `KEY_SEARCH_QUERY="paella"` restaura
-  `searchQuery` y los `searchResults` filtrados, sin pérdida del modo búsqueda).
-  Sin fallos conocidos ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin`
-  verde.
+  0 fallos,,  0 errores** (BUILD SUCCESSFUL). Frente a la RUN 023 (misma cuenta
+  de 65): `NotesListSearchInteractiveTest` sube a **5** tests (mismo método
+  reforzado: aserción del label accesible «Buscar notas» vía `ContentDescription` del
+  nodo del campo,+ verificación de que el rótulo persiste después de escribirse la
+  query («Recetas») — mecanismo robusto frente a placeholder/label colapsado).
+  `NotesListScreen.kt`: 1 línea de producción (`Modifier.semantics { contentDescription
+  = stringResource(R.string.search_notes) }` en el `label` de `SearchHeader`). Sin fallos
+  conocidos ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin` verde.
 
 - 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
   este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /

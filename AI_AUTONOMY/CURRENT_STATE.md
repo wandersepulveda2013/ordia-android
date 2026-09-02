@@ -182,10 +182,17 @@
 
 ## Estado de tests
 
-- **Última ejecución (RUN 023):**65/65 verdes (re-ejecutada `testPreviewSafeDebugUnitTest`) —
-  `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
-  `testPreviewAdvancedDebugUnitTest` →  65 tests,,  0 fallos (10 DAO + 7 Repo
+- **Última ejecución (RUN 024):** 65/65 verdes en las 3 variantes —
+  `testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
+  `testPreviewAdvancedDebugUnitTest` → **65 tests,, 0 fallos (10 DAO + 7 Repo
   +  23 VM [incluye `processDeath_restoresSearchQuery`, BUG-009] +  16 UI
-  [incluye `NotesListDeleteConfirmTest` 2 tests de regresión del merge] +
-  4 `NoteEntityPreviewTest` +  2 `RelativeDateTest`.
-  Detalle en `TEST_STATUS.md`.
+  [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 5/5
+  (label accesible «Buscar notas» persistente)] +  4 `NoteEntityPreviewTest` +  2
+  `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
+
+## Accesibilidad (RUN 024)
+
+- El campo de búsqueda expone ahora un rótulo accesible estable «Buscar notas»
+  (vía `Modifier.semantics { contentDescription = stringResource(R.string.search_notes) }`)
+  que TalkBack anuncia tanto con el campo vacío como mientras se teclea; el test
+  `NotesListSearchInteractiveTest` lo verifica (incluida la persistencia tras escribir).

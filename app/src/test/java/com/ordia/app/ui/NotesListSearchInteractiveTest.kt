@@ -6,6 +6,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.ui.screens.NotesListScreen
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -101,6 +104,14 @@ class NotesListSearchInteractiveTest {
         compose.onNodeWithContentDescription("Buscar notas").performClick()
         compose.waitForIdle()
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(1)
+
+        // El campo expone el rótulo "Buscar notas" como texto accesible del nodo(Text): así
+        // TalkBack puede anunciar el propósito del campo(placeholder o label cumplen este rol..
+
+        val searchFieldNode = compose.onAllNodes(hasSetTextAction())[0].fetchSemanticsNode()
+        val searchLabel = searchFieldNode.config.getOrNull(SemanticsProperties.Text)?.joinToString()
+        assertEquals("Buscar notas", searchLabel)
+
         compose.onNodeWithText("Apuntes").assertExists() // lista completa aún visible
         assertSearchFieldDoesNotOverlapFirstRow()
 
@@ -110,6 +121,13 @@ class NotesListSearchInteractiveTest {
 
         compose.onNodeWithText("Notas: 1").assertExists()
         compose.onNodeWithText("Apuntes").assertDoesNotExist()
+
+        // El rótulo accesible persiste con query escrita: un placeholder desaparecería al
+        // teclear (la línea de detalle del campo se pierde para TalkBack); el label flotante no..
+        // Este es el valor real del label frente al placeholder..
+        val typedNode = compose.onAllNodes(hasSetTextAction())[0].fetchSemanticsNode()
+        val typedLabel = typedNode.config.getOrNull(SemanticsProperties.Text)?.joinToString()
+        assertEquals("Buscar notas", typedLabel)
 
         // Limpiar la query con la X del campo restaura la lista completa y sale de búsqueda.
         compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("")

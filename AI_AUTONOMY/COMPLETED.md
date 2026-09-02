@@ -5,6 +5,19 @@
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
 
+## 2026-09-02 — Ejecución 024 (accesibilidad: label estable del campo de búsqueda)
+
+- **Label accesible persistente en el campo de búsqueda** (P2, accesibilidad/UX):
+  `SearchHeader` expone ahora `contentDescription = "Buscar notas"` vía
+  `Modifier.semantics` en el label del `OutlinedTextField`; con ello TalkBack anuncia
+  el nombre del campo tanto vacío como mientras se teclea (antes, con el campo
+  vacío, el texto accesible del nodo era `null` — el label colapsado no daba
+  nombre robusto). Cobertura: `NotesListSearchInteractiveTest` reforzado (lee
+  el rótulo vía `ContentDescription` en vez de asumir el key `Text`; y añadida
+  aserción de que el rótulo persiste después de escribirse la query. Suite
+  3-variantes **65/65,  0 fallos,  0 errores**.
+
+
 ## 2026-09-02 — Ejecución 021 (reparar regresiones del merge `8a82c78`, P1)
 
 - **Regresiones del merge reparadas**: el merge combinó dos implementaciones
