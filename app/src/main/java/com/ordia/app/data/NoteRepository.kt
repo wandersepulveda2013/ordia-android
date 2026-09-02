@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 class NoteRepository(private val dao: NoteDao) {
     fun observeAll(): Flow<List<NoteEntity>> = dao.observeAll()
 
+    /** Searches with LIKE patterns in [query] treated as literal text (escaped). */
+    fun observeSearch(query: String): Flow<List<NoteEntity>> = dao.observeSearch(escapeLike(query))
+
+    private fun escapeLike(input: String): String =
+        input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     suspend fun get(id: Long): NoteEntity? = dao.getById(id)
 
     suspend fun save(note: NoteEntity): Long = dao.insert(note)
@@ -14,7 +20,7 @@ class NoteRepository(private val dao: NoteDao) {
 
     suspend fun delete(note: NoteEntity) = dao.delete(note)
 
-    suspend fun togglePinned(id: Long, pinned: Boolean) = dao.setPinned(id, pinned)
+    suspend fun togglePinned(id: Long) = dao.togglePinned(id)
 
     suspend fun create(title: String, content: String): Long {
         val now = System.currentTimeMillis()

@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +22,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,17 +40,18 @@ import com.ordia.app.data.NoteEntity
 fun NoteEditorScreen(
     note: NoteEntity?,
     onBack: () -> Unit,
-    onSave: (title: String, content: String, id: Long?) -> Unit,
+    onAutosave: (title: String, content: String) -> Unit,
+    onCommit: (title: String, content: String) -> Unit,
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
 
-    LaunchedEffect(note?.id) {
-        if (note != null) {
-            title = note.title
-            content = note.content
-        }
-    }
+    // Un solo camino de salida del editor: commit del contenido + navegar. El
+    // back del sistema, la flecha de la toolbar y "Hecho" comparten esta lambda
+    // para que ninguna ruta pueda divergir (p.ej. guardar sin navegar).
+    val finishEditing: () -> Unit = { onCommit(title, content);onBack() }
+
+    BackHandler(onBack = finishEditing)
 
     fun exitSaving() {
         onSave(title, content, note?.id)
@@ -60,16 +64,16 @@ fun NoteEditorScreen(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = ::exitSaving) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver") }
+                    IconButton(onClick = finishEditing) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 },
-                title = { Text("Editar", style = MaterialTheme.typography.titleMedium) },
+                title = { Text(stringResource(R.string.edit_note), style = MaterialTheme.typography.titleMedium) },
                 actions = {
                     Text(
-                        "Hecho",
+                        stringResource(R.string.done),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
-                            .clickable(onClick = ::exitSaving),
+                            .clickable(onClick = finishEditing),
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -90,28 +94,39 @@ fun NoteEditorScreen(
         ) {
             TextField(
                 value = title,
-                onValueChange = { title = it },
-                placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
+                onValueChange = {
+                    // El título es un dato de una línea (la lista lo muestra con
+                    // maxLines=1); al pegar texto con saltos se aplanan para no
+                    // persistir títulos multilínea inconsistentes.
+                    title = it.replace('\n', ' ')
+                    onAutosave(title, content)
+                },
+                placeholder = { Text(stringResource(R.string.title_hint), style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag(EDITOR_TITLE_TAG),
                 colors = bareFieldColors(),
             )
             TextField(
                 value = content,
-                onValueChange = { content = it },
-                placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
+                onValueChange = { content = it; onAutosave(title, content) },
+                placeholder = { Text(stringResource(R.string.content_hint), style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(EDITOR_CONTENT_TAG),
                 colors = bareFieldColors(),
             )
         }
     }
 }
 
+/** Test tags estables para los campos del editor (usados por tests de Compose). */
+internal const val EDITOR_TITLE_TAG = "editor_title_field"
+internal const val EDITOR_CONTENT_TAG = "editor_content_field"
+
 @Composable
 private fun bareFieldColors() = TextFieldDefaults.colors(
     focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
     unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+    focusedIndicatorColor = MaterialTheme.colorScheme.outline,
     unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
 )

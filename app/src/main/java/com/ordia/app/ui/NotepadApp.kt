@@ -1,6 +1,7 @@
 package com.ordia.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +17,8 @@ import com.ordia.app.ui.theme.NotepadTheme
 fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
     NotepadTheme {
         val notes by viewModel.notes.collectAsState()
+        val searchQuery by viewModel.searchQuery.collectAsState()
+        val searchResults by viewModel.searchResults.collectAsState()
         var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
         var creating by rememberSaveable { mutableStateOf(false) }
 
@@ -25,24 +28,33 @@ fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
 
         when {
             creating || (editingId != null && current != null) -> {
+                LaunchedEffect(editingId, current?.id, creating) {
+                    viewModel.beginDraft(if (creating) null else editingId)
+                }
                 NoteEditorScreen(
                     note = if (creating) null else current,
                     onBack = {
                         creating = false
                         editingId = null
                     },
-                    onSave = { title, content, id ->
-                        viewModel.save(title, content, id)
+                    onAutosave = { title, content ->
+                        viewModel.autosave(title, content)
+                    },
+                    onCommit = { title, content ->
+                        viewModel.commitDraft(title, content)
                     },
                 )
             }
             else -> {
                 NotesListScreen(
-                    notes = notes,
+                    notes = if (searchQuery.isBlank()) notes else searchResults,
                     onOpenNote = { editingId = it.id },
                     onCreateNote = { creating = true },
                     onDeleteNote = { viewModel.delete(it) },
+                    onRestoreNote = { viewModel.restore(it) },
                     onTogglePin = { viewModel.togglePinned(it) },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = viewModel::setSearchQuery,
                 )
             }
         }

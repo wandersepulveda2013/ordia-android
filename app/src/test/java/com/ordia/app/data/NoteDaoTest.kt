@@ -86,11 +86,11 @@ class NoteDaoTest {
     }
 
     @Test
-    fun setPinned_togglesFlag() = runTest {
+    fun togglePinned_flipsFlagAndDoubleToggleNetsOriginal() = runTest {
         val id = dao.insert(note("A fijar", pinned = false))
-        dao.setPinned(id, true)
+        dao.togglePinned(id)
         assertTrue(dao.getById(id)!!.pinned)
-        dao.setPinned(id, false)
+        dao.togglePinned(id)
         assertFalse(dao.getById(id)!!.pinned)
     }
 
@@ -108,5 +108,58 @@ class NoteDaoTest {
         dao.insert(note("Nueva", updatedAt = 5000L))
         val all = dao.observeAll().first()
         assertEquals("Nueva", all.first().title)
+    }
+
+    @Test
+    fun observeSearch_matchesTitleAndContentIgnoringCase() = runTest {
+        dao.insert(note("Receta de paella", "Azafrán y arroz"))
+        dao.insert(note("Lista de la compra", "Leche, paella congelada"))
+        dao.insert(note("Ideas", "Otra cosa"))
+
+        val byTitle = dao.observeSearch("paella").first()
+        assertEquals(2, byTitle.size)
+
+        val byContent = dao.observeSearch("leche").first()
+        assertEquals(1, byContent.size)
+        assertEquals("Lista de la compra", byContent.first().title)
+
+        val caseInsensitive = dao.observeSearch("PAELLA").first()
+        assertEquals(2, caseInsensitive.size)
+
+        val noMatch = dao.observeSearch("inexistente").first()
+        assertTrue(noMatch.isEmpty())
+    }
+
+    @Test
+    fun observeSearch_blankQueryReturnsAll() = runTest {
+        dao.insert(note("Uno"))
+        dao.insert(note("Dos"))
+        assertEquals(2, dao.observeSearch("").first().size)
+    }
+
+    @Test
+    fun observeSearch_wildcardsAreTreatedLiterally() = runTest {
+        val repo = NoteRepository(dao)
+        dao.insert(note("100% listo", "Otro"))
+        dao.insert(note("hola", "_guion_bajo_"))
+        dao.insert(note("back\\slash", "ruta"))
+
+        assertEquals(1, repo.observeSearch("100%").first().size)
+        assertEquals("100% listo", repo.observeSearch("100%").first().first().title)
+        val percentOnly = repo.observeSearch("%").first()
+        assertEquals(1, percentOnly.size)
+        assertEquals("100% listo", percentOnly.first().title)
+
+        assertEquals(1, repo.observeSearch("_guion_bajo_").first().size)
+        assertEquals("hola", repo.observeSearch("_guion_bajo_").first().first().title)
+        val underscoreOnly = repo.observeSearch("_").first()
+        assertEquals(1, underscoreOnly.size)
+        assertEquals("hola", underscoreOnly.first().title)
+
+        assertEquals(1, repo.observeSearch("back\\slash").first().size)
+        assertEquals("back\\slash", repo.observeSearch("back\\slash").first().first().title)
+        val backslashOnly = repo.observeSearch("\\").first()
+        assertEquals(1, backslashOnly.size)
+        assertEquals("back\\slash", backslashOnly.first().title)
     }
 }

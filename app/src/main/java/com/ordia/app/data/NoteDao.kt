@@ -13,6 +13,15 @@ interface NoteDao {
     @Query("SELECT * FROM notes ORDER BY pinned DESC, updatedAt DESC")
     fun observeAll(): Flow<List<NoteEntity>>
 
+    /** Observes notes whose title or content contains [query] (case-insensitive). */
+    @Query(
+        "SELECT * FROM notes " +
+            "WHERE title LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "OR content LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "ORDER BY pinned DESC, updatedAt DESC"
+    )
+    fun observeSearch(query: String): Flow<List<NoteEntity>>
+
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getById(id: Long): NoteEntity?
 
@@ -25,8 +34,8 @@ interface NoteDao {
     @Delete
     suspend fun delete(note: NoteEntity)
 
-    @Query("UPDATE notes SET pinned = :pinned WHERE id = :id")
-    suspend fun setPinned(id: Long, pinned: Boolean)
+    @Query("UPDATE notes SET pinned = NOT pinned WHERE id = :id")
+    suspend fun togglePinned(id: Long)
 
     @Query("DELETE FROM notes")
     suspend fun clear()

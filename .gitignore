@@ -19,6 +19,9 @@ __pycache__/
 # Room schema (generated)
 app/schemas/
 
+# Toolchain artifacts (local only)
+*.deb
+
 # Secrets and credentials
 .env
 .env.*

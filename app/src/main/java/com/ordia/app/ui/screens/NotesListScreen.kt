@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,23 +26,33 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
-import java.text.DateFormat
-import java.util.Date
+import com.ordia.app.ui.util.relativeLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,14 +61,59 @@ fun NotesListScreen(
     onOpenNote: (NoteEntity) -> Unit,
     onCreateNote: () -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
-    onTogglePin: (NoteEntity) -> Unit,
+    onRestoreNote: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
 ) {
-    var pendingDelete by remember { mutableStateOf<NoteEntity?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
+    // Search mode is independent of the query text: opening it from the toolbar
+    // must show the empty search field. Seeded from a lingering query so a
+    // recreated screen (rotation/process death) keeps filtering consistently.
+    var isSearching by rememberSaveable { mutableStateOf(searchQuery.isNotEmpty()) }
+
+    // System back exits the search mode first (standard back-stack behavior)
+    // instead of closing the app while the field is open.
+    BackHandler(enabled = isSearching) {
+        isSearching = false
+        onSearchQueryChange("")
+    }
+
+    // Clearing the field exits the search mode (back to the full list).
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isBlank()) isSearching = false
+    }
+
+    val noteDeletedMessage = stringResource(R.string.note_deleted)
+    val undoAction = stringResource(R.string.undo)
+
+    LaunchedEffect(pendingUndo,) {
+        val note = pendingUndo ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = noteDeletedMessage,
+            actionLabel = undoAction,
+            duration = SnackbarDuration.Short,
+        )
+        if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
+        pendingUndo = null
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
+                title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            isSearching = !isSearching
+                            onSearchQueryChange("")
+                        },
+                    ) {
+                        Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_notes))
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -68,26 +125,40 @@ fun NotesListScreen(
                 onClick = onCreateNote,
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+            ) { Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.new_note)) }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(
-                        note = note,
-                        onOpenNote = onOpenNote,
-                        onTogglePin = onTogglePin,
-                        onRequestDelete = { pendingDelete = it },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                }
+        // The header and the list share the Scaffold Box; wrapping them in a Column
+        // (with the inset padding applied once) keeps the header stacked above the
+        // list instead of being drawn over the first row.
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (isSearching) {
+                SearchHeader(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            val showEmpty = if (isSearching) {
+                searchQuery.isNotBlank() && notes.isEmpty()
+            } else {
+                notes.isEmpty()
+            }
+            when {
+                showEmpty && isSearching -> NoSearchResults(Modifier.weight(1f))
+                showEmpty -> EmptyState(Modifier.weight(1f))
+                else -> NoteList(
+                    notes = notes,
+                    searchQuery = searchQuery,
+                    modifier = Modifier.weight(1f),
+                    onOpenNote = onOpenNote,
+                    onTogglePin = onTogglePin,
+                    onDeleteNote = { deleted ->
+                        onDeleteNote(deleted)
+                        pendingUndo = deleted
+                    },
+                )
             }
         }
     }
@@ -105,19 +176,107 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun SearchHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        placeholder = { Text(stringResource(R.string.search_notes)) },
+        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.clear_search))
+                }
+            }
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+        ),
+    )
+}
+
+@Composable
+private fun NoteList(
+    notes: List<NoteEntity>,
+    searchQuery: String,
+    modifier: Modifier = Modifier,
+    onOpenNote: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
+    onDeleteNote: (NoteEntity) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        if (searchQuery.isNotBlank()) {
+            item(key = "result-count") {
+                Text(
+                    stringResource(R.string.result_count, notes.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
+            }
+        }
+        items(notes, key = { it.id }) { note ->
+            NoteRow(note, onOpenNote, onTogglePin) { deleted ->
+                onDeleteNote(deleted)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        }
+    }
+}
+
+@Composable
+private fun NoSearchResults(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                Icons.Outlined.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp),
+            )
+            Text(
+                stringResource(R.string.no_results_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Text(
+                stringResource(R.string.no_results_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Una página en blanco\nes donde empieza todo.",
+                stringResource(R.string.empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                "Toca + para escribir.",
+                stringResource(R.string.empty_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
@@ -130,19 +289,24 @@ private fun EmptyState(padding: PaddingValues) {
 private fun NoteRow(
     note: NoteEntity,
     onOpenNote: (NoteEntity) -> Unit,
-    onTogglePin: (NoteEntity) -> Unit,
-    onRequestDelete: (NoteEntity) -> Unit,
+    onTogglePin: (Long) -> Unit,
+    onDeleteNote: (NoteEntity) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
+        relativeLabel(note.updatedAt)
     }
-    val preview = remember(note.content) { note.content.take(120) }
+    val preview = remember(note.content) { NoteEntity.preview(note.content) }
 
+    val rowLabel = if (note.title.isBlank()) {
+        stringResource(R.string.row_open_note_untitled)
+} else {
+        stringResource(R.string.row_open_note, note.title)
+}
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenNote(note) }
+            .clickable(onClickLabel = rowLabel) { onOpenNote(note) }
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -174,25 +338,31 @@ private fun NoteRow(
             )
         }
         if (note.pinned) {
+            val pinLabel = if (note.title.isBlank()) {
+                stringResource(R.string.pinned_untitled)
+
+            } else {
+                stringResource(R.string.pinned_note, note.title)
+            }
             Icon(
                 Icons.Outlined.PushPin,
-                contentDescription = "Fijada",
+                contentDescription = pinLabel,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp).padding(top = 2.dp),
             )
         }
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_actions))
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
+                    text = { Text(if (note.pinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) },
+                    onClick = { menuOpen = false; onTogglePin(note.id) },
                 )
                 DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onRequestDelete(note) },
+                    text = { Text(stringResource(R.string.delete)) },
+                    onClick = { menuOpen = false; onDeleteNote(note) },
                 )
             }
         }
