@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaSurface
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,7 +51,8 @@ fun NotesListScreen(
     onDeleteNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
 ) {
-    Scaffold(
+    OrdiaSurface {
+      Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
@@ -62,25 +65,26 @@ fun NotesListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                }
-            }
-        }
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+      ) { padding ->
+          if (notes.isEmpty()) {
+              EmptyState(padding)
+          } else {
+              LazyColumn(
+                  modifier = Modifier.fillMaxSize().padding(padding),
+                  contentPadding = PaddingValues(vertical = 8.dp),
+              ) {
+                  items(notes, key = { it.id }) { note ->
+                      NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                      HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                  }
+              }
+          }
+      }
     }
 }
 
