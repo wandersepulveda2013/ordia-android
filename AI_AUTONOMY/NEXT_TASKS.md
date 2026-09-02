@@ -92,7 +92,12 @@ draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
    de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
    **verificados en RUN 016**: 59/59 en las tres variantes (ver TEST_STATUS.md).
 
-6. **Auditar iconos deprecados restantes en `src/main` (RUN 018):** los iconos que
+6. **Commit sin cambios ya no reescribe `updatedAt` (RUN 026):** abrir una nota
+   y pulsar Hecho/back/sin editar ya no ejecuta un `repo.update` innecesario —
+   meramente abrir/cerrar ya no reordena la lista ni escribe en disco. El guard
+   de no-cambio de `doPersistCommit` ahora espeja el de `saveCurrent` (RUN 015).
+   Regresión: `NotepadViewModelTest.commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`.
+7. **Auditar iconos deprecados restantes en `src/main` (RUN 018):** los iconos que
    conservan direccionalidad contextual (búsqueda, pin, menú ⋮, adición) no
    requieren AutoMirrored aún; la sesión histórica de auto-mirroring en RUN_LOG.md
    tocó archivos del linaje pre-rebuild que ya no existen en `src/main` (`AppComponents.kt`,

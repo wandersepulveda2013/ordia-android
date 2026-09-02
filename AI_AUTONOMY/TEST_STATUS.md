@@ -5,7 +5,7 @@
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (11 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (24 tests,
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (25 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
   commit→beginDraft hacia otra nota, y nota nueva tras back. RUN 022: +1 regresión
   de BUG-009 — `processDeath_restoresSearchQuery`: la query de búsqueda activa
@@ -41,6 +41,17 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-02 (ejecución 026, hardening: no-commit-sin-cambios): verificado en este
+  sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **68 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL,
+  re-ejecutadas con `--rerun-tasks`; +1 vs RUN 025). Nueva regresión
+  `NotepadViewModelTest.commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`,
+  que endurece el path de commit (`doPersistCommit`): abrir y cerrar una nota y
+  pulsar Hecho/back sin editar ya no reescribe `updatedAt` ni reordena la lista —
+  el guard de no-cambio se alinea con el path de autosave (`saveCurrent`). Sin
+  fallos conocidos ni flakiness detectado.
+
+
 - 2026-09-02 (ejecución 025, testing: cobertura UI end-to-end del pin):
   verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
   / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **67 tests,
@@ -54,7 +65,7 @@
   ni flakiness detectado.
 
 - 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
-  este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest`): **64 tests,,  0 fallos,, 0 errores** (BUILD
   SUCCESSFUL.Frente a las  62 de la RUN 020: `NoteDaoTest` 11,,`NoteRepositoryTest` 7,
   `NotepadViewModelTest` 23,,`NoteEditorBackSaveTest`  3,,`NoteEditorRecreationTest`  2,
@@ -65,7 +76,7 @@
   commit final — cubre BUG-008.1/2). Sin fallos conocidos ni flakiness
   detectado. Compilación `:app:compilePreviewSafeDebugKotlin` verde.
 - 2026-09-01 (ejecución 020, focus indicator del editor): verificado en este sandbox
-  → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
     `testPreviewAdvancedDebugUnitTest`): **62 tests,, 0 fallos,, 0 errores** (BUILD
   SUCCESSFUL). Frente a las  60 de la RUN 019: `NoteDaoTest` 11,,
     `NoteRepositoryTest` 7,, `NotepadViewModelTest` 23,, `NoteEditorBackSaveTest` 3,
@@ -85,7 +96,7 @@
   Compilación `:app:compilePreviewSafeDebugKotlin` también verde.
 
 - 2026-08-31 (ejecución 017, migración v2 de Compose test rule): verificado
-  en este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` /
+  en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` /
   `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)**59 tests,
   0 fallos,, 0 errores** (BUILD SUCCESSFUL) Los  4 archivos de tests de UI
   importan ahora `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
@@ -93,7 +104,7 @@
   deprecación de la v1 legada). Sin cambios de comportamiento,: misma suite,num tests.
 
 - 2026-08-31 (ejecución 016, strings + RUN 015 heredado): verificado en este
-  sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
   / `testPreviewAdvancedDebugUnitTest`)**59 tests,,  0 fallos,,  0 errores** (BUILD
   SUCCESSFUL). Incluye los 4 tests de `NoteEntityPreviewTest` y el test de
   regresión del skip-write (ambos de RUN 015,, que no pudieron ejecutarse en el
@@ -221,7 +232,7 @@
 
 - Este sandbox carece de JDK 17 y Android SDK (no `java` en `PATH`, no `/usr/lib/jvm`,
   no `$ANDROID_HOME`); `./gradlew` falla con `exec: java: not found`. La suite completa
-  (54/54 en las  3 variantes al cierre de RUN 014) **no se pudo re-ejecutar**.
+  (54/54 en las 3 variantes al cierre de RUN 014) **no se pudo re-ejecutar**.
 - Añadidos sin ejecutar: `NoteEntityPreviewTest` (4 tests, puro JUnit/Kotlin:
  blank,
  2 líneas trim, cap length, single long line capped) y

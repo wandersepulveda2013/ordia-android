@@ -123,6 +123,24 @@ class NotepadViewModelTest {
     }
 
     @Test
+    fun commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt() = runTest(dispatcher) {
+        viewModel.save("Original", "Cuerpo")
+        advanceUntilIdle()
+        val note = dao.notes.single()
+        val updatedBefore = note.updatedAt
+
+        // Opening a note and committing without edits must not bump `updatedAt`
+        // (no gratuitous list reordering, no disk write). The autosave path already
+        // skips no-change writes; the commit (back/toolbar Done) path must match..
+        viewModel.beginDraft(note.id)
+        viewModel.commitDraft("Original", "Cuerpo")
+        advanceUntilIdle()
+
+        assertEquals(updatedBefore, dao.notes.single().updatedAt)
+        assertEquals(1, dao.notes.size)
+    }
+
+    @Test
     fun deleteThenRestore_keepsSameIdAndContent() = runTest(dispatcher) {
         viewModel.save("Nota", "Cuerpo")
         advanceUntilIdle()

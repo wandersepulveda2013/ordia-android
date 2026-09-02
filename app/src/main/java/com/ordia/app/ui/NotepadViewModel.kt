@@ -146,6 +146,9 @@ class NotepadViewModel(
             repo.delete(current) // Fresh note ended up blank: drop the ghost.
             return
         }
+        // Skipping the no-change write keeps `updatedAt` honest — merely opening
+        // and closing a note must not reorder the list (mirror of saveCurrent).
+        if (current.title == title && current.content == content) return
         repo.update(current.copy(title = title, content = content, updatedAt = System.currentTimeMillis()))
     }
 

@@ -591,3 +591,29 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** pushear los 3 commits anteriores y la memoria actualizada;
   decidir siguiente P2/P3 de NEXT_TASKS (candidatos: focus indicator de la
   lista, contraste/tamanos de control del editor, cobertura de resiliencia del editor.
+## RUN 026 - 2026-09-02 (P2/hardening: el commit sin cambios ya no reescribe `updatedAt`)
+- **Objetivo:** cerrar un hueco real de integridad detectado: `doPersistCommit`
+  (el path de salida del editor: back / "Hecho" / flecha) siempre ejecutaba
+  `repo.update(...updatedAt = now...)` incluso cuando la nota no había cambiado —
+  meramente abrir y cerrar una nota reescribía `updatedAt`, reordenando la lista
+  con un bump gratuito (write de disco evitable; incoherente con el path de
+  autosave `saveCurrent`, que ya salta los no-cambio desde RUN 015).
+- **Hallazgo:** en `NotepadViewModel.doPersistCommit`, el guard de no-cambio existía
+  solo para la limpieza de notas fantasma (doneWasNew en blanco); para notas
+  existentes el flujo caía directo a `repo.update(current.copy(updatedAt = now))`
+  sin comparar título/contenido previos.
+- **Cambio:** en `NotepadViewModel.kt`, `doPersistCommit` ahora compara
+  `current.title`/`current.content` con lo committeado y si no hay cambios
+  retorna sin escribir (sin update, sin bump de `updatedAt`). El comentario
+  documenta el invariante: abrir/cerrar no reordena la lista (espejo de `saveCurrent`).
+- **Tests:** nueva regresión JVM `NotepadViewModelTest.commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`
+  (abrir nota existente → `beginDraft` + `commitDraft` con el mismo contenido →
+  `updatedAt` queda intacto y la fila no se reescribe; 1 fila). Suite completa
+  re-ejecutada con `--rerun-tasks` en las 3 variantes: `testPreviewSafeDebugUnitTest`,
+  `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest` → **68 tests,
+  0 fallos, 0 errores** cada variante (+1 vs RUN 025 por la nueva regresión; BUILD SUCCESSFUL..
+- **Commit:** pendiente al cierre de esta ejecución (fix + test + memoria).
+- **Estado:** fix + test verificados; memoria actualizada (`CURRENT_STATE.md`, `TEST_STATUS.md`); trabajo listo para commit/push.
+- **Siguiente tarea:** siguiente candidato P2/P3: cobertura de resiliencia del editor
+  (p.ej. fallo de escritura / excepción durante persistencia — ¿qué pasa si
+  `repo.update` lanza error?) o focus indicator de la lista para navegación por teclado.
