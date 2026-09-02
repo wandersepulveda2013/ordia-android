@@ -422,7 +422,7 @@ Commit: test(editor): cover system-back save.
   anuncia el deshacer disponible («Podrás deshacerlo») antes de confirmar. Suite
   `:app:testPreviewSafeDebugUnitTest` completa → **65/65,, 0 fallos,, 0 errores**
   (11 XML, BUILD SUCCESSFUL.
-- **Commit:** pendiente al cierre de esta ejecución (ver git status/push..
+- **Commit:** `7558560` (fix copy + regresión + memoria; pusheado tras el cierre.
 
 - **Estado:** working tree con 2 archivos modificados (strings.xml +
   test); suite verde.
