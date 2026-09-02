@@ -2,6 +2,42 @@
 
 > Formato: bug · impacto · reproducción · causa · estado · commit.
 
+## BUG-008 — El merge `8a82c78` reintrodujo dos regresiones: back del editor sin commit final y borrado sin diálogo de confirmación (P1
+
+- **Impacto:** el merge de `437e7b5` (linaje RUN 020: focus indicator, autosave por
+  cambio, `onAutosave`/`onCommit`) sobre `f20856a` reintrodujo el `back` del
+  editor llamado indirectamente a `onSave(...)` tras haber desplazado los params de
+  `onSave` (referencia `fun exitSaving` muerta en esa rama) — el back del
+  sistema perdía el último autosave no commiteado. Además `NotesListScreen`
+  quedó con la rama fusionada llamando `onDeleteNote`+snackbar undo directamente
+  desde el menú, y el `pendingDelete`/`AlertDialog` de confirmación (comprometido
+  antes del merge en `e2b7971`, del linaje no-main) quedó huérfano: la variable no
+  se declaraba, pero `pendingDelete?.let { DeleteNoteDialog(...)}` seguía en el árbol —
+  borraría sin confirmar evitable antes del merge.
+- **Reproducción:** (editor) escribir texto → pulsar back del sistema → volver a la
+  lista → reabrir → la última escritura falta (o queda duplicada vía commit de la
+  rama antigua). (borrado) fila → menú ⋮ → "Eliminar" → la nota se elimina al
+  instante con snackbar, sin diálogo de confirmación.
+- **Causa:** conflicto de merge no resuelto: una rama llevaba el nuevo editor
+  (`onAutosave`/`onCommit`, single exit path `finishEditing`) y la otra el editor
+  legacy con `onSave`+`exitSaving`; la rama combinará dejó ambas, y la lista
+  combinó el flujo directo con el código residual del diálogo. `git status` no
+  señaló conflicto porque los hunks vivían en contextos textuales distintos.
+
+- **Estado:** FIXED — (1) `NoteEditorScreen` usa un único `finishEditing`
+  (`onCommit(title, content)` + `onBack()`) para back del sistema, flecha de la
+  toolbar y "Hecho"; se eliminó `exitSaving` muerto y el `BackHandler` duplicado.
+
+  (2) `NotesListScreen` declara `pendingDelete` y el menú "Eliminar" abre
+  el `DeleteNoteDialog`; al confirmar borra y ofrece Undo; cancelar descarta.
+
+- **Commit:** `ef02a80` (editor) y `bdd1986` (lista/diálogo) en
+  `openhands/autonomous-notes`, tras el merge `8a82c78`.
+- **Test:** regresión Compose/Robolectric `NotesListDeleteConfirmTest` (2 tests:
+  confirma-borrado-con-diálogo y cancelar-conserva-nota) + regresiones ya existentes
+  `NoteEditorBackSaveTest` (3) y `NoteEditorRecreationTest` (2). Suite: **64/64**
+  en las  3 variantes (0 fallos, 0 errores; RUN 021.
+
 ## BUG-007 — Comodines de `LIKE` sin escapar distorsionaban la búsqueda (P2
 
 - **Impacto:** al buscar, los caracteres `%` y `_` del texto tecleado actuaban como
@@ -60,7 +96,7 @@
   `beginDraft_nullAfterCommitLaunched_startsFreshNewNote`.
   Antes del fix: las 2 de la carrera fallan (duplicado); tras el fix: todas verdes.
 - **Re-verificado en RUN 016:** las 4 regresiones del ciclo de draft
-  siguen verdes en la suite completa (59/59 en las  ​3 variantes; ver TEST_STATUS.md.
+  siguen verdes en la suite completa (59/59 en las  3 variantes; ver TEST_STATUS.md.
 
 ## BUG-001 — Eliminación de nota sin confirmación ni deshacer (P0)
 

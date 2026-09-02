@@ -9,14 +9,23 @@
 - **Producto:** bloc de notas minimalista (rebuild completo en `main`, commit
   `ceb1ff3`): lista de notas con pin, editor título+contenido, Room `ordia.db`.
 - **Branch de trabajo:** `openhands/autonomous-notes` (creada desde `main`
-  `ceb1ff3` el 2026-08-26). RUN 020 (P3, accesibilidad): los campos de
+  `ceb1ff3` el 2026-08-26). RUN 021 (regresiones del merge
+  `8a82c78` reparadas): (1) `NoteEditorScreen` usa un único path de salida
+  `finishEditing` (`onCommit` + `onBack`) para back del sistema — el back ya no
+  pierde el último autosave no commiteado (`exitSaving` muerta del linaje legacy
+  eliminada, sin `BackHandler` duplicado);(2) `NotesListScreen` restaura el
+  diálogo de confirmación de borrado (`pendingDelete` declarado; menú "Eliminar"
+  abre `DeleteNoteDialog`; confirmar borra + ofrece Undo, cancelar descarta).
+  Nueva regresión Compose/Robolectric `NotesListDeleteConfirmTest` (2 tests;.
+  Suite completa **64/64,  0 fallos, 0 errores en las 3 variantes** (RUN 021.
+  RUN 020 (P3, accesibilidad): los campos de
   texto del editor (título/contenido) muestran ahora un **indicador de foco
   visible** (`focusedIndicatorColor = MaterialTheme.colorScheme.outline` en vez de
   `Transparent`) — navegación por teclado/TalkBack ya no deja el campo focalizado
 
   indistinguible del no focalizado; el unfocused sigue transparente (sin línea
   fantasma). Tags estables `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG` + regresión
-  Compose `NoteEditorFocusTest` (62/62 en las  ​3 variantes).
+  Compose `NoteEditorFocusTest` (62/62 en las  3 variantes).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
@@ -72,12 +81,12 @@
   `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 ## Fix esta ejecución
-- RUN 017 (P3, tests): los  ​4 archivos de tests de UI intercambian el import
+- RUN 017 (P3, tests): los  4 archivos de tests de UI intercambian el import
   deprecado `androidx.compose.ui.test.junit4.createAndroidComposeRule` por el
   actual `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
   (`StandardTestDispatcher`, API canónica). Sin cambios de comportamiento; se
   eliminan los warnings de deprecación de la v1 legada. Verificado: suite completa
-   **59/59** en las  ​3 variantes (`testPreviewSafe/Full/AdvancedDebugUnitTest`).
+   **59/59** en las  3 variantes (`testPreviewSafe/Full/AdvancedDebugUnitTest`).
 
 
 
@@ -89,7 +98,7 @@
 
   a `DateFormat.MEDIUM`. `NoteRow` usa `relativeLabel(note.updatedAt)` en vez de
   `DateFormat.MEDIUM`. Nuevo `RelativeDateTest` (5 tests: hoy, ayer, fallback,
-  y límites exactos de medianoche hoy/ayer. Suite completa **54/54 en las  ​3 variantes**.
+  y límites exactos de medianoche hoy/ayer. Suite completa **54/54 en las  3 variantes**.
 
 ## Fix esta ejecución
 - RUN 015 (P2, integridad+UX): `NotepadViewModel.saveCurrent` ahora
@@ -106,9 +115,9 @@
   (`NoteEditorScreen`, `NotesListScreen`) — títulos, placeholders, contentDescriptions,
   snackbar, menús, estados vacíos — movidos a `res/values/strings.xml`
   (23 strings nuevos) y referenciados via `stringResource(...)`. Ningún
-  hardcode queda en las  ​2 pantallas (`grep` limpio). Mejora mantenibilidad
+  hardcode queda en las  2 pantallas (`grep` limpio). Mejora mantenibilidad
   (single source of truth) y prepara localización futura.
-  RUN 015 heredado verificado: suite completa **59/59** en las  ​3 variantes
+  RUN 015 heredado verificado: suite completa **59/59** en las  3 variantes
   (incluye `NoteEntityPreviewTest` 4 tests + skip-write regression).
 
 ## Fix ejecución anterior
@@ -164,10 +173,9 @@
 
 ## Estado de tests
 
-- Última ejecución (RUN 017):**59/59 verdes en las  ​3 variantes** —
+- **Última ejecución (RUN 021):**64/64 verdes en las  3 variantes** —
   `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
-  `testPreviewAdvancedDebugUnitTest` →  ​59 tests,,  ​0 fallos (10 DAO + 7 Repo
-  + 22 VM + 14 UI + 4 `NoteEntityPreviewTest` + 2 `RelativeDateTest`.
-  Migrados los  ​4 UI tests al API v2 `androidx.compose.ui.test.junit4.v2
-  .createAndroidComposeRule` (canónica actual, sin warnings de deprecación).
+  `testPreviewAdvancedDebugUnitTest` →  64 tests,,  0 fallos (10 DAO + 7 Repo
+  + 22 VM + 16 UI [incluye `NotesListDeleteConfirmTest` 2 tests de regresión
+  del merge] + 4 `NoteEntityPreviewTest` + 2 `RelativeDateTest`.
   Detalle en `TEST_STATUS.md`.

@@ -5,6 +5,25 @@
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
 
+## 2026-09-02 — Ejecución 021 (reparar regresiones del merge `8a82c78`, P1)
+
+- **Regresiones del merge reparadas**: el merge combinó dos implementaciones
+  divergentes del editor y de la lista, reintroduciendo dos P1: (1) el back
+  del sistema del editor perdía el último autosave no commiteado (`exitSaving` del
+  linaje legacy llamaba `onSave` con la firma antigua);(2) "Eliminar" del
+  menú ⋮ borraba al instante sin diálogo de confirmación (`pendingDelete` quedó
+  declarada sólo en el otro linaje). `NoteEditorScreen` usa ahora un único path
+  de salida `finishEditing` (`onCommit`+`onBack`) y `NotesListScreen` usa
+  `pendingDelete`→`DeleteNoteDialog` (confirmar borra + ofrece Undo; cancelar
+  descarta). Strings del diálogo externalizadas a `strings.xml`.
+
+- **Tests**: nueva regresión Compose/Robolectric `NotesListDeleteConfirmTest`
+  (2 tests: confirmar-borrado-con-diálogo y cancelar-conserva) + la regresión
+  del editor ya cubierta por `NoteEditorBackSaveTest` (3). Suite completa
+  **64/64,  0 fallos, 0 errores en las 3 variantes** (`testPreview{Safe,Full,Advanced}DebugUnitTest`,
+  re-ejecutada con `--rerun-tasks` en RUN 021.
+
+
 ##2026-08-31 — Ejecución 014 (fecha relativa en la lista:"Hoy"/"Ayer", P3)
 - **La lista distingue ahora "Hoy" y "Ayer"** — nuevo `RelativeDate.kt`
   (`fun relativeLabel(timestampMs: Long, now: Date = Date()): String`):

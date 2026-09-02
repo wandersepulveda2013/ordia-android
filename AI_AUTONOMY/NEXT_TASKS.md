@@ -15,16 +15,28 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
 
 ## P2 — Calidad de producto
 
-0. **Escape de comodines en búsqueda:** **RESUELTO en RUN 018** — los
+0. **Confirmación de borrado desde el menú ⋮: RESTAURADA en RUN 021.**
+   El merge `8a82c78` había reintroducido el flujo directo borrar+undo sin el
+   diálogo (el `AlertDialog` de confirmación quedó huérfano: `pendingDelete?.let`
+   seguía en el árbol pero la variable ya no se declaraba). Restaurado en
+   `bdd1986` (menú → diálogo → confirmar borra + ofrece Undo; cancelar descarta))
+   con strings externalizadas. Regresión: `NotesListDeleteConfirmTest` (2 tests).
+   Nota: el ítem 2 de abajo (decisión RUN 013: undo sobre confirmación) sigue
+   siendo la política del linaje; al merge-la restauración del diálogo preexistente
+   del `e2b7971` (pre-merge) no revierte esa decisión —se recupera el flujo
+   que el merge había roto, sin cambiar el diseño acordado y los dos flujos quedan
+   alineados (diálogo de confirmación + undo tras confirmar).
+
+2. **Escape de comodines en búsqueda:** **RESUELTO en RUN 018** — los
    caracteres `%`/`_` ya no actúan como comodines SQL en la búsqueda: la query
    se escapa (`\`->`\\`,`%`->`\%`,`_`->`\_`) antes de pasar al DAO, los
    `LIKE` usan `ESCAPE` y los comodines solos encuentran el literal (cubierto
    por `observeSearch_wildcardsAreTreatedLiterally`, ver BUG-007).
 
-1. **`NoteEditorScreen`: título largo.** RESUELTO en RUN 006 — título de una línea
+3. **`NoteEditorScreen`: título largo.** RESUELTO en RUN 006 — título de una línea
    (visual + datos): `singleLine=true` y aplanado de `\n` en `onValueChange` del
    título para no persistir títulos multilínea. Cobertura: test de UI de regresión.
-2. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
+4. **Confirmación antes de borrar nota fijada** u otros borrados de alto valor:
    RESUELTO — el snackbar de deshacer es suficiente y NO se añade un diálogo de
    confirmación previa. RUN 013: evaluación concluyente con base en el diseño del
    linaje (RUN 007, BUG-004: el deshacer reinserta bajo id nuevo si el original
@@ -34,7 +46,7 @@ rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
    y el patrón Material recomienda undo sobre confirmaciones destructivas. El
    `togglePinned` actual es atómico SQL (RUN 010), así que el riesgo de la
    fijada es el mismo que cualquier nota — cubierto por el undo.
-3. **Búsqueda con acentos/tilde — SOLO bajo petición explícita del usuario.**
+5. **Búsqueda con acentos/tilde — SOLO bajo petición explícita del usuario.**
    La búsqueda actual usa `LIKE` case-insensitive de Room que NO normaliza acentos
    (`café` no encuentra `cafe`). Resuelto el núcleo: búsqueda por título/contenido
    en RUN 013. El índice accent-insensitive queda **opt-in**, solo si el usuario

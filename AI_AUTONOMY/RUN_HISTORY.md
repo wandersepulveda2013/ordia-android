@@ -15,8 +15,8 @@
 - **Tests:** `testPreviewSafeDebugUnitTest` re-ejecutado sobre `3da47ef`:
   **60 tests, 0 fallos, 0 errores** (BUILD SUCCESSFUL; categorias:
   NoteDaoTest 11, NoteRepositoryTest 7, NotepadViewModelTest 23,
-  NoteEditorBackSaveTest 3, NoteEditorRecreationTest  ​2,
-  NotesListSearchInteractiveTest 3, NotesListAccessibilityTest  ​2, RelativeDateTest  ​5).
+  NoteEditorBackSaveTest 3, NoteEditorRecreationTest  2,
+  NotesListSearchInteractiveTest 3, NotesListAccessibilityTest  2, RelativeDateTest  5).
 - **Commit:** `3da47ef` (fix NOTAS LIKE wildcards — ya pusheado en RUN 018);
   esta entrada es documental (sin codigo nuevo; ver git status).
 - **Estado:** `git status` limpio tras commit/push (rama `openhands/autonomous-notes`).
@@ -29,21 +29,21 @@
 ## RUN 017 - 2026-08-31 (P3: migrar UI tests al API v2 de Compose test rule + verificación completa)
 
 - **Objetivo:** cerrar el P3 pendiente (warnings de deprecación de `createAndroidComposeRule`
-  v1 en los  ​4 archivos de tests de UI) y verificar de nuevo la suite completa en
-  las  ​3 variantes tras el fix heredado de sintaxis de `NoteEntityPreviewTest`.
+  v1 en los  4 archivos de tests de UI) y verificar de nuevo la suite completa en
+  las  3 variantes tras el fix heredado de sintaxis de `NoteEntityPreviewTest`.
 - **Hallazgo:** los 4 UI tests importaban `androidx.compose.ui.test.junit4.createAndroidComposeRule`
   (API legada, deprecada, `UnconfinedTestDispatcher`);la inspección del jar
   confirma que `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` existe
   en esta versión de Compose. El informe previo de exit-code-1 del wrapper era artefacto: las
   variantes individuales compilan y corren → BUILD SUCCESSFUL.
 
-- **Cambio:** los  ​4 archivos (`NoteEditorBackSaveTest`, `NoteEditorRecreationTest`,
+- **Cambio:** los  4 archivos (`NoteEditorBackSaveTest`, `NoteEditorRecreationTest`,
   `NotesListAccessibilityTest`, `NotesListSearchInteractiveTest`) importan ahora la
  API v2 (canónica actual, `StandardTestDispatcher`). Solo imports, sin cambios
   de comportamiento. `git diff --check` limpio..
-- **Tests:** las  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
-  / `testPreviewAdvancedDebugUnitTest`)**59/59 cada una,,  ​0 fallos,,  ​0 errores** (
-  BUILD SUCCESSFUL en las  ​3; incluye `NoteDaoTest` 10/10 — histórico fix heredado
+- **Tests:** las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest`
+  / `testPreviewAdvancedDebugUnitTest`)**59/59 cada una,,  0 fallos,,  0 errores** (
+  BUILD SUCCESSFUL en las  3; incluye `NoteDaoTest` 10/10 — histórico fix heredado
   verificado).
 - **Commit:**(test/ui: use v2 compose test rule to clear deprecation warnings —
   pendiente push tras esta entrada..
@@ -93,7 +93,7 @@
   documentada: P2 #2 (confirmación de borrado) RESUELTO — undo-snackbar suficiente,
   sin diálogo previo (implementación paralela descartada; nuevo ítem P3 anotado
   (migrar tests de UI al API v2 de Compose test rule, warnings actuales).
-- **Tests:** `testPreviewSafeDebugUnitTest` → 49/49 verdes (10 DAO + 7 Repo +  ​22 VM + 10 UI (3+2+3+2). Sin cambios de producción.
+- **Tests:** `testPreviewSafeDebugUnitTest` → 49/49 verdes (10 DAO + 7 Repo +  22 VM + 10 UI (3+2+3+2). Sin cambios de producción.
 - **Commit:** `0aee552` — docs(autonomy): reconcile sandbox with lineage; decide undo-over-confirm; note v2 test-rule debt
 
 - **Estado:** commit + push a `origin/openhands/autonomous-notes`.; trabajo consistente.
@@ -359,17 +359,17 @@ Commit: test(editor): cover system-back save.
 - **Objetivo:** cerrar el seguimiento de RUN 015 (tests que no corrieron en sandbox previo)
  y executar la migración i18n pendiente (strings hardcode de editor/lista).
 - **Hallazgo:** el toolchain (JDK 21 + Android SDK 36) existe en este sandbox —
-  los tests pendientes de RUN 015 corren y pasan ahora (59/59 en las  ​3 variantes).
+  los tests pendientes de RUN 015 corren y pasan ahora (59/59 en las  3 variantes).
   La migración de strings estaba empezada (uncommitted) en el working tree.
 .
 - **Cambio:** commit del fix de sintaxis de aserción en `NoteEntityPreviewTest`
   (`42e7d66`, parse `assertEquals(160, NoteEntity.preview(text).length)`) ;
   finalizada y verificada la migración de strings a `res/values/strings.xml` (23 strings:
   títulos, placeholders, contentDescriptions, snackbar, menús, estados vacíos,
-  rutas de accesibilidad) con `stringResource(...)` en las  ​2 pantallas coreiOS.
+  rutas de accesibilidad) con `stringResource(...)` en las  2 pantallas coreiOS.
   Ningún hardcode visible resta (`grep` limpio)..
 - **Tests:** `testPreviewSafeDebugUnitTest`/`testPreviewFullDebugUnitTest`/
-  `testPreviewAdvancedDebugUnitTest` → **59/59** cada una, 0 fallos,,  ​0 errores
+  `testPreviewAdvancedDebugUnitTest` → **59/59** cada una, 0 fallos,,  0 errores
   (incluye `NoteEntityPreviewTest` 4 tests + skip-write regression del VM).
 - **Commit:** `test(notes): fix preview assertion syntax to enable compile`+
   `refactor(strings): extract all visible UI strings to resources` (pendiente).
@@ -432,3 +432,40 @@ Commit: test(editor): cover system-back save.
   evaluar similar focus indicator para la lista (fila focalizada vs
   no focalizada) o revisar contraste y tamanos de control en
   el editor (P2/P3.
+
+
+
+## RUN 021 - 2026-09-02 (merge 8a82c78: reparar regresiones de editor/borrado + verificacion 3-variantes)
+
+- **Objetivo:** detectar y reparar cualquier regresion introducida por el merge reciente
+  `8a82c78` (union de linajes) y volver a un estado verde verificable, cubriendo
+  con regresiones las dos rutas que el merge habia roto.
+
+- **Hallazgo (BUG-008):** el merge dejo dos regresiones: (editor) el back del
+  sistema llamaba indirectamente a `onSave(...)` con la firma del linaje antigua
+  (`exitSaving` muerta) — el ultimo autosave no commiteado se perdia al salir;
+  (lista) `pendingDelete?.let { DeleteNoteDialog(...) }` segui en el arbol pero la
+  variable no se declaraba — al pulsar "Eliminar" borraba directo al instante sin
+  dialogo de confirmacion (regresion del `e2b7971` pre-merge).
+- **Cambio:**(1) `NoteEditorScreen` unico path de salida `finishEditing`
+  (`onCommit` + `onBack`) para back del sistema, flecha de toolbar y "Hecho";
+  muerto `exitSaving`/duplicado `BackHandler` eliminados.(2) `NotesListScreen`
+  declara `pendingDelete` y el menu "Eliminar" abre el `DeleteNoteDialog`;
+  confirmar borra + ofrece Undo, cancelar descarta.
+
+- **Tests:** nueva regresion Compose/Robolectric `NotesListDeleteConfirmTest`
+  (2 tests: confirmar borra con dialogo y ofrece undo, cancelar conserva).
+  Suite completa re-ejecutada con `--rerun-tasks` en las 3 variantes:  `testPreviewSafeDebugUnitTest`
+  y `testPreview{Full,Advanced}DebugUnitTest` -> **64/64, 0 fallos,, 0 errores**
+  cada variante(64 tests,+2 respecto a RUN 020 por la nueva regresion; BUILD
+  SUCCESSFUL. La tarea `compileDebugKotlin` no existe — usar tareas por variante
+  como `compilePreviewSafeDebugKotlin`.
+- **Commit:** `ef02a80` fix(editor): single exit path for system back; `bdd1986`
+  fix(notes): restore delete-confirmation dialog;; `04dce7d`
+  test(notes): cover confirm-before-deleteand undo-after-confirm (`NotesListDeleteConfirmTest.kt`.
+- **Estado:** commits locales sin pushear al cierre de esta ejecucion (ver
+  git status/push en el cierre.Run.
+
+- **Siguiente tarea:** pushear los 3 commits anteriores y la memoria actualizada;
+  decidir siguiente P2/P3 de NEXT_TASKS (candidatos: focus indicator de la
+  lista, contraste/tamanos de control del editor, cobertura de resiliencia del editor.

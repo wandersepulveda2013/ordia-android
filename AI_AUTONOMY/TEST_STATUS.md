@@ -18,6 +18,9 @@
     accesibilidad): regresión de foco visible del editor — el foco se mueve entre
     título↔contenido via `requestFocus()`, ambos campos enfocables; tags
     `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`.
+  - `NotesListDeleteConfirmTest` — UI Compose/Robolectric (2 tests, RUN 021,
+    regresión del merge): confirmar borra con diálogo + ofrece undo,y cancelar conserva;.
+    cubre BUG-008(2).
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
     + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
@@ -30,10 +33,21 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
+  este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **64 tests,,  0 fallos,, 0 errores** (BUILD
+  SUCCESSFUL.Frente a las  62 de la RUN 020: `NoteDaoTest` 11,,`NoteRepositoryTest` 7,
+  `NotepadViewModelTest` 23,,`NoteEditorBackSaveTest`  3,,`NoteEditorRecreationTest`  2,
+  `NoteEditorFocusTest` 1,,`NotesListSearchInteractiveTest`  4,,`NotesListAccessibilityTest`  2,`NoteEntityPreviewTest`
+  4,,`RelativeDateTest`  5,, + **`NotesListDeleteConfirmTest` 2** (nueva regresión Compose/
+  Robolectric del merge: borrar del menú abre diálogo de confirmación (cancelar
+  conserva,y confirmar borra + undo,; y el back del sistema del editor hace
+  commit final — cubre BUG-008.1/2). Sin fallos conocidos ni flakiness
+  detectado. Compilación `:app:compilePreviewSafeDebugKotlin` verde.
 - 2026-09-01 (ejecución 020, focus indicator del editor): verificado en este sandbox
-  → las  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
     `testPreviewAdvancedDebugUnitTest`): **62 tests,, 0 fallos,, 0 errores** (BUILD
-  SUCCESSFUL). Frente a las  ​60 de la RUN​ 019: `NoteDaoTest` 11,,
+  SUCCESSFUL). Frente a las  60 de la RUN 019: `NoteDaoTest` 11,,
     `NoteRepositoryTest` 7,, `NotepadViewModelTest` 23,, `NoteEditorBackSaveTest` 3,
     `NoteEditorRecreationTest` 2,, `NotesListSearchInteractiveTest` 4,, `NotesListAccessibilityTest`
     2,, `RelativeDateTest` 5,, + **`NoteEditorFocusTest` 1** (nueva regresión Compose/
@@ -41,7 +55,7 @@
     en el editor—tags `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`). Sin fallos conocidos
     ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin` +
     `:app:assemblePreviewSafeRelease` verdes.
-  → `testPreviewSafeDebugUnitTest` **60 tests,  ​0 fallos,  ​0 errores** (BUILD
+  → `testPreviewSafeDebugUnitTest` **60 tests,  0 fallos,  0 errores** (BUILD
   SUCCESSFUL). `NoteDaoTest` pasa de 10 a 11 tests: añadido
   `observeSearch_wildcardsAreTreatedLiterally` (regresión de BUG-007: los
   comodines `%`/`_`/`\` se buscan como literales, no como patrones SQL.)
@@ -53,7 +67,7 @@
 - 2026-08-31 (ejecución 017, migración v2 de Compose test rule): verificado
   en este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` /
   `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)**59 tests,
-  0 fallos,, 0 errores** (BUILD SUCCESSFUL) Los  ​4 archivos de tests de UI
+  0 fallos,, 0 errores** (BUILD SUCCESSFUL) Los  4 archivos de tests de UI
   importan ahora `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
   (API canónica actual, `StandardTestDispatcher`; se eliminan los warnings de
   deprecación de la v1 legada). Sin cambios de comportamiento,: misma suite,num tests.
