@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -68,6 +69,7 @@ fun NotesListScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
+    var pendingDelete by remember { mutableStateOf<NoteEntity?>(null) }
     // Search mode is independent of the query text: opening it from the toolbar
     // must show the empty search field. Seeded from a lingering query so a
     // recreated screen (rotation/process death) keeps filtering consistently.
@@ -154,9 +156,8 @@ fun NotesListScreen(
                     modifier = Modifier.weight(1f),
                     onOpenNote = onOpenNote,
                     onTogglePin = onTogglePin,
-                    onDeleteNote = { deleted ->
-                        onDeleteNote(deleted)
-                        pendingUndo = deleted
+                    onRequestDelete = { deleted ->
+                        pendingDelete = deleted
                     },
                 )
             }
@@ -169,6 +170,7 @@ fun NotesListScreen(
             onConfirm = {
                 pendingDelete = null
                 onDeleteNote(target)
+                pendingUndo = target
             },
             onDismiss = { pendingDelete = null },
         )
@@ -209,7 +211,7 @@ private fun NoteList(
     modifier: Modifier = Modifier,
     onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (Long) -> Unit,
-    onDeleteNote: (NoteEntity) -> Unit,
+    onRequestDelete: (NoteEntity) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -227,7 +229,7 @@ private fun NoteList(
         }
         items(notes, key = { it.id }) { note ->
             NoteRow(note, onOpenNote, onTogglePin) { deleted ->
-                onDeleteNote(deleted)
+                onRequestDelete(deleted)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
         }
@@ -290,7 +292,7 @@ private fun NoteRow(
     note: NoteEntity,
     onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (Long) -> Unit,
-    onDeleteNote: (NoteEntity) -> Unit,
+    onRequestDelete: (NoteEntity) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
@@ -362,7 +364,7 @@ private fun NoteRow(
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.delete)) },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
+                    onClick = { menuOpen = false; onRequestDelete(note) },
                 )
             }
         }
@@ -377,21 +379,21 @@ private fun DeleteNoteDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Eliminar nota") },
+        title = { Text(stringResource(R.string.delete_note_title)) },
         text = {
             Text(
                 if (note.title.isNotBlank()) {
-                    "Se eliminará «${note.title.take(60)}». Esta acción no se puede deshacer."
+                    stringResource(R.string.delete_note_message, note.title.take(60))
                 } else {
-                    "Esta nota se eliminará definitivamente. Esta acción no se puede deshacer."
+                    stringResource(R.string.delete_note_message_untitled)
                 },
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Eliminar") }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
