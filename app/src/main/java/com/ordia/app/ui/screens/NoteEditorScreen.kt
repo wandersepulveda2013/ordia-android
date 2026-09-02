@@ -15,8 +15,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -28,8 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +41,14 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+    val contentFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(note?.id) {
         if (note != null) {
             title = note.title
             content = note.content
+        } else {
+            contentFocusRequester.requestFocus()
         }
     }
 
@@ -86,30 +90,18 @@ fun NoteEditorScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextField(
+            OrdiaInput(
                 value = title,
                 onValueChange = { title = it },
-                placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
-                textStyle = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
-                colors = bareFieldColors(),
+                placeholder = "Título",
+                modifier = Modifier.fillMaxWidth()
             )
-            TextField(
+            OrdiaInput(
                 value = content,
                 onValueChange = { content = it },
-                placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
-                textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth(),
-                colors = bareFieldColors(),
+                placeholder = "Escribe lo que piensas…",
+                modifier = Modifier.fillMaxWidth().focusRequester(contentFocusRequester)
             )
         }
     }
 }
-
-@Composable
-private fun bareFieldColors() = TextFieldDefaults.colors(
-    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-)
