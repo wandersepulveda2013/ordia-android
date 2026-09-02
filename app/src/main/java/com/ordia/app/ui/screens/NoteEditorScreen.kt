@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,8 +21,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,13 +51,6 @@ fun NoteEditorScreen(
     val finishEditing: () -> Unit = { onCommit(title, content);onBack() }
 
     BackHandler(onBack = finishEditing)
-
-    fun exitSaving() {
-        onSave(title, content, note?.id)
-        onBack()
-    }
-
-    BackHandler(onBack = ::exitSaving)
 
     Scaffold(
         topBar = {
