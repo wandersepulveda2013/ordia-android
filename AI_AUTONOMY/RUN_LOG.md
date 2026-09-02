@@ -476,3 +476,12 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+## 2026-09-02 — Notepad minimalista (openhands/autonomous-notes
+
+- Fixes: back del sistema guarda en editor (`55173c1`); confirmación de borrado (`e2b7971`); skip de notas nuevas vacías (`4060244`); tests de ViewModel (`227d94f`).
+- Verificación: 19 tests/flavor × 3 variantes (0 fallos»; `assembleRelease` OK (3 APKs.»
+
+## 2026-09-02 - Notepad minimalista (openhands/autonomous-notes
+
+- Fixes: back del sistema guarda en editor (`55173c1`); confirmacion de borrado (`e2b7971`); skip de notas nuevas vacias (`4060244`); tests de ViewModel (`227d94f`).
+- Verificacion: 19 tests/flavor x  ̄ variantes (0 fallos.call; `assembleRelease` OK (3 APKs.call
