@@ -21,7 +21,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaIconButton
 import java.text.DateFormat
 import java.util.Date
 
@@ -162,7 +162,7 @@ private fun NoteRow(
             )
         }
         Box {
-            IconButton(onClick = { menuOpen = true }) {
+            OrdiaIconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
