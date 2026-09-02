@@ -405,6 +405,41 @@ Commit: test(editor): cover system-back save.
   revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
 
 
+## RUN 024 - 2026-09-02 (P2/UX: label accesible persistente en el campo de búsqueda)
+- **Objetivo:** dar al campo de búsqueda un nombre accesible estable («Buscar notas»)
+  que TalkBack anuncie y que no dependa del estado del texto; fue la última
+  mejora UX/accessibility del merge RUN 021 rechazada por el test de regresión
+  (`NotesListSearchInteractiveTest`).
+- **Hallazgo:** `SearchHeader` usa `OutlinedTextField` con `label = Text("Buscar notas")`.
+  El label en un campo con `singleLine` flota/colapsa: con el campo vacío el texto
+  accesible del nodo era `null` (el placeholder interno no expone texto accesible),
+  por lo que el test que leía `SemanticsProperties.Text` del nodo fallaba
+  (`expected:<Buscar notas> but was:<null>>`). No era un bug de la app—era un test
+  que buscaba el label en el lugar equivocado; aun asín, el label colapsado no daba
+  nombre accesible robusto.
+
+- **Cambio:** production: en `SearchHeader` de `NotesListScreen.kt`, el `label`
+  adquiere `Modifier.semantics { contentDescription = "Buscar notas" }` (mismo
+  string recurso `R.string.search_notes`): el campo expone un rótulo accesible estable
+  con el campo vacío,y persistente al teclear., Test: `NotesListSearchInteractiveTest`
+  ampliado:leer el label vía `SemanticsProperties.ContentDescription` del nodo del
+  campo (no asumir `Text`), y añadida verificación de que el rótulo accesible persiste
+  después de escribirse la query («Recetas») — un placeholder/enhanced-label
+  colapsado no lo garantizaría..
+- **Tests:** `NotesListSearchInteractiveTest` 5/5 verdes. Suite completa en las
+  3 variantes: **65/65,, 0 fallos,, 0 errores** (`testPreviewSafeDebugUnitTest`,
+  `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest` — BUILD SUCCESSFUL.
+   Test añadido en run: aserción del label tras escribir (mismo método,, +~2 aserciones).
+- **Commit:** `46fda2e` (fix production 1 línea + test reforzado + memoria; push tras commit)
+
+- **Estado:** working tree con 3 archivos modificados (NotesListScreen.kt +
+  NotesListSearchInteractiveTest.kt + memoria.; suite 3-variantes verde. Sin
+  regresiones detectadas..
+- **Siguiente tarea:** candidatos P2/P3: focus indicator de la lista para
+  navegación por teclado/TalkBack (quizá `Modifier.focusProperties`/indicador
+  visible); fondo de autosave del editor ante cierre inesperado (resiliencia); o
+  auditoría de contraste/tamaño de controles..
+
 ## RUN 023 - 2026-09-02 (P2/UX: copia honesta en el diálogo de borrado — ya no contradice el deshacer)
 
 - **Objetivo:** eliminar una incoherencia real de UX detectada en el merge RUN 021:
