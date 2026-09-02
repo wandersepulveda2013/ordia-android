@@ -37,6 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaNote
 import java.text.DateFormat
 import java.util.Date
 
@@ -60,11 +63,10 @@ fun NotesListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            OrdiaButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+                text = "Nueva Nota",
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -119,61 +121,45 @@ private fun NoteRow(
     }
     val preview = remember(note.content) { note.content.take(120) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Top,
+    OrdiaCard(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        onClick = { onOpenNote(note) }
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            if (note.title.isNotBlank()) {
-                Text(
-                    note.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                OrdiaNote(
+                    title = note.title,
+                    preview = preview,
+                    date = date,
+                    onClick = { /* onClick is handled by Card */ },
+                    modifier = Modifier.padding(0.dp)
                 )
             }
-            if (preview.isNotBlank()) {
-                Text(
-                    preview,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) 4.dp else 0.dp),
+            if (note.pinned) {
+                Icon(
+                    Icons.Outlined.PushPin,
+                    contentDescription = "Fijada",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 18.dp).size(18.dp),
                 )
             }
-            Text(
-                date,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-        if (note.pinned) {
-            Icon(
-                Icons.Outlined.PushPin,
-                contentDescription = "Fijada",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
-            )
-        }
-        Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
-            }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
-                )
+            Box(modifier = Modifier.padding(top = 8.dp)) {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+                        onClick = { menuOpen = false; onTogglePin(note) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = { menuOpen = false; onDeleteNote(note) },
+                    )
+                }
             }
         }
     }

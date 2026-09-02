@@ -58,3 +58,11 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 ## Estado CI
 
 - `android-ci.yml` (versión per-flavor del rebuild) activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas; sign+publish solo en push a `main`, publicando `Ordia-3.0-{safe,full,advanced}-signed.apk` + `update-manifest-<flavor>.json` + release inmutable con 9 assets.
+
+## Wave 1: Foundation + Design System
+- Created centralized `OrdiaDesignSystem.kt` with 12 foundational UI components (`OrdiaButton`, `OrdiaInput`, `OrdiaCard`, etc.).
+- Overhauled typography (`Type.kt`) with lighter weights and generous spacing.
+- Set up a clean, monochromatic base theme (`Theme.kt`) with primary/accent colors.
+- Migrated legacy `NotesListScreen` and `NoteEditorScreen` to use new components and typography.
+- Refactored `NotepadApp.kt` to use `OrdiaTheme`.
+- Handled deprecated auto-mirrored icons.
