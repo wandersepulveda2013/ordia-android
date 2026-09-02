@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 
 @Composable
 fun OrdiaButton(
@@ -31,7 +32,8 @@ fun OrdiaInput(
     modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
-    supportingText: @Composable (() -> Unit)? = null
+    supportingText: @Composable (() -> Unit)? = null,
+    textStyle: TextStyle = androidx.compose.material3.Typography().bodyLarge
 ) {
     OutlinedTextField(
         value = value,
@@ -40,7 +42,7 @@ fun OrdiaInput(
         label = label,
         placeholder = placeholder,
         supportingText = supportingText,
-        textStyle = MaterialTheme.typography.bodyLarge,
+        textStyle = textStyle,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
             unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,

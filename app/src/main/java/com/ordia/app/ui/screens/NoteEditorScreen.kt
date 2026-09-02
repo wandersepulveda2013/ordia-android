@@ -94,12 +94,14 @@ fun NoteEditorScreen(
                 value = title,
                 onValueChange = { title = it },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
+                textStyle = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.fillMaxWidth()
             )
             OrdiaInput(
                 value = content,
                 onValueChange = { content = it },
                 placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
+                textStyle = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.fillMaxWidth().focusRequester(contentFocusRequester)
             )
         }
