@@ -14,6 +14,14 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun save(title: String, content: String, existingId: Long? = null) {
+        if (title.isBlank() && content.isBlank()) {
+            if (existingId != null) {
+                viewModelScope.launch {
+                    repo.get(existingId)?.let { repo.delete(it) }
+                }
+            }
+            return
+        }
         viewModelScope.launch {
             if (existingId != null) {
                 val current = repo.get(existingId)
