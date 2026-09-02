@@ -405,6 +405,30 @@ Commit: test(editor): cover system-back save.
   revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
 
 
+## RUN 025 - 2026-09-02 (P2/testing: cobertura UI end-to-end del pin)
+- **Objetivo:** tras verificar que RUN 024 quedó committeado y pusheado
+  (`46fda2e`), cerrar el siguiente gap de testing con valor demostrable: el flujo
+  de fijar/desfijar desde el menú ⋮ de la fila no tenía ningún test de UI.
+- **Hallazgo:** el pin ya estaba cubierto a nivel DAO (`NoteDaoTest`: flip +
+  double-toggle), repo (`NoteRepositoryTest`) y ViewModel (`NotepadViewModelTest`);
+  faltaba el eslabón Compose end-to-end: que el ítem del menú correcto propague
+  el id al callback y que el menú se cierre tras la acción (riesgo real: pin
+  fijando la nota equivocada o menú zombie abierto).
+- **Cambio:** nuevo `NotesListPinToggleTest.kt` (2 tests Compose/Robolectric,
+  sdk=34): `unpinnedNote_menuItemPins_itAndClosesMenu` (Fijar → callback recibe
+  el id y el menú desaparece); `pinnedNote_menuItemUnpins_it` (Desfijar → id).
+  Solo tests; cero cambios de producción.
+ Suite cada variante **67/67,  0 fallos,
+  0 errores** (`--rerun-tasks` en las 3 variantes; +2 vs RUN 024).
+- **Commit:** pendiente tras esta entrada (test + memoria).
+- **Estado:** `git status`: solo el test nuevo + memoria; suite 3-variantes verde.
+ Sin
+  regresiones detectadas;P0/P1 vacíos..
+- **Siguiente tarea:** candidatos P2/P3 reportados anteriormente: focus indicator
+  de la lista para navegación por teclado/TalkBack (P3, RUN 020 hizo el del
+  editor); fondo de autosave del editor ante cierre inesperado (resiliencia);o
+  auditoría de contraste/tamaño de controles..
+
 ## RUN 024 - 2026-09-02 (P2/UX: label accesible persistente en el campo de búsqueda)
 - **Objetivo:** dar al campo de búsqueda un nombre accesible estable («Buscar notas»)
   que TalkBack anuncie y que no dependa del estado del texto; fue la última

@@ -28,6 +28,10 @@
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
     + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
+- `NotesListPinToggleTest` — UI Compose/Robolectric (2 tests, RUN 025:
+  el menú ⋮ de la fila permite fijar/desfijar y propaga el id correcto al
+  callback; el menú se cierra tras la acción — cubre el flujo end-to-end del
+  pin a nivel UI, no solo DAO/repo/ViewModel).
 - `NoteEntityPreviewTest` — unit tests puros (4 tests, RUN 015/016: blank,
   2 líneas trim, cap length, single long line capped).
 - `RelativeDateTest` — unit tests puros (5 tests, RUN 014: "Hoy"/"Ayer"
@@ -37,17 +41,17 @@
   específicos de flavor por ahora).
 
 ## Último resultado
-- 2026-09-02 (ejecución 024, accesibilidad: label estabile del campo de
-  búsqueda): verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
-  / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **65 tests,
-  0 fallos,,  0 errores** (BUILD SUCCESSFUL). Frente a la RUN 023 (misma cuenta
-  de 65): `NotesListSearchInteractiveTest` sube a **5** tests (mismo método
-  reforzado: aserción del label accesible «Buscar notas» vía `ContentDescription` del
-  nodo del campo,+ verificación de que el rótulo persiste después de escribirse la
-  query («Recetas») — mecanismo robusto frente a placeholder/label colapsado).
-  `NotesListScreen.kt`: 1 línea de producción (`Modifier.semantics { contentDescription
-  = stringResource(R.string.search_notes) }` en el `label` de `SearchHeader`). Sin fallos
-  conocidos ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin` verde.
+- 2026-09-02 (ejecución 025, testing: cobertura UI end-to-end del pin):
+  verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
+  / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **67 tests,
+  0 fallos,,  0 errores** (BUILD SUCCESSFUL, re-ejecutadas con `--rerun-tasks`.
+  Frente a la RUN 024 (65): nueva regresión UI `NotesListPinToggleTest` (2:
+  `unpinnedNote_menuItemPins_itAndClosesMenu`, `pinnedNote_menuItemUnpins_it`),
+  cubriendo el flujo de fijar/desfijar desde el menú ⋮ de la fila — propagación
+  del id al callback y cierre del menú tras la acción. El pin ya estaba cubierto
+  a nivel DAO (`NoteDaoTest`), repo (`NoteRepositoryTest`) y ViewModel
+  (`NotepadViewModelTest`); faltaba el eslabón UI end-to-end. Sin fallos conocidos
+  ni flakiness detectado.
 
 - 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
   este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /

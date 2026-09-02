@@ -182,12 +182,13 @@
 
 ## Estado de tests
 
-- **Última ejecución (RUN 024):** 65/65 verdes en las 3 variantes —
+- **Última ejecución(​RUN 025):** 67/67 verdes en las​​​3 variantes —
   `testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
-  `testPreviewAdvancedDebugUnitTest` → **65 tests,, 0 fallos (10 DAO + 7 Repo
-  +  23 VM [incluye `processDeath_restoresSearchQuery`, BUG-009] +  16 UI
-  [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 5/5
-  (label accesible «Buscar notas» persistente)] +  4 `NoteEntityPreviewTest` +  2
+  `testPreviewAdvancedDebugUnitTest` → **67 tests,,1 0 fallos (11 DAO +​​ 7 Repo
+  +​​ 24 VM [incluye `processDeath_restoresSearchQuery`, BUG-009] +​​  ​​ 16 UI
+  [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 4/4
+  (label accesible «Buscar notas» persistente) + `NotesListPinToggleTest` 2/2
+  (pin vía menú ⋮)] +​​ ​​4 `NoteEntityPreviewTest` +​​ 5
   `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
 
 ## Accesibilidad (RUN 024)

@@ -5,6 +5,19 @@
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
 
+## 2026-09-02 — Ejecución 025 (testing: cobertura UI end-to-end del pin)
+
+- **Regresión UI del flujo de fijar/desfijar** (P2, testing): el pin se acciona
+   desde el menú ⋮ de cada fila pero ningún test de UI cubría ese eslabón final:
+   `NoteDaoTest` / `NoteRepositoryTest` / `NotepadViewModelTest` probaban el
+   flag y la propagación de capas, nunca que el ítem del menú correcto (`Fijar`/
+   `Desfijar`) llamara al callback con el id de la nota ni que el menú se cerrara.
+   Nuevo `NotesListPinToggleTest` (2 tests Compose/Robolectric): nota sin fijar →
+   menú ⋮ → «Fijar» → callback recibe el id + menú cerrado; nota fijada →
+   «Desfijar» → callback recibe el id. Sin cambios de producción; suite completa
+   3-variantes **67/67,  0 fallos,  0 errores** (`--rerun-tasks`).
+
+
 ## 2026-09-02 — Ejecución 024 (accesibilidad: label estable del campo de búsqueda)
 
 - **Label accesible persistente en el campo de búsqueda** (P2, accesibilidad/UX):
