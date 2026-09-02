@@ -19,6 +19,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
@@ -48,14 +49,18 @@ fun NoteEditorScreen(
         }
     }
 
+    fun exitSaving() {
+        onSave(title, content, note?.id)
+        onBack()
+    }
+
+    BackHandler(onBack = ::exitSaving)
+
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = {
-                        onSave(title, content, note?.id)
-                        onBack()
-                    }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver") }
+                    IconButton(onClick = ::exitSaving) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver") }
                 },
                 title = { Text("Editar", style = MaterialTheme.typography.titleMedium) },
                 actions = {
@@ -64,10 +69,7 @@ fun NoteEditorScreen(
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
-                            .clickable {
-                                onSave(title, content, note?.id)
-                                onBack()
-                            },
+                            .clickable(onClick = ::exitSaving),
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
