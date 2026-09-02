@@ -28,8 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +43,14 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(note?.id) {
         if (note != null) {
             title = note.title
             content = note.content
+        } else {
+            focusRequester.requestFocus()
         }
     }
 
@@ -86,15 +92,15 @@ fun NoteEditorScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextField(
+            androidx.compose.material3.TextField(
                 value = title,
                 onValueChange = { title = it },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 colors = bareFieldColors(),
             )
-            TextField(
+            androidx.compose.material3.TextField(
                 value = content,
                 onValueChange = { content = it },
                 placeholder = { Text("Escribe lo que piensas…", style = MaterialTheme.typography.bodyLarge) },
@@ -107,7 +113,7 @@ fun NoteEditorScreen(
 }
 
 @Composable
-private fun bareFieldColors() = TextFieldDefaults.colors(
+private fun bareFieldColors() = androidx.compose.material3.TextFieldDefaults.colors(
     focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
     unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
     focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
