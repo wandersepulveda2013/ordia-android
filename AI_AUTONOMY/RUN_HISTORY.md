@@ -420,14 +420,13 @@ Commit: test(editor): cover system-back save.
   Solo tests; cero cambios de producción.
  Suite cada variante **67/67,  0 fallos,
   0 errores** (`--rerun-tasks` en las 3 variantes; +2 vs RUN 024).
-- **Commit:** pendiente tras esta entrada (test + memoria).
-- **Estado:** `git status`: solo el test nuevo + memoria; suite 3-variantes verde.
- Sin
-  regresiones detectadas;P0/P1 vacíos..
-- **Siguiente tarea:** candidatos P2/P3 reportados anteriormente: focus indicator
-  de la lista para navegación por teclado/TalkBack (P3, RUN 020 hizo el del
-  editor); fondo de autosave del editor ante cierre inesperado (resiliencia);o
-  auditoría de contraste/tamaño de controles..
+- **Commit:** `56ab7866` — `test(notes): cover pin toggle from row menu end-to-end`
+- **Estado:** `git status` limpio; suite 3-variantes verde (**67/67, 0 fallos,  ​0 errores**);
+  rama `openhands/autonomous-notes` adelantada 1 frente a origin (commiteado,
+  aún sin push al cierre). BUG-008 verificado/cerrado formalmente en BUGS_FOUND(ver RUN 025).
+- **Siguiente tarea:** (1) push de la rama al remoto; (2) siguiente candidato P2/P3:
+  focus indicator de la lista para navegación por teclado/TalkBack (P3,, RUN 020 hizo
+  el del editor);o fondo de autosave del editor ante cierre inesperado (resiliencia).
 
 ## RUN 024 - 2026-09-02 (P2/UX: label accesible persistente en el campo de búsqueda)
 - **Objetivo:** dar al campo de búsqueda un nombre accesible estable («Buscar notas»)
@@ -462,7 +461,6 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** candidatos P2/P3: focus indicator de la lista para
   navegación por teclado/TalkBack (quizá `Modifier.focusProperties`/indicador
   visible); fondo de autosave del editor ante cierre inesperado (resiliencia); o
-  auditoría de contraste/tamaño de controles..
 
 ## RUN 023 - 2026-09-02 (P2/UX: copia honesta en el diálogo de borrado — ya no contradice el deshacer)
 

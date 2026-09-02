@@ -18,6 +18,17 @@
    3-variantes **67/67,  0 fallos,  0 errores** (`--rerun-tasks`).
 
 
+
+## 2026-09-02 — Ejecución 025 (verificación/cierre de BUG-008)
+
+- **BUG-008 cerrado/verificado** (P1, regresión histórica del merge `8a82c78`):
+   las dos regresiones (editor: última escritura perdida al salir por back;
+   lista: borrado instantáneo sin diálogo de confirmación) fueron reparadas en
+   RUN 021 (`ef02a80` + `bdd1986`) y su cobertura de regresión sigue verde en
+   la suite actual: `NoteEditorBackSaveTest` 3/3, `NoteEditorRecreationTest`
+   2/2 y `NotesListDeleteConfirmTest` 2/2. Cierre formal documentado en
+   `BUGS_FOUND.md` (sección BUG-008). Suite completa **67/67, 0 fallos,**
+   0 errores** en las 3 variantes (RUN 025..
 ## 2026-09-02 — Ejecución 024 (accesibilidad: label estable del campo de búsqueda)
 
 - **Label accesible persistente en el campo de búsqueda** (P2, accesibilidad/UX):

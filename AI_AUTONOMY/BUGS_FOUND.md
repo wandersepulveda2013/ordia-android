@@ -37,6 +37,10 @@
   confirma-borrado-con-diálogo y cancelar-conserva-nota) + regresiones ya existentes
   `NoteEditorBackSaveTest` (3) y `NoteEditorRecreationTest` (2). Suite: **64/64**
   en las  3 variantes (0 fallos, 0 errores; RUN 021.
+- **Verificación (RUN 025):** CERRADO — las dos rutas siguen cubiertas y verdes en
+  la suite actual: `NoteEditorBackSaveTest` 3/3, `NoteEditorRecreationTest` 2/2
+  y `NotesListDeleteConfirmTest` 2/2; suite completa **67/67,  ​0 fallos,  ​0 errores**
+  en las  3 variantes (`--rerun-tasks`; RUN 025.
 
 ## BUG-009 — La query de búsqueda activa se perdía en proceso-muerte (P1
 
