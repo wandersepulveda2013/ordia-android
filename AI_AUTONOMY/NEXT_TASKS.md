@@ -9,9 +9,11 @@ _(vacío tras la ejecución 001: eliminación sin deshacer y notas vacías queda
 
 ## P1 — Alto impacto
 
-_(vacío; RUN 009 resolvió BUG-006: integridad del ciclo de draft — duplicados y
-cross-contaminación al cambiar de nota en ráfaga y pérdida del draft en
-rotación/proceso-muerte — ver BUGS_FOUND.md. RUN 008 resolvió BUG-005.)_
+_(vacío; RUN 022 resolvió BUG-009: la query de búsqueda activa se perdía en
+proceso-muerte — ahora vive en `SavedStateHandle` como la sesión de draft
+(ver BUGS_FOUND.md. RUN 009 resolvió BUG-006: integridad del ciclo de draft —
+duplicados y cross-contaminación al cambiar de nota en ráfaga y pérdida del
+draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
 
 ## P2 — Calidad de producto
 

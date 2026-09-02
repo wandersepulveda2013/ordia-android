@@ -17,8 +17,13 @@
   diálogo de confirmación de borrado (`pendingDelete` declarado; menú "Eliminar"
   abre `DeleteNoteDialog`; confirmar borra + ofrece Undo, cancelar descarta).
   Nueva regresión Compose/Robolectric `NotesListDeleteConfirmTest` (2 tests;.
-  Suite completa **64/64,  0 fallos, 0 errores en las 3 variantes** (RUN 021.
-  RUN 020 (P3, accesibilidad): los campos de
+  RUN 022 (P1, BUG-009): la query de búsqueda activa
+  ya no se pierde en proceso-muerte: `searchQuery` vive ahora en
+  `SavedStateHandle` (inicializada desde el estado guardado al crear el
+  ViewModel,y `setSearchQuery` escribe/elimina la clave), por lo que la
+  recreación restaura el modo búsqueda, la query y el filtro. Regresión:
+  `NotepadViewModelTest.processDeath_restoresSearchQuery`.
+  Suite completa **65/65,  0 fallos,  ​0 errores en las 3 variantes** (RUN 022.
   texto del editor (título/contenido) muestran ahora un **indicador de foco
   visible** (`focusedIndicatorColor = MaterialTheme.colorScheme.outline` en vez de
   `Transparent`) — navegación por teclado/TalkBack ya no deja el campo focalizado
@@ -173,9 +178,10 @@
 
 ## Estado de tests
 
-- **Última ejecución (RUN 021):**64/64 verdes en las  3 variantes** —
+- **Última ejecución (RUN 022):**65/65 verdes en las  3 variantes** —
   `testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
-  `testPreviewAdvancedDebugUnitTest` →  64 tests,,  0 fallos (10 DAO + 7 Repo
-  + 22 VM + 16 UI [incluye `NotesListDeleteConfirmTest` 2 tests de regresión
-  del merge] + 4 `NoteEntityPreviewTest` + 2 `RelativeDateTest`.
+  `testPreviewAdvancedDebugUnitTest` →  65 tests,,  0 fallos (10 DAO + 7 Repo
+  +  23 VM [incluye `processDeath_restoresSearchQuery`, BUG-009] +  16 UI
+  [incluye `NotesListDeleteConfirmTest` 2 tests de regresión del merge] +
+  4 `NoteEntityPreviewTest` +  2 `RelativeDateTest`.
   Detalle en `TEST_STATUS.md`.

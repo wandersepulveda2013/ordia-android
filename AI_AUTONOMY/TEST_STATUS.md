@@ -5,9 +5,11 @@
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (11 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (23 tests,
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (24 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
-  commit→beginDraft hacia otra nota, y nota nueva tras back).
+  commit→beginDraft hacia otra nota, y nota nueva tras back. RUN 022: +1 regresión
+  de BUG-009 — `processDeath_restoresSearchQuery`: la query de búsqueda activa
+  sobrevive a la recreación del ViewModel vía `SavedStateHandle`).
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (3 tests; RUN 012
     añade `toolbarDone_commitsAndNavigates` — "Hecho" hace commit y navega).
   - `NoteEditorRecreationTest` — UI Compose/Robolectric (2 tests, RUN 012):
@@ -33,6 +35,18 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-02 (ejecución 022, BUG-009: query de búsqueda restaurada en
+  proceso-muerte): verificado en este sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest`
+  / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **65 tests,
+  0 fallos,,  ​0 errores** (BUILD SUCCESSFUL. Frente a las​64 de la RUN 021:
+  `NotepadViewModelTest` pasa de 23 a​ ​24 tests: añadido
+  `processDeath_restoresSearchQuery` (regresión de BUG-009: el ViewModel recreado
+  desde `SavedStateHandle` con la clave `KEY_SEARCH_QUERY="paella"` restaura
+  `searchQuery` y los `searchResults` filtrados, sin pérdida del modo búsqueda).
+  Sin fallos conocidos ni flakiness detectado. Compilación `:app:compilePreviewSafeDebugKotlin`
+  verde.
+
+
 - 2026-09-02 (ejecución 021, regresiones del merge `8a82c78` reparadas): verificado en
   este sandbox → las  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest`): **64 tests,,  0 fallos,, 0 errores** (BUILD

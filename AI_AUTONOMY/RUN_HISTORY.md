@@ -405,6 +405,42 @@ Commit: test(editor): cover system-back save.
   revisar cobertura/resiliencia del editor (p.ej. fondo de autosave en cierre inesperado).
 
 
+## RUN 022 - 2026-09-02 (P1: BUG-009 — la query de búsqueda activa sobrevive al proceso-muerte)
+- **Objetivo:** cerrar el P1 del backlog (BUG-009): la lista se recreaba tras
+  un proceso-muerte (o reinstanciación del ViewModel) mostrando el campo de
+  búsqueda vacío sobre la lista completa — modo búsqueda visual y filtro
+  desincronizados hasta que el usuario volvía a teclear. Anadir cobertura de regresión.
+
+- **Hallazgo:** `NotepadViewModel` expone `searchQuery` solo en memoria
+  (`MutableStateFlow("")`). A diferencia de la sesión de draft (BUG-006, que
+  vive en `SavedStateHandle` desde RUN 009,, la query no se guardaba en el estado
+  guardado del ViewModel: al recrearlo (rotación/proceso-muerte) la búsqueda
+  perdía el texto y el filtro, dejando la lista completa con el campo vacío.
+
+
+- **Cambio:**(a) `NotepadViewModel`: `searchQuery` se inicializa desde
+  `savedState[KEY_SEARCH_QUERY]` (o `""` si ausente) y `setSearchQuery` lo
+  ​escribe en `SavedStateHandle` (eliminando la clave si vacía) —
+  `isSearching`/`searchResults` derivan del mismo estado, así que la recreación
+  restaura modo + query + filtro.juntos. (b) memoria actualizada (BUGS_FOUND/
+  CURRENT_STATE/NEXT_TASKS/RUN_HISTORY/TEST_STATUS; ver git diff de cada ejecución).
+- **Tests:** nueva regresión JVM `NotepadViewModelTest.processDeath_restoresSearchQuery`
+  (RUN 022,: un ViewModel recreado desde `SavedStateHandle(mapOf(KEY_SEARCH_QUERY to
+  "paella"))` restaura `searchQuery` y los `searchResults` filtrados). Suite completa
+  re-ejecutada con `--rerun-tasks` en las 3 variantes:
+ `testPreviewSafeDebugUnitTest` /
+  `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest` → **65/65,
+  0 fallos,,  ​0 errores** cada variante(65 tests,+1 respecto a RUN 021 por la
+  nueva regresión; BUILD SUCCESSFUL.
+- **Commit:**(fix+test+memoria) pendiente al cierre de esta ejecución (ver git
+  status/push en el cierre.Run.
+- **Estado:** BUG-009 FIXED y cubierto; suite completa de las 3 variantes verde.
+
+- **Siguiente tarea:** pushear los cambios de RUN 022 (fix + test + memoria); luego
+  revisar NEXT_TASKS P2/P3 (candidatos: focus indicator de la lista para
+  navegación por teclado, cobertura/resiliencia del editor — p.ej. fondo de autosave
+  en cierre inesperado del proceso, o tamaño/contraste de controles del editor).
+
 ## RUN 020 - 2026-09-01 (P3: focus indicator visible en NoteEditorScreen + regresion Compose)        
 - **Objetivo:** cerrar el P3 pendiente de RUN_LOG (focus indicators de la lista/
   editor para navegacion por teclado/TalkBack): dar a los campos de texto del editor

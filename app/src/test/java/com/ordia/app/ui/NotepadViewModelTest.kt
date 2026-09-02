@@ -473,4 +473,30 @@ class NotepadViewModelTest {
         assertEquals(2, viewModel.searchResults.value.size)
         job.cancel()
     }
+
+    @Test
+    fun processDeath_restoresSearchQuery() = runTest(dispatcher) {
+        // The draft session survives process death via SavedStateHandle (BUG-006);
+        // the active search query must do the same, otherwise the recreated list shows
+        // a blank search field over the full list (query lost while search mode stays on).
+        dao.notes.addAll(
+            listOf(
+                NoteEntity(id =  1L, title = "Receta", content = "paella", createdAt = 10L, updatedAt = 10L),
+                NoteEntity(id =  2L, title = "Idea", content = "otra cosa", createdAt =  20L, updatedAt =  20L),
+            ),
+        )
+        val restored = NotepadViewModel(
+            NoteRepository(dao),
+            SavedStateHandle(mapOf(NotepadViewModel.KEY_SEARCH_QUERY to "paella")),
+        )
+
+        assertEquals("La query de búsqueda debe restaurarse tras proceso-muerte", "paella", restored.searchQuery.value)
+
+
+        val job = launch(dispatcher) { restored.searchResults.collect {} }
+        advanceUntilIdle()
+        assertEquals(1, restored.searchResults.value.size)
+        assertEquals("Receta", restored.searchResults.value.single().title)
+        job.cancel()
+    }
 }

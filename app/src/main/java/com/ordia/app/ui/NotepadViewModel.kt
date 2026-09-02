@@ -25,12 +25,13 @@ class NotepadViewModel(
         const val AUTOSAVE_DEBOUNCE_MS = 800L
         const val KEY_DRAFT_ID = "draftId"
         const val KEY_DRAFT_WAS_NEW = "draftWasNew"
+        const val KEY_SEARCH_QUERY = "searchQuery"
     }
 
     val notes: StateFlow<List<NoteEntity>> =
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _searchQuery = MutableStateFlow("")
+    private val _searchQuery = MutableStateFlow(savedState[KEY_SEARCH_QUERY] ?: "")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     /** Notes matching [searchQuery]; equal to [notes] while the query is blank. */
@@ -41,6 +42,7 @@ class NotepadViewModel(
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+        if (query.isEmpty()) savedState.remove<String>(KEY_SEARCH_QUERY) else savedState[KEY_SEARCH_QUERY] = query
     }
 
     /** Restored across config changes and process death (SavedStateHandle). */

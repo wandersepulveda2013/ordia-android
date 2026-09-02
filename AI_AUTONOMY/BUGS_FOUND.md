@@ -38,6 +38,34 @@
   `NoteEditorBackSaveTest` (3) y `NoteEditorRecreationTest` (2). Suite: **64/64**
   en las  3 variantes (0 fallos, 0 errores; RUN 021.
 
+## BUG-009 — La query de búsqueda activa se perdía en proceso-muerte (P1
+
+- **Impacto:** al morir el proceso con el modo búsqueda activo y una query
+  tecleada (p. ej. por recarga del sistema o navegación entre apps),la
+  lista se recreaba mostrando el campo vacío sobre la lista completa: el modo
+  de búsqueda visual y el filtro aplicado se desincronizaban hasta que el usuario
+  volvía a teclear (búsqueda activa pero sin filtro, o filtro perdido). Zona
+  crítica de la misión (reinstanciación, rotación/proceso-muerte.
+- **Reproducción:** lista → búsqueda → teclear `paella` → matar el proceso →
+  recrear → la lista muestra todas las notas con el campo de búsqueda en blanco
+  (el draft de edición sí sobrevive — BUG-006 — pero la query no).
+- **Causa:** `NotepadViewModel` expone `searchQuery` solo en memoria
+  (`MutableStateFlow("")`); a diferencia de la sesión de draft (que vive en
+  `SavedStateHandle` desde RUN 009,, la query no se guardaba en el estado
+  guardado del ViewModel, así que la recreación partía de una query vacía.
+
+- **Estado:** FIXED — `searchQuery` se respalda en `SavedStateHandle`: el
+  ViewModel lo inicializa desde `savedState[KEY_SEARCH_QUERY]` y
+  `setSearchQuery` escribe (o elimina, si vacía, la clave. `NotesListScreen`
+  ya derivaba `isSearching` de `searchQuery.isNotEmpty()`;a la recreación el
+  modo búsqueda se restaura junto con la query y el filtro aplicado.
+
+- **Commit:** RUN 022 en `openhands/autonomous-notes` (pendiente de pushear
+  al cierre).
+- **Test:** regresión `NotepadViewModelTest.processDeath_restoresSearchQuery`:
+  un ViewModel recreado con `SavedStateHandle(mapOf(KEY_SEARCH_QUERY to "paella"))`
+  restaura `searchQuery` y los `searchResults` filtrados correctamente.
+
 ## BUG-007 — Comodines de `LIKE` sin escapar distorsionaban la búsqueda (P2
 
 - **Impacto:** al buscar, los caracteres `%` y `_` del texto tecleado actuaban como
