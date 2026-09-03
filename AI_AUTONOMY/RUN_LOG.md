@@ -476,3 +476,31 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## SESIÓN 008 — Mejoras UX y Descarte de Vacíos
+
+- **Fecha (UTC)**: 2026-08-16
+- **Trigger**: Ejecución autónoma diaria de auditoría y evolución.
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Auto-foco (UX)**: Se implementó un `FocusRequester` en `NoteEditorScreen` que automáticamente solicita foco y abre el teclado al iniciar una nota nueva.
+2. **Descarte de notas vacías**: Se modificó `NotepadViewModel` para prevenir la persistencia de notas sin título ni contenido, interceptando el guardado y borrando la nota si ya existía.
+3. **Tests Unitarios**: Se creó `NotepadViewModelTest.kt` empleando un `FakeNoteDao` para verificar el correcto comportamiento de creación, actualización y borrado de notas vacías.
+4. **Verificación de Tests**: Se ejecutaron pruebas para las variantes Safe, Advanced y Full (`testPreviewSafeDebugUnitTest`, etc.) obteniendo `BUILD SUCCESSFUL` en todas.
+
+### Problemas encontrados
+
+- `tools/verify_project.py` fallaba (Falla pre-existente esperada, `OrdiaViewModel.kt` no fue migrado en el mega-rebuild previo, documentado como falla a ignorar si no es mi alcance).
+
+### Archivos Modificados
+
+- `app/src/main/java/com/ordia/app/ui/screens/NoteEditorScreen.kt`
+- `app/src/main/java/com/ordia/app/ui/NotepadViewModel.kt`
+- `app/src/test/java/com/ordia/app/ui/NotepadViewModelTest.kt` (nuevo)
+
+### Evidencia
+
+- Tests unitarios nuevos en `NotepadViewModelTest` pasando sin problemas.
+- Ejecución de `testPreviewSafeDebugUnitTest` en 26s.

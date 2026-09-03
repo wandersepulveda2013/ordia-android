@@ -9,17 +9,20 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
-| P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED |
 | P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access, updates_*) | inspección manual pendiente | OPEN |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
-| P0 | Updater | Actualizador in-app nativo basado en manifiesto (check sin bloquear arranque, progreso, verificación SHA-256/package/versionCode/firma, PackageInstaller + confirmación final, Ajustes → Actualizaciones, badge, feed desacoplado del agente) | sesión 006: `UpdateManifestParserTest` 11/11 + `UpdateSecurityRulesTest` 9/9 + 6 variantes compilan + lint 0 errores; CI publica `update-manifest-<flavor>.json` + `Ordia-3.0-<flavor>-signed.apk`; integrado en `main` (sesión 007, merge `5c7f8a6d`) | VERIFIED — código/test/CI; falta verificación física en dispositivo ADB (bloqueada por hardware) |
-| P0 | Convergencia | Integrar el rebuild 3.0 + actualizador de `jules/autonomous-ordia` en `main` sin perder funcionalidad de main | sesión 007: merge `5c7f8a6d`, 36 conflictos resueltos, widget `hoy`/`atrasadas` + recordatorios de hábitos recuperados, update checker viejo eliminado, 2352 tests verdes, lint 0 errores | VERIFIED — pendiente push de `main` y fast-forward de la rama autónoma |
-| P3 | QA | Lint: 115 warnings no bloqueantes (UseKtx 42, PluralsCandidate 31, GradleDependency 7, ModifierParameter 7…) | `lint-results-previewSafeDebug.xml` | FIXED — 0 errores, 95 warnings (Fase 18, commit `fbacf74`) |
+| P3 | QA | Missing required file: app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt in verify_project.py | Fallo en `./verify_project.py` | OPEN |
 
 ## Completados
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P3 | UX | Reducir fricción en la captura de notas no haciendo pop keyboard | Issue #202 | FIXED |
+| P3 | DB | Evitar guardar notas completamente vacías | Issue #202 | FIXED |
+| P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED |
+| P0 | Updater | Actualizador in-app nativo basado en manifiesto (check sin bloquear arranque, progreso, verificación SHA-256/package/versionCode/firma, PackageInstaller + confirmación final, Ajustes → Actualizaciones, badge, feed desacoplado del agente) | sesión 006: `UpdateManifestParserTest` 11/11 + `UpdateSecurityRulesTest` 9/9 + 6 variantes compilan + lint 0 errores; CI publica `update-manifest-<flavor>.json` + `Ordia-3.0-<flavor>-signed.apk`; integrado en `main` (sesión 007, merge `5c7f8a6d`) | VERIFIED — código/test/CI; falta verificación física en dispositivo ADB (bloqueada por hardware) |
+| P0 | Convergencia | Integrar el rebuild 3.0 + actualizador de `jules/autonomous-ordia` en `main` sin perder funcionalidad de main | sesión 007: merge `5c7f8a6d`, 36 conflictos resueltos, widget `hoy`/`atrasadas` + recordatorios de hábitos recuperados, update checker viejo eliminado, 2352 tests verdes, lint 0 errores | VERIFIED — pendiente push de `main` y fast-forward de la rama autónoma |
+| P3 | QA | Lint: 115 warnings no bloqueantes (UseKtx 42, PluralsCandidate 31, GradleDependency 7, ModifierParameter 7…) | `lint-results-previewSafeDebug.xml` | FIXED — 0 errores, 95 warnings (Fase 18, commit `fbacf74`) |
 | P0 | What Now | Explicar por qué se sugiere cada tarea en "Qué hago ahora" | `WhatNowSuggestion.detail` + `WhatNowEngineTest` | FIXED |
 | P0 | Priorización | Priorizador duplicado entre `DayPlanner` y `WhatNowEngine` | `TaskRules.schedulingComparator` único + tests | FIXED |
 | P0 | Guardianes | `guardianInsight` se computaba pero no se mostraba en ninguna UI | card dismissible en Today + `GuardianCoachTest` | FIXED |
