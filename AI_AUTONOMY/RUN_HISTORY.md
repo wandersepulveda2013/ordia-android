@@ -648,8 +648,7 @@ Commit: test(editor): cover system-back save.
   completa 3-variantes re-ejecutada: `testPreviewSafeDebugUnitTest`,
   `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest` →
   **71 tests,  ‌0 fallos,  0 errores** cada variante (+3 vs RUN 026; BUILD SUCCESSFUL, 31s).
-- **Commit:** `fix(notes): fail-safe persistence writes with retry + user signal`
-  + `test(notes): cover failed save/delete/restore without crash` + `docs(ai): record RUN 027`.
+- **Commit:** `f3e27f0` — `fix(notes): make persistence writes fail-safe with recovery and error snackbar`.
 - **Estado:** fix + regresiones verificados en las 3 variantes; memoria actualizada.
 
 - **Siguiente tarea:** (a) en el editor, el snackbar de error no se muestra(solo
