@@ -655,3 +655,15 @@ Commit: test(editor): cover system-back save.
   lista) — evaluar surfacer el evento también en la pantalla del editor si hay
   un autosave fallido en curso;(b) candidate P2: focus indicator de la lista
   para navegación por teclado/TalkBack.
+
+
+## RUN 028 - 2026-09-03 (P2: snackbar de error de persistencia también en el editor)
+
+- **Objetivo:** cerrar el gap del RUN 027 — un autosave fallido mientras se edita no daba feedback (el snackbar solo se veía al volver a la lista).
+- **Hallazgo:** la colección de `persistenceError` vivía en `NotesListScreen`; el editor queda sin señal inmediata ante un fallo real de escritura.
+.
+- **Cambio:** se subió el host/colector a la raíz: `NotepadApp` ahora envuelve el `when` en un `Box(Modifier.fillMaxSize())` con un `SnackbarHost` inferior y un `LaunchedEffect` que colecta `viewModel.persistenceError` → snackbar `error_persistence` en cualquier pantalla("lista y editor"). Se eliminó de `NotesListScreen` el param `persistenceError`, el `LaunchedEffect` local, la string local y los imports obsoletos (`Flow`, `emptyFlow`). El `SnackbarHostState` de lista queda para delete/undo.
+- **Tests:** suite completa 3 variantes re-ejecutada con `--no-build-cache --rerun-tasks` (`testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest`) → **71 tests, 0 fallos,  ‌0 errores** cada variante; `compilePreviewSafeDebugKotlin` BUILD SUCCESSFUL. Sin tests nuevos (refactor puro de UI, sin cambio de comportamiento).
+- **Commit:** `persistence-error-snackbar-editor` (pendiente hash final.
+- **Estado:** verificada la 3 variantes; memoria actualizada. La lista y el editor muestran el snackbar de error por igual.
+- **Siguiente tarea:** (candidate P2 RUN  ‌021/024) papeleta focus indicator de la lista para navegación por teclado/TalkBack;# o extender tests UI del editor (back tras autosave, N° 1 de NEXT_TASKS.

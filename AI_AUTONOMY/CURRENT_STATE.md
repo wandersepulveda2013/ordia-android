@@ -90,6 +90,14 @@
   `ui/screens/NotesListScreen.kt` (RUN 010: el pin pasa a `togglePinned(id)`
   atómico SQL; `setPinned` eliminado de DAO/repo/VM/tests).
 ## Fix esta ejecución
+- RUN 028 (P2, UX recuperación ante fallos): el snackbar de error de
+  persistencia se muestra ahora en AMBAS pantallas(lista y editor. Se subió
+  el host/colector de `viewModel.persistenceError` de `NotesListScreen` a la
+  raíz `NotepadApp` (`Box(Modifier.fillMaxSize())` + `SnackbarHost` inferior +
+  `LaunchedEffect` recogiendo `persistenceError` → `R.string.error_persistence`);
+  se eliminaron de `NotesListScreen` el param `persistenceError`, el colector
+  local y los imports `Flow`/`emptyFlow` (el `SnackbarHostState` local queda
+  para delete/undo). Verificado: suite completa **71/71** en las 3 variantes.
 - RUN 017 (P3, tests): los  4 archivos de tests de UI intercambian el import
   deprecado `androidx.compose.ui.test.junit4.createAndroidComposeRule` por el
   actual `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule`
@@ -201,7 +209,7 @@
   `persistenceError` (MutableSharedFlow, reintenta una vez dentro de
   `withContext(NonCancellable)` y si el reintento falla sigue emitiendo el evento
   recuperable — el texto queda en el editor y el siguiente autosave puede
-  autocorregirse. La lista muestra snackbar «No se pudo completar la operación»
+  autocorregirse. La app raíz (`NotepadApp`) muestra snackbar «No se pudo completar la operación» en cualquiera de las dos pantallas(lista y editor; RUN 028)
   (`error_persistence`). Sin dependencias nuevas.
 
 ## Accesibilidad (RUN 024)

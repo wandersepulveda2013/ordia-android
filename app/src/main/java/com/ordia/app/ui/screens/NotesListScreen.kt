@@ -54,8 +54,6 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.ui.util.relativeLabel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +66,6 @@ fun NotesListScreen(
     onTogglePin: (Long) -> Unit,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
-    persistenceError: Flow<Unit> = emptyFlow(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
@@ -92,20 +89,6 @@ fun NotesListScreen(
 
     val noteDeletedMessage = stringResource(R.string.note_deleted)
     val undoAction = stringResource(R.string.undo)
-    val persistenceFailedMessage = stringResource(R.string.error_persistence)
-
-    // Non-fatal feedback when a persistence write fails (storage full, DB error):
-    // the app must not crash (see NotepadViewModel.launchPersist), and the user sees
-    // that the last action did not complete instead of silently losing it..
-    LaunchedEffect(persistenceError,) {
-        persistenceError.collect {
-            snackbarHostState.showSnackbar(
-                message = persistenceFailedMessage,
-                duration = SnackbarDuration.Short,
-            )
-        }
-    }
-
     LaunchedEffect(pendingUndo,) {
         val note = pendingUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(

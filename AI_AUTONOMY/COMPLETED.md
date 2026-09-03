@@ -267,3 +267,11 @@
 - **Preview de lista de 2 líneas** (P2, UX): la lista ahora usa
   `NoteEntity.preview` (primeras dos líneas no vacías, trim, cap 160) en vez de
   `content.take(120)` crudo que cortaba en mitad de línea y mostraba espacios.
+
+- **Snackbar de error de persistencia global** (P2, RUN 028): un fallo de
+  autosave/escritura ahora muestra el snackbar «No se pudo completar la operación»
+  en CUALQUIERA de las dos pantallas(lista y editor:, se subió el host/colector de
+  `viewModel.persistenceError` a `NotepadApp` (raíz, `Box(fillMaxSize)` +
+  `SnackbarHost` inferior; se eliminó el param/colector/string/imports obsoletos
+  de `NotesListScreen`). UX de recuperación ante fallos:el usuario ve el error
+  inmediatamente mientras edita, sin crashear y conservando el texto en curso.

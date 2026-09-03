@@ -97,15 +97,15 @@ draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
    meramente abrir/cerrar ya no reordena la lista ni escribe en disco. El guard
    de no-cambio de `doPersistCommit` ahora espeja el de `saveCurrent` (RUN 015).
    Regresión: `NotepadViewModelTest.commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`.
-8. **Editor: surfacer el fallo de persistencia también en la pantalla de edición**
-   (RUN 027, gap detectado al cerrar el hardening): la lista ya muestra snackbar
-   «No se pudo completar la operación» cuando un autosave falla, pero
-   `NoteEditorScreen` no escucha `viewModel.persistenceError` — si un autosave
-   fallido ocurre mientras se edita(disco lleno, error de BD), el usuario no recibe
-   feedback en el editor (solo lo vería al volver a la lista). Impacto: UX de
-   recuperación ante fallos — falta de señal inmediata del error real. Comprobar:
-   abrir una nota, fallar el autosave, ver snackbar dentro del editor (y que el
-   texto en curso se conserva). Candidato P2 para la próxima ejecución.
+8. ~~Editor: surfacer el fallo de persistencia también en la pantalla de edición~~
+   **FIXED/VERIFIED (RUN 028):** el snackbar «No se pudo completar la operación»
+   se muestra ahora en AMBAS pantallas (lista y editor): el `SnackbarHost`
+   y el colector de `viewModel.persistenceError` se subieron a `NotepadApp`
+   (raíz, `Box(Modifier.fillMaxSize())` + `SnackbarHost` inferior); se
+   eliminó la colección local antigua de `NotesListScreen` (`persistenceError`
+   param, `LaunchedEffect`, imports `Flow`/`emptyFlow`). Verificación: un
+   autosave fallido emite `persistenceError` y la app raíz muestra el snackbar
+   sobre cualquier pantalla, sin crashear y conservando el texto en curso.
 7. **Auditar iconos deprecados restantes en `src/main` (RUN 018):** los iconos que
    conservan direccionalidad contextual (búsqueda, pin, menú ⋮, adición) no
    requieren AutoMirrored aún; la sesión histórica de auto-mirroring en RUN_LOG.md
