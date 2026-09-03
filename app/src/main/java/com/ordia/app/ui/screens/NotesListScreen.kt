@@ -1,12 +1,10 @@
 package com.ordia.app.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,8 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaListItem
+import com.ordia.app.ui.components.OrdiaTopBar
 import java.text.DateFormat
 import java.util.Date
 
@@ -51,19 +49,15 @@ fun NotesListScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
+            OrdiaTopBar(
+                title = { Text("Ordía", style = MaterialTheme.typography.headlineMedium) },
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -93,12 +87,12 @@ private fun EmptyState(padding: PaddingValues) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 "Una página en blanco\nes donde empieza todo.",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
                 "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -119,14 +113,9 @@ private fun NoteRow(
     }
     val preview = remember(note.content) { note.content.take(120) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+    OrdiaListItem(
+        onClick = { onOpenNote(note) },
+        headlineContent = {
             if (note.title.isNotBlank()) {
                 Text(
                     note.title,
@@ -136,45 +125,52 @@ private fun NoteRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (preview.isNotBlank()) {
+        },
+        supportingContent = {
+            Column {
+                if (preview.isNotBlank()) {
+                    Text(
+                        preview,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
-                    preview,
-                    style = MaterialTheme.typography.bodyMedium,
+                    date,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) 4.dp else 0.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            Text(
-                date,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-        if (note.pinned) {
-            Icon(
-                Icons.Outlined.PushPin,
-                contentDescription = "Fijada",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
-            )
-        }
-        Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
-            }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
-                )
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (note.pinned) {
+                    Icon(
+                        Icons.Outlined.PushPin,
+                        contentDescription = "Fijada",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+                            onClick = { menuOpen = false; onTogglePin(note) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Eliminar") },
+                            onClick = { menuOpen = false; onDeleteNote(note) },
+                        )
+                    }
+                }
             }
         }
-    }
+    )
 }

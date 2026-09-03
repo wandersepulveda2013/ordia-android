@@ -1,0 +1,36 @@
+--- .github/workflows/android-ci.yml
++++ .github/workflows/android-ci.yml
+@@ -285,15 +285,15 @@
+           echo "SIGNED_APKS=Ordia-3.0-safe-signed.apk Ordia-3.0-full-signed.apk Ordia-3.0-advanced-signed.apk" >> "$GITHUB_ENV"
+
+       - name: Upload signed APKs and checksums
+-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        uses: actions/upload-artifact@v4
+         with:
+           name: ordia-3.0-signed
+           path: |
+             Ordia-3.0-safe-signed.apk
+             Ordia-3.0-safe-signed.apk.sha256
+             Ordia-3.0-full-signed.apk
+             Ordia-3.0-full-signed.apk.sha256
+             Ordia-3.0-advanced-signed.apk
+             Ordia-3.0-advanced-signed.apk.sha256
+           if-no-files-found: error
+           retention-days: 30
+@@ -315,11 +315,11 @@
+       actions: read
+
+     steps:
+       - name: Download signed APKs
+-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
++        uses: actions/download-artifact@v4
+         with:
+           name: ordia-3.0-signed
+           path: release
+
+       - name: Download release contract (versionCode/tag source of truth)
+-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
++        uses: actions/download-artifact@v4
+         with:
+           name: release-contract
+           path: contract
