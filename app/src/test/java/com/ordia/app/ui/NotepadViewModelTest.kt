@@ -29,6 +29,10 @@ class NotepadViewModelTest {
     /** Mimics Room semantics: autoGenerate only for id==0, REPLACE on conflict. */
     private class FakeDao : NoteDao {
         val notes = mutableListOf<NoteEntity>()
+        var failWrites = false
+        private fun rw() {
+            if (failWrites) throw IllegalStateException("simulated storage full")
+        }
 
         override fun observeAll() = flowOf(sorted())
         override fun observeSearch(query: String) =
@@ -37,17 +41,21 @@ class NotepadViewModelTest {
             })
         override suspend fun getById(id: Long) = notes.find { it.id == id }
         override suspend fun insert(note: NoteEntity): Long {
+            rw()
             val id = if (note.id == 0L) (notes.maxOfOrNull { it.id } ?: 0L) + 1 else note.id
+
             notes.removeAll { it.id == id }
             notes.add(note.copy(id = id))
             return id
         }
         override suspend fun update(note: NoteEntity) {
+            rw()
             val i = notes.indexOfFirst { it.id == note.id }
             if (i >= 0) notes[i] = note
         }
-        override suspend fun delete(note: NoteEntity) { notes.removeIf { it.id == note.id } }
+        override suspend fun delete(note: NoteEntity) { rw(); notes.removeIf { it.id == note.id } }
         override suspend fun togglePinned(id: Long) {
+            rw()
             val i = notes.indexOfFirst { it.id == id }
             if (i >= 0) notes[i] = notes[i].copy(pinned = !notes[i].pinned)
         }
@@ -515,6 +523,67 @@ class NotepadViewModelTest {
         advanceUntilIdle()
         assertEquals(1, restored.searchResults.value.size)
         assertEquals("Receta", restored.searchResults.value.single().title)
+        job.cancel()
+    }
+
+    @Test
+    fun failedSave_emitsPersistenceError_andRetriesLater() = runTest(dispatcher) {
+        // A storage/DB failure during an autosave must not crash the ViewModel (it
+        // would take down the app since this is created at the activity scope); it must
+        // surface a non-fatal event and the next attempt must succeed (self-healing).
+        dao.failWrites = true
+        val received = mutableListOf<Unit>()
+        val job = launch(dispatcher) { viewModel.persistenceError.collect { received.add(it) } }
+        viewModel.autosave("Título", "contenido")
+        advanceUntilIdle()
+
+        assertTrue("Fallo de escritura debe emitir evento recuperable", received.isNotEmpty())
+        assertTrue("Nota fallida no debe persistirse", dao.notes.isEmpty())
+
+        dao.failWrites = false
+        viewModel.autosave("Título", "contenido")
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals("Título", dao.notes[0].title)
+        job.cancel()
+    }
+
+    @Test
+    fun failedDelete_doesNotCrash_andEmitsError() = runTest(dispatcher) {
+        dao.notes.add(NoteEntity(id =  1L, title = "x", content = "", createdAt = 1L, updatedAt =  1L))
+        dao.failWrites = true
+        val received = mutableListOf<Unit>()
+        val job = launch(dispatcher) { viewModel.persistenceError.collect { received.add(it) } }
+
+        viewModel.delete(dao.notes[0])
+        advanceUntilIdle()
+
+        assertTrue("La nota debe seguir existiendo", dao.notes.size == 1)
+        assertTrue("Eliminación fallida debe emitir evento", received.isNotEmpty())
+        job.cancel()
+    }
+
+    @Test
+    fun failedRestore_overridesNoLiveNote() = runTest(dispatcher) {
+        // Undo writes through the same resilience helper: a failed restore must not
+        // crash the app, and when storage recovers a later restore of the same note
+        // still lands (the launcher catches per-attempt).
+        dao.notes.add(NoteEntity(id =  1L, title = "x", content = "", createdAt = 1L, updatedAt =  1L))
+        dao.failWrites = true
+        val received = mutableListOf<Unit>()
+        val job = launch(dispatcher) { viewModel.persistenceError.collect { received.add(it) } }
+
+        viewModel.restore(dao.notes.removeAt(0))
+        advanceUntilIdle()
+        assertTrue(received.isNotEmpty())
+
+        dao.failWrites = false
+        viewModel.restore(NoteEntity(id =  1L, title = "x", content = "", createdAt = 1L, updatedAt =  1L))
+        advanceUntilIdle()
+
+        assertEquals(1, dao.notes.size)
+        assertEquals("La nota restaurada debe volver tras recuperación del almacenamiento", 1L, dao.notes[0].id)
         job.cancel()
     }
 }

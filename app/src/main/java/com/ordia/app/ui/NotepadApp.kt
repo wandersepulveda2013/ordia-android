@@ -55,6 +55,7 @@ fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
                     onTogglePin = { viewModel.togglePinned(it) },
                     searchQuery = searchQuery,
                     onSearchQueryChange = viewModel::setSearchQuery,
+                    persistenceError = viewModel.persistenceError,
                 )
             }
         }

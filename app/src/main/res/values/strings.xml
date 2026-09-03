@@ -6,6 +6,7 @@
     <string name="title_hint">Título</string>
     <string name="content_hint">Escribe lo que piensas…</string>
     <string name="note_deleted">Nota eliminada</string>
+    <string name="error_persistence">No se pudo completar la operación</string>
     <string name="undo">Deshacer</string>
     <string name="search_notes">Buscar notas</string>
     <string name="new_note">Nueva nota</string>

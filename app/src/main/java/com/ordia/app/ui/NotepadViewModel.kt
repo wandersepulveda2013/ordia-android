@@ -1,16 +1,23 @@
 package com.ordia.app.ui
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.data.NoteRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -26,7 +33,12 @@ class NotepadViewModel(
         const val KEY_DRAFT_ID = "draftId"
         const val KEY_DRAFT_WAS_NEW = "draftWasNew"
         const val KEY_SEARCH_QUERY = "searchQuery"
+        private const val TAG = "NotepadViewModel"
     }
+
+    /** One-shot event per failed persistence write (storage full, DB error, …). */
+    private val _persistenceError = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val persistenceError: SharedFlow<Unit> = _persistenceError.asSharedFlow()
 
     val notes: StateFlow<List<NoteEntity>> =
         repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -61,9 +73,45 @@ class NotepadViewModel(
 
     private var autosaveJob: Job? = null
 
+    /**
+     * Resilience: a failed persistence write (disk full, DB error…) must never
+     * crash the app. The user's text stays in the editor state, the next autosave
+     * retries, and the UI gets a non-fatal signal ([persistenceError]). Cancellation
+     * is rethrown so cancel () keeps working on in-flight autosaves.
+     */
+    private fun launchPersist(block: suspend () -> Unit): Job =
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                runCatching { Log.w(TAG, "Persistence write failed", e) }
+                _persistenceError.tryEmit(Unit)
+                withContext(NonCancellable) {
+                    // Retry once after the failure:the underlying storage may have
+                    // recovered (e.g., disk space freed),and the text must not be lost
+                    // silently. NonCancellable so the retry cannot be cancelled mid-write.
+
+                    // A second consecutive failure must still not crash the ViewModel:
+                    // the text stays in the editor state and the next autosave keeps retrying;
+                    // keep emitting the non-fatal signal så the UI can warn the user..
+                    try {
+                        block()
+                        runCatching { Log.w(TAG, "Persistence retry succeeded after failure") }
+                    } catch (retryE: CancellationException) {
+                        throw retryE
+                    } catch (retryE: Exception) {
+                        runCatching { Log.e(TAG, "Persistence retry failed", retryE) }
+                        _persistenceError.tryEmit(Unit)
+                    }
+                }
+            }
+        }
+
     fun save(title: String, content: String, existingId: Long? = null) {
         if (existingId == null && title.isBlank() && content.isBlank()) return
-        viewModelScope.launch { doPersist(title, content, existingId) }
+        launchPersist { doPersist(title, content, existingId) }
     }
 
     /**
@@ -88,7 +136,7 @@ class NotepadViewModel(
     /** Debounced persistence, invoked on every editor change. */
     fun autosave(title: String, content: String) {
         autosaveJob?.cancel()
-        autosaveJob = viewModelScope.launch {
+        autosaveJob = launchPersist {
             delay(AUTOSAVE_DEBOUNCE_MS)
             doPersist(title, content, draftId, bindDraft = true)
         }
@@ -107,7 +155,7 @@ class NotepadViewModel(
         val doneWasNew = draftWasNew
         draftId = null
         draftWasNew = false
-        viewModelScope.launch {
+        launchPersist {
             doPersistCommit(title, content, doneId, doneWasNew)
         }
     }
@@ -166,7 +214,7 @@ class NotepadViewModel(
     }
 
     fun delete(note: NoteEntity) {
-        viewModelScope.launch { repo.delete(note) }
+        launchPersist { repo.delete(note) }
     }
 
     /**
@@ -176,13 +224,13 @@ class NotepadViewModel(
      * a live note.
      */
     fun restore(note: NoteEntity) {
-        viewModelScope.launch {
+        launchPersist {
             val free = repo.get(note.id) == null
             repo.save(if (free) note else note.copy(id = 0L))
         }
     }
 
     fun togglePinned(id: Long) {
-        viewModelScope.launch { repo.togglePinned(id) }
+        launchPersist { repo.togglePinned(id) }
     }
 }

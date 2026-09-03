@@ -5,7 +5,28 @@
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
 
-## 2026-09-02 — Ejecución 025 (testing: cobertura UI end-to-end del pin)
+## 2026-09-03 — Ejecución 027 (P1/hardening: persistencia resiliente ante fallos de escritura)
+
+- **Todos los paths de escritura son fail-safe ahora** (P1, resiliencia/
+  recuperación ante fallos): antes de RUN 027, cualquier excepción de
+  almacenamiento (disco lleno, error de BD) durante `save`/`autosave`/
+  `commitDraft`/`delete`/`restore`/`togglePinned` se propagaba fuera del
+  `viewModelScope.launch` — crash potencial de la app y pérdida silenciosa de la
+  escritura sin feedback. Ahora los seis paths pasan por el helper
+  `launchPersist {}` (captura `CancellationException` rethrow; un reintento una vez
+  dentro de `withContext(NonCancellable)`; evento one-shot `persistenceError`,` un
+  fallo persistente sigue emitiendo el evento recuperable sin crash); el texto
+  queda en el estado del editor y el siguiente autosave puede autocorregirse..
+  La lista escucha `persistenceError` y muestra snackbar «No se pudo
+  completar la operación» (`error_persistence`); `NotepadApp` enhebra el flujo.
+
+  Sin dependencias nuevas. Regresiones JVM +3 (`failedSave_emitsPersistenceError_andRetriesLater`,
+  `failedDelete_doesNotCrash_andEmitsError`, `failedRestore_overridesNoLiveNote`):
+  suite completa 3-variantes **71/71,  0 fallos,  0 errores** (ver TEST_STATUS.md).
+
+
+
+##2026-09-02 — Ejecución 025 (testing: cobertura UI end-to-end del pin)
 
 - **Regresión UI del flujo de fijar/desfijar** (P2, testing): el pin se acciona
    desde el menú ⋮ de cada fila pero ningún test de UI cubría ese eslabón final:

@@ -182,15 +182,27 @@
 
 ## Estado de tests
 
-- **Última ejecución(RUN 026):** 68/68 verdes en las3 variantes —
+- **Última ejecución(RUN 027):** 71/71 verdes en las3 variantes —
   `testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
-  `testPreviewAdvancedDebugUnitTest` → **68 tests, 0 fallos (11 DAO + 7 Repo
-  + 25 VM [incluye `processDeath_restoresSearchQuery`, BUG-009, y
-   `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`] + 16 UI
+  `testPreviewAdvancedDebugUnitTest` → **71 tests, 0 fallos (11 DAO + 7 Repo
+  + 28 VM [incluye `processDeath_restoresSearchQuery`, BUG-009,
+   `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`, y las  3 regresiones
+   de persistencia resiliente `failedSave/Delete/Restore`] + 16 UI
   [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 4/4
   (label accesible «Buscar notas» persistente) + `NotesListPinToggleTest` 2/2
   (pin vía menú ⋮)] + 4 `NoteEntityPreviewTest` + 5
   `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
+
+## Resiliencia de persistencia (RUN 027)
+
+- Todos los paths de escritura (`save`/`autosave`/`commitDraft`/`delete`/`restore`/
+  `togglePinned`) pasan por `launchPersist {}`: un fallo de almacenamiento(disco lleno,
+  error de BD) ya no puede crashear la app, emite un evento one-shot
+  `persistenceError` (MutableSharedFlow, reintenta una vez dentro de
+  `withContext(NonCancellable)` y si el reintento falla sigue emitiendo el evento
+  recuperable — el texto queda en el editor y el siguiente autosave puede
+  autocorregirse. La lista muestra snackbar «No se pudo completar la operación»
+  (`error_persistence`). Sin dependencias nuevas.
 
 ## Accesibilidad (RUN 024)
 

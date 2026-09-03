@@ -5,11 +5,11 @@
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (11 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (25 tests,
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (28 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
   commit→beginDraft hacia otra nota, y nota nueva tras back. RUN 022: +1 regresión
   de BUG-009 — `processDeath_restoresSearchQuery`: la query de búsqueda activa
-  sobrevive a la recreación del ViewModel vía `SavedStateHandle`).
+  sobrevive a la recreación del ViewModel vía `SavedStateHandle`). RUN 026: +1 `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`. RUN 027: +3 regresiones de persistencia resiliente (`failedSave_emitsPersistenceError_andRetriesLater`, `failedDelete_doesNotCrash_andEmitsError`, `failedRestore_overridesNoLiveNote`).
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (3 tests; RUN 012
     añade `toolbarDone_commitsAndNavigates` — "Hecho" hace commit y navega).
   - `NoteEditorRecreationTest` — UI Compose/Robolectric (2 tests, RUN 012):
@@ -41,6 +41,22 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-03 (ejecucion 027, hardening: persistencia resiliente ante fallos de
+  escritura): verificado en este sandbox → las 3 variantes
+  (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **71 tests,  ‌0 fallos,, ‌0 errores** (BUILD
+  SUCCESSFUL). Frente a las  68 de la RUN 026 (+3): nuevas regresiones JVM
+  en `NotepadViewModelTest` (FakeDao con flag `failWrites`):
+  `failedSave_emitsPersistenceError_andRetriesLater` (autosave fallido emite
+  evento recuperable y no persiste; tras recuperacion el siguiente autosave
+  persiste), `failedDelete_doesNotCrash_andEmitsError` (borrado fallido conserva
+  la nota y emite evento)y `failedRestore_overridesNoLiveNote` (restore fallido
+  emite evento; un restore posterior tras recuperacion vuelve a insertar). Todos
+  los paths de escritura pasan por el helper `launchPersist` (reintento una vez
+  dentro de `NonCancellable`, evento one-shot `persistenceError` a la UI → snackbar).
+  Sin fallos conocidos ni flakiness detectado.
+
+
 - 2026-09-02 (ejecución 026, hardening: no-commit-sin-cambios): verificado en este
   sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest`): **68 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL,

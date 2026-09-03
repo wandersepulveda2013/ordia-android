@@ -617,3 +617,42 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** siguiente candidato P2/P3: cobertura de resiliencia del editor
   (p.ej. fallo de escritura / excepción durante persistencia — ¿qué pasa si
   `repo.update` lanza error?) o focus indicator de la lista para navegación por teclado.
+
+
+## RUN 027 - 2026-09-03 (P1/hardening: persistencia resiliente ante fallos de escritura)
+- **Objetivo:** cerrar el candidato de la RUN 026: un fallo de persistencia (disco
+  lleno, error de BD) no debe tumbar la app — antes de esta ejecución, cualquier
+  excepción en `save`/`autosave`/`commitDraft`/`delete`/`restore`/`togglePinned`
+  se propagaba fuera del `launch { }` y podía crashear el ViewModel (ámbito de la
+  actividad), perdiendo silenciosamente la escritura sin avisar al usuario..
+- **Hallazgo:** los seis paths de escritura usaban `viewModelScope.launch { ... }`
+  con `repo.*` sin protección; una excepción de almacenamiento lanzada dentro del
+  launch se convertía en crash de la app (hilo principal no, pero el `viewModelScope`
+  propaga la excepción al handler global), y el usuario no recibía ningún feedback..
+- **Cambio:** nuevo helper `launchPersist {}` en `NotepadViewModel`: captura
+  `CancellationException` (rethrow), emite evento one-shot `_persistenceError`
+  (MutableSharedFlow), reintenta una vez dentro de `withContext(NonCancellable)`
+  y si el reintento también falla vuelve a emitir el evento recuperable (sin crash);
+  el texto queda en el estado del editor y el siguiente autosave/reintento puede
+  autocorregirse. Todos los paths de escritura (`save`/`autosave`/`commitDraft`/
+  `delete`/`restore`/`togglePinned`) pasan por el helper. La UI escucha
+  `persistenceError` en `NotesListScreen` y muestra snackbar «No se pudo
+  completar la operación» (nuevo string `error_persistence`); `NotepadApp`
+  enhebra el flujo al screen. Sin dependencias nuevas (`android.util.Log` solo)..
+- **Tests:** +3 regresiones JVM en `NotepadViewModelTest` (FakeDao con flag
+  `failWrites`): `failedSave_emitsPersistenceError_andRetriesLater` (autosave
+  fallido emite evento y no persiste; tras recuperación el siguiente autosave
+  persiste), `failedDelete_doesNotCrash_andEmitsError` (borrado fallido conserva
+  la nota y emite evento), `failedRestore_overridesNoLiveNote` (restore fallido
+  emite evento y un restore posterior tras recuperación vuelve a insertar). Suite
+  completa 3-variantes re-ejecutada: `testPreviewSafeDebugUnitTest`,
+  `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest` →
+  **71 tests,  ‌0 fallos,  0 errores** cada variante (+3 vs RUN 026; BUILD SUCCESSFUL, 31s).
+- **Commit:** `fix(notes): fail-safe persistence writes with retry + user signal`
+  + `test(notes): cover failed save/delete/restore without crash` + `docs(ai): record RUN 027`.
+- **Estado:** fix + regresiones verificados en las 3 variantes; memoria actualizada.
+
+- **Siguiente tarea:** (a) en el editor, el snackbar de error no se muestra(solo
+  lista) — evaluar surfacer el evento también en la pantalla del editor si hay
+  un autosave fallido en curso;(b) candidate P2: focus indicator de la lista
+  para navegación por teclado/TalkBack.
