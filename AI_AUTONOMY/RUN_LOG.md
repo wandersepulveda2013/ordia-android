@@ -476,3 +476,11 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## SESIÓN AUTOMATIZADA — Mejora de UX y Mantenimiento de Base de Datos de Notas
+- **Fecha**: (Actual)
+- **Cambios**:
+  - Se modificó `NoteEditorScreen.kt` para usar `FocusRequester` y poner el foco automáticamente en el campo de texto cuando se edita una nota vacía o nueva.
+  - Se modificó `NotepadViewModel.kt` para descartar notas sin título ni contenido (previniendo basura en BD) y para borrar notas existentes que son vaciadas.
+  - Se agregó `NotepadViewModelTest.kt` para verificar el comportamiento de la función `save`.
+- **Verificación**: `./gradlew testPreviewSafeDebugUnitTest` y lint pasaron sin errores.

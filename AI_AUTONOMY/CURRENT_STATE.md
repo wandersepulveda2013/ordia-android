@@ -58,3 +58,12 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 ## Estado CI
 
 - `android-ci.yml` (versión per-flavor del rebuild) activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas; sign+publish solo en push a `main`, publicando `Ordia-3.0-{safe,full,advanced}-signed.apk` + `update-manifest-<flavor>.json` + release inmutable con 9 assets.
+
+## Sesión Actual - Mejora de UX e Integridad de Notas
+- **Trabajo seleccionado**:
+  - Evitar el guardado de notas vacías para prevenir acumulación en base de datos.
+  - Solicitar el foco automáticamente en el editor al crear una nueva nota.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/ui/NotepadViewModel.kt`, `app/src/main/java/com/ordia/app/ui/screens/NoteEditorScreen.kt`.
+- **Pruebas añadidas**: `app/src/test/java/com/ordia/app/ui/NotepadViewModelTest.kt`.
+- **Verificación**: `./gradlew testPreviewSafeDebugUnitTest` y `./gradlew lintPreviewSafeDebug` resultaron exitosos.
+- **Próximo candidato**: (P3) Pulido visual de pantallas renovadas del workspace.
