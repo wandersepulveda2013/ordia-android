@@ -476,3 +476,20 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+---
+
+## SESIÓN 008 — Mejoras UX y limpieza de base de datos
+
+- **Fecha (UTC)**: 2026-09-03
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+- **Limpieza de borradores vacíos**: Se modificó `NotepadViewModel.kt` para no guardar borradores completamente vacíos (título y contenido en blanco). Si se edita una nota existente para dejarla en blanco, la aplicación ahora la elimina de la base de datos automáticamente, previniendo el desorden.
+- **Auto-enfoque y teclado**: Se actualizó `NoteEditorScreen.kt` usando `FocusRequester` y `LaunchedEffect` para solicitar enfoque automáticamente y abrir el teclado cuando el usuario crea una nueva nota.
+- **Tests**: Se añadió `NotepadViewModelTest.kt` con pruebas usando un `FakeDao` para verificar el correcto funcionamiento del nuevo comportamiento al guardar borradores vacíos o modificar notas existentes.
+
+### Verificación
+- `:app:compilePreviewSafeDebugKotlin` → BUILD SUCCESSFUL.
+- `:app:testPreviewSafeDebugUnitTest` → BUILD SUCCESSFUL; 15 tests, 0 fallos (se añadieron 3 tests unitarios).
+- `:app:lintPreviewSafeDebug` → 0 errores (warnings de deprecación pre-existentes).
