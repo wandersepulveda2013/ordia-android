@@ -14,6 +14,8 @@
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 | P0 | Updater | Actualizador in-app nativo basado en manifiesto (check sin bloquear arranque, progreso, verificación SHA-256/package/versionCode/firma, PackageInstaller + confirmación final, Ajustes → Actualizaciones, badge, feed desacoplado del agente) | sesión 006: `UpdateManifestParserTest` 11/11 + `UpdateSecurityRulesTest` 9/9 + 6 variantes compilan + lint 0 errores; CI publica `update-manifest-<flavor>.json` + `Ordia-3.0-<flavor>-signed.apk`; integrado en `main` (sesión 007, merge `5c7f8a6d`) | VERIFIED — código/test/CI; falta verificación física en dispositivo ADB (bloqueada por hardware) |
 | P0 | Convergencia | Integrar el rebuild 3.0 + actualizador de `jules/autonomous-ordia` en `main` sin perder funcionalidad de main | sesión 007: merge `5c7f8a6d`, 36 conflictos resueltos, widget `hoy`/`atrasadas` + recordatorios de hábitos recuperados, update checker viejo eliminado, 2352 tests verdes, lint 0 errores | VERIFIED — pendiente push de `main` y fast-forward de la rama autónoma |
+| P2 | Data | Notas vacías se guardan y ensucian la base de datos (clutter). No debería guardarse si está vacío. | Sesión 008: `NotepadViewModelTest`, `NotepadViewModel.kt` modificado. | FIXED |
+| P3 | UX | `NoteEditorScreen` no auto-enfoca el teclado al crear nuevas notas, aumentando la fricción. | Sesión 008: Añadido `FocusRequester` en `NoteEditorScreen.kt`. | FIXED |
 | P3 | QA | Lint: 115 warnings no bloqueantes (UseKtx 42, PluralsCandidate 31, GradleDependency 7, ModifierParameter 7…) | `lint-results-previewSafeDebug.xml` | FIXED — 0 errores, 95 warnings (Fase 18, commit `fbacf74`) |
 
 ## Completados
