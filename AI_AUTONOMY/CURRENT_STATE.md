@@ -16,6 +16,7 @@
 
 - app/src/main/java/com/ordia/app/ui/screens/NoteEditorScreen.kt
 - app/src/main/java/com/ordia/app/ui/NotepadViewModel.kt
+- app/src/main/java/com/ordia/app/data/NoteDatabase.kt
 - AI_AUTONOMY/BACKLOG.md
 - AI_AUTONOMY/RUN_LOG.md
 
