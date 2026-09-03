@@ -20,6 +20,9 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P2 | CI | Error de parseo JSON en kotlinx.serialization.json.internal.JsonDecodingException en CI por Room export schema | build log en CI con KSP fallando por parseo | FIXED |
+| P3 | UX | Notas completamente vacías saturan la base de datos | test manual/observación de la base de datos | FIXED |
+| P3 | UX | Editor de notas no hace auto-focus en el título al crear nota nueva, añadiendo fricción | test de usabilidad | FIXED |
 | P0 | What Now | Explicar por qué se sugiere cada tarea en "Qué hago ahora" | `WhatNowSuggestion.detail` + `WhatNowEngineTest` | FIXED |
 | P0 | Priorización | Priorizador duplicado entre `DayPlanner` y `WhatNowEngine` | `TaskRules.schedulingComparator` único + tests | FIXED |
 | P0 | Guardianes | `guardianInsight` se computaba pero no se mostraba en ninguna UI | card dismissible en Today + `GuardianCoachTest` | FIXED |

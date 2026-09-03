@@ -476,3 +476,14 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## 2026-08-16 — Note Editor UX and CI fix (jules/autonomous-ordia)
+
+Sesión de implementación the mejoras de UX en el editor de notas y solución de compilación en CI. Build + tests verificados.
+
+### Commits (esta sesión)
+- (pendientes de commit en este run)
+
+### Verificación
+- `:app:testPreviewSafeDebugUnitTest` — BUILD SUCCESSFUL
+- CI Room `exportSchema` config fixed.
