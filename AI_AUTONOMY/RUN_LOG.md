@@ -476,3 +476,15 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+## 2026-08-16 (Sesión Jules - UX y Navegación)
+- **Estado Inicial:** Proyecto base (Notepad) con problemas de UX al editar notas vacías y navegación basada en estado.
+- **Trabajo Seleccionado:** Implementar NavHost, prevenir guardado de notas vacías, auto-focus en NoteEditorScreen.
+- **Cambios Realizados:**
+  - `NotepadViewModel.kt`: Se añadió lógica para prevenir el guardado de notas con título y contenido vacíos y borrar las pre-existentes si se vacían.
+  - `NoteEditorScreen.kt`: Añadido `FocusRequester` para auto-foco en la creación de notas.
+  - `NotepadApp.kt`: Refactorizado para usar `NavHost` con rutas `home`, `today`, `capture`, `search`, y `note_editor`.
+  - `NotepadViewModelTest.kt`: Pruebas añadidas para la lógica de notas vacías usando un `FakeNoteDao`.
+- **Verificación:** Tests `testPreviewSafeDebugUnitTest` y `lintPreviewSafeDebug` pasan (0 errores).
+- **Resultado Objetivo:** Mejora en la UX y arquitectura de navegación robusta; las notas vacías ya no ensucian la DB.
+- **Riesgo Residual:** Faltan las implementaciones completas de pantallas de Today, Capture y Search (actualmente placeholders).
+- **Próximo Candidato:** Evolucionar UI a Foundation (OrdiaDesignSystem).

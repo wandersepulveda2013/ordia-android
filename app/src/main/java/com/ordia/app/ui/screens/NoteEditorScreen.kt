@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
 
@@ -40,11 +42,14 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(note?.id) {
         if (note != null) {
             title = note.title
             content = note.content
+        } else {
+            focusRequester.requestFocus()
         }
     }
 
@@ -91,7 +96,7 @@ fun NoteEditorScreen(
                 onValueChange = { title = it },
                 placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 colors = bareFieldColors(),
             )
             TextField(
