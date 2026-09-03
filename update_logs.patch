@@ -1,0 +1,9 @@
+--- AI_AUTONOMY/BACKLOG.md
++++ AI_AUTONOMY/BACKLOG.md
+@@ -10,6 +10,8 @@
+ | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
+ |-----------|------|----------|----------|--------|
+ | P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED |
++| P3 | UX | Reducir fricción al crear notas: solicitar foco y abrir teclado automáticamente; prevenir guardado de notas vacías | inspección de UX | FIXED |
+ | P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access, updates_*) | inspección manual pendiente | OPEN |
+ | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |

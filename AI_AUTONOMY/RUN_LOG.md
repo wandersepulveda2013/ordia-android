@@ -476,3 +476,8 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## 2026-08-16 (Sesión actual)
+- **Seleccionado**: P3 UX - Auto-focus al crear notas y descarte de notas vacías.
+- **Implementación**: Se usó `FocusRequester` y `LocalSoftwareKeyboardController` en `NoteEditorScreen` para solicitar foco y mostrar teclado si `note == null`. En `NotepadViewModel`, `save` evita insertar entidades donde `title` y `content` están en blanco, y borra notas existentes si se editan para quedar en blanco.
+- **Verificación**: `./gradlew :app:testPreviewSafeDebugUnitTest` -> 0 fallos.
