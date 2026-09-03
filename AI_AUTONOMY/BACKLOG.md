@@ -10,6 +10,7 @@
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
 | P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED |
+| P3 | UX | Reducir fricción al crear notas: solicitar foco y abrir teclado automáticamente; prevenir guardado de notas vacías | inspección de UX | FIXED |
 | P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access, updates_*) | inspección manual pendiente | OPEN |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 | P0 | Updater | Actualizador in-app nativo basado en manifiesto (check sin bloquear arranque, progreso, verificación SHA-256/package/versionCode/firma, PackageInstaller + confirmación final, Ajustes → Actualizaciones, badge, feed desacoplado del agente) | sesión 006: `UpdateManifestParserTest` 11/11 + `UpdateSecurityRulesTest` 9/9 + 6 variantes compilan + lint 0 errores; CI publica `update-manifest-<flavor>.json` + `Ordia-3.0-<flavor>-signed.apk`; integrado en `main` (sesión 007, merge `5c7f8a6d`) | VERIFIED — código/test/CI; falta verificación física en dispositivo ADB (bloqueada por hardware) |
@@ -32,5 +33,6 @@
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
 | P2 | UI | `Icons.Outlined.InsertDriveFile` (y ArrowForward/ArrowBack/Send/FormatListBulleted) deprecados | warnings de compilación → AutoMirrored | FIXED |
+| P3 | UX | Reducir fricción al crear notas: solicitar foco y abrir teclado automáticamente; prevenir guardado de notas vacías | inspección de UX | FIXED |
 | P2 | i18n | 65 cadenas sin ninguna referencia en Kotlin/XML/variantes/tests | análisis automático → poda de 58 strings + 7 plurals verificados en uso vía `R.plurals.*` | FIXED |
 | P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `assemble` ×6 → 6 APK generados | FIXED |
