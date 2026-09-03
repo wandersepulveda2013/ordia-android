@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaSurface
 import java.text.DateFormat
 import java.util.Date
 
@@ -68,16 +69,20 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        OrdiaSurface(
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            if (notes.isEmpty()) {
+                EmptyState(PaddingValues(0.dp))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    items(notes, key = { it.id }) { note ->
+                        NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    }
                 }
             }
         }
