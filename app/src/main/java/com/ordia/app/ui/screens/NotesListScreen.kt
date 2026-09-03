@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaSurface
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,35 +51,37 @@ fun NotesListScreen(
     onDeleteNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+    OrdiaSurface {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    ),
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onCreateNote,
+                    containerColor = MaterialTheme.colorScheme.onBackground,
+                    contentColor = MaterialTheme.colorScheme.background,
+                ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+            },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        ) { padding ->
+            if (notes.isEmpty()) {
+                EmptyState(padding, onCreateNote)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    items(notes, key = { it.id }) { note ->
+                        NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    }
                 }
             }
         }
@@ -85,23 +89,23 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun EmptyState(padding: PaddingValues, onCreateNote: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize().padding(padding),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Una página en blanco\nes donde empieza todo.",
+                "Un espacio en blanco para tus ideas.",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
-            Text(
-                "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            OrdiaButton(
+                onClick = onCreateNote,
+                modifier = Modifier.padding(top = 24.dp)
+            ) {
+                Text("Crear nota")
+            }
         }
     }
 }
