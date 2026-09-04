@@ -688,3 +688,22 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** candidato P2/P3: extender tests UI del editor (back tras
   autosave — N°1 de NEXT_TASKS); o auditar tags `testTag`/clases de las 2
   pantallas para consistencia de automatización.
+
+
+## RUN 030 - 2026-09-04 (P2/accesibilidad: anuncio TalkBack de fila fijada + regresión)
+
+
+
+- **Objetivo:** completar la regresión de accesibilidad del anuncio TalkBack de fila
+  fijada(el commit `6728214` quedó roto: `stringResource` dentro de un lambda
+  no-`@Composable` y faltaban los imports `semantics`/`stateDescription`, causando
+  `Unresolved reference 'semantics'` en `compilePreviewSafeDebugKotlin`).
+- **Hallazgo:** el estado de la fila fijada se expone via `Modifier.semantics { stateDescription = ... }`; al introducir `stringResource` directamente en ese lambda no-composable, la compilación fallaba. La solución: calcular `stringResource(R.string.row_state_pinned)` fuera del lambda y usar la variable en el bloque `semantics`. Test nuevo añadido para cubrir el anuncio.
+
+- **Cambio:** `NotesListScreen.kt`: imports `semantics`+`stateDescription` añadidos; `stateDescription = pinnedState` (string cargada fuera del lambda}. `NotesListAccessibilityTest`: +1 test `pinnedNote_announcesPinnedStateDescription` (verifica `StateDescription == "Fijada"` en la fila fijada y ausencia en la normal).
+- **Tests:** suite completa de las 3 variantes re-ejecutada (`testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`, `testPreviewAdvancedDebugUnitTest`) → **73 tests,   0 fallos,,  0 errores** cada variante (BUILD SUCCESSFUL; +1 vs RUN 029).
+- **Commit:** `336bb3a` — `fix(notes): resolve pinned-state TalkBack announcement for note rows`.
+- **Estado:**  3 variantes en verde;; memoria actualizada en commit siguiente.
+- **Siguiente tarea:** candidato P2/P3: extender tests UI del editor (back tras
+  autosave—N°1 de NEXT_TASKS);o auditar tags `testTag`/clases de las 2
+  pantallas para consistencia de automatización.

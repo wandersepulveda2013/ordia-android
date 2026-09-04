@@ -39,6 +39,10 @@
   es focuseable (`Modifier.focusable()` + `.onFocusChanged` con fondo highlight
   `secondaryContainer` @45% RoundedCornerShape(10.dp)) y etiqueta estable
   `note_row_<id>` — regresión `NotesListFocusTest` (72/72 en previewSafe).
+  RUN 030: **anuncio TalkBack del estado fijado en la lista restaurado/cubierto:**
+  el `stateDescription` de la fila fijada es `"Fijada"` (string cargada fuera del
+  lambda no-`@Composable`; imports `semantics`/`stateDescription`), con regresión
+  `pinnedNote_announcesPinnedStateDescription` (**73/73 en las  ‌3 variantes**).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

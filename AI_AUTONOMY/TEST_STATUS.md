@@ -27,7 +27,9 @@
 
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
     + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
-- `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
+- `NotesListAccessibilityTest` — UI Compose/Robolectric (3 tests, RUN 011
+    + RUN 030: `pinnedNote_announcesPinnedStateDescription` — regresión de
+    TalkBack: la fila fijada expone `StateDescription == "Fijada"` y la no-fijada no).
   - `NotesListFocusTest` — UI Compose/Robolectric (1 test, RUN 029,
     P2 accesibilidad): regresión de foco de la lista — cada fila es focuseable
     independientemente por teclado/TalkBack (`Modifier.focusable()` + anillo/fondo
