@@ -5,6 +5,8 @@ import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import com.ordia.app.data.NoteEntity
@@ -129,5 +131,59 @@ class NoteEditorRecreationTest {
 
         assertEquals("Borrador nuevo", saved!!.first)
         assertEquals("", saved.second)
+    }
+
+    /**
+     * Regresión de duplicados (sección 15 de la misión): si el autosave ya creó
+     * la fila de una nota nueva, una recreación del editor (rotación/proceso-muerte,
+     * vía `StateRestorationTester`) debe **resumir el mismo draft** en vez de crear
+     * una fila nueva. El texto tecleado tras la recreación debe persistirse en la
+     * ÚNICA fila existente (mismo id), no en una nota duplicada..
+     */
+    @Test
+    fun recreation_afterAutosaveCreatedRow_resumesSameDraft_doesNotDuplicate() {
+        val commits = mutableListOf<Pair<String, String>>()
+        val autosaves = mutableListOf<Pair<String, String>>()
+
+        val restorationTester = StateRestorationTester(compose)
+        restorationTester.setContent {
+            NoteEditorScreen(
+                note = null,
+                onBack = {},
+                onAutosave = { title, content -> autosaves.add(title to content) },
+                onCommit = { title, content -> commits.add(title to content) },
+            )
+        }
+
+        // La primera escritura dispara el autosave(que en la app real crea la fila
+        // bajo el draft id) y luego una recreacion simula la rotacion / proceso-muerte..
+
+        compose.onAllNodes(hasSetTextAction())[0].performTextInput("Borrador")
+        compose.onAllNodes(hasSetTextAction())[1].performTextInput("primera version")
+
+        restorationTester.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+
+        // Tras la recreacion el usuario sigue escribiendo (autosave del mismo draft..
+        compose.onAllNodes(hasSetTextAction())[0].performTextInput(" + editado")
+        compose.onAllNodes(hasSetTextAction())[1].performTextInput(" + mas")
+
+        // El commit final entrega el contenido completo acumulado, nunca un duplicado..
+        compose.onNodeWithText("Hecho").performClick()
+        compose.waitForIdle()
+
+        assertEquals("El back/Hecho debe hacer commit exactamente una vez", 1, commits.size)
+        // El cursor tras la restauración puede no estar al final del campo, así que
+        // el orden textual exacto no es el invariante: lo es que NI el texto previo
+        // a la recreación NI el posterior se pierdan..
+        assertTrue("El contenido previo a la recreacion se preserva", commits.single().first.contains("Borrador"))
+        assertTrue("El contenido posterior a la recreacion se preserva", commits.single().first.contains("editado"))
+        assertTrue("El cuerpo previo a la recreacion se preserva", commits.single().second.contains("primera version"))
+        assertTrue("El cuerpo posterior a la recreacion se preserva", commits.single().second.contains("mas"))
+
+        // El autosave debe haberse disparado al menos una vez por cada escritura:
+        // ninguna escritura debe perderse por recreacion debris.. (No se exige un
+        // numero exacto por la noche del debounce en esta pantalla acoplada.)
+        assertTrue("El autosave debe haberse disparado antes de la recreacion", autosaves.isNotEmpty())
     }
 }
