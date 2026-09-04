@@ -299,7 +299,7 @@ private fun NoteRow(
     onTogglePin: (Long) -> Unit,
     onRequestDelete: (NoteEntity) -> Unit,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     var rowFocused by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
         relativeLabel(note.updatedAt)
@@ -363,11 +363,17 @@ private fun NoteRow(
             } else {
                 stringResource(R.string.pinned_note, note.title)
             }
+            val iconModifier = Modifier
+                .size(18.dp)
+                .padding(top =  2.dp)
+                .semantics {
+                    stateDescription = stringResource(R.string.row_state_pinned)
+                }
             Icon(
                 Icons.Outlined.PushPin,
                 contentDescription = pinLabel,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = iconModifier,
             )
         }
         Box {
