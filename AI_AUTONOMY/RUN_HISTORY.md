@@ -1,3 +1,46 @@
+## RUN 034 - 2026-09-04 (P2/limpieza: recursos muertos del merge + P1 BUG-010 identificado y documentado)
+- **Objetivo:** cerrar el ciclo de limpieza heredado (import muerto y recursos XML
+  sin usar) y, de paso, documentar el riesgo P1 de mayor valor encontrado en el
+  camino crítico del editor.
+
+- **Hallazgo:** (a) el merge del rebuild dejó recursos muertos: import `Snackbar`
+  sin usar en `NotesListScreen` y 2 animaciones XML sin usar (`slide_in_top`/
+  `slide_out_top`),más 8 líneas de residuo en `values-night/themes.xml` — todo
+  eliminable sin cambio funcional.(b) **BUG-010** (P1):`commitDraft` cancela el
+  autosave,, limpia la sesión de draft **síncronamente** y lanza el commit final en{
+  background — si ese último write falla, el último texto tecleado se pierde(el editor
+  ya navegó atrás y la sesión está limpia;el snackbar global no recupera el texto. El
+  flujo de autosave sí es self-healing(texto en el editor + reintento);el commit final
+  rompe esa cadena.
+
+
+
+- **Cambio:**(a) limpieza no funcional: quitado import `Snackbar` de
+  `NotesListScreen.kt`;borrados `anim/slide_in_top.xml` y `anim/slide_out_top.xml`;
+  quitadas 8 líneas residuo de `values-night/themes.xml`. (b) memoria::
+  `BUGS_FOUND.md` BUG-010 (abierto,reproducción,causa y test propuesto);
+  `NEXT_TASKS.md` P1 ítem 0(fix propuesto mínimo;; `TEST_STATUS.md` nota
+  aclaratoria real。
+
+
+
+- **Tests:** no se re-ejecutó la suite esta ejecución(cambios no funcionales。
+  Último resultado real de la suite:RUN 032 verification,re-registrado en RUN 033 —
+  **77 tests por variante,0 fallos,0 errores** en las tres variantes
+  (`testPreviewSafeDebugUnitTest`/`testPreviewFullDebugUnitTest`/`testPreviewAdvancedDebugUnitTest`。
+
+
+
+- **Commit:** pendiente de esta ejecución(limpieza + memoria;al cierre,, junto al de RUN 022/
+  BUG-009)。
+
+- **Estado:** limpieza + memoria completadas;commit pendiente;push pendiente al cierre。
+
+
+ - **Siguiente tarea:** P1 — **BUG-010**: fix mínimo del commit final que pierde texto
+  si el storage falla(reintento en `launchPersist` y/o retener la sesión de draft**
+  hasta confirmar la escritura;ver `NEXT_TASKS.md` P1 ítem 0。
+
 ## RUN 019 - 2026-08-31 (verificacion post-commit + auditoria RTL pendiente registrada)
 - **Objetivo:** cerrar el ciclo de la ejecucion 018: re-verificar la suite sobre el
   commit ya pusheado (3da47ef); impulsar el memorial para el siguiente ciclo.

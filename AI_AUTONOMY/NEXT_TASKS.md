@@ -9,11 +9,25 @@ _(vacío tras la ejecución 001: eliminación sin deshacer y notas vacías queda
 
 ## P1 — Alto impacto
 
-_(vacío; RUN 022 resolvió BUG-009: la query de búsqueda activa se perdía en
-proceso-muerte — ahora vive en `SavedStateHandle` como la sesión de draft
-(ver BUGS_FOUND.md. RUN 009 resolvió BUG-006: integridad del ciclo de draft —
-duplicados y cross-contaminación al cambiar de nota en ráfaga y pérdida del
-draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
+0. **Fallo del commit final del editor puede perder texto (BUG-010, RUN 034).**
+   `commitDraft` cancela el autosave, limpia la sesión de draft **síncronamente** y
+   lanza `launchPersist { doPersistCommit(...) }` en background. Si ese write
+   falla (disco lleno, error de BD), la app muestra el snackbar global de
+   persistencia… pero el editor ya navegó atrás y la sesión de draft está limpia: el
+   último texto tecleado no queda en ninguna nota ni en el editor **se pierde**.
+   (El fallo de **autosave** sí es self-healing: el texto queda en el editor y
+   el siguiente autosave reintenta;el commit final rompe esa cadena.) Impacto:
+   pérdida de datos P1 en el camino de mayor frecuencia (back/Hecho.. Ver
+   BUGS_FOUND.md BUG-010. _Comprobar:_ fallo del write final con editor con
+   texto tecleado → el editor vuelve a la lista y el texto no está en ninguna nota
+   (reproducible con `failWrites=true` + `commitDraft`.. _Propuesta mínima:_
+   reintentar el commit final dentro de `launchPersist` (mantener el texto del
+   snapshot y reintentar en el siguiente autosave/commit)y/o retener la sesión
+   de draft si el commit falla hasta que se confirme la escritura.
+
+_(BUG-009 cerrado RUN 022: la query de búsqueda activa se perdía en proceso-muerte — ahora
+vive en `SavedStateHandle` como la sesión de draft.. BUG-006 cerrado RUN 009; BUG-005
+cerrado RUN 008.)_
 
 ## P2 — Calidad de producto
 

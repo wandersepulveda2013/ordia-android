@@ -2,6 +2,30 @@
 
 > Formato: bug · impacto · reproducción · causa · estado · commit.
 
+## BUG-010 — Fallo del commit final del editor puede perder el texto tecleado (P1
+
+- **Impacto:** pérdida de datos. Al pulsar back/Hecho con el autosave en curso y
+  storage fallido (disco lleno, error de BD), el commit final puede fallar:la
+  sesión de draft ya se limpió síncronamente y el editor ya navegó atrás, por lo
+  que el último texto tecleado no queda en ninguna nota ni en el editor.
+
+- **Reproducción:** escribir texto en el editor (autosave en curso)→ fallar el
+  storage (p. ej. `dao.failWrites = true`)→ pulsar back→ volver a la lista→
+
+  el texto no está en ninguna nota. El snackbar global "No se pudo completar la
+  operación" puede aparecer, pero no hay forma de recuperar el texto desde la UI.
+- **Causa:** `commitDraft` cancela `autosaveJob` y limpia `draftId`/`draftWasNew`
+  **síncronamente** antes de lanzar `launchPersist { doPersistCommit(...) }`:
+  si ese último write falla, nada reintenta y nada retiene el texto. (El flujo
+  de **autosave** es distinto:el texto sigue en el editor y el siguiente
+  autosave reintenta — self-healing, cubierto por
+  `failedSave_emitsPersistenceError_andRetriesLater`. El commit final rompe esa
+  cadena.)
+- **Estado:** ABIERTO (RUN 034, identificado y documentado; sin fix aún).
+- **Commit:** — (ninguno; ver `NEXT_TASKS.md` P1 ítem 0).
+- **Test:** — (se puede reproducir con `failWrites=true` + `commitDraft`;el
+  test de regresión `failedFinalCommit_preservesTextOrRetries` queda propuesto).
+
 ## BUG-008 — El merge `8a82c78` reintrodujo dos regresiones: back del editor sin commit final y borrado sin diálogo de confirmación (P1
 
 - **Impacto:** el merge de `437e7b5` (linaje RUN 020: focus indicator, autosave por
@@ -91,6 +115,7 @@
   real + `NoteRepository`: buscar `100%`, `_guion_bajo_` y `back\slash` devuelve solo
   las notas que contienen el literal; y buscar solo `%`, `_` o `\` encuentra
   solo la nota que realmente contiene ese carácter, no todas).
+
 
 ## BUG-006 — Duplicados/cross-contaminación por limpieza asíncrona del draft y draft en memoria (P1)
 

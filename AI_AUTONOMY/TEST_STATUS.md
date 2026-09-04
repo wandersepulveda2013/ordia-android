@@ -47,6 +47,12 @@
 - Variantes `previewFull` / `previewAdvanced`: mismo `src/test` (sin tests
   específicos de flavor por ahora).
 
+- 2026-09-04 (ejecución 034, limpieza + docs): restructura de `BUGS_FOUND.md`
+  (BUG-010 movido antes de BUG-008) y limpieza de recursos muertos ( import
+  `Snackbar` de `NotesListScreen.kt`; anims `slide_in_top|out.xml`; residuo en
+  `values-night/themes.xml`. Sin re-verificación de suite en esta ejecución (recursos
+  no funcionales}; último resultado real: RUN 032 verification, re-registrado en RUN 033.
+
 ## Último resultado
 - 2026-09-04 (ejecución 032, integridad de texto: preview de lista y diálogo
   de borrado sin partir pares sustitutos UTF-16): verificado en este sandbox con

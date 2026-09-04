@@ -217,6 +217,18 @@
 
   (pin vía menú ⋮)] +  ‌7 `NoteEntityPreviewTest` (RUN 032:+3 anti-par
   sustituto UTF‑16) + 5 `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
+## Riesgo abierto (P1, BUG-010, RUN 034)
+
+- **`commitDraft` puede perder el último texto tecleado si el storage falla en el
+  commit final.** El autosave es self-healing (texto queda en el editor y reintenta);
+  pero `commitDraft` cancela el autosave,**limpia la sesión de draft síncronamente**
+  y lanza el write en background:si ese write falla, el editor ya navegó atrás
+
+  y el texto no queda en ninguna nota ni en el editor. El snackbar global de
+  persistencia avisa, pero no recupera el texto. Documentado en `BUGS_FOUND.md`
+  BUG-010;fix mínimo propuesto (reintentar en `launchPersist` y/o retener la
+  sesión hasta confirmar la escritura) en `NEXT_TASKS.md` P1 ítem 0.
+
 ## Resiliencia de persistencia (RUN 027)
 
 - Todos los paths de escritura (`save`/`autosave`/`commitDraft`/`delete`/`restore`/
