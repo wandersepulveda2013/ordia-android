@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
@@ -28,6 +30,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaIconButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,12 +76,15 @@ fun NotesListScreen(
             EmptyState(padding)
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    OrdiaCard(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    ) {
+                        NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                    }
                 }
             }
         }
@@ -162,9 +169,11 @@ private fun NoteRow(
             )
         }
         Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
-            }
+            OrdiaIconButton(
+                icon = Icons.Outlined.MoreVert,
+                contentDescription = "Más",
+                onClick = { menuOpen = true }
+            )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
                     text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
