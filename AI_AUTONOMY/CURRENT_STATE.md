@@ -205,9 +205,10 @@
 
 ## Estado de tests
 
-- **Última ejecución(RUN 032):** 77/77 verdes en las3 variantes —
-  `testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
-  `testPreviewAdvancedDebugUnitTest` → **77 tests, 0 fallos (11 DAO + 7 Repo
+- **Última verificación real — RUN 032 (re-registrada en RUN 033):** 77/77
+  verdes en las 3 variantes (`testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
+  `testPreviewAdvancedDebugUnitTest`). RUN 034 no re-ejecutó la suite — cambios de
+  limpieza no funcionales. Detalle: **77 tests, 0 fallos (11 DAO + 7 Repo
   + 28 VM [incluye `processDeath_restoresSearchQuery`, BUG-009,
    `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`, y las  3 regresiones
 
