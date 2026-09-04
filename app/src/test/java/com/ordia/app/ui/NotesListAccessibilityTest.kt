@@ -3,7 +3,9 @@ package com.ordia.app.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -89,6 +91,31 @@ class NotesListAccessibilityTest {
         assertTrue("El tap on la fila debe abrir la nota", opened == pinnedNote.id)
 
 
+
+    }
+
+    @Test
+    fun pinnedNote_announcesPinnedStateDescription() {
+        compose.setContent {
+            NotesListScreen(
+                notes = listOf(pinnedNote, regularNote),
+                onOpenNote = {},
+                onCreateNote = {},
+                onDeleteNote = {},
+                onRestoreNote = {},
+                onTogglePin = {},
+            )
+        }
+
+        assertTrue(
+            "La nota fijada debe anunciar su estado 'Fijada' a TalkBack",
+            compose
+                .onNodeWithContentDescription("Fijada: Apuntes")
+                .fetchSemanticsNode()
+                .config
+                .getOrNull(SemanticsProperties.StateDescription) == "Fijada",
+        )
+        compose.onNodeWithContentDescription("Fijada: Recetas").assertDoesNotExist()
 
     }
 

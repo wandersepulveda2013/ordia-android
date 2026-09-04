@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
@@ -363,11 +365,12 @@ private fun NoteRow(
             } else {
                 stringResource(R.string.pinned_note, note.title)
             }
+            val pinnedState = stringResource(R.string.row_state_pinned)
             val iconModifier = Modifier
                 .size(18.dp)
                 .padding(top =  2.dp)
                 .semantics {
-                    stateDescription = stringResource(R.string.row_state_pinned)
+                    stateDescription = pinnedState
                 }
             Icon(
                 Icons.Outlined.PushPin,
