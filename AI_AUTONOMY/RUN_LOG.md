@@ -476,3 +476,19 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## 2026-08-16 — WAVE 1: Foundation + Design System
+
+**Misión**: Iniciar la evolución autónoma masiva implementando la primera oleada (WAVE 1).
+**Objetivo**: Establecer la base visual y el Design System minimalista coherente.
+
+### Trabajo Realizado
+- **Theme Reorganization**: Renombrado `PaperColors.kt` a `Colors.kt`. Extraída tipografía a `Type.kt`. `Theme.kt` consolidado.
+- **Design System Centralizado**: Creado `OrdiaDesignSystem.kt` en `com.ordia.app.ui.components` proporcionando componentes de interfaz funcionales y minimalistas (`OrdiaTopAppBar`, `OrdiaFloatingActionButton`, `OrdiaInput`, `OrdiaNoteRow`).
+- **Refactoring UI**: Adaptación de `NotesListScreen` y `NoteEditorScreen` para usar el nuevo Design System.
+- **UX Mejora (Fricción)**: Implementado `FocusRequester` y `LaunchedEffect` en `NoteEditorScreen.kt` para abrir el teclado y focalizar el input de título automáticamente cuando se entra a crear una nota nueva, per la regla de reducir fricción.
+
+### Verificación
+- `:app:lintPreviewSafeDebug` → 0 errores (warnings heredados superados).
+- `:app:testPreviewSafeDebugUnitTest` → PASS.
+- `:app:assembleDebug` → SUCCESSFUL para todas las variantes (Safe, Full, Advanced).
