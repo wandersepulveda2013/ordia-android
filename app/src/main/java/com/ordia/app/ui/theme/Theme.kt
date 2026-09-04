@@ -50,9 +50,10 @@ fun NotepadTheme(
     val type = Typography(
         bodyLarge = base.bodyLarge.copy(fontSize = 17.sp, lineHeight = 28.sp),
         bodyMedium = base.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp),
-        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp),
-        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp),
+        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 28.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 22.sp),
         titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
+        labelMedium = base.labelMedium.copy(fontSize = 12.sp),
         labelSmall = base.labelSmall.copy(fontSize = 11.sp),
     )
     MaterialTheme(

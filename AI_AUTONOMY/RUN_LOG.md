@@ -476,3 +476,26 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+---
+
+## SESIÓN ACTUAL — Wave 1: Foundation + Design System
+
+- **Fecha (UTC)**: 2026-09-04
+- **Trigger**: Misión MEGA EVOLUCIÓN AUTÓNOMA (Paso 1 del ciclo: Diseño visual y foundation).
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+1. **Paleta y Tipografía**: Establecidos los cimientos en `PaperColors.kt` (monocromo + semánticos controlados) y `Theme.kt` (Jerarquía tipográfica densificada y serif donde aplica).
+2. **OrdiaDesignSystem**: Nuevo archivo `OrdiaDesignSystem.kt` con componentes primarios (`OrdiaCard`, `OrdiaInput`, `OrdiaIconButton`, `OrdiaButton`) para unificar la UI y evitar el aspecto por defecto de Material.
+3. **Mejora UX en NoteEditorScreen**: Refactorizada con `OrdiaInput` y uso de `FocusRequester` para solicitar foco en el campo de texto cuando se crea una nota nueva, ahorrando un tap al usuario.
+4. **Actualización visual en NotesListScreen**: Envuelta cada nota en una tarjeta de `OrdiaCard` y adaptados los botones para usar el `OrdiaIconButton`.
+
+### Verificación
+- `:app:testPreviewSafeDebugUnitTest` -> SUCCESS
+- `:app:lintPreviewSafeDebug` -> SUCCESS
+
+### Siguiente candidato
+- **Wave 2**: Home + Navigation (Replantear la pantalla principal para priorizar contexto y simplificar navegación usando los nuevos componentes del design system).
+
+---
