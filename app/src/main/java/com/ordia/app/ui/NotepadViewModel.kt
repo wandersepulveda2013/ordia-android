@@ -15,14 +15,21 @@ class NotepadViewModel(private val repo: NoteRepository) : ViewModel() {
 
     fun save(title: String, content: String, existingId: Long? = null) {
         viewModelScope.launch {
+            val isEmpty = title.isBlank() && content.isBlank()
             if (existingId != null) {
                 val current = repo.get(existingId)
-                val now = System.currentTimeMillis()
                 if (current != null) {
-                    repo.update(current.copy(title = title, content = content, updatedAt = now))
+                    if (isEmpty) {
+                        repo.delete(current)
+                    } else {
+                        val now = System.currentTimeMillis()
+                        repo.update(current.copy(title = title, content = content, updatedAt = now))
+                    }
                 }
             } else {
-                repo.save(NoteEntity(title = title, content = content, createdAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
+                if (!isEmpty) {
+                    repo.save(NoteEntity(title = title, content = content, createdAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
+                }
             }
         }
     }
