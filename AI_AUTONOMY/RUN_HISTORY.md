@@ -768,7 +768,8 @@ Commit: test(editor): cover system-back save.
   (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)
   → **77 tests,  0 fallos,, 0 errores** cada variante(BUILD SUCCESSFUL; +3 vs RUN 031:
   `NoteEntityPreviewTest` 4→7 tests).
-- **Commit:** pendiente de esta ejecución, tras actualización de memoria.
+- **Commit:** `154662f` — `fix(notes): surrogate-safe previews and delete-dialog titles`
+  (memoria actualizada en el mismo commit;push a `origin/openhands/autonomous-notes` OK).
 
 - **Siguiente tarea:** revisar `NEXT_TASKS.md` — candidatos P2/P3 restantes:
 
@@ -777,3 +778,25 @@ Commit: test(editor): cover system-back save.
   **importación/exportación** o de **cierre inesperado** (zona crítica de persistencia,
   el `SavedStateHandle` cubre el draft pero no hay test de crash a mitad de un commit);;;c)
   esperar que `main` traiga trabajo nuevo que integrar con sus regresiones.
+
+
+## RUN 033 - 2026-09-04 (cierre/verificación de RUN 032 + memoria final)
+
+- **Objetivo:** validar con suite completa el trabajo heredado de previews anti-surrogate
+  y cerrar la documentación pendiente (RUN 032 quedó con "Commit: pendiente").
+- **Hallazgo:** el diff heredado era correcto tras la reparación de bytes (ya documentado en
+  RUN 032); solo faltaba la verificación ejecutada y el commit/push.
+- **Cambio:** (1) re-ejecutada la suite completa de las 3 variantes con
+  `--no-build-cache --rerun-tasks` (**231 ejecuciones de tests:77 por variante,
+  0 fallos, 0 errores**;BUILD SUCCESSFUL en  ́55s).(2) commit único con el código
+  + memoria (`154662f`).(3) push a `origin/openhands/autonomous-notes` (fast-forward;
+  remoto quedó en la misma `154662f`).(4) `RUN_HISTORY.md` — RUN 032 pasa a
+  "Commit: `154662f`" y se añade esta entrada RUN 033. (CURRENT_STATE y
+  NEXT_TASKS ya reflejaban el RUN 032 desde la ejecución anterior: sin cambios aquí.)
+- **Commit:** `154662f` — `fix(notes): surrogate-safe previews and delete-dialog titles`
+- **Estado:** build funcional;3 variantes verdes;working tree limpio;push realizado.
+
+- **Siguiente tarea:** candidatos restantes de `NEXT_TASKS.md`:(a) consistencia de
+  tags `testTag`/clases de las  ́2 pantallas;(b) recuperación del editor ante fallo de
+  importación/exportación o cierre inesperado a mitad de un commit(zona crítica de
+  persistencia,sín test de crash en medio del commit);;c) esperar trabajo nuevo de `main`.
