@@ -15,18 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaDropdownMenu
+import com.ordia.app.ui.components.OrdiaDropdownMenuItem
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaFloatingActionButton
+import com.ordia.app.ui.components.OrdiaTopAppBar
 import java.text.DateFormat
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
     notes: List<NoteEntity>,
@@ -51,32 +50,33 @@ fun NotesListScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
+            OrdiaTopAppBar(
+                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            OrdiaFloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         if (notes.isEmpty()) {
-            EmptyState(padding)
+            Box(modifier = Modifier.padding(padding)) {
+                OrdiaEmptyState(
+                    title = "Una página en blanco\nes donde empieza todo.",
+                    subtitle = "Toca + para escribir."
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                    OrdiaCard(onClick = { onOpenNote(note) }) {
+                        NoteRow(note, onTogglePin, onDeleteNote)
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }
@@ -85,31 +85,8 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
-    Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "Una página en blanco\nes donde empieza todo.",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-    }
-}
-
-@Composable
 private fun NoteRow(
     note: NoteEntity,
-    onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
@@ -122,7 +99,6 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenNote(note) }
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -165,13 +141,13 @@ private fun NoteRow(
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+            OrdiaDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                OrdiaDropdownMenuItem(
+                    text = if (note.pinned) "Desfijar" else "Fijar",
                     onClick = { menuOpen = false; onTogglePin(note) },
                 )
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
+                OrdiaDropdownMenuItem(
+                    text = "Eliminar",
                     onClick = { menuOpen = false; onDeleteNote(note) },
                 )
             }
