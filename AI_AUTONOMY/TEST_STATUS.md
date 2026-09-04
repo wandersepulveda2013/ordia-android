@@ -48,6 +48,15 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-04 (ejecución 032, integridad de texto: preview de lista y diálogo
+  de borrado sin partir pares sustitutos UTF-16): verificado en este sandbox con
+  `--rerun-tasks` → las 3 variantes (`testPreviewSafeDebugUnitTest` /
+  `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`): **77 tests,
+   0 fallos,,  0 errores** (BUILD SUCCESSFUL; +3 vs RUN 031: `NoteEntityPreviewTest`
+  4→7 — `preview_withinLimit_keepsEmojiIntact`, `preview_emojiAtBoundary_doesNotSplitSurrogatePair`
+  y `safeTakeChars_shortInput_isUnchanged`. Sin fallos conocidos ni flakiness detectado.
+
+
 - 2026-09-04 (ejecución 031, testing: regresión UI autosave→recreación del
   editor): verificado en este sandbox con `--no-build-cache --rerun-tasks` → las
   3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
@@ -210,6 +219,13 @@
 
 ## Tests recientemente agregados
 
+- `NoteEntityPreviewTest` RUN 032 (+3, P2: integridad de texto — el preview de
+  lista y el truncado del título de confirmación de borrado ya no parten un par
+  sustituto UTF‑16:`preview_withinLimit_keepsEmojiIntact`, `preview_emojiAtBoundary_doesNotSplitSurrogatePair`
+  (el emoji que no cabe en el cap se descarta entero, nunca un `\ufffd`) y
+  `safeTakeChars_shortInput_isUnchanged`. 77/77 en las  ‌3 variantes: cubre el
+  riesgo de mojibake al truncar texto con emojis, cerrando el trabajo heredado
+  (diff preview/safeTakeChars + diálogo de borrado aún sin commitear).
 - `NoteEditorRecreationTest` RUN 031 (+1, P2: regresión UI del ciclo de draft —
   nota nueva cuyo autosave creó la fila se recrea el editor (`StateRestorationTester`),
   se escribe más texto y se hace "Hecho": exactamente 1 commit con el contenido

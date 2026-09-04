@@ -409,7 +409,7 @@ private fun DeleteNoteDialog(
         text = {
             Text(
                 if (note.title.isNotBlank()) {
-                    stringResource(R.string.delete_note_message, note.title.take(60))
+                    stringResource(R.string.delete_note_message, NoteEntity.safeTakeChars(note.title, 60))
                 } else {
                     stringResource(R.string.delete_note_message_untitled)
                 },

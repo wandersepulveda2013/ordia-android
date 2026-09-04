@@ -15,12 +15,30 @@ data class NoteEntity(
 ) {
     companion object {
         /** First two non-blank lines, capped at [maxChars] chars, for list previews. */
-        fun preview(text: String, maxChars: Int = 160): String =
-        text.lineSequence()
-            .filter { it.isNotBlank() }
-            .map { it.trim() }
-            .take(2)
-            .joinToString("\n")
-            .take(maxChars)
+        fun preview(text: String, maxChars: Int = 160): String {
+            val text = text.lineSequence()
+                .filter { it.isNotBlank() }
+                .map { it.trim() }
+                .take(2)
+                .joinToString("\n")
+            return safeTakeChars(text, maxChars)
+        }
+
+        /**
+         * Truncates [text] to at most [maxChars] chars without splitting a
+         * UTF-16 surrogate pair (emoji / astral CJKV): `String.take` cuts
+         * mid-pair and renders a broken replacement char in the UI.
+         */
+        internal fun safeTakeChars(text: String, maxChars: Int): String {
+            if (text.length <= maxChars) return text
+            var end = maxChars
+            if (end in 1 until text.length &&
+                Character.isHighSurrogate(text[end - 1]) &&
+                Character.isLowSurrogate(text[end])
+            ) {
+                end--
+            }
+            return text.substring(0, end)
+        }
     }
 }

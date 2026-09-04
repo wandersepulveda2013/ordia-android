@@ -48,6 +48,10 @@
   (nota nueva con fila creada por autosave, recreación `StateRestorationTester`,
   más escritura y "Hecho" → exactamente 1 commit, contenido acumulado, sin
   duplicado ni pérdida de texto — **74/74 en las 3 variantes**).
+  RUN 032: **integridad de texto:`NoteEntity.preview` y el diálogo de borrado
+  ya no parten pares sustitutos UTF-16** (helper `safeTakeChars`;el emoji que no
+  cabe en el cap se descarta entero,sín `\ufffd`;+3 tests `NoteEntityPreviewTest`
+  → **77/77 en las 3 variantes**).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
@@ -117,8 +121,6 @@
   (`StandardTestDispatcher`, API canónica). Sin cambios de comportamiento; se
   eliminan los warnings de deprecación de la v1 legada. Verificado: suite completa
    **59/59** en las  3 variantes (`testPreviewSafe/Full/AdvancedDebugUnitTest`).
-
-
 
 ## Fix ejecución anterior
 - RUN 014 (P3): fecha relativa en la lista— nuevo
@@ -203,17 +205,18 @@
 
 ## Estado de tests
 
-- **Última ejecución(RUN 027):** 71/71 verdes en las3 variantes —
+- **Última ejecución(RUN 032):** 77/77 verdes en las3 variantes —
   `testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
-  `testPreviewAdvancedDebugUnitTest` → **71 tests, 0 fallos (11 DAO + 7 Repo
+  `testPreviewAdvancedDebugUnitTest` → **77 tests, 0 fallos (11 DAO + 7 Repo
   + 28 VM [incluye `processDeath_restoresSearchQuery`, BUG-009,
    `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`, y las  3 regresiones
+
    de persistencia resiliente `failedSave/Delete/Restore`] + 16 UI
   [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 4/4
   (label accesible «Buscar notas» persistente) + `NotesListPinToggleTest` 2/2
-  (pin vía menú ⋮)] + 4 `NoteEntityPreviewTest` + 5
-  `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
 
+  (pin vía menú ⋮)] +  ‌7 `NoteEntityPreviewTest` (RUN 032:+3 anti-par
+  sustituto UTF‑16) + 5 `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
 ## Resiliencia de persistencia (RUN 027)
 
 - Todos los paths de escritura (`save`/`autosave`/`commitDraft`/`delete`/`restore`/

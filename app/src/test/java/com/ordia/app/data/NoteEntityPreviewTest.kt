@@ -1,6 +1,7 @@
 package com.ordia.app.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class NoteEntityPreviewTest {
@@ -24,6 +25,30 @@ class NoteEntityPreviewTest {
         val text = "x".repeat(500)
         assertEquals(160, NoteEntity.preview(text).length)
         assertEquals(200, NoteEntity.preview(text, maxChars = 200).length)
+    }
+
+    @Test
+    fun preview_withinLimit_keepsEmojiIntact() {
+        assertEquals("👍", NoteEntity.preview("👍"))
+        assertEquals("hola 👍", NoteEntity.preview("hola 👍", maxChars = 10))
+    }
+
+    @Test
+    fun preview_emojiAtBoundary_doesNotSplitSurrogatePair() {
+        // "a" * 159 + "👍": `take(160)` would cut between the surrogate pair
+        // and leave a dangling high surrogate (rendered as a broken char).
+        val text = "a".repeat(159) + "👍"
+        val out = NoteEntity.preview(text, 160)
+        // The emoji cannot fit within the 160-char cap, so it is dropped whole
+        // rather than split mid-pair (never a lone surrogate in the preview).
+        assertEquals("a".repeat(159), out)
+        assertFalse(out.endsWith('\ufffd'))
+    }
+
+    @Test
+    fun safeTakeChars_shortInput_isUnchanged() {
+        assertEquals("", NoteEntity.safeTakeChars("", 5))
+        assertEquals("abc 👍", NoteEntity.safeTakeChars("abc 👍", 20))
     }
 
     @Test

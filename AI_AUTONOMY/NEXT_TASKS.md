@@ -103,6 +103,10 @@ draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
 5. **Ejecución 015 resuelto (registro):** skip-write en `saveCurrent` y preview
    de lista mejorado (`NoteEntity.preview`) — ver `COMPLETED.md` RUN 015; tests
    **verificados en RUN 016**: 59/59 en las tres variantes (ver TEST_STATUS.md).
+   **RUN 032:** la preview ahora es segura con emoji en el corte: `NoteEntity.preview`
+   y el título del diálogo de borrado usan `safeTakeChars` (no parten pares sustitutos
+   UTF-16;el emoji que no cabe se descarta entero,sín `\ufffd`;+3 tests
+   `NoteEntityPreviewTest`;vérificado **77/77 en las 3 variantes**).
 
 6. **Commit sin cambios ya no reescribe `updatedAt` (RUN 026):** abrir una nota
    y pulsar Hecho/back/sin editar ya no ejecuta un `repo.update` innecesario —

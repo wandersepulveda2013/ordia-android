@@ -4,6 +4,21 @@
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-09-04 — Ejecución 032 (P2/integridad de texto: preview de lista y diálogo de borrado sin partir pares sustitutos)
+- **El preview de la lista y el truncado del título ya no rompen emojis/pares sustitutos**
+  (`NoteEntity.preview` y el diálogo `DeleteNoteDialog`). `preview` cortaba con
+  `.take(160)` cruza de un par sustituto UTF-16 — el emoji al borde del cap
+
+  se partía y la lista renderizaba el carácter de reemplazo roto (`�`). Mismo
+  riesgo en el título del diálogo de confirmación de borrado (`take(60)` cruza de
+  par. Ahora un helper único `NoteEntity.safeTakeChars(text,maxChars)` retrocede
+  el `end` antes de `substring` si el corte cae en mitad de un par sustituto
+  (`Character.isHighSurrogate`/`isLowSurrogate`), y el preview lo usa junto a la
+  compactación de las dos primeras líneas no vacías de la nota. Regresiones nuevas
+  en `NoteEntityPreviewTest` (+3): emoji intacto dentro del límite, emoji que no cabe
+  en el cap descartado entero(sin `�`),y `safeTakeChars` con entrada corta‑ida.
+
+
 ## 2026-09-04 — Ejecución 029 (P2/accesibilidad: focus indicator de la lista)
 
 - **La lista de notas es totalmente navegable por teclado/TalkBack ahora.**: cada fila
@@ -42,7 +57,6 @@
   suite completa 3-variantes **71/71,  0 fallos,  0 errores** (ver TEST_STATUS.md).
 
 
-
 ##2026-09-02 — Ejecución 025 (testing: cobertura UI end-to-end del pin)
 
 - **Regresión UI del flujo de fijar/desfijar** (P2, testing): el pin se acciona
@@ -54,7 +68,6 @@
    menú ⋮ → «Fijar» → callback recibe el id + menú cerrado; nota fijada →
    «Desfijar» → callback recibe el id. Sin cambios de producción; suite completa
    3-variantes **67/67,  0 fallos,  0 errores** (`--rerun-tasks`).
-
 
 
 ## 2026-09-02 — Ejecución 025 (verificación/cierre de BUG-008)
@@ -150,7 +163,6 @@
   `setPinned` eliminado de DAO/repo/VM.
 - **Tests:** tests de DAO/repo/VM ajustados a doble toggle (el net de dos toggles == estado original>;
   suite completa → **44/44 en las 3 variantes**; `assemblePreviewSafeRelease` OK.
-
 
 
 ## 2026-08-27 — Ejecución 009 (integridad del ciclo de draft del editor, P1)
@@ -271,9 +283,6 @@
   cubre el hueco de "sin tests de UI" del editor. Suite: 30/30 verdes.
 
 ## 2026-08-31 — Ejecución 015 (integridad de writes + preview de lista)
-
-
-
 
 
 - **Sin writes innecesarios al guardar sin cambios** (P2): `NotepadViewModel.saveCurrent`

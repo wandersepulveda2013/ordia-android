@@ -738,3 +738,42 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** revisar `NEXT_TASKS.md`(quedan candidatos P3: consistencia de
   tags `testTag`/clases de las 2 pantallas; o esperar que `main` traiga trabajo
   nuevo que integrar con sus regresiones).
+
+## RUN 032 - 2026-09-04 (P2/integridad de texto: preview de lista sin cortar pares sustitutos +
+
+- **Objetivo:** cerrar el trabajo heredado en el working tree (previa ejecución dejó `NoteEntity.kt`
+  con el bloque `preview()`/`safeTakeChars()` a medio reparar por corrupción de bytes:
+ (`return` abierto, línea `On the` intrusa, sin llave de cierre `.take(160)` roto en `.take(maxChars`))))
+  y validarlo contra la suite completa.
+
+- **Hallazgo:** el diff heredado era una mejora P2 real que ya estaba en el árbol pero NO commiteado
+  (`NoteEntity.preview` cortaba cruza de un par sustituto UTF-16 — un emoji al borde del
+  cap de 160 se partía y renderizaba el carácter de reemplazo roto. También `NotesListScreen`
+  ya usaba `NoteEntity.safeTakeChars(note.title, 60)` en el diálogo de confirmación de borrado
+  (mismo riesgo: `take(60)` cruza de un par sustituto al truncar el título). El único
+  obstáculo era la corrupción textual del bloque) — se determinó por comparación exacta
+  de bytes (sin caracteres invisibles residuales; bloque reparado con la llave y
+  el `return` correctos).
+- **Cambio:** (1) `NoteEntity.kt` — compactación del heredado en la forma correcta:
+  `preview` usa ahora `safeTakeChars` en vez de `.take(160)` crudo, nuevo helper
+  `internal fun safeTakeChars` que nunca parte un par sustituto (`Character.isHighSurrogate` /
+  `isLowSurrogate` al borde, retrocede `end` antes de `substring`). (2) `NotesListScreen.kt` —
+  el diálogo de borrado usa `safeTakeChars` para el título truncado a 60 (mismo
+  invariante anti-surrogate). (3) `NoteEntityPreviewTest.kt` — +3 regresiones::
+  `preview_withinLimit_keepsEmojiIntact`, `preview_emojiAtBoundary_doesNotSplitSurrogatePair`
+  (verifica que el emoji que no cabe en 160 se descarta entero,y nunca un `\ufffd`),y
+  `safeTakeChars_shortInput_isUnchanged`. (También se reparó una sintaxis heredada en
+  el test:`assertFalse(out.endsWith('\ufffd')` le faltaba un paréntesis.)
+- **Tests:** suite completa de las 3 variantes con `--rerun-tasks`
+  (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)
+  → **77 tests,  0 fallos,, 0 errores** cada variante(BUILD SUCCESSFUL; +3 vs RUN 031:
+  `NoteEntityPreviewTest` 4→7 tests).
+- **Commit:** pendiente de esta ejecución, tras actualización de memoria.
+
+- **Siguiente tarea:** revisar `NEXT_TASKS.md` — candidatos P2/P3 restantes:
+
+  (a) consistencia de tags `testTag`/clases de las  2 pantallas(para automatización
+  y tests estables;b) evaluar cobertura de recuperación del editor ante fallo de
+  **importación/exportación** o de **cierre inesperado** (zona crítica de persistencia,
+  el `SavedStateHandle` cubre el draft pero no hay test de crash a mitad de un commit);;;c)
+  esperar que `main` traiga trabajo nuevo que integrar con sus regresiones.
