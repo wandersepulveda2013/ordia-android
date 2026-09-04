@@ -19,7 +19,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaCard
 import java.text.DateFormat
 import java.util.Date
 
@@ -62,8 +62,8 @@ fun NotesListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -72,12 +72,20 @@ fun NotesListScreen(
             EmptyState(padding)
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(16.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    OrdiaCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .clickable { onOpenNote(note) }
+                    ) {
+                        NoteRow(note, onTogglePin, onDeleteNote)
+                    }
                 }
             }
         }
@@ -87,7 +95,9 @@ fun NotesListScreen(
 @Composable
 private fun EmptyState(padding: PaddingValues) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -109,7 +119,6 @@ private fun EmptyState(padding: PaddingValues) {
 @Composable
 private fun NoteRow(
     note: NoteEntity,
-    onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
@@ -122,8 +131,7 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -131,7 +139,7 @@ private fun NoteRow(
                 Text(
                     note.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -150,7 +158,7 @@ private fun NoteRow(
                 date,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
         if (note.pinned) {
@@ -158,12 +166,14 @@ private fun NoteRow(
                 Icons.Outlined.PushPin,
                 contentDescription = "Fijada",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier
+                    .size(18.dp)
+                    .padding(top = 2.dp),
             )
         }
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                Icon(Icons.Outlined.MoreVert, contentDescription = "Más", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
