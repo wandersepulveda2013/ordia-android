@@ -43,6 +43,11 @@
   el `stateDescription` de la fila fijada es `"Fijada"` (string cargada fuera del
   lambda no-`@Composable`; imports `semantics`/`stateDescription`), con regresión
   `pinnedNote_announcesPinnedStateDescription` (**73/73 en las  ‌3 variantes**).
+  RUN 031: **regresión UI del ciclo de draft con autosave + recreación cerrada:**
+  `NoteEditorRecreationTest` +1 test `recreation_afterAutosaveCreatedRow_resumesSameDraft_doesNotDuplicate`
+  (nota nueva con fila creada por autosave, recreación `StateRestorationTester`,
+  más escritura y "Hecho" → exactamente 1 commit, contenido acumulado, sin
+  duplicado ni pérdida de texto — **74/74 en las 3 variantes**).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

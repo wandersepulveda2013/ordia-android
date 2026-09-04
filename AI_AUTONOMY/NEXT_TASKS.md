@@ -83,6 +83,11 @@ draft en rotación/proceso-muerte. RUN 008 resolvió BUG-005.)_
    cubierta (`NoteEditorBackSaveTest.toolbarDone_commitsAndNavigates`: hace commit y
    navega igual que el back del sistema). RESUELTO — 3 tests de UI nuevos.
    _Comprobar:_ `testPreviewSafeDebugUnitTest` → 49/49 verdes.
+   _Estado RUN 031:_ **cerrado por completo** — +1 regresión UI
+   `recreation_afterAutosaveCreatedRow_resumesSameDraft_doesNotDuplicate`
+   (el caso: la nota nueva ya tiene fila por autosave + recreación: ni
+   se duplica ni se pierde texto;  ‌74/74 en las 3 variantes). Este ítem
+   queda **RESUELTO** (3+1 tests de UI nuevos acumulados).
 3. **Migrar strings hardcodeados a `strings.xml`**: **RESUELTO en RUN 016** —
    todos los strings visibles de `NoteEditorScreen` y `NotesListScreen` (títulos,
    placeholders, contentDescriptions, snackbar, menús, estados vacíos, rutas de

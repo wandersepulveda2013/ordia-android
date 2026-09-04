@@ -48,6 +48,17 @@
   específicos de flavor por ahora).
 
 ## Último resultado
+- 2026-09-04 (ejecución 031, testing: regresión UI autosave→recreación del
+  editor): verificado en este sandbox con `--no-build-cache --rerun-tasks` → las
+  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **74 tests,  0 fallos,,  0 errores** (BUILD
+  SUCCESSFUL; +1 vs RUN 030: `NoteEditorRecreationTest.recreation_afterAutosaveCreatedRow_resumesSameDraft_doesNotDuplicate` —
+  nota nueva cuyo autosave creó la fila; recreación del editor; más escritura y
+  "Hecho" → exactamente 1 commit,contenido acumulado,sin duplicado ni pérdida
+  de texto; cierra el ítem N°1 de NEXT_TASKS). Sin fallos conocidos ni
+  flakiness detectado.
+
+
 - 2026-09-03 (ejecucion 027, hardening: persistencia resiliente ante fallos de
   escritura): verificado en este sandbox → las 3 variantes
   (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
@@ -199,6 +210,12 @@
 
 ## Tests recientemente agregados
 
+- `NoteEditorRecreationTest` RUN 031 (+1, P2: regresión UI del ciclo de draft —
+  nota nueva cuyo autosave creó la fila se recrea el editor (`StateRestorationTester`),
+  se escribe más texto y se hace "Hecho": exactamente 1 commit con el contenido
+  acumulado,sin duplicado ni pérdida de texto. 74/74 en las  ‌3 variantes: cubre el
+  riesgo de duplicados/cross-contamination tras recreación, cerrando el ítem
+  N°1 de `NEXT_TASKS.md`).
 - `RelativeDateTest` (RUN 014, nuevo, P3: fecha relativa en la lista —
   "Hoy"/"Ayer" contra el día natural local y fallback `DateFormat.MEDIUM` para
   notas más antiguas. Verifica `today_timestamp_isLabeledHoy`,

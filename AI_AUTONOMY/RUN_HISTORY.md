@@ -707,3 +707,34 @@ Commit: test(editor): cover system-back save.
 - **Siguiente tarea:** candidato P2/P3: extender tests UI del editor (back tras
   autosave—N°1 de NEXT_TASKS);o auditar tags `testTag`/clases de las 2
   pantallas para consistencia de automatización.
+## RUN 031 - 2026-09-04 (P2/testing: regresión UI del autosave→recreación del editor)
+
+- **Objetivo:** cerrar el último candidato heredado (N°1 de NEXT_TASKS, RUN 029/030):
+  cubrir con UI test Compose que una nota nueva cuyo autosave ya creó la fila no se
+  **duplique** al recrearse el editor (rotación/proceso-muerte) y que el texto
+  tecleado tras la recreación se acumule en la única fila.. El hueco estaba anotado
+  en `TEST_STATUS.md` (Cobertura: `NoteEditorRecreationTest` cubría BUG-003
+  (reseeding desde la BD) pero NO el ciclo de draft completo con autosave
+  intermedio + recreación; los tests de ViewModel lo cubren a nivel unitario).
+
+- **Hallazgo:** no existía test UI del caso "autosave ya creó fila + recreación +
+  más escritura + commit" — el riesgo de duplicado/cross-contamination era el
+  más valioso del alcance del editor(sección 15: creación, concurrencia,
+  navegación, cambio rápido).
+- **Cambio:** +1 test `recreation_afterAutosaveCreatedRow_resumesSameDraft_doesNotDuplicate`
+  en `NoteEditorRecreationTest.kt` con `StateRestorationTester`: nota nueva, autosave
+  disparado, `emulateSavedInstanceStateRestore`, más escritura y "Hecho" —
+  verifica exactamente 1 commit con el contenido acumulado(pre-y post-recreación)
+  y que el autosave se disparó antes de la recreación..(El cursor tras restaurarse
+  puede no quedar al final del campo; el invariante asertado es que NI el texto
+  previo NI el posterior se pierdan, para no acoplar la aserción al orden textual.)
+- **Tests:** suite completa de las 3 variantes re-ejecutada con `--no-build-cache --rerun-tasks`
+  (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` / `testPreviewAdvancedDebugUnitTest`)
+  → **74 tests,  ‌0 fallos,, 0 errores** cada variante(BUILD SUCCESSFUL; +1 vs RUN 030;
+  primer intento de la regresión falló por orden de cursor—ajustado el invariante,,
+  no el producto,, y quedó verde).
+- **Commit:** `e8cf9ac` — `test(notes): cover editor recreation after autosave-created draft row`.
+- **Estado:**  3 variantes en verde;; memoria actualizada en commit siguiente..
+- **Siguiente tarea:** revisar `NEXT_TASKS.md`(quedan candidatos P3: consistencia de
+  tags `testTag`/clases de las 2 pantallas; o esperar que `main` traiga trabajo
+  nuevo que integrar con sus regresiones).
