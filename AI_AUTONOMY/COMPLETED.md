@@ -1,18 +1,19 @@
-## 2026-09-04 — Ejecución 034 (P2/limpieza: import y recursos XML muertos del merge eliminados+
-- **Eliminados recursos muertos de la UI principal.**: el merge del rebuild dejó
-  el import `Snackbar` sin usar en `NotesListScreen.kt`, dos animaciones XML sin
-  consumidores (`anim/slide_in_top.xml`, `anim/slide_out_top.xml`)y 8 líneas de
-  residuo en `values-night/themes.xml`. Eliminados sin cambio funcional (compile OK).
-- **BUG-010 documentado (P1, abierto):** el commit final del editor puede perder
-  texto si el storage falla — `commitDraft` limpia la sesión síncronamente y lanza el
-  write en background; si falla, nada reintenta y nada retiene el texto. Ver
-  `BUGS_FOUND.md` y `NEXT_TASKS.md` (fix propuesto para la siguiente ejecución.
-
 # COMPLETED — Ordía (bloc de notas)
 
 > Solo mejoras importantes completadas por la automatización.
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
+
+## 2026-09-04 — Ejecución 034 (P2/limpieza: import y recursos XML muertos del merge eliminados)
+- **Eliminados recursos muertos de la UI principal.**: el merge del rebuild dejó
+  el import `Snackbar` sin usar en `NotesListScreen.kt`, dos animaciones XML sin
+  consumidores (`anim/slide_in_top.xml`, `anim/slide_out_top.xml`)y 8 líneas de
+  residuo en `values-night/themes.xml`. Eliminados sin cambio funcional
+  (no recompilado ni re-testee en esta sesión— cambios muertos, sin consumidores).
+- **BUG-010 documentado (P1, abierto):** el commit final del editor puede perder
+  texto si el storage falla— `commitDraft` limpia la sesión síncronamente y lanza el
+  write en background; si falla, nada reintenta y nada retiene el texto. Ver
+  `BUGS_FOUND.md` y `NEXT_TASKS.md` (fix propuesto para la siguiente ejecución.
 
 ## 2026-09-04 — Ejecución 032 (P2/integridad de texto: preview de lista y diálogo de borrado sin partir pares sustitutos)
 - **El preview de la lista y el truncado del título ya no rompen emojis/pares sustitutos**
