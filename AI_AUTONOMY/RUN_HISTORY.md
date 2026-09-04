@@ -667,3 +667,24 @@ Commit: test(editor): cover system-back save.
 - **Commit:** `081ad30` — `fix(editor): surface persistence errors via root snackbar`.
 - **Estado:** verificada la 3 variantes; memoria actualizada. La lista y el editor muestran el snackbar de error por igual.
 - **Siguiente tarea:** (candidate P2 RUN  ‌021/024) papeleta focus indicator de la lista para navegación por teclado/TalkBack;# o extender tests UI del editor (back tras autosave, N° 1 de NEXT_TASKS.
+
+## RUN 029 - 2026-09-04 (P2/accesibilidad: focus indicator de la lista)
+
+- **Objetivo:** cerrar el candidato P2 heredado (RUN 021/024): que la lista tenga
+  foco visible y navegable para navegación por teclado/TalkBack.
+- **Hallazgo:** `NoteRow` era `clickable` pero el nodo no era focuseable: el `RequestFocus`
+  de accesibilidad no producía foco real y no había indicador visible (test nuevo
+  `NotesListFocusTest` fallaba con `Focused=false` pese a la semántica).
+- **Cambio:** cada fila ahora aplica `Modifier.focusable()` + `.onFocusChanged` (estado
+  `rowFocused` por fila con `remember`; fondo highlight `secondaryContainer` @45%
+  con `RoundedCornerShape(10.dp)` al recibir foco) y etiqueta estable
+  `note_row_<id>`. Solo se añadieron imports (`foundation.focusable`,
+  `focus.onFocusChanged`, `background`, `RoundedCornerShape`, `Color`, `testTag`).
+- **Tests:** nueva regresión Compose/Robolectric `NotesListFocusTest`(1):
+  `focus_movesBetweenNoteRows`. Suite completa `testPreviewSafeDebugUnitTest`
+  re-ejecutada → **72 tests, 0 fallos,,  0 errores** (BUILD SUCCESSFUL; +1 vs RUN 028).
+- **Commit:** (por hacer, ver summary final).
+- **Estado:** foco de lista verificado; memoria actualizada.
+- **Siguiente tarea:** candidato P2/P3: extender tests UI del editor (back tras
+  autosave — N°1 de NEXT_TASKS); o auditar tags `testTag`/clases de las 2
+  pantallas para consistencia de automatización.

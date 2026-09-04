@@ -1,6 +1,7 @@
 package com.ordia.app.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
@@ -47,7 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -294,6 +300,7 @@ private fun NoteRow(
     onRequestDelete: (NoteEntity) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    var rowFocused by remember { mutableStateOf(false) }
     val date = remember(note.updatedAt) {
         relativeLabel(note.updatedAt)
     }
@@ -307,6 +314,17 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("note_row_${note.id}")
+            .focusable()
+            .onFocusChanged { rowFocused = it.isFocused }
+            .background(
+                if (rowFocused){
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                } else {
+                    Color.Transparent
+                },
+                shape = RoundedCornerShape(10.dp),
+            )
             .clickable(onClickLabel = rowLabel) { onOpenNote(note) }
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.Top,

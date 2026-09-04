@@ -35,6 +35,10 @@
   indistinguible del no focalizado; el unfocused sigue transparente (sin línea
   fantasma). Tags estables `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG` + regresión
   Compose `NoteEditorFocusTest` (62/62 en las  3 variantes).
+  RUN 029: **la lista de notas también tiene foco visible/navegable**: cada fila
+  es focuseable (`Modifier.focusable()` + `.onFocusChanged` con fondo highlight
+  `secondaryContainer` @45% RoundedCornerShape(10.dp)) y etiqueta estable
+  `note_row_<id>` — regresión `NotesListFocusTest` (72/72 en previewSafe).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

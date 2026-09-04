@@ -28,6 +28,11 @@
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
     + RUN 019: flujo de búsqueda real y back del sistema con búsqueda abierta).
 - `NotesListAccessibilityTest` — UI Compose/Robolectric (2 tests, RUN 011).
+  - `NotesListFocusTest` — UI Compose/Robolectric (1 test, RUN 029,
+    P2 accesibilidad): regresión de foco de la lista — cada fila es focuseable
+    independientemente por teclado/TalkBack (`Modifier.focusable()` + anillo/fondo
+    highlight canalizado por `.onFocusChanged` etiqueta `note_row_<id>`) y el foco
+    se mueve entre filas via `requestFocus()`; `assertIsFocused`/`assertIsNotFocused`.
 - `NotesListPinToggleTest` — UI Compose/Robolectric (2 tests, RUN 025:
   el menú ⋮ de la fila permite fijar/desfijar y propaga el id correcto al
   callback; el menú se cierra tras la acción — cubre el flujo end-to-end del
@@ -57,7 +62,11 @@
   Sin fallos conocidos ni flakiness detectado.
 
 
-- 2026-09-02 (ejecución 026, hardening: no-commit-sin-cambios): verificado en este
+- 2026-09-04 (ejecución 029, focus indicator de la lista): verificado en este
+  sandbox → `testPreviewSafeDebugUnitTest` re-ejecutada: **72 tests,  ‌0 fallos,,  0 errores**
+  (BUILD SUCCESSFUL; +1 vs RUN 028). Nueva regresión Compose/Robolectric
+  `NotesListFocusTest` (1) — foco navegable entre filas de la lista. Sin fallos
+  conocidos ni flakiness detectadon- 2026-09-02 (ejecución 026, hardening: no-commit-sin-cambios): verificado en este
   sandbox → las 3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest`): **68 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL,
   re-ejecutadas con `--rerun-tasks`; +1 vs RUN 025). Nueva regresión

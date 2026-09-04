@@ -4,6 +4,23 @@
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-09-04 — Ejecución 029 (P2/accesibilidad: focus indicator de la lista)
+
+- **La lista de notas es totalmente navegable por teclado/TalkBack ahora.**: cada fila
+  (`NoteRow`) era clickable pero no eras focuseable—el foco saltaba de la fila sin
+  indicador visible(regresión del candidato P2 registrada desde RUN 021/024)y
+  `RequestFocus` de accesibilidad no producía foco real. Ahora cada fila aplica
+  `Modifier.focusable()` + `.onFocusChanged` (fondo highlight `secondaryContainer`
+  al 45% con esquinas redondeadas 10.dp) y lleva etiqueta estable
+  `note_row_<id>` para tests y automatización. Registro de catch de foco en
+  `rowFocused` por fila(sin state hoisting, sin dependencias nuevas).
+  La lista cierra el gap del editor(`NoteEditorFocusTest`, RUN 020): ambas pantallas
+  muestran foco visible y navegable por teclado/TalkBack.
+- **Regresión:** nueva `NotesListFocusTest`(Compose/Robolectrico,,1 test):
+  `focus_movesBetweenNoteRows` pide foco de `note_row_1`/`note_row_2` y verifica
+  foco reale(no solo `RequestFocus` del semántica). Suite completa re-ejecutada:
+  `testPreviewSafeDebugUnitTest` → **72 tests,  0 fallos,,  0 errores** (BUILD SUCCESSFUL;
+  previo RUN 028: 71).
 
 ## 2026-09-03 — Ejecución 027 (P1/hardening: persistencia resiliente ante fallos de escritura)
 
