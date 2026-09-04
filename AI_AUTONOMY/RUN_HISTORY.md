@@ -683,7 +683,7 @@ Commit: test(editor): cover system-back save.
 - **Tests:** nueva regresión Compose/Robolectric `NotesListFocusTest`(1):
   `focus_movesBetweenNoteRows`. Suite completa `testPreviewSafeDebugUnitTest`
   re-ejecutada → **72 tests, 0 fallos,,  0 errores** (BUILD SUCCESSFUL; +1 vs RUN 028).
-- **Commit:** (por hacer, ver summary final).
+- **Commit:** `de9e2a9` — `feat(notes): make note list rows keyboard/TalkBack focusable`.
 - **Estado:** foco de lista verificado; memoria actualizada.
 - **Siguiente tarea:** candidato P2/P3: extender tests UI del editor (back tras
   autosave — N°1 de NEXT_TASKS); o auditar tags `testTag`/clases de las 2
