@@ -31,10 +31,9 @@
 
 
 
-- **Commit:** pendiente de esta ejecución(limpieza + memoria;al cierre,, junto al de RUN 022/
-  BUG-009)。
+- **Commit:** e18b19b (limpieza + memoria), 41ecd15 (aclaración tests）, ca646e9 (fix layout COMPLETED.md)。
 
-- **Estado:** limpieza + memoria completadas;commit pendiente;push pendiente al cierre。
+- **Estado:** limpieza + memoria completadas;commits e18b19b, 41ecd15 y ca646e9 pusheados a openhands/autonomous-notes。
 
 
  - **Siguiente tarea:** P1 — **BUG-010**: fix mínimo del commit final que pierde texto
