@@ -20,6 +20,7 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P2 | Notes | Borradores vacíos se guardan en la DB y el editor no hace autofocus | Notas sin texto guardadas + fricción de usuario | FIXED |
 | P0 | What Now | Explicar por qué se sugiere cada tarea en "Qué hago ahora" | `WhatNowSuggestion.detail` + `WhatNowEngineTest` | FIXED |
 | P0 | Priorización | Priorizador duplicado entre `DayPlanner` y `WhatNowEngine` | `TaskRules.schedulingComparator` único + tests | FIXED |
 | P0 | Guardianes | `guardianInsight` se computaba pero no se mostraba en ninguna UI | card dismissible en Today + `GuardianCoachTest` | FIXED |
