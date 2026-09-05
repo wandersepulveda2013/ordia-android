@@ -476,3 +476,19 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+---
+
+## Sesión 008 - 2026-08-17 (Jules)
+
+**Objetivo**: Iniciar la Mega Evolución con la Wave 1 (Foundation + Design System).
+**Cambios**:
+- Creación de paleta de colores minimalista (`Colors.kt`) y tipografía híbrida serif/sans-serif (`Type.kt`).
+- Creación de componentes primitivos (`OrdiaSurface`, `OrdiaCard`, `OrdiaInput`, `OrdiaTopAppBar`, `OrdiaFloatingActionButton`) en `OrdiaDesignSystem.kt`.
+- Refactorización del bloc de notas existente a la nueva fundación.
+- Añadido de `FocusRequester` y mejora de estado vacío.
+**Verificación**:
+- Lint (`lintPreviewSafeDebug`): 0 errores.
+- Tests (`testPreviewSafeDebugUnitTest`): OK.
+- Build (`assemblePreviewSafeDebug`): Compila exitosamente.
+- Fix CI Compilation Issue: Se ha establecido explícitamente `exportSchema = false` en `NoteDatabase.kt`. Este cambio soluciona un bug de dependencias provocado por la herramienta KSP con `kotlinx-serialization-json` al analizar la base de datos de Room en CI sin utilizar auto-migraciones, previendo la falla generalizada como se especificaba en memoria persistente.

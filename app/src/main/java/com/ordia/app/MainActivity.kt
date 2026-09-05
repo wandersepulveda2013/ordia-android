@@ -13,11 +13,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val app = application as OrdiaApplication
         setContent {
-            val app = application as OrdiaApplication
-            val viewModel: NotepadViewModel = viewModel(
-                factory = NotepadViewModelFactory(app.repository)
-            )
+            val viewModel: NotepadViewModel = viewModel(factory = NotepadViewModelFactory(app.repository))
             NotepadApp(viewModel)
         }
     }
