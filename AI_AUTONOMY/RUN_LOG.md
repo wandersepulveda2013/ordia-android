@@ -476,3 +476,35 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+---
+
+## SESIÓN — Mejoras de UX y robustez (Borradores vacíos y Auto-focus)
+
+- **Fecha (UTC)**: $(python -c 'from datetime import datetime, UTC; print(datetime.now(UTC).strftime("%Y-%m-%d"))')
+- **Trigger**: Auditoría de P2 (Experiencia de Usuario) y robustez
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Evitar notas fantasma**: Actualización de `NotepadViewModel.kt` para descartar notas donde el título y contenido sean blancos (`isBlank()`). Si se está editando una nota que queda completamente vacía, se borra de la base de datos automáticamente (previene la acumulación de basura en Room).
+2. **Auto-focus en NoteEditor**: Integración de un `FocusRequester` en el campo del título en `NoteEditorScreen.kt`, activándose solo cuando es una nueva nota (`note == null`).
+3. **Orden de modificadores**: Corrección del modificador del icono `PushPin` en `NotesListScreen.kt` a `Modifier.padding(top = 2.dp).size(18.dp)` para evitar la restricción a 0dp antes del render.
+4. **Pruebas unitarias**: Añadido `NotepadViewModelTest.kt` cubriendo casos de inserción y eliminación para notas vacías.
+
+### Verificación
+
+- `:app:testPreviewSafeDebugUnitTest` → BUILD SUCCESSFUL. (Tests añadidos verificados).
+- `:app:compilePreviewSafeDebugKotlin` → BUILD SUCCESSFUL.
+
+### Problemas encontrados
+
+- Ninguno relevante, la lógica de Compose (Modifier y focus) y los test pasaron correctamente.
+
+### Commits creados
+
+- `feat(notes): discard empty drafts and add title autofocus`
+
+### Evidencia
+
+- Tests unitarios en verde.

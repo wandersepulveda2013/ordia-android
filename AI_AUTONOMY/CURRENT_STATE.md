@@ -50,6 +50,7 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 - Conectar un teléfono, instalar un release reciente (publicado por CI) y verificar: badge, diálogo opcional/mandatory, descarga con progreso, instalación con confirmación final de Android, rechazo, sin internet.
 - (P2) Revisar coherencia de cadenas nuevas (updates_*).
 - (P3) Revisar `docs/*` de main para eliminar descripciones pre-rebuild obsoletas.
+- (P3) Pulido visual de pantallas renovadas del workspace.
 
 ## PR pendiente
 
