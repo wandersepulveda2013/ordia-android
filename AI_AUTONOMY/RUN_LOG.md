@@ -491,3 +491,4 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - Lint (`lintPreviewSafeDebug`): 0 errores.
 - Tests (`testPreviewSafeDebugUnitTest`): OK.
 - Build (`assemblePreviewSafeDebug`): Compila exitosamente.
+- Fix CI Compilation Issue: Se ha establecido explícitamente `exportSchema = false` en `NoteDatabase.kt`. Este cambio soluciona un bug de dependencias provocado por la herramienta KSP con `kotlinx-serialization-json` al analizar la base de datos de Room en CI sin utilizar auto-migraciones, previendo la falla generalizada como se especificaba en memoria persistente.
