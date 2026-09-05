@@ -7,11 +7,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * A restrained, paper-and-ink palette. No accent colors: the only chroma is the
- * page itself, so the writing stays the focus.
+ * A restrained, minimalist palette for Ordía. Base of black, white, and grays.
  */
 private val LightPaper = lightColorScheme(
     primary = Ink,
@@ -25,6 +25,8 @@ private val LightPaper = lightColorScheme(
     surfaceVariant = SoftPaper,
     onSurfaceVariant = InkMuted,
     outline = Rule,
+    error = OrdiaPriority,
+    onError = OrdiaWhite,
 )
 
 private val DarkPaper = darkColorScheme(
@@ -39,6 +41,8 @@ private val DarkPaper = darkColorScheme(
     surfaceVariant = DarkInkRaised,
     onSurfaceVariant = PageMuted,
     outline = DarkRule,
+    error = OrdiaPriority,
+    onError = OrdiaWhite,
 )
 
 @Composable
@@ -50,10 +54,10 @@ fun NotepadTheme(
     val type = Typography(
         bodyLarge = base.bodyLarge.copy(fontSize = 17.sp, lineHeight = 28.sp),
         bodyMedium = base.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp),
-        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp),
-        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp),
-        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
-        labelSmall = base.labelSmall.copy(fontSize = 11.sp),
+        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
+        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium),
+        labelSmall = base.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Normal),
     )
     MaterialTheme(
         colorScheme = if (darkTheme) DarkPaper else LightPaper,

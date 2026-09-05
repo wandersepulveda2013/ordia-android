@@ -18,15 +18,11 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaDivider
+import com.ordia.app.ui.components.OrdiaFab
+import com.ordia.app.ui.components.OrdiaTopAppBar
 import java.text.DateFormat
 import java.util.Date
 
@@ -51,20 +50,14 @@ fun NotesListScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
+            OrdiaTopAppBar(
+                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+            OrdiaFab(onClick = onCreateNote) {
+                Icon(Icons.Outlined.Add, contentDescription = "Nueva nota")
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -77,7 +70,7 @@ fun NotesListScreen(
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    OrdiaDivider()
                 }
             }
         }
