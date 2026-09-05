@@ -476,3 +476,9 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## 2026-09-05 13:23:55 UTC - Sesión WAVE 1
+- **Acción**: Implementación del Design System y paleta de colores.
+- **Archivos**: `PaperColors.kt`, `Theme.kt`, `OrdiaDesignSystem.kt`, `NoteEditorScreen.kt`, `NotesListScreen.kt`
+- **Verificación**: Unit tests pasaron (0 fallos). Compilación de las tres variantes exitosa.
+- **Resultado**: Interfaz base migrada a un sistema visual minimalista centralizado (`OrdiaDesignSystem`).

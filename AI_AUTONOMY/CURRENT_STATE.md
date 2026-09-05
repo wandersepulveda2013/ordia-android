@@ -12,18 +12,17 @@
 
 ## Último trabajo realizado
 
-Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCIÓN FINAL, autorización explícita del usuario):
-
-1. **Análisis de divergencia**: merge-base `0059fb9e`; `origin/main` = `ba5b6eb0` (54 commits de infra + app antigua); `jules/autonomous-ordia` = `0d5ee44` (153 commits del rebuild).
-2. **Backup de seguridad**: tag `backup/main-before-rebuild-merge-2026-08-16` en `ba5b6eb0`.
-3. **Merge con resolución manual** (36 conflictos): app/builds/CI ganan con la rama autónoma (Kotlin 2.1.0 + KAPT ORD-036, `android-ci.yml` per-flavor); workflows de autonomía ganan con main (regex de rama real + fix de status vacío); AGENTS.md reescrito (elimina marcadores de conflicto que estaban commiteados en jules); .gitignore unión (secretos/artefactos).
-4. **Funcionalidades de main recuperadas en el rebuild**: widget `hoy`/`atrasadas` (contadores) dentro del refactor `updateWidgets` + layout `widget_today`; recordatorios de hábitos (`HabitReminderScheduler`/`HabitReminderWorker`) cableados en `AppContainer`/`OrdiaViewModel` (`saveHabit`, `deleteHabit`, `restoreArchived`, `deleteArchivedPermanently`, `restoreBackup`).
-5. **Eliminación de superseded**: update checker viejo por API (`com.ordia.app.update`) borrado; `TaskMutationGateTest` adaptado a la API real (mutex global).
-6. **Verificado**: 3 variantes compilan, 2352 tests unitarios verdes (0 fallos), lint limpio, sin marcadores de conflicto.
+Sesión WAVE 1 — **Implementación del Design System**:
+1. Se creó `OrdiaDesignSystem.kt` centralizando componentes base.
+2. Se actualizaron `PaperColors.kt` y `Theme.kt` a una paleta minimalista sin arcoiris.
+3. Se refactorizaron `NotesListScreen` y `NoteEditorScreen` para usar los nuevos componentes, mejorando UX (auto-focus).
 
 ## Áreas modificadas
 
-- app/src/main/java/com/ordia/app/{di/AppContainer, ui/OrdiaViewModel, ui/OrdiaRoot, widget/OrdiaWidgetProvider, data/repository/Repositories, reminders/{HabitReminderScheduler,HabitReminderWorker}(recuperados)}, res/layout/ordia_widget.xml, AGENTS.md, .gitignore, .github/workflows, AI_AUTONOMY (RUN_LOG, CURRENT_STATE, BACKLOG, DECISIONS), docs/* (main-only, fusionados).
+- app/src/main/java/com/ordia/app/ui/theme/{PaperColors.kt, Theme.kt}
+- app/src/main/java/com/ordia/app/ui/components/OrdiaDesignSystem.kt
+- app/src/main/java/com/ordia/app/ui/screens/{NoteEditorScreen.kt, NotesListScreen.kt}
+- AI_AUTONOMY/{RUN_LOG, CURRENT_STATE, BACKLOG}.md
 
 ## Tests ejecutados
 
