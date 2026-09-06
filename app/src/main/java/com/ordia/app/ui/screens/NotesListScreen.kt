@@ -37,6 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaSurface
+import com.ordia.app.ui.theme.LocalSpacing
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,6 +52,8 @@ fun NotesListScreen(
     onDeleteNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
 ) {
+    val spacing = LocalSpacing.current
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -62,22 +67,27 @@ fun NotesListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        OrdiaSurface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (notes.isEmpty()) {
+                EmptyState()
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = spacing.small),
+                ) {
+                    items(notes, key = { it.id }) { note ->
+                        NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                    }
                 }
             }
         }
@@ -85,9 +95,10 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun EmptyState() {
+    val spacing = LocalSpacing.current
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier.fillMaxSize().padding(spacing.large),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -100,7 +111,7 @@ private fun EmptyState(padding: PaddingValues) {
                 "Toca + para escribir.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = spacing.small),
             )
         }
     }
@@ -118,62 +129,67 @@ private fun NoteRow(
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
     }
     val preview = remember(note.content) { note.content.take(120) }
+    val spacing = LocalSpacing.current
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Top,
+    OrdiaCard(
+        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+        onClick = { onOpenNote(note) }
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            if (note.title.isNotBlank()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                if (note.title.isNotBlank()) {
+                    Text(
+                        note.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (preview.isNotBlank()) {
+                    Text(
+                        preview,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = if (note.title.isNotBlank()) spacing.extraSmall else 0.dp),
+                    )
+                }
                 Text(
-                    note.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (preview.isNotBlank()) {
-                Text(
-                    preview,
-                    style = MaterialTheme.typography.bodyMedium,
+                    date,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) 4.dp else 0.dp),
+                    modifier = Modifier.padding(top = spacing.small),
                 )
             }
-            Text(
-                date,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-        if (note.pinned) {
-            Icon(
-                Icons.Outlined.PushPin,
-                contentDescription = "Fijada",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
-            )
-        }
-        Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+            if (note.pinned) {
+                Icon(
+                    Icons.Outlined.PushPin,
+                    contentDescription = "Fijada",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                )
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
-                )
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+                        onClick = { menuOpen = false; onTogglePin(note) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = { menuOpen = false; onDeleteNote(note) },
+                    )
+                }
             }
         }
     }
