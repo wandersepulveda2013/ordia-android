@@ -476,3 +476,8 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+### WAVE 1 (Foundation + Design System)
+- Implementado sistema base de diseño en `app/src/main/java/com/ordia/app/ui/theme/` (Spacing, Type, Colors, Theme).
+- Creados componentes base en `app/src/main/java/com/ordia/app/ui/components/OrdiaDesignSystem.kt` (OrdiaCard, OrdiaButton, OrdiaInput).
+- Refactorizados `NotesListScreen` y `NoteEditorScreen` al nuevo design system (se incluye auto-focus para notas nuevas).
+- Verificación: `:app:assemble*Debug` verde, `:app:test*UnitTest` verde, `:app:lintPreviewSafeDebug` verde. Sin regresiones visuales.

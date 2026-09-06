@@ -58,3 +58,16 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 ## Estado CI
 
 - `android-ci.yml` (versión per-flavor del rebuild) activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas; sign+publish solo en push a `main`, publicando `Ordia-3.0-{safe,full,advanced}-signed.apk` + `update-manifest-<flavor>.json` + release inmutable con 9 assets.
+
+## WAVE 1: Foundation + Design System
+
+- **Fecha/hora**: (Sesión de evolución Wave 1)
+- **Branch de trabajo**: `jules/autonomous-ordia`
+- **Trabajo realizado**:
+  - Implementación de `Spacing.kt` y `LocalSpacing`
+  - Implementación de `Type.kt` con jerarquía densa y tipografía serif para títulos
+  - Reemplazo de `PaperColors.kt` por `Colors.kt` con paleta monocromática y acentos semánticos
+  - Actualización de `Theme.kt` para integrar la nueva base
+  - Creación de `OrdiaDesignSystem.kt` con `OrdiaCard`, `OrdiaButton` y `OrdiaInput`
+  - Refactor de `NotesListScreen.kt` y `NoteEditorScreen.kt` utilizando el nuevo sistema (y añadiendo auto-focus)
+- **Verificación**: 3 variantes compiladas, todos los tests de unidad (`testPreview*UnitTest`) pasaron, lint limpio.
