@@ -4,32 +4,29 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-16 (sesión 007: integración del rebuild + actualizador en `main`)
-- **Branch de trabajo**: `jules/autonomous-ordia` (rebuild 3.0.0 + actualizador por manifiesto) — integrado en `main` vía merge `5c7f8a6d`
-- **main**: `5c7f8a6d` (merge del rebuild, pendiente de push en esta sesión) — contiene infraestructura de orquestación + rebuild 3.0 + actualizador
+- **Fecha/hora (UTC)**: 2026-09-06 (sesión 008: Limpieza de Recursos No Utilizados)
+- **Branch de trabajo**: `jules/autonomous-ordia`
+- **main**: `5c7f8a6d` (merge del rebuild, pendiente de push)
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron + dispatch)
 
 ## Último trabajo realizado
 
-Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCIÓN FINAL, autorización explícita del usuario):
-
-1. **Análisis de divergencia**: merge-base `0059fb9e`; `origin/main` = `ba5b6eb0` (54 commits de infra + app antigua); `jules/autonomous-ordia` = `0d5ee44` (153 commits del rebuild).
-2. **Backup de seguridad**: tag `backup/main-before-rebuild-merge-2026-08-16` en `ba5b6eb0`.
-3. **Merge con resolución manual** (36 conflictos): app/builds/CI ganan con la rama autónoma (Kotlin 2.1.0 + KAPT ORD-036, `android-ci.yml` per-flavor); workflows de autonomía ganan con main (regex de rama real + fix de status vacío); AGENTS.md reescrito (elimina marcadores de conflicto que estaban commiteados en jules); .gitignore unión (secretos/artefactos).
-4. **Funcionalidades de main recuperadas en el rebuild**: widget `hoy`/`atrasadas` (contadores) dentro del refactor `updateWidgets` + layout `widget_today`; recordatorios de hábitos (`HabitReminderScheduler`/`HabitReminderWorker`) cableados en `AppContainer`/`OrdiaViewModel` (`saveHabit`, `deleteHabit`, `restoreArchived`, `deleteArchivedPermanently`, `restoreBackup`).
-5. **Eliminación de superseded**: update checker viejo por API (`com.ordia.app.update`) borrado; `TaskMutationGateTest` adaptado a la API real (mutex global).
-6. **Verificado**: 3 variantes compilan, 2352 tests unitarios verdes (0 fallos), lint limpio, sin marcadores de conflicto.
+Sesión 008 — Limpieza de Recursos No Utilizados:
+- Realizada limpieza de recursos muertos en Jetpack Compose detectados por lint (UnusedResources), removiendo archivos inactivos (`slide_in_top.xml`, `slide_out_top.xml`) que no tenian mas uso en la UI de Jetpack Compose despues del rebuild.
+- Limpiado el estilo no usado `Theme.Ordia.QuickCapture` en `themes.xml`.
 
 ## Áreas modificadas
 
-- app/src/main/java/com/ordia/app/{di/AppContainer, ui/OrdiaViewModel, ui/OrdiaRoot, widget/OrdiaWidgetProvider, data/repository/Repositories, reminders/{HabitReminderScheduler,HabitReminderWorker}(recuperados)}, res/layout/ordia_widget.xml, AGENTS.md, .gitignore, .github/workflows, AI_AUTONOMY (RUN_LOG, CURRENT_STATE, BACKLOG, DECISIONS), docs/* (main-only, fusionados).
+- `app/src/main/res/anim/slide_in_top.xml` (eliminado)
+- `app/src/main/res/anim/slide_out_top.xml` (eliminado)
+- `app/src/main/res/values-night/themes.xml` (modificado)
+- `AI_AUTONOMY/CURRENT_STATE.md` y `AI_AUTONOMY/RUN_LOG.md` (actualizados)
 
 ## Tests ejecutados
 
-- `:app:compilePreviewSafeDebugKotlin :app:compilePreviewAdvancedDebugKotlin :app:compilePreviewFullDebugKotlin` → BUILD SUCCESSFUL.
-- `:app:test{PreviewSafe,PreviewAdvanced,PreviewFull}DebugUnitTest` → BUILD SUCCESSFUL; **2352 tests, 0 fallos** (incluye `TaskMutationGateTest` 2/2 adaptado y `UpdateManifestParserTest`/`UpdateSecurityRulesTest`).
-- `:app:lintPreviewSafeDebug` → 0 errores (warnings deprecación SKIP pre-existentes).
+- `:app:lintPreviewSafeDebug` → Verificó la reducción de recursos inactivos.
+- `:app:compilePreviewSafeDebugKotlin :app:compilePreviewAdvancedDebugKotlin :app:compilePreviewFullDebugKotlin :app:testPreviewSafeDebugUnitTest` → BUILD SUCCESSFUL.
 
 ## Problemas conocidos
 

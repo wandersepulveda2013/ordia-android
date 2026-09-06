@@ -476,3 +476,24 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## SESIÓN 008 — Limpieza de Recursos No Utilizados
+
+- **Fecha (UTC)**: 2026-09-06
+- **Trigger**: Ejecución diaria
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Auditoría de lint**: Se analizó el reporte de lint que indicaba recursos XML sin uso.
+2. **Limpieza**: Se eliminaron los archivos `slide_in_top.xml` y `slide_out_top.xml` de `app/src/main/res/anim/`, al comprobarse que ya no tenían referencias en el código base luego de la migración del rediseño UI.
+3. **Limpieza en temas**: Se removió el estilo huérfano `Theme.Ordia.QuickCapture` de `values-night/themes.xml`.
+
+### Verificación
+
+- `./gradlew lintPreviewSafeDebug` verificó la reducción de recursos inactivos.
+- `./gradlew compilePreviewSafeDebugKotlin compilePreviewAdvancedDebugKotlin compilePreviewFullDebugKotlin testPreviewSafeDebugUnitTest` corrió exitosamente sin afectar el código productivo.
+
+### Commits creados
+
+- `f49c685f` chore(build): remove empty .gitkeep from schemas causing kapt room json parsing errors
