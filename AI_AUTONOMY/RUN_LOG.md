@@ -496,4 +496,4 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 
 ### Commits creados
 
-- Pendiente submit
+- `f49c685f` chore(build): remove empty .gitkeep from schemas causing kapt room json parsing errors
