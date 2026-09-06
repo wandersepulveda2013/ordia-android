@@ -476,3 +476,9 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+
+## 2026-08-16 (Sesi\xf3n 008)
+- **Objetivo**: Wave 1: Foundation + Design System.
+- **Cambios**: Created OrdiaDesignSystem.kt, Spacing.kt. Updated verify script to match Notepad active rebuild. UI components successfully refactored.
+- **Verificaci\xf3n**: ./gradlew testPreviewSafeDebugUnitTest passed, verify_project.py passed.
