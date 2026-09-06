@@ -14,3 +14,8 @@ val DarkInkRaised = Color(0xFF1F1C17)
 val PageOnDark = Color(0xFFE9E3D6)
 val PageMuted = Color(0xFF9A9388)
 val DarkRule = Color(0xFF2E2A23)
+
+// Semantic colors
+val SemanticPriority = Color(0xFFD9534F) // Red
+val SemanticSuccess = Color(0xFF5CB85C) // Green
+val SemanticFocus = Color(0xFF0275D8) // Blue
