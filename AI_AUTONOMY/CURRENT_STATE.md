@@ -58,3 +58,9 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 ## Estado CI
 
 - `android-ci.yml` (versión per-flavor del rebuild) activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas; sign+publish solo en push a `main`, publicando `Ordia-3.0-{safe,full,advanced}-signed.apk` + `update-manifest-<flavor>.json` + release inmutable con 9 assets.
+
+
+Sesión 008 — **Wave 1: Foundation + Design System**
+- Centralized UI with OrdiaDesignSystem.kt.
+- Refactored active screens using new system.
+- Synced verify_project.py with actual codebase.

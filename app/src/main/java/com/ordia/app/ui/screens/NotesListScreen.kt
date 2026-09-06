@@ -17,16 +17,12 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaFloatingActionButton
+import com.ordia.app.ui.components.OrdiaTopBar
+import com.ordia.app.ui.theme.LocalSpacing
 import java.text.DateFormat
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
     notes: List<NoteEntity>,
@@ -51,29 +49,26 @@ fun NotesListScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
-            )
+            OrdiaTopBar(title = "Ordía")
         },
         floatingActionButton = {
-            FloatingActionButton(
+            OrdiaFloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+                icon = Icons.Outlined.Add,
+                contentDescription = "Nueva nota"
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         if (notes.isEmpty()) {
             EmptyState(padding)
         } else {
+            val spacing = LocalSpacing.current
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(vertical = spacing.small),
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
@@ -87,7 +82,9 @@ fun NotesListScreen(
 @Composable
 private fun EmptyState(padding: PaddingValues) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -100,7 +97,7 @@ private fun EmptyState(padding: PaddingValues) {
                 "Toca + para escribir.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = LocalSpacing.current.small),
             )
         }
     }
@@ -118,12 +115,13 @@ private fun NoteRow(
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
     }
     val preview = remember(note.content) { note.content.take(120) }
+    val spacing = LocalSpacing.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = spacing.horizontalScreen, vertical = spacing.verticalScreen),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -143,7 +141,7 @@ private fun NoteRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) 4.dp else 0.dp),
+                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) spacing.extraSmall else 0.dp),
                 )
             }
             Text(
@@ -158,7 +156,9 @@ private fun NoteRow(
                 Icons.Outlined.PushPin,
                 contentDescription = "Fijada",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(18.dp),
             )
         }
         Box {
