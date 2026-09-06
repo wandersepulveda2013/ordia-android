@@ -37,6 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaSurface
+import com.ordia.app.ui.theme.LocalSpacing
 import java.text.DateFormat
 import java.util.Date
 
@@ -68,16 +72,25 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        OrdiaSurface(
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            if (notes.isEmpty()) {
+                EmptyState(padding, onCreateNote)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = LocalSpacing.current.small, horizontal = LocalSpacing.current.medium),
+                ) {
+                    items(notes, key = { it.id }) { note ->
+                        OrdiaCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = LocalSpacing.current.small)
+                        ) {
+                            NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                        }
+                    }
                 }
             }
         }
@@ -85,9 +98,9 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun EmptyState(padding: PaddingValues) {
+private fun EmptyState(padding: PaddingValues, onCreateNote: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -95,12 +108,11 @@ private fun EmptyState(padding: PaddingValues) {
                 "Una página en blanco\nes donde empieza todo.",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = LocalSpacing.current.large)
             )
-            Text(
-                "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+            OrdiaButton(
+                text = "Escribir nueva nota",
+                onClick = onCreateNote
             )
         }
     }

@@ -6,6 +6,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
@@ -48,16 +49,18 @@ fun NotepadTheme(
 ) {
     val base = Typography()
     val type = Typography(
-        bodyLarge = base.bodyLarge.copy(fontSize = 17.sp, lineHeight = 28.sp),
-        bodyMedium = base.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp),
-        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp),
-        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp),
-        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
-        labelSmall = base.labelSmall.copy(fontSize = 11.sp),
+        bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif, fontSize = 17.sp, lineHeight = 28.sp),
+        bodyMedium = base.bodyMedium.copy(fontFamily = FontFamily.SansSerif, fontSize = 16.sp, lineHeight = 26.sp),
+        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 28.sp, lineHeight = 36.sp),
+        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 22.sp, lineHeight = 30.sp),
+        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif, fontSize = 18.sp, lineHeight = 26.sp),
+        labelSmall = base.labelSmall.copy(fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp),
     )
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkPaper else LightPaper,
-        typography = type,
-        content = content,
-    )
+    CompositionLocalProvider(LocalSpacing provides Spacing()) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkPaper else LightPaper,
+            typography = type,
+            content = content,
+        )
+    }
 }
