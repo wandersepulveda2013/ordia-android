@@ -476,3 +476,18 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## 2026-09-07 14:34:57 UTC — UX Improvements: NoteEditorScreen
+
+Sesión de implementación de mejoras de UX para la pantalla de edición de notas.
+
+### Commits (esta sesión)
+- feat(ux): auto-focus title and discard empty note drafts
+
+### Verificación
+- `:app:compilePreviewSafeDebugKotlin` — SUCCESS
+- `:app:testPreviewSafeDebugUnitTest` — BUILD SUCCESSFUL
+- `:app:lintPreviewSafeDebug` — BUILD SUCCESSFUL
+
+### Contratos preservados
+- Compatibilidad con base de datos Room y lógica de negocio.
