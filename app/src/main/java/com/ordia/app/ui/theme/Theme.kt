@@ -6,8 +6,11 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
+import com.ordia.app.ui.components.LocalSpacing
+import com.ordia.app.ui.components.Spacing
 
 /**
  * A restrained, paper-and-ink palette. No accent colors: the only chroma is the
@@ -42,7 +45,7 @@ private val DarkPaper = darkColorScheme(
 )
 
 @Composable
-fun NotepadTheme(
+fun OrdiaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
@@ -55,9 +58,11 @@ fun NotepadTheme(
         titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
         labelSmall = base.labelSmall.copy(fontSize = 11.sp),
     )
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkPaper else LightPaper,
-        typography = type,
-        content = content,
-    )
+    CompositionLocalProvider(LocalSpacing provides Spacing()) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkPaper else LightPaper,
+            typography = type,
+            content = content,
+        )
+    }
 }

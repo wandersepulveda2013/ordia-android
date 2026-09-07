@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.LocalSpacing
+import com.ordia.app.ui.components.OrdiaCard
 import java.text.DateFormat
 import java.util.Date
 
@@ -73,11 +75,14 @@ fun NotesListScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(
+                    horizontal = LocalSpacing.current.paddingHorizontal,
+                    vertical = LocalSpacing.current.medium
+                ),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LocalSpacing.current.small)
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }
         }
@@ -119,14 +124,20 @@ private fun NoteRow(
     }
     val preview = remember(note.content) { note.content.take(120) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Top,
+    OrdiaCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onOpenNote(note) }
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = LocalSpacing.current.medium,
+                    vertical = LocalSpacing.current.medium
+                ),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
             if (note.title.isNotBlank()) {
                 Text(
                     note.title,
@@ -165,15 +176,16 @@ private fun NoteRow(
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
-                    onClick = { menuOpen = false; onTogglePin(note) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { menuOpen = false; onDeleteNote(note) },
-                )
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (note.pinned) "Desfijar" else "Fijar") },
+                        onClick = { menuOpen = false; onTogglePin(note) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = { menuOpen = false; onDeleteNote(note) },
+                    )
+                }
             }
         }
     }
