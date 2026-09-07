@@ -476,3 +476,14 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+## Ejecución actual
+
+- **Fecha/hora**: 2026-08-16
+- **Estado inicial**: Se encontraron recursos sin uso (animaciones y temas) reportados por lint (`UnusedResources`). También se detectó documentación obsoleta del app antigua.
+- **Trabajo seleccionado**: Limpiar recursos huérfanos y documentación vieja tras el rebuild para mantener la base de código limpia.
+- **Cambios**: Eliminación de `slide_in_top.xml`, `slide_out_top.xml`, `Theme.Ordia.QuickCapture` y varios archivos en `docs/`. Actualización de tracking AI.
+- **Verificación**: `./gradlew lintPreviewSafeDebug` verificó la ausencia de la advertencia. `./gradlew testPreviewSafeDebugUnitTest` pasaron.
+- **Resultado**: Código más limpio, warnings resueltos.
+- **Riesgo residual**: Ninguno.
+- **Próximo candidato**: Mejoras de UI/UX para el Notepad o revisiones de QA.
