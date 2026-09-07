@@ -2,6 +2,16 @@
 
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
+## 2026-09-07 19:45 (Limpieza de recursos sin uso e issues de lint)
+
+**Motivación**: Lint reportaba varios warnings de `UnusedResources` (`slide_in_top.xml`, `slide_out_top.xml`, `Theme.Ordia.QuickCapture`).
+**Acciones**:
+- Se eliminaron `app/src/main/res/anim/slide_in_top.xml` y `app/src/main/res/anim/slide_out_top.xml`.
+- Se eliminó `Theme.Ordia.QuickCapture` de `app/src/main/res/values-night/themes.xml`.
+- Se actualizó el estado para reflejar los cambios realizados.
+**Resultado**:
+- `:app:lintPreviewSafeDebug` ya no reporta `UnusedResources` (0 hallazgos de ese tipo).
+
 ---
 
 ## SESIÓN 000 — Bootstrap del sistema autónomo
