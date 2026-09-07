@@ -476,3 +476,11 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+### Run 2026-09-07 23:24:33 UTC
+- feat(notepad): discard empty notes and auto-focus title (P2)
+  - Prevent database clutter by discarding empty drafts (e.g., notes with a blank title and content) and explicitly deleting existing entities if they are edited to become empty.
+  - Auto-focus the primary input field (the title) using a Compose `FocusRequester` when creating new entities to reduce user friction.
+- Verificación:
+  - `:app:testPreviewSafeDebugUnitTest` -> SUCCESSFUL
+  - `:app:lintPreviewSafeDebug` -> SUCCESSFUL
