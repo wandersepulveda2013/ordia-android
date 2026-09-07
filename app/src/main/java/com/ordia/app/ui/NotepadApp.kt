@@ -10,11 +10,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ordia.app.ui.screens.NoteEditorScreen
 import com.ordia.app.ui.screens.NotesListScreen
-import com.ordia.app.ui.theme.NotepadTheme
+import com.ordia.app.ui.theme.OrdiaTheme
 
 @Composable
 fun NotepadApp(viewModel: NotepadViewModel = viewModel()) {
-    NotepadTheme {
+    OrdiaTheme {
         val notes by viewModel.notes.collectAsState()
         var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
         var creating by rememberSaveable { mutableStateOf(false) }

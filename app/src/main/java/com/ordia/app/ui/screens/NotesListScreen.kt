@@ -25,8 +25,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaFloatingActionButton
+import com.ordia.app.ui.components.OrdiaTopAppBar
+import com.ordia.app.ui.theme.OrdiaTheme
 import java.text.DateFormat
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
     notes: List<NoteEntity>,
@@ -51,20 +51,14 @@ fun NotesListScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ordía", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
-            )
+            OrdiaTopAppBar(title = "Ordía")
         },
         floatingActionButton = {
-            FloatingActionButton(
+            OrdiaFloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-            ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
+                icon = Icons.Outlined.Add,
+                contentDescription = "Nueva nota"
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -73,7 +67,7 @@ fun NotesListScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = OrdiaTheme.spacing.small),
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
@@ -123,7 +117,10 @@ private fun NoteRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(
+                horizontal = OrdiaTheme.spacing.large,
+                vertical = OrdiaTheme.spacing.medium
+            ),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
