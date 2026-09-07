@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class NoteDaoTest {
 
-    private lateinit var db: NoteDatabase
+    private lateinit var db: OrdiaDatabase
     private lateinit var dao: NoteDao
 
     private fun note(
@@ -33,7 +33,7 @@ class NoteDaoTest {
     @Before
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        db = Room.inMemoryDatabaseBuilder(context, NoteDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(context, OrdiaDatabase::class.java)
             .allowMainThreadQueries()
             .build()
         dao = db.noteDao()
