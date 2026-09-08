@@ -4,7 +4,7 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-16 (sesión 007: integración del rebuild + actualizador en `main`)
+- **Fecha/hora (UTC)**: 2026-09-08 13:17:07 (sesi\xf3n 008: Wave 1 Foundation)
 - **Branch de trabajo**: `jules/autonomous-ordia` (rebuild 3.0.0 + actualizador por manifiesto) — integrado en `main` vía merge `5c7f8a6d`
 - **main**: `5c7f8a6d` (merge del rebuild, pendiente de push en esta sesión) — contiene infraestructura de orquestación + rebuild 3.0 + actualizador
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron + dispatch)
@@ -12,18 +12,14 @@
 
 ## Último trabajo realizado
 
-Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCIÓN FINAL, autorización explícita del usuario):
+Sesión 008 — **Wave 1 Foundation** (Design System y reducción de fricción):
 
-1. **Análisis de divergencia**: merge-base `0059fb9e`; `origin/main` = `ba5b6eb0` (54 commits de infra + app antigua); `jules/autonomous-ordia` = `0d5ee44` (153 commits del rebuild).
-2. **Backup de seguridad**: tag `backup/main-before-rebuild-merge-2026-08-16` en `ba5b6eb0`.
-3. **Merge con resolución manual** (36 conflictos): app/builds/CI ganan con la rama autónoma (Kotlin 2.1.0 + KAPT ORD-036, `android-ci.yml` per-flavor); workflows de autonomía ganan con main (regex de rama real + fix de status vacío); AGENTS.md reescrito (elimina marcadores de conflicto que estaban commiteados en jules); .gitignore unión (secretos/artefactos).
-4. **Funcionalidades de main recuperadas en el rebuild**: widget `hoy`/`atrasadas` (contadores) dentro del refactor `updateWidgets` + layout `widget_today`; recordatorios de hábitos (`HabitReminderScheduler`/`HabitReminderWorker`) cableados en `AppContainer`/`OrdiaViewModel` (`saveHabit`, `deleteHabit`, `restoreArchived`, `deleteArchivedPermanently`, `restoreBackup`).
-5. **Eliminación de superseded**: update checker viejo por API (`com.ordia.app.update`) borrado; `TaskMutationGateTest` adaptado a la API real (mutex global).
-6. **Verificado**: 3 variantes compilan, 2352 tests unitarios verdes (0 fallos), lint limpio, sin marcadores de conflicto.
+1. **Design System (Espaciado)**: Implementado `Spacing` data class y `LocalSpacing` `CompositionLocalProvider` en `Theme.kt` e integrado en `NotepadTheme` para manejar márgenes consistentes globalmente.
+2. **Reducción de fricción (UX)**: Añadido auto-focus al campo de título en `NoteEditorScreen.kt` al crear nuevas notas usando `FocusRequester`.
 
 ## Áreas modificadas
 
-- app/src/main/java/com/ordia/app/{di/AppContainer, ui/OrdiaViewModel, ui/OrdiaRoot, widget/OrdiaWidgetProvider, data/repository/Repositories, reminders/{HabitReminderScheduler,HabitReminderWorker}(recuperados)}, res/layout/ordia_widget.xml, AGENTS.md, .gitignore, .github/workflows, AI_AUTONOMY (RUN_LOG, CURRENT_STATE, BACKLOG, DECISIONS), docs/* (main-only, fusionados).
+- app/src/main/java/com/ordia/app/ui/theme/Theme.kt, app/src/main/java/com/ordia/app/ui/screens/NoteEditorScreen.kt, AI_AUTONOMY/*
 
 ## Tests ejecutados
 
