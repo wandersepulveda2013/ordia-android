@@ -842,3 +842,12 @@ Commit: test(editor): cover system-back save.
   tags `testTag`/clases de las  ́2 pantallas;(b) recuperación del editor ante fallo de
   importación/exportación o cierre inesperado a mitad de un commit(zona crítica de
   persistencia,sín test de crash en medio del commit);;c) esperar trabajo nuevo de `main`.
+
+## RUN (openhands-recovery 2026-09-08
+- **Objetivo:** sincronizar sandbox stale, verificar estado canónico.
+- **Hallazgo:** el branch remoto ya contenía RUN 001-034 (suite 77 tests); nuestro WIP local (guard blank en existingId, tests ViewModel) quedaba subsistido/superado por el estado remoto.
+- **Cambio:** adoptado `origin/openhands/autonomous-notes` como canónico (reset local); sin delta funcional nuevo.
+- **Tests:** 77 PASS en `previewSafeDebug` (verificado localmente).
+- **Commit:** sin cambios funcionales; este registro.
+- **Estado:** build y tests verdes; working tree limpio.
+- **Siguiente tarea:** continuar con NEXT_TASKS — consistencia de tags testTag; recuperación del editor ante fallo import/export o crash en medio de commit.
