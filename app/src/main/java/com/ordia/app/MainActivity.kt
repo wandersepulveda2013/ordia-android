@@ -15,8 +15,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val app = application as OrdiaApplication
+            val database = com.ordia.app.data.NoteDatabase.get(this)
             val viewModel: NotepadViewModel = viewModel(
-                factory = NotepadViewModelFactory(app.repository)
+                factory = NotepadViewModelFactory(app.repository, database.taskDao())
             )
             NotepadApp(viewModel)
         }
