@@ -476,3 +476,16 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
 - `c6439df` feat(day-closing): day closing report engine (section 19)
 - **Tests finales: 490 (0 fail)**
+
+
+### 2026-09-08 03:30:27 UTC - UX and Database Clutter Prevention
+- **Estado inicial**: Fricci\xf3n al crear notas por requerir tap manual en el t\xedtulo. Riesgo de acumular notas vac\xedas/drafts fantasma en la base de datos si el usuario abr\xeda y cerraba.
+- **Trabajo seleccionado**: Mejorar la UX de creaci\xf3n de notas con autofocus (FocusRequester) y prevenir la persistencia de notas vac\xedas, eliminando notas existentes si se editan para quedar vac\xedas (Prioridad UX e Integridad de DB).
+- **Cambios**:
+  - `NoteEditorScreen.kt` (FocusRequester en t\xedtulo).
+  - `NotepadViewModel.kt` (descarte de notas vac\xedas y borrado de notas vaciadas).
+  - `NotepadViewModelTest.kt` (tests para la nueva l\xf3gica).
+- **Verificaci\xf3n**: tests (3 variantes) y lint exitosos.
+- **Resultado**: Creaci\xf3n de notas sin fricci\xf3n. No habr\xe1 clutter en DB por notas en blanco.
+- **Riesgo residual**: Ninguno.
+- **Pr\xf3ximo candidato**: (P2) Revisar coherencia de cadenas nuevas.
