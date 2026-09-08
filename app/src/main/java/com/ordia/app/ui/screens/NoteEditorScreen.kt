@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.theme.LocalSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +64,7 @@ fun NoteEditorScreen(
                         "Hecho",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = LocalSpacing.current.medium)
                             .clickable {
                                 onSave(title, content, note?.id)
                                 onBack()
@@ -78,19 +79,20 @@ fun NoteEditorScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        val spacing = LocalSpacing.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = spacing.screenHorizontal, vertical = spacing.itemSpacing),
+            verticalArrangement = Arrangement.spacedBy(spacing.itemSpacing),
         ) {
             TextField(
                 value = title,
                 onValueChange = { title = it },
-                placeholder = { Text("Título", style = MaterialTheme.typography.titleLarge) },
-                textStyle = MaterialTheme.typography.titleLarge,
+                placeholder = { Text("Título", style = MaterialTheme.typography.headlineMedium) },
+                textStyle = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.fillMaxWidth(),
                 colors = bareFieldColors(),
             )
