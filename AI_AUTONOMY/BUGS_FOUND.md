@@ -2,8 +2,34 @@
 
 > Formato: bug · impacto · reproducción · causa · estado · commit.
 
-## BUG-010 — Fallo del commit final del editor puede perder el texto tecleado (P1
+## BUG-011 — "Deshacer" tras un borrado fallido duplica la nota (P1
 
+- **Impacto:** duplicación de datos. El flujo de borrado (confirmar → snackbar
+  "Nota eliminada" + Deshacer) se dispara al confirmar el diálogo, pero el write
+  de borrado es asíncrono (`launchPersist`) y puede fallar (disco lleno, error de BD).
+  La UI ya muestra "Nota eliminada" aunque el borrado nunca llegó a aterrizar; si el
+  usuario pulsa "Deshacer", `restore` reinserta bajo un id nuevo porque la fila
+  original sigue ocupando el id — resultado:**dos notas idénticas** en la lista
+  (la original + la "restaurada" con id nuevo).
+- **Reproducción:** `FakeDao.failWrites=true` → `viewModel.delete(note))` →
+  `advanceUntilIdle()`(la nota sigue,: 1 fila)→ `viewModel.restore(note))` →
+  antes del fix:: 2 filas idénticas; tras el fix:: 1 fila (no-op).
+- **Causa:** `NotepadViewModel.restore` distinguía solo dos casos(id libre → reinsertar
+  con el mismo id;; id ocupado → reinsertar con id nuevo. El caso "id ocupado por
+  la MISMA nota porque el borrado falló o el undo corrió antes de que aterrizara el write"
+  caía en la rama "id nuevo" → duplicado. (El diseño de "id nuevo" era correcto para
+  el rowid-reuse tras un borrado EXITOSO — BUG-004 — pero no puede distinguir ese caso
+  del "borrado nunca ocurrió".
+- **Estado:** FIXED — `restore` compara la fila ocupante (`repo.get(note.id))`) con la
+  instantánea borrada ignorando el id(`copy(id=0))`. Si la fila ocupante es **idéntica**,
+  el borrado nunca llegó a aterrizar→ **no-op** (nada que restaurar,no se duplica);
+  si es una nota distinta → reinserta con id nuevo((misma protección anti-overwrite de
+  BUG-004); si el id está libre → reinserta con el mismo id..
+- **Commit:** RUN 036 en `openhands/autonomous-notes`..
+- **Test:** `NotepadViewModelTest.restore_afterFailedDelete_doesNotDuplicate` —
+  borrado fallido + restore → 1 sola fila, idéntica a la original((mismo id..
+
+## BUG-010 — Fallo del commit final del editor puede perder el texto tecleado (P1
 - **Impacto:** pérdida de datos. Al pulsar back/Hecho con el autosave en curso y
   storage fallido (disco lleno, error de BD), el commit final puede fallar:la
   sesión de draft ya se limpió síncronamente y el editor ya navegó atrás, por lo

@@ -10,8 +10,9 @@ _(vacío tras la ejecución 001: eliminación sin deshacer y notas vacías queda
 ## P1 — Alto impacto
 
 _(vacío: BUG-010 resuelto RUN 035 — el commit final fallido ya no
-pierde texto: queda encolado y se re-aplicaen la siguiente escritura
-de draft; ver BUGS_FOUND.md._)
+pierde texto: queda encolado y se re-aplica en la siguiente escritura
+de draft;; BUG-011 resuelto RUN 036 — el undo tras un borrado fallido ya
+no duplica la nota (no-op si el id sigue ocupado por la misma nota; ver BUGS_FOUND.md._)_
 
 ## P2 — Calidad de producto
 

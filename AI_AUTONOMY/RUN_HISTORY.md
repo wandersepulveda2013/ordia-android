@@ -1,5 +1,29 @@
-## RUN 035 - 2026-09-04 (P1/BUG-010: commit final resiliente ante fallos de storage)
+## RUN 036 - 2026-09-08 (P1/BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota)
 
+- **Objetivo:** cerrar BUG-011 (P1: duplicación de datos en el undo tras un
+  borrado fallido; documentar el fix (código + regresión + memoria).
+
+- **Hallazgo:** el flujo de borrado (confirmar → snackbar "Nota eliminada" +
+  Deshacer) se dispara al confirmar, pero el write de borrado es asíncrono y puede
+  fallar. Con la fila original todavía ocupando el id, `restore` caía en la rama
+  "id ocupado → reinsertar con id nuevo", duplicando la nota (BUG-011).
+
+- **Cambio:** `NotepadViewModel.restore` ahora distingue tres estados:(a) id libre →
+  reinsertar con el mismo id; (b) id ocupado por una nota **distinta** (rowid-reuse
+  tras borrado real, BUG-004) → reinsertar con id nuevo (no sobrescribe una viva);
+  (co id ocupado por la **misma** nota (el borrado nunca aterrizó o el undo corrió
+  antes))→ **no-op** — no hay nada que restaurar,reinsertar duplicaría. El resto
+  del flujo (launchPersist, eventos) no cambia.
+
+- **Tests:** `testPreviewSafeDebugUnitTest` con `--no-build-cache --rerun-tasks` →
+  `NotepadViewModelTest`:**30 tests,, 0 fallos,, 0 errores** (BUILD SUCCESSFUL;
+  +1 `restore_afterFailedDelete_doesNotDuplicate` — borrado fallido (failWrites=true)
+  + restore →  ́1 sola fila, idéntica a la original. Compilación con KAPT verdes
+  (sin cache, --rerun-tasks).
+
+- **Commit:** `openhands/autonomous-notes` — fix BUG-011 + regresión + memoria.
+
+## RUN 035 - 2026-09-04 (P1/BUG-010: commit final resiliente ante fallos de storage)
 - **Objetivo:** cerrar BUG-010 (P1): el último texto tecleado ya no se pierde
   si el write del commit final falla.
 

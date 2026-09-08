@@ -4,7 +4,25 @@
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
-## 2026-09-04 — Ejecución 035 (P1/confiabilidad: el commit final del editor ya no pierde texto si el storage falla — BUG-010)
+## 2026-09-08 — Ejecución 036 (P1/integridad de datos: «Deshacer» tras un borrado fallido ya no duplica la nota — BUG-011)
+- **El undo tras un borrado fallido ya no duplica la nota.**: antes, el flujo
+  de borrado (confirmar → snackbar "Nota eliminada" + Deshacer) se disparaba al
+  confirmar, pero el write de borrado es asíncrono (`launchPersist`) y podía
+  fallar. La fila original seguía ocupando el id, y `restore` caía en la rama
+  "id ocupado → reinsertar con id nuevo"— resultado: dos notas idénticas. Ahora
+  `restore` distingue tres estados:(a) id libre → mismo id;((b) id ocupado por
+  una nota **distinta** (rowid-reuse tras borrado real, BUG-004) → id nuevo
+  (nunca sobrescribe una viva);(co id ocupado por la **misma** nota (el borrado
+  nunca aterrizó o el undo corrió antes))→ **no-op** — reinsertar duplicaría;no
+  hay nada que restaurar. El resto del flujo (`launchPersist`, eventos)no cambia.
+
+- **Regresión:** `NotepadViewModelTest.restore_afterFailedDelete_doesNotDuplicate`
+  — `failWrites=true` + `viewModel.delete(note)` → la nota sigue (1 fila)→
+  `restore(note)` → **1 sola fila**, idéntica a la original (mismo id. Suite
+  previewSafe `NotepadViewModelTest`:**30/30**,0 fallos( RUN 036. Las otras
+  2 variantes pendientes de re-verificación (mismo `src/test` compartido).
+
+## 2026-09-04 — Ejecución 035 (P1/confiabilidad: el commit final del editor ya no pierde texto si el storage falla— BUG-010)
 - **El último texto tecleado ya no se pierde si el write del commit final falla.**: antes,
   `commitDraft` cancelaba el autosave, limpiaba la sesión de draft **síncronamente** y
   lanzaba el write en background:si fallaba (disco lleno, error de BD), la app

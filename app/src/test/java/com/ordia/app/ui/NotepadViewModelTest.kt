@@ -168,6 +168,32 @@ class NotepadViewModelTest {
     }
 
     @Test
+    fun restore_afterFailedDelete_doesNotDuplicate() = runTest(dispatcher) {
+        // BUG-011: si el write de borrado falla (disco lleno…), la UI ya mostró
+        // "Nota eliminada" + Deshacer. Al deshacer, restaurar no debe crear una
+        // segunda copia cuando el borrado nunca llegó a aterrizar (la fila sigue idéntica)..
+        dao.failWrites = true
+        val note = NoteEntity(id = 7L, title = "Papelera", content = "no borrado", createdAt = 100, updatedAt = 100)
+        dao.notes.add(note)
+
+        viewModel.delete(note)
+        advanceUntilIdle()
+
+        assertEquals("El borrado fallido deja la nota en su sitio", 1, dao.notes.size)
+
+
+
+        dao.failWrites = false  // storage se recuperó (el Deshacer corrió antes de aterrizar el borrado);
+        // el restore debe poder aterrizar — y no duplicar la nota.
+
+        viewModel.restore(note)
+        advanceUntilIdle()
+
+        assertEquals("Restaurar tras un borrado fallido no debe duplicar la nota", 1, dao.notes.size)
+        assertEquals("La nota original debe conservarse", note, dao.notes.single())
+    }
+
+    @Test
     fun restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId() = runTest(dispatcher) {
         viewModel.save("Original", "cuerpo")
         advanceUntilIdle()

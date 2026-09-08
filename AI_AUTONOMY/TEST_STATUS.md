@@ -5,11 +5,11 @@
 - `:app:testPreviewSafeDebugUnitTest` (JVM + Robolectric, sdk=34 para los de UI):
   - `NoteDaoTest` — Room in-memory (11 tests).
   - `NoteRepositoryTest` — FakeDao en memoria (7 tests).
-  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (28 tests,
+  - `NotepadViewModelTest` — `Dispatchers.setMain(StandardTestDispatcher)` (29 tests,
   RUN 009: +4 del ciclo de draft — resume en recreación, proceso-muerte, carrera
   commit→beginDraft hacia otra nota, y nota nueva tras back. RUN 022: +1 regresión
   de BUG-009 — `processDeath_restoresSearchQuery`: la query de búsqueda activa
-  sobrevive a la recreación del ViewModel vía `SavedStateHandle`). RUN 026: +1 `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`. RUN 027: +3 regresiones de persistencia resiliente (`failedSave_emitsPersistenceError_andRetriesLater`, `failedDelete_doesNotCrash_andEmitsError`, `failedRestore_overridesNoLiveNote`).
+  sobrevive a la recreación del ViewModel vía `SavedStateHandle`). RUN 026: +1 `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`. RUN 027: +3 regresiones de persistencia resiliente (`failedSave_emitsPersistenceError_andRetriesLater`, `failedDelete_doesNotCrash_andEmitsError`, `failedRestore_overridesNoLiveNote`). RUN 036:+1 regresión de BUG-011 — `restore_afterFailedDelete_doesNotDuplicate` (borrado fallido + Deshacer → 1 sola fila;; y anotación en la descripción: 28→29 tests.
   - `NoteEditorBackSaveTest` — UI Compose/Robolectric (3 tests; RUN 012
     añade `toolbarDone_commitsAndNavigates` — "Hecho" hace commit y navega).
   - `NoteEditorRecreationTest` — UI Compose/Robolectric (2 tests, RUN 012):
@@ -53,6 +53,7 @@
   `values-night/themes.xml`. Sin re-verificación de suite en esta ejecución (recursos
   no funcionales}; último resultado real: RUN 032 verification, re-registrado en RUN 033.
 
+- 2026-09-08 (ejecución 036, BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota): verificado en este sandbox con `--no-build-cache --rerun-tasks` → `testPreviewSafeDebugUnitTest` (`NotepadViewModelTest`): **30 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL; +1 vs RUN 026: `restore_afterFailedDelete_doesNotDuplicate` — borrado fallido (`FakeDao.failWrites=true`) + `restore(note)` → **1 sola fila**, idéntica a la original (mismo id)no-op correcto,sin duplicado. Las otras 2 variantes (`previewFull`/`previewAdvanced`) comparten el mismo `src/test` y quedan pendientes de re-verificación en la próxima ejecución; sin fallos conocidos ni flakiness detectado.
 ## Último resultado
 - 2026-09-04 (ejecución 035, BUG-010: commit final resiliente ante fallos de
   storage): verificado en este sandbox con `--no-build-cache --rerun-tasks` → las

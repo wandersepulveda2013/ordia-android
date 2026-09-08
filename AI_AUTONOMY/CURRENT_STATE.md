@@ -57,6 +57,7 @@
    cada escritura de draft posterior re-aplica primero los snapshots pendientes
    — el texto tecleado nunca se pierde silenciosamente;+1 regresión
    `failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` → **78/78 en las  3 variantes**).
+  RUN 036: **«Deshacer» tras un borrado fallido ya no duplica la nota (BUG-011):** `restore()` distingue tres estados„(id libre→ mismo id; id ocupado por otra nota→ id nuevo; id ocupado por la misma nota→ **no-op**);+1 regresión `restore_afterFailedDelete_doesNotDuplicate` → **30/30 en `testPreviewSafeDebugUnitTest`** (las otras 2 variantes pendientes).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

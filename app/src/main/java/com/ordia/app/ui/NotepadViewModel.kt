@@ -282,12 +282,18 @@ class NotepadViewModel(
      * Reinserts a previously deleted note. Keeps its original id when that slot
      * is still free; otherwise, if it was reused by another note (SQLite rowid
      * reuse after delete), reinserts under a fresh id so undo never overwrites
-     * a live note.
+     * a live note. When the occupying row is byte-identical to the deleted
+     * snapshot (delete write failed or undo raced it before it landed), nothing
+     * to restore — reinserting would duplicate the note (BUG-011).
      */
     fun restore(note: NoteEntity) {
         launchPersist(block ={
-            val free = repo.get(note.id) == null
-            repo.save(if (free) note else note.copy(id = 0L))
+            val current = repo.get(note.id)
+            if (current == null) {
+                repo.save(note)
+            } else if (current.copy(id = 0L) != note.copy(id = 0L)) {
+                repo.save(note.copy(id = 0L))
+            }
         })
     }
 
