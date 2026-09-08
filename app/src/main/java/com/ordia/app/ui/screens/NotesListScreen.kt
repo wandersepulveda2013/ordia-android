@@ -36,7 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.text.input.ImeAction
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.data.TaskEntity
 import java.text.DateFormat
 import java.util.Date
 
@@ -44,10 +52,13 @@ import java.util.Date
 @Composable
 fun NotesListScreen(
     notes: List<NoteEntity>,
+    tasks: List<TaskEntity>,
     onOpenNote: (NoteEntity) -> Unit,
     onCreateNote: () -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
+    onCapture: (String) -> Unit,
+    onToggleTask: (TaskEntity) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -68,17 +79,86 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (notes.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        var captureText by remember { mutableStateOf("") }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            OutlinedTextField(
+                value = captureText,
+                onValueChange = { captureText = it },
+                placeholder = { Text("Capturar tarea o nota...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    onCapture(captureText)
+                    captureText = ""
+                }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
+            )
+
+            if (notes.isEmpty() && tasks.isEmpty()) {
+                EmptyState(PaddingValues(0.dp))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    items(tasks, key = { "task_${it.id}" }) { task ->
+                        TaskRow(task, onToggleTask)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    }
+                    items(notes, key = { "note_${it.id}" }) { note ->
+                        NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskRow(
+    task: TaskEntity,
+    onToggleTask: (TaskEntity) -> Unit,
+) {
+    val date = remember(task.dueDate) {
+        task.dueDate?.let { DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(it)) }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggleTask(task) }
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (task.isCompleted) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+            contentDescription = if (task.isCompleted) "Completada" else "Pendiente",
+            tint = if (task.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
+            Text(
+                task.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+            )
+            if (date != null) {
+                Text(
+                    date,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }
