@@ -1,3 +1,24 @@
+## RUN 035 - 2026-09-04 (P1/BUG-010: commit final resiliente ante fallos de storage)
+
+- **Objetivo:** cerrar BUG-010 (P1): el último texto tecleado ya no se pierde
+  si el write del commit final falla.
+
+- **Hallazgo:** con storage en fallo, el último commit (atrás o "Hecho"):se
+  escribía en background tras limpiar la sesión de draft;el texto no quedaba en ninguna
+  nota ni en el editor (solo un snackbar global que no recuperaba el texto).
+
+- **Cambio:** `commitDraft` ahora retiene un `FinalCommitSnapshot` (título+contenido)
+  del commit final fallido en una cola FIFO en memoria (`pendingFinalCommits`;cada
+  escritura de draft posterior (autosave o commit) re-aplica primero los snapshots
+  pendientes (más-antiguo-primero) antes de aterrizar texto nuevo. Un segundo fallo
+  no puede enmascarar un snapshot viejo(cada fallo emite `persistenceError` recuperable).
+
+- **Tests:** `--no-build-cache --rerun-tasks` → 3 variantes:** 78 tests,, 0 fallos,
+  0 errores** (BUILD SUCCESSFUL; +1 `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite`).
+  `assembleRelease` 3 variantes OK.
+
+- **Commit:** d721f6a (fix BUG-010 + regresión). Memoria de esta ejecución en commit aparte。
+
 ## RUN 034 - 2026-09-04 (P2/limpieza: recursos muertos del merge + P1 BUG-010 identificado y documentado)
 - **Objetivo:** cerrar el ciclo de limpieza heredado (import muerto y recursos XML
   sin usar) y, de paso, documentar el riesgo P1 de mayor valor encontrado en el

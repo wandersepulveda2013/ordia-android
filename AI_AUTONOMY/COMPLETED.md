@@ -4,6 +4,24 @@
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-09-04 — Ejecución 035 (P1/confiabilidad: el commit final del editor ya no pierde texto si el storage falla — BUG-010)
+- **El último texto tecleado ya no se pierde si el write del commit final falla.**: antes,
+  `commitDraft` cancelaba el autosave, limpiaba la sesión de draft **síncronamente** y
+  lanzaba el write en background:si fallaba (disco lleno, error de BD), la app
+  mostraba el snackbar global pero el editor ya había navegado atrás y la sesión
+  estaba limpia — el texto no quedaba en ninguna nota ni en el editor. Ahora el
+  snapshot del commit final fallido (`FinalCommitSnapshot`: título/contenido) se conserva
+  en una cola FIFO en memoria y **cada escritura de draft posterior** (autosave o
+  commit) lo re-aplica primero (más-antiguo-primero) antes de aterrizar el texto
+  nuevo — el texto nunca se pierde silenciosamente,y un segundo fallo no puede
+  enmascarar un snapshot más viejo(cada fallo emite el evento `persistenceError`
+  recuperable;el snapshot se conserva para un nuevo intento). Mismo camino para los
+  dos casos (back y "Hecho",único `finishEditing` del editor).
+- **Regresión:** `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite`
+  — `failWrites=true` + `commitDraft` → texto no persistido + evento recuperable;al
+  recuperar el storage, la siguiente autosave aterriza primero el snapshot y luego el
+  borrador nuevo (2 notas,sin pérdida ni orden invertido).
+- **Suite:** completa 78 tests en las  3 variantes (0 fallos,  ​0 errores; RUN 035).
 ## 2026-09-04 — Ejecución 034 (P2/limpieza: import y recursos XML muertos del merge eliminados)
 - **Eliminados recursos muertos de la UI principal.**: el merge del rebuild dejó
   el import `Snackbar` sin usar en `NotesListScreen.kt`, dos animaciones XML sin

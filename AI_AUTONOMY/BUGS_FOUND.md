@@ -21,10 +21,21 @@
   autosave reintenta — self-healing, cubierto por
   `failedSave_emitsPersistenceError_andRetriesLater`. El commit final rompe esa
   cadena.)
-- **Estado:** ABIERTO (RUN 034, identificado y documentado; sin fix aún).
-- **Commit:** — (ninguno; ver `NEXT_TASKS.md` P1 ítem 0).
-- **Test:** — (se puede reproducir con `failWrites=true` + `commitDraft`;el
-  test de regresión `failedFinalCommit_preservesTextOrRetries` queda propuesto).
+- **Estado:** FIXED — el snapshot del commit final fallido queda encolado en
+  `pendingFinalCommits` (FIFO, en memoria)y cada escritura de draft posterior
+  (`autosave`/`commitDraft`) re-aplica los snapshots pendientes primero
+  (`retryPendingFinalCommits()`, más-antiguo-primero) antes de aterrizar el texto
+
+  nuevo — el texto tecleado nunca se pierde silenciosamente,y un segundo fallo
+  no puede enmascarar un snapshot más viejo (cada fallo emite `persistenceError`;el
+  snapshot se conserva para un nuevo intento).
+- **Commit:** `d721f6a` en `openhands/autonomous-notes` (fix + regresión).
+- **Test:** `failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` — `failWrites=true`
+  + `commitDraft("Título final",...)` → el texto no queda en ninguna nota y se
+  emite el evento recuperable;al recuperar el storage,la siguiente `autosave`
+  aterriziza primero el snapshot (`Título final` con su contenido) y luego el
+  borrador nuevo (2 notas,sin pérdida ni orden invertido). Suite completa 78/78
+  en  las  3 variantes (RUN 035).
 
 ## BUG-008 — El merge `8a82c78` reintrodujo dos regresiones: back del editor sin commit final y borrado sin diálogo de confirmación (P1
 

@@ -52,6 +52,11 @@
   ya no parten pares sustitutos UTF-16** (helper `safeTakeChars`;el emoji que no
   cabe en el cap se descarta entero,sín `\ufffd`;+3 tests `NoteEntityPreviewTest`
   → **77/77 en las 3 variantes**).
+  RUN 035: **commit final resiliente ante fallos del storage (BUG-010):** el snapshot
+   del commit final fallido queda encolado en memoria (`pendingFinalCommits`, FIFO) y
+   cada escritura de draft posterior re-aplica primero los snapshots pendientes
+   — el texto tecleado nunca se pierde silenciosamente;+1 regresión
+   `failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` → **78/78 en las  3 variantes**).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).
@@ -205,30 +210,28 @@
 
 ## Estado de tests
 
-- **Última verificación real — RUN 032 (re-registrada en RUN 033):** 77/77
-  verdes en las 3 variantes (`testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
-  `testPreviewAdvancedDebugUnitTest`). RUN 034 no re-ejecutó la suite — cambios de
-  limpieza no funcionales. Detalle: **77 tests, 0 fallos (11 DAO + 7 Repo
-  + 28 VM [incluye `processDeath_restoresSearchQuery`, BUG-009,
-   `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`, y las  3 regresiones
-
-   de persistencia resiliente `failedSave/Delete/Restore`] + 16 UI
+- **Última verificación real — RUN 035:** **78/78
+  verdes en las  ‌3 variantes** (`testPreviewSafeDebugUnitTest`, `testPreviewFullDebugUnitTest`,
+  `testPreviewAdvancedDebugUnitTest`). Detalle: **78 tests,  ‌0 fallos (11 DAO +  ‌7 Repo
+  + 29 VM [incluye `processDeath_restoresSearchQuery`, BUG-009,
+   `commitDraft_existingNoteUnchanged_doesNotRewriteUpdatedAt`, las  ‌3 regresiones
+   de persistencia resiliente `failedSave/Delete/Restore` y la regresión BUG-010
+   `failedFinalCommit_textIsQueuedAndRetriedOnNextWrite`] +  ‌16 UI
   [incluye `NotesListDeleteConfirmTest` + `NotesListSearchInteractiveTest` 4/4
   (label accesible «Buscar notas» persistente) + `NotesListPinToggleTest` 2/2
-
   (pin vía menú ⋮)] +  ‌7 `NoteEntityPreviewTest` (RUN 032:+3 anti-par
   sustituto UTF‑16) + 5 `RelativeDateTest`.** Detalle en `TEST_STATUS.md`.
-## Riesgo abierto (P1, BUG-010, RUN 034)
+## P1 resuelto (BUG-010, RUN 035)
 
-- **`commitDraft` puede perder el último texto tecleado si el storage falla en el
-  commit final.** El autosave es self-healing (texto queda en el editor y reintenta);
-  pero `commitDraft` cancela el autosave,**limpia la sesión de draft síncronamente**
-  y lanza el write en background:si ese write falla, el editor ya navegó atrás
-
-  y el texto no queda en ninguna nota ni en el editor. El snackbar global de
-  persistencia avisa, pero no recupera el texto. Documentado en `BUGS_FOUND.md`
-  BUG-010;fix mínimo propuesto (reintentar en `launchPersist` y/o retener la
-  sesión hasta confirmar la escritura) en `NEXT_TASKS.md` P1 ítem 0.
+- **`commitDraft` ya no pierde el último texto tecleado si el storage falla en el
+  commit final.** Fix (RUN 035): el commit final fallido retiene un
+  `FinalCommitSnapshot` (título+contenido) en una cola FIFO en memoria
+  (`pendingFinalCommits`); la siguiente escritura de draft (autosave o commit)
+  re-aplica primero los snapshots pendientes antes de aterrizar texto nuevo. Un
+  segundo fallo no puede enmascarar un snapshot viejo(cada fallo emite
+  `persistenceError` recuperable). Verificado con regresión:
+  `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite`.
+  Documentado en `BUGS_FOUND.md` BUG-010 (resuelto); P1 de `NEXT_TASKS.md` vacío.
 
 ## Resiliencia de persistencia (RUN 027)
 

@@ -54,6 +54,16 @@
   no funcionales}; último resultado real: RUN 032 verification, re-registrado en RUN 033.
 
 ## Último resultado
+- 2026-09-04 (ejecución 035, BUG-010: commit final resiliente ante fallos de
+  storage): verificado en este sandbox con `--no-build-cache --rerun-tasks` → las
+  3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **78 tests,  0 fallos,,  0 errores** (BUILD
+  SUCCESSFUL; +1 vs RUN 032: `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite`
+  — fallo del write final → snapshot encolado + evento recuperable;al recuperar,
+  la autosave siguiente re-aplica el snapshot antes del borrador nuevo. Sin fallos conocidos
+  ni flakiness detectado.
+
+
 - 2026-09-04 (ejecución 032, integridad de texto: preview de lista y diálogo
   de borrado sin partir pares sustitutos UTF-16): verificado en este sandbox con
   `--rerun-tasks` → las 3 variantes (`testPreviewSafeDebugUnitTest` /
@@ -225,7 +235,13 @@
 
 ## Tests recientemente agregados
 
-- `NoteEntityPreviewTest` RUN 032 (+3, P2: integridad de texto — el preview de
+- `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` (RUN 035,
+  +1, P1/BUG-010: resiliencia del commit final — si el write del storage falla,
+  el snapshot del commit fallido espera en la cola FIFO y la siguiente escritura de
+  draft lo re-aplica primero; nunca se pierde texto silenciosamente. 78/78 en las
+  3 variantes: cubre el riesgo de pérdida de datos al cerrar el editor con
+  storage en fallo).
+- `NoteEntityPreviewTest` RUN 032 (+3,, P2: integridad de texto— el preview de
   lista y el truncado del título de confirmación de borrado ya no parten un par
   sustituto UTF‑16:`preview_withinLimit_keepsEmojiIntact`, `preview_emojiAtBoundary_doesNotSplitSurrogatePair`
   (el emoji que no cabe en el cap se descarta entero, nunca un `\ufffd`) y
