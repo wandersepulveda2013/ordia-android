@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.theme.LocalSpacing
 import java.text.DateFormat
 import java.util.Date
 
@@ -68,12 +69,13 @@ fun NotesListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        val spacing = LocalSpacing.current
         if (notes.isEmpty()) {
             EmptyState(padding)
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = spacing.small),
             ) {
                 items(notes, key = { it.id }) { note ->
                     NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
@@ -93,14 +95,14 @@ private fun EmptyState(padding: PaddingValues) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 "Una página en blanco\nes donde empieza todo.",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
                 "Toca + para escribir.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = LocalSpacing.current.small),
             )
         }
     }
@@ -118,12 +120,13 @@ private fun NoteRow(
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
     }
     val preview = remember(note.content) { note.content.take(120) }
+    val spacing = LocalSpacing.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = spacing.screenHorizontal, vertical = spacing.medium),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -143,14 +146,14 @@ private fun NoteRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) 4.dp else 0.dp),
+                    modifier = Modifier.padding(top = if (note.title.isNotBlank()) spacing.extraSmall else 0.dp),
                 )
             }
             Text(
                 date,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 6.dp), // Fine-tuned layout adjustment
             )
         }
         if (note.pinned) {
@@ -158,7 +161,7 @@ private fun NoteRow(
                 Icons.Outlined.PushPin,
                 contentDescription = "Fijada",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier.size(18.dp).padding(top = spacing.extraSmall / 2),
             )
         }
         Box {
