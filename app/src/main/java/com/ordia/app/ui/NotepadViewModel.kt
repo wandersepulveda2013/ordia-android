@@ -36,6 +36,19 @@ class NotepadViewModel(
         private const val TAG = "NotepadViewModel"
     }
 
+    /**
+     * Snapshot of a final editor commit (back / "Hecho") whose storage write
+     * failed after retries. Kept in memory so the typed text is never silently
+     * lost (BUG-010): the next draft write (autosave or commit) re-applies
+     * pending snapshots first, while a transient storage failure is still fresh..
+     */
+    private class FinalCommitSnapshot(
+        val title: String,
+        val content: String,
+        val id: Long?,
+        val wasNew: Boolean,
+    )
+
     /** One-shot event per failed persistence write (storage full, DB error, …). */
     private val _persistenceError = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val persistenceError: SharedFlow<Unit> = _persistenceError.asSharedFlow()
@@ -74,12 +87,23 @@ class NotepadViewModel(
     private var autosaveJob: Job? = null
 
     /**
+     * Failed final commits awaiting a retry, in FIFO order (oldest first) so a
+     * second failure can never mask an older one. Bounded toa few entries:
+     * each snapshot is an entire note the user typed — keeping more than a handful
+     * would itself be a memory risk..
+     */
+    private val pendingFinalCommits = ArrayDeque<FinalCommitSnapshot>()
+
+    /**
      * Resilience: a failed persistence write (disk full, DB error…) must never
      * crash the app. The user's text stays in the editor state, the next autosave
      * retries, and the UI gets a non-fatal signal ([persistenceError]). Cancellation
      * is rethrown so cancel () keeps working on in-flight autosaves.
      */
-    private fun launchPersist(block: suspend () -> Unit): Job =
+    private fun launchPersist(
+        block: suspend () -> Unit,
+        onFinalFailure: (() -> Unit)? = null,
+    ): Job =
         viewModelScope.launch {
             try {
                 block()
@@ -104,6 +128,10 @@ class NotepadViewModel(
                     } catch (retryE: Exception) {
                         runCatching { Log.e(TAG, "Persistence retry failed", retryE) }
                         _persistenceError.tryEmit(Unit)
+                        // Let the caller preserve whatever cannot be written now (e.g. a
+                        // final editor commit snapshot) so it can be retried later instead
+                        // of silently disappearing (BUG-010).
+                        onFinalFailure?.invoke()
                     }
                 }
             }
@@ -111,7 +139,7 @@ class NotepadViewModel(
 
     fun save(title: String, content: String, existingId: Long? = null) {
         if (existingId == null && title.isBlank() && content.isBlank()) return
-        launchPersist { doPersist(title, content, existingId) }
+        launchPersist(block ={ doPersist(title, content, existingId) })
     }
 
     /**
@@ -136,10 +164,13 @@ class NotepadViewModel(
     /** Debounced persistence, invoked on every editor change. */
     fun autosave(title: String, content: String) {
         autosaveJob?.cancel()
-        autosaveJob = launchPersist {
+        autosaveJob = launchPersist(block ={
             delay(AUTOSAVE_DEBOUNCE_MS)
+            // Re-apply failed final commits first (BUG-010):an older snapshot must
+            // never overwrite newer text, so it lands before the user's current edits..
+            retryPendingFinalCommits()
             doPersist(title, content, draftId, bindDraft = true)
-        }
+        })
     }
 
     /**
@@ -155,8 +186,38 @@ class NotepadViewModel(
         val doneWasNew = draftWasNew
         draftId = null
         draftWasNew = false
-        launchPersist {
-            doPersistCommit(title, content, doneId, doneWasNew)
+        val snapshot = FinalCommitSnapshot(title, content, doneId, doneWasNew)
+
+        launchPersist(
+            block = {
+                // Re-apply older failed commits first so their text lands oldest-first..
+                retryPendingFinalCommits()
+                doPersistCommit(title, content, doneId, doneWasNew)
+            },
+            onFinalFailure = { pendingFinalCommits.addLast(snapshot) },
+        )
+    }
+
+    /**
+     * Re-applies failed final commits that could not be written when their editor
+     * closed (BUG-010). Runs at the start of every draft write so older snapshots
+     * always land before never texts, and a failure here must not abort the current
+     * write — the snapshot stays queued for another attempt..
+     */
+    private suspend fun retryPendingFinalCommits() {
+        if (pendingFinalCommits.isEmpty()) return
+        for (snapshot in pendingFinalCommits.toList()) {
+            try {
+                doPersistCommit(snapshot.title, snapshot.content, snapshot.id, snapshot.wasNew)
+                // Remove by reference only so a failed tail entry cannot mask successes..
+                pendingFinalCommits.remove(snapshot)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                runCatching { Log.w(TAG, "Pending final commit retry failed", e) }
+                _persistenceError.tryEmit(Unit)
+                // Keep the snapshot: a later retry (e.g. next autosave/commit) may succeed..
+            }
         }
     }
 
@@ -214,7 +275,7 @@ class NotepadViewModel(
     }
 
     fun delete(note: NoteEntity) {
-        launchPersist { repo.delete(note) }
+        launchPersist(block ={ repo.delete(note) })
     }
 
     /**
@@ -224,13 +285,13 @@ class NotepadViewModel(
      * a live note.
      */
     fun restore(note: NoteEntity) {
-        launchPersist {
+        launchPersist(block ={
             val free = repo.get(note.id) == null
             repo.save(if (free) note else note.copy(id = 0L))
-        }
+        })
     }
 
     fun togglePinned(id: Long) {
-        launchPersist { repo.togglePinned(id) }
+        launchPersist(block ={ repo.togglePinned(id) })
     }
 }

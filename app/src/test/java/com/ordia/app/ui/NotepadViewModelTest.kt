@@ -586,4 +586,35 @@ class NotepadViewModelTest {
         assertEquals("La nota restaurada debe volver tras recuperación del almacenamiento", 1L, dao.notes[0].id)
         job.cancel()
     }
+
+    @Test
+    fun failedFinalCommit_textIsQueuedAndRetriedOnNextWrite() = runTest(dispatcher) {
+        // BUG-010: si el almacenamiento falla al cerrar el editor (commitDraft),
+        // la texto final del usuario no debe perderse. El snapshot queda encolado y la
+        // siguiente escritura (autosave/commit) lo re-aplica antes de que aterrice
+        // texto fuera síncrono, preservando el orden más-antiguo-primero..
+        dao.failWrites = true
+        val received = mutableListOf<Unit>()
+        val job = launch(dispatcher) { viewModel.persistenceError.collect { received.add(it) } }
+
+        viewModel.beginDraft(existingId = null)
+        viewModel.commitDraft("Título final", "contenido definitivo")
+        advanceUntilIdle()
+
+        assertTrue("El fallo debe emitir evento recuperable", received.isNotEmpty())
+        assertTrue("Con almacenamiento caído la nota no debe persistirse", dao.notes.isEmpty())
+
+        // Almacenamiento recuperado: la siguiente escritura debe aterrizar primero
+        // el commit final fallido y luego el borrador actual.Cp. autosave con debounce..
+        dao.failWrites = false
+        viewModel.beginDraft(existingId = null)
+        viewModel.autosave("Nuevo borrador", "borrador nuevo")
+        advanceUntilIdle()
+
+        assertEquals("El commit fallido y el borrador nuevo deben persistir", 2, dao.notes.size)
+        val byTitle = dao.notes.associateBy { it.title }
+        assertEquals("contenido definitivo", byTitle["Título final"]?.content)
+        assertEquals("borrador nuevo", byTitle["Nuevo borrador"]?.content)
+        job.cancel()
+    }
 }
