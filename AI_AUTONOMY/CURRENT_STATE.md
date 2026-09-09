@@ -58,6 +58,14 @@
    — el texto tecleado nunca se pierde silenciosamente;+1 regresión
    `failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` → **78/78 en las  3 variantes**).
   RUN 036: **«Deshacer» tras un borrado fallido ya no duplica la nota (BUG-011):** `restore()` distingue tres estados„(id libre→ mismo id; id ocupado por otra nota→ id nuevo; id ocupado por la misma nota→ **no-op**);+1 regresión `restore_afterFailedDelete_doesNotDuplicate` → **30/30 en `testPreviewSafeDebugUnitTest`** (las otras 2 variantes pendientes).
+  RUN 037: **captura rápida y teclado en el editor (P2/UX):** al abrir una
+   nota **nueva** el foco aterriza automáticamente en el título (`LaunchedEffect(note == null)`
+   + `titleFocusRequester`); el título es `singleLine` y expone la acción
+   "Siguiente" del IME (`ImeAction.Next` + `KeyboardActions.onNext` → foco al
+   cuerpo). Las notas existentes NO roban foco. +2 regresiones Compose en
+   `NoteEditorFocusTest` (`newNoteEditor_autoFocusesTitleField`, `titleIme_nextMovesFocusToContent`)
+   → **81/81 en las​  ​3 variantes** (0 fallos,0 errores; el resto de la suite
+   compartida del RUN 036 queda así re-verificada).
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

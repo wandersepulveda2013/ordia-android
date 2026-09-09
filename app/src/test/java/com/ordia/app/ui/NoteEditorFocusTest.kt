@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.requestFocus
 import com.ordia.app.ui.screens.EDITOR_CONTENT_TAG
 import com.ordia.app.ui.screens.EDITOR_TITLE_TAG
@@ -63,5 +64,42 @@ class NoteEditorFocusTest {
         compose.waitForIdle()
         titleField.assertIsFocused()
         contentField.assertIsNotFocused()
+    }
+
+    @Test
+    fun newNoteEditor_autoFocusesTitleField() {
+        // Captura rápida: al abrir el editor para una nota nueva (flujo "+") el
+        // cursor debe aterrizar en el título sin tocar nada, para poder empezar a
+        // teclear al instante (UX, teclado abierto con el foco correcto).
+        compose.setContent {
+            NoteEditorScreen(
+                note = null,
+                onBack = {},
+                onAutosave = { _, _ -> },
+                onCommit = { _, _ -> },
+            )
+        }
+
+        compose.waitForIdle()
+        compose.onNodeWithTag(EDITOR_TITLE_TAG).assertIsFocused()
+    }
+
+    @Test
+    fun titleIme_nextMovesFocusToContent() {
+        // La tecla "Siguiente" del teclado en el campo de título (campo de una
+        // línea) debe mover el foco al cuerpo de la nota, en vez de caer en el
+        // limbo/no hacer nada (flujo de captura estándar título→contenido).
+        compose.setContent {
+            NoteEditorScreen(
+                note = null,
+                onBack = {},
+                onAutosave = { _, _ -> },
+                onCommit = { _, _ -> },
+            )
+        }
+
+        compose.onNodeWithTag(EDITOR_TITLE_TAG).performImeAction()
+        compose.waitForIdle()
+        compose.onNodeWithTag(EDITOR_CONTENT_TAG).assertIsFocused()
     }
 }

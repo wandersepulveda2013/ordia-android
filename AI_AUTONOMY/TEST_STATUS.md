@@ -16,13 +16,13 @@
     regresión de BUG-003 — la recreación (rotación/proceso-muerte, via
     `StateRestorationTester`) preserva el texto en curso sin persistir y el commit
     posterior persiste lo tecleado, no la instantánea vieja.
-  - `NoteEditorFocusTest` — UI Compose/Robolectric (1 test, RUN 020, P3
-    accesibilidad): regresión de foco visible del editor — el foco se mueve entre
-    título↔contenido via `requestFocus()`, ambos campos enfocables; tags
-    `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`.
-- `NotesListDeleteConfirmTest` — UI Compose/Robolectric (2 tests, RUN 021,
-    regresión del merge): confirmar borra con diálogo + ofrece undo,y cancelar conserva;;.
-    cubre BUG-008(2). RUN 023: pinza ahora que el diálogo anuncia el
+- `NoteEditorFocusTest` — UI Compose/Robolectric (**3 tests**, RUN 020 + RUN 037:
+     P3 accesibilidad + P2 captura/teclado): regresión de foco visible del editor—el
+     foco se mueve entre título↔contenido via `requestFocus()`, ambos campos enfocables;
+     tags `EDITOR_TITLE_TAG`/`EDITOR_CONTENT_TAG`. RUN 037:+2 — `newNoteEditor_autoFocusesTitleField`
+     (al abrir nota nueva el foco aterriza en el título automáticamente, gesture extra
+     eliminado)y `titleIme_nextMovesFocusToContent` (tecla "Siguiente" del IME del
+     título → el foco salta al contenido; flujo de captura estándar título→contenido).
     deshacer disponible («Podrás deshacerlo») — coherencia copy↔comportamiento.
 
   - `NotesListSearchInteractiveTest` — UI Compose/Robolectric (4 tests, RUN 008
@@ -55,6 +55,16 @@
 
 - 2026-09-08 (ejecución 036, BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota): verificado en este sandbox con `--no-build-cache --rerun-tasks` → `testPreviewSafeDebugUnitTest` (`NotepadViewModelTest`): **30 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL; +1 vs RUN 026: `restore_afterFailedDelete_doesNotDuplicate` — borrado fallido (`FakeDao.failWrites=true`) + `restore(note)` → **1 sola fila**, idéntica a la original (mismo id)no-op correcto,sin duplicado. Las otras 2 variantes (`previewFull`/`previewAdvanced`) comparten el mismo `src/test` y quedan pendientes de re-verificación en la próxima ejecución; sin fallos conocidos ni flakiness detectado.
 ## Último resultado
+- 2026-09-09 (ejecución 037, UX editor: autofocus título + tecla Next): verificado en este
+  sandbox → las​  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
+  `testPreviewAdvancedDebugUnitTest`): **81 tests,​ ​0 fallos,, 0 errores** (BUILD
+  SUCCESSFUL; +2 vs RUN 035: `NoteEditorFocusTest.newNoteEditor_autoFocusesTitleField`
+  (al abrir nota nueva el foco aterriza en el título automáticamente)y
+  `titleIme_nextMovesFocusToContent` (la tecla "Siguiente" del IME del título mueve
+  el foco al contenido). Sin fallos conocidos ni flakiness detectado (compilación
+  `:app:compilePreviewSafeDebugKotlin` + suite completa de las 3 variantes verdes;
+
+
 - 2026-09-04 (ejecución 035, BUG-010: commit final resiliente ante fallos de
   storage): verificado en este sandbox con `--no-build-cache --rerun-tasks` → las
   3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /

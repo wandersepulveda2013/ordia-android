@@ -1,3 +1,29 @@
+## RUN 037 - 2026-09-09 (P2/UX: captura rápida y teclado en el editor)
+- **Objetivo:** reducir fricciónen el flujo más frecuente—crear una nota—y
+  mejorar el teclado del editor.
+
+- **Hallazgo:** al abrir el editor de una nota nueva el foco quedaba neutro (el usuario
+  debía tocar el título para empezar)y el campo de título no exponía la acción
+  "Siguiente" del IME para saltar al cuerpo.
+
+
+
+- **Cambio:** `NoteEditorScreen.kt` ahora tiene dos `FocusRequester`s (título/contenido);
+  `LaunchedEffect(note == null)` pide foco al título al abrir una nota nueva; el título
+  es `singleLine` y expone `ImeAction.Next` + `KeyboardActions.onNext` →
+  `contentFocusRequester.requestFocus()`. Notas existentes: sin robo de foco.
+- **Tests:** +2 en `NoteEditorFocusTest` (`newNoteEditor_autoFocusesTitleField`,
+  `titleIme_nextMovesFocusToContent`);suite completa **81/81 × 3 variantes**,
+  0 fallos,  ​0 errores.
+- **Commit:** `ux(editor: autofocus título al crear nota + IME Next→contenido`.
+- **Estado:** build verde, memoria actualizada; push pendiente de confirmación.
+
+
+
+- **Siguiente tarea:** el resto de la suite compartida del RUN 036 ya queda
+  re-verificada por la suite completa de hoy (81/81); siguiente: revisar UX de
+  borrado/archivado o cubrir gaps de `NoteEditorScreen.kt`.
+
 ## RUN 036 - 2026-09-08 (P1/BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota)
 
 - **Objetivo:** cerrar BUG-011 (P1: duplicación de datos en el undo tras un

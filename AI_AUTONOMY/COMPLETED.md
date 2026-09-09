@@ -4,6 +4,23 @@
 
 > `openhands/autonomous-notes`. Microcambios triviales no se registran.
 
+## 2026-09-09 — Ejecución 037 (P2/UX: captura rápida y teclado en el editor)
+- **Al crear una nota nueva el cursor aterriza automáticamente en el título.**
+   Antes, había que tocar el campo del título para empezar a teclear (gesto extra
+   en el flujo más frecuente. Ahora `NoteEditorScreen` usa dos `FocusRequester`s
+   (título y contenido)y un `LaunchedEffect(note == null)` que pide foco al título
+   al abrir el editor de una nota nueva. Al abrir una nota existente NO se roba el
+   foco(se preserva la intención de revisar/desplazar sin que el teclado salte encima).
+- **El título expone la tecla"Siguiente" del IME quemueve el foco al cuerpo.**
+   El campo de título es `singleLine`: con `ImeAction.Next` + `KeyboardActions.onNext`
+   (`contentFocusRequester.requestFocus()`) el teclado lleva el foco directamente al
+   contenido — flujo de captura estándar título→contenido, sin tocar el cuerpo.
+- **Regresión:** `NoteEditorFocusTest.newNoteEditor_autoFocusesTitleField` (el foco
+   inicial recae en el título)y `titleIme_nextMovesFocusToContent` (la tecla Next
+   mueve al contenido). Suite completa:**81/81 en las​​  ​3 variantes**
+   (`Safe/Full/Advanced`,0 fallos,0 errores).
+- **Commit:** `openhands/autonomous-notes` (ux(editor: autofocus título + Next→contenido)).
+
 ## 2026-09-08 — Ejecución 036 (P1/integridad de datos: «Deshacer» tras un borrado fallido ya no duplica la nota — BUG-011)
 - **El undo tras un borrado fallido ya no duplica la nota.**: antes, el flujo
   de borrado (confirmar → snackbar "Nota eliminada" + Deshacer) se disparaba al

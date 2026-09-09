@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,8 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
@@ -44,6 +50,18 @@ fun NoteEditorScreen(
 ) {
     var title by rememberSaveable { mutableStateOf(note?.title.orEmpty()) }
     var content by rememberSaveable { mutableStateOf(note?.content.orEmpty()) }
+
+    // Auto-foco para captura rápida: al crear una nota nueva (sin fila previa) el
+    // cursor aterriza en el título al abrir el editor, sin necesidad de un toque
+    // extra. Al abrir una nota existente no se roba el foco(la intención es
+    // revisar/desplazar, y el teclado no debe saltar encima del contenido).
+    val titleFocusRequester = remember { FocusRequester() }
+    val contentFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(note == null) {
+        if (note == null) {
+            titleFocusRequester.requestFocus()
+        }
+    }
 
     // Un solo camino de salida del editor: commit del contenido + navegar. El
     // back del sistema, la flecha de la toolbar y "Hecho" comparten esta lambda
@@ -96,7 +114,9 @@ fun NoteEditorScreen(
                 placeholder = { Text(stringResource(R.string.title_hint), style = MaterialTheme.typography.titleLarge) },
                 textStyle = MaterialTheme.typography.titleLarge,
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(EDITOR_TITLE_TAG),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { contentFocusRequester.requestFocus() }),
+                modifier = Modifier.fillMaxWidth().focusRequester(titleFocusRequester).testTag(EDITOR_TITLE_TAG),
                 colors = bareFieldColors(),
             )
             TextField(
@@ -104,7 +124,7 @@ fun NoteEditorScreen(
                 onValueChange = { content = it; onAutosave(title, content) },
                 placeholder = { Text(stringResource(R.string.content_hint), style = MaterialTheme.typography.bodyLarge) },
                 textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth().testTag(EDITOR_CONTENT_TAG),
+                modifier = Modifier.fillMaxWidth().focusRequester(contentFocusRequester).testTag(EDITOR_CONTENT_TAG),
                 colors = bareFieldColors(),
             )
         }

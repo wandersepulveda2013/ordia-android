@@ -16,7 +16,17 @@ no duplica la nota (no-op si el id sigue ocupado por la misma nota; ver BUGS_FOU
 
 ## P2 — Calidad de producto
 
-0. **Confirmación de borrado desde el menú ⋮: RESTAURADA en RUN 021.**
+0. **Editor: captura rápida y teclado (RUN 037, RESUELTO):** al crear una
+   nota nueva el cursor aterriza automáticamente en el título (`FocusRequester` en
+   `LaunchedEffect(note == null)`; el teclado ya no requiere un toque extra para
+   empezar a teclear; y el título (campo `singleLine`) expone la tecla
+   "Siguiente" del IME (`ImeAction.Next` + `KeyboardActions.onNext`) que mueve
+   el foco al cuerpo de la nota — flujo de captura estándar título→contenido. Al
+   abrir una nota existente no se roba el foco(se respeta la revisión/scroll).
+   Regresiones:`NoteEditorFocusTest.newNoteEditor_autoFocusesTitleField` +
+   `titleIme_nextMovesFocusToContent` (**81/81 en las  ‌3 variantes**).
+
+1. **Confirmación de borrado desde el menú ⋮: RESTAURADA en RUN 021.**
    El merge `8a82c78` había reintroducido el flujo directo borrar+undo sin el
    diálogo (el `AlertDialog` de confirmación quedó huérfano: `pendingDelete?.let`
    seguía en el árbol pero la variable ya no se declaraba). Restaurado en
