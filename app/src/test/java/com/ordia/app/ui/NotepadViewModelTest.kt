@@ -643,4 +643,40 @@ class NotepadViewModelTest {
         assertEquals("borrador nuevo", byTitle["Nuevo borrador"]?.content)
         job.cancel()
     }
+
+    @Test
+    fun failedFinalCommit_queueBounded_dropsOldestUnderSustainedFailure() = runTest(dispatcher) {
+        // BUG-011: mientras el almacenamiento permanece caído, cada
+        // commit final fallido añade un snapshot entero de la nota.na Sin tope, la
+        // cola crecería sin límites (leak de memoria en el camino de persistencia).
+        // El buffer debe quedar acotado y descartar los snapshots más antiguos primero..
+        dao.failWrites = true
+
+        for (attempt in 1..NotepadViewModel.MAX_PENDING_FINAL_COMMITS + 2) {
+            viewModel.beginDraft(existingId = null)
+            viewModel.commitDraft("Fallo $attempt", "texto $attempt")
+            advanceUntilIdle()
+        }
+
+        // Cuando el almacenamiento se recupera, solo deben reintentarse los últimos
+        // MAX_PENDING_FINAL_COMMITS snapshots: los más antiguos fueron descartados..
+        dao.failWrites = false
+        viewModel.beginDraft(existingId = null)
+        viewModel.autosave("Recuperación", "final")
+        advanceUntilIdle()
+
+        val remaining = dao.notes.filter { it.title.startsWith("Fallo") }
+        assertEquals(
+            "Solo los commits finales más recientes deben sobrevivir (bounded queue)",
+            NotepadViewModel.MAX_PENDING_FINAL_COMMITS,
+            remaining.size,
+        )
+        val titles = remaining.map { it.title }.toSet()
+        for (n in 1..NotepadViewModel.MAX_PENDING_FINAL_COMMITS) {
+
+            assertTrue(
+                "El snapshot más antiguo debe haber sido descartado primero (falta $n)",
+                titles.contains("Fallo ${NotepadViewModel.MAX_PENDING_FINAL_COMMITS + n - 1}"))
+        }
+    }
 }

@@ -33,6 +33,15 @@ class NotepadViewModel(
         const val KEY_DRAFT_ID = "draftId"
         const val KEY_DRAFT_WAS_NEW = "draftWasNew"
         const val KEY_SEARCH_QUERY = "searchQuery"
+
+        /**
+         * Upper bound for [pendingFinalCommits]: under a prolonged storage failure
+         * each failed final commit would otherwise append a full-note snapshot forever
+         * (memory growth until a write succeeds). The oldest snapshots are dropped
+         * first so the most recent text (what the user just typed) survives and the leak
+         * stays bounded.
+         */
+        const val MAX_PENDING_FINAL_COMMITS = 3
         private const val TAG = "NotepadViewModel"
     }
 
@@ -194,7 +203,7 @@ class NotepadViewModel(
                 retryPendingFinalCommits()
                 doPersistCommit(title, content, doneId, doneWasNew)
             },
-            onFinalFailure = { pendingFinalCommits.addLast(snapshot) },
+            onFinalFailure = { enqueuePendingFinalCommit(snapshot) },
         )
     }
 
@@ -218,6 +227,19 @@ class NotepadViewModel(
                 _persistenceError.tryEmit(Unit)
                 // Keep the snapshot: a later retry (e.g. next autosave/commit) may succeed..
             }
+        }
+    }
+
+    /**
+     * Records a failed final commit for a later retry, dropping the oldest snapshot
+     * first once the cap is reached so a prolonged storage outage cannot grow
+     * [pendingFinalCommits] without bounds (memory leak in the persistence path).
+     */
+    private fun enqueuePendingFinalCommit(snapshot: FinalCommitSnapshot) {
+        pendingFinalCommits.addLast(snapshot)
+        while (pendingFinalCommits.size > MAX_PENDING_FINAL_COMMITS) {
+
+            pendingFinalCommits.removeFirst()
         }
     }
 
