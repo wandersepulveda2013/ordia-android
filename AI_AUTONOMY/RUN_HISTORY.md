@@ -1,3 +1,28 @@
+## RUN 038 - 2026-09-10 (P1/confiabilidad: cola de commits finales acotada — sin leak de memoria bajo fallo sostenido)
+- **Objetivo:** cerrar el riesgo residual de BUG-010: bajo un fallo de storage
+  prolongado, cada `commitDraft` fallido encolaba un snapshot completo de la nota
+  en `pendingFinalCommits` sin límite — crecimiento de memoria hasta que un write
+  tuviera éxito (leak en la ruta de persistencia).
+
+- **Hallazgo:** la cola era FIFO ilimitada; el texto reciente (lo que el usuario
+  acaba de teclear) debía sobrevivir, pero los snapshots viejos ya retenidos eran
+  redundantes y no aportaban valor tras unos pocos reintentos.
+
+- **Cambio:** `NotepadViewModel.MAX_PENDING_FINAL_COMMITS = 3`; la cola ahora
+  se acota via `enqueuePendingFinalCommit(snapshot)` (FIFO: añade al final,
+  descarta el más antiguo al superar el tope). El texto más reciente siempre sobrevive
+  y el número de snapshots retenidos queda acotado (sin dependencias nuevas).
+
+- **Tests:** +1 regresión `failedFinalCommit_queueBounded_dropsOldestUnderSustainedFailure`
+  (5 fallos + commit exitoso → solo los 3 snapshots más recientes se retienen/
+  re-aplican, en orden). Rerun backend completo: **82/82 PASS** en
+  `testPreviewSafeDebugUnitTest` (0 fallos, 0 errores.,
+
+- **Commit:** `fix(notes): acotar la cola pendingFinalCommits para evitar
+  leak de memoria bajo fallo sostenido` — pendiente de push.
+
+- **Estado:** build verde; working tree con cambios sin commitear; push pendiente.
+
 ## RUN 037 - 2026-09-09 (P2/UX: captura rápida y teclado en el editor)
 - **Objetivo:** reducir fricciónen el flujo más frecuente—crear una nota—y
   mejorar el teclado del editor.

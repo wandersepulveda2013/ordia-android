@@ -55,6 +55,14 @@
 
 - 2026-09-08 (ejecución 036, BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota): verificado en este sandbox con `--no-build-cache --rerun-tasks` → `testPreviewSafeDebugUnitTest` (`NotepadViewModelTest`): **30 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL; +1 vs RUN 026: `restore_afterFailedDelete_doesNotDuplicate` — borrado fallido (`FakeDao.failWrites=true`) + `restore(note)` → **1 sola fila**, idéntica a la original (mismo id)no-op correcto,sin duplicado. Las otras 2 variantes (`previewFull`/`previewAdvanced`) comparten el mismo `src/test` y quedan pendientes de re-verificación en la próxima ejecución; sin fallos conocidos ni flakiness detectado.
 ## Último resultado
+- 2026-09-10 (ejecución 038, BUG-010 hardening: cola de commits finales acotada):
+  verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**82 tests,​ ​0 fallos,
+  ​0 errores** (BUILD SUCCESSFUL; +1 vs RUN 037:
+  `NotepadViewModelTest.failedFinalCommit_queueBounded_dropsOldestUnderSustainedFailure`
+  — la cola `pendingFinalCommits` queda acotada a `MAX_PENDING_FINAL_COMMITS =  ‌3`
+  (FIFO: al superar el tope se descarta el snapshot más antiguo;el más reciente siempre
+  sobrevive), sin cambio observable en el comportamiento de recuperación de RUN 035.
+
 - 2026-09-09 (ejecución 037, UX editor: autofocus título + tecla Next): verificado en este
   sandbox → las​  ​3 variantes (`testPreviewSafeDebugUnitTest` / `testPreviewFullDebugUnitTest` /
   `testPreviewAdvancedDebugUnitTest`): **81 tests,​ ​0 fallos,, 0 errores** (BUILD
@@ -246,6 +254,14 @@
 
 ## Tests recientemente agregados
 
+- `NotepadViewModelTest.failedFinalCommit_queueBounded_dropsOldestUnderSustainedFailure`
+  (RUN 038, +1, P1/confiabilidad, cierre de BUG-010): la cola de reintentos
+  de commits finales queda acotada — bajo un fallo de storage prolongado cada
+  commit fallido encolaba un snapshot completo ( leak de memoria hasta que un
+  write tuviera éxito}. Ahora `MAX_PENDING_FINAL_COMMITS` (FIFO)) descarta el
+  snapshot más antiguo al superar el tope;el texto más reciente siempre sobrevive);
+  82/82 en `testPreviewSafeDebugUnitTest`: cubre el riesgo residual de crecimiento
+  de memoria en la ruta de persistencia.
 - `NotepadViewModelTest.failedFinalCommit_textIsQueuedAndRetriedOnNextWrite` (RUN 035,
   +1, P1/BUG-010: resiliencia del commit final — si el write del storage falla,
   el snapshot del commit fallido espera en la cola FIFO y la siguiente escritura de

@@ -66,6 +66,15 @@
    `NoteEditorFocusTest` (`newNoteEditor_autoFocusesTitleField`, `titleIme_nextMovesFocusToContent`)
    → **81/81 en las​  ​3 variantes** (0 fallos,0 errores; el resto de la suite
    compartida del RUN 036 queda así re-verificada).
+  RUN 038: **cola de commits finales acotada (BUG-010, riesgo residual):** bajo
+   un fallo de storage prolongado,`pendingFinalCommits` (FIFO) crecía sin límite
+   (cada `commitDraft` fallido encolaba un snapshot completo — leak de memoria hasta
+   que un write tuviera éxito). Ahora queda acotada a `MAX_PENDING_FINAL_COMMITS =  ‌3`
+   via `enqueuePendingFinalCommit` (añade al final, descarta el más antiguo al superar
+   el tope→FIFO). El texto más reciente siempre sobrevive. +1 regresión
+   `failedFinalCommit_queueBounded_dropsOldestUnderSustainedFailure` → **82/82 en
+   `testPreviewSafeDebugUnitTest`** (0 fallos,  ‌0 errores).
+
   RUN 018: búsqueda por `LIKE` con
   comodines escapados (`NoteRepository.escapeLike` + `ESCAPE '\'`) — el texto
   tecleado se busca como literal, no como patrón SQL (regresión BUG-007 cubierta).

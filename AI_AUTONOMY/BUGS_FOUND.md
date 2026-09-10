@@ -62,6 +62,13 @@
   aterriziza primero el snapshot (`Título final` con su contenido) y luego el
   borrador nuevo (2 notas,sin pérdida ni orden invertido). Suite completa 78/78
   en  las  3 variantes (RUN 035).
+- **Riesgo residual — FIXED (RUN 038):** la cola `pendingFinalCommits` era FIFO ilimitada:
+-   bajo un fallo de storage prolongado, cada `commitDraft` fallido encolaba un snapshot
+-   completo de la nota — crecimiento de memoria hasta que un write tuviera éxito ( leak
+-   en la ruta de persistencia). Ahora la cola queda acotada a `MAX_PENDING_FINAL_COMMITS =  ‌3`
+-   (FIFO: `enqueuePendingFinalCommit` añade al final y descarta el más antiguo al superar
+-   el tope). El texto más reciente siempre sobrevive y el número de snapshots retenidos es
+-   constante. Commit + regresión en preparación (RUN 038; ver `RUN_HISTORY.md`).
 
 ## BUG-008 — El merge `8a82c78` reintrodujo dos regresiones: back del editor sin commit final y borrado sin diálogo de confirmación (P1
 
