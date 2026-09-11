@@ -269,4 +269,4 @@
   que TalkBack anuncia tanto con el campo vacío como mientras se teclea; el test
   `NotesListSearchInteractiveTest` lo verifica (incluida la persistencia tras escribir).
 
-- RUN 042: undo truly session-scoped (removed screen-local queue/kept app-scoped FIFO;; tests via UndoAwareNotesListScreen harness, 83/83 fresh PASS on PreviewFull.; pending: cross-flavor verification.
+- RUN 042+043: undo truly session-scoped (removed screen-local queue; kept app-scoped FIFO;; tests via UndoAwareNotesListScreen harness;; cross-flavor verification CERRADA in RUN 043: 3/3 debug variants 83/83 PASS (fresh,0/0;; 3/3 `assemble*Release` BUILD SUCCESSFUL. Limite de infra conocido: BUG-014 (release unit tests no corren por `ui-test-manifest` solo debug; P2, no forma parte del gate CI..

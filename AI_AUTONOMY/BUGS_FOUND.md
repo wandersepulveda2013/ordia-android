@@ -335,3 +335,12 @@ o escribir Kotlin nuevoy compilar → `Unexpected tokens`.
   (`git show` byte-a-byte),y verificar con hexdump/`grep -P '\xcc\x81'` antes de compilar.
 - **Commit:** — (sin arreglo aún; documentación).
 - **Test:** —.
+### BUG-014 (P2) — release Robolectric unit tests cannot resolve `ComponentActivity` (infra config)
+- **Bug:** `:app:testPreview*ReleaseUnitTest` fails always: `Unable to resolve activity` for `cmp=com.ordia.app.preview/androidx.activity.ComponentActivity`, en los 9 suites de UI Compose/Robolectric.. El artefacto que provee `ComponentActivity` a Robolectric — `androidx.compose.ui:ui-test-manifest` — esta declarado como `debugImplementation` en `app/build.gradle.kts` (desde el rebuild inicial, commit `ceb1ff3`;; por eso solo existe en el manifest merged de debug, no en release..
+- **Impacto:** bajo; el gate CI standard es `testPreview*DebugUnitTest` + `assemble*Release`(que pasan 3/3 en RUN 043). Correr unit tests en release no era parte de ninguna suite verificada anteriormente; credit release test tasks are not meaningful with Robolectric UI asi configurado..
+- **Reproducción:** `./gradlew :app:testPreviewSafeReleaseUnitTest` → BUILD FAILED; 9 suites fallan con el mismo error de resolución de activity..
+- **Causa raíz:** `debugImplementation("androidx.compose.ui:ui-test-manifest")` (linea enterada verify con `git blame` en RUN 043;; config original,no tocada por RUN 042 ni runs recientes..
+- **Estado:** OPEN — clasificado P2 (mejora de infra/test tooling, no regresión del producto; no bloquea CI)..
+- **Posible fix:** evaluar mover la dependencia a `testImplementation` (o añadir un `src/testRelease/AndroidManifest.xml` de test) y validar manifest merge + 6 variantes.; riesgos: podría alterar el manifest de debug si se hace mal. Dejado para proximo run con presupuesto..
+- **Commit:** — (RUN 043 solo documenta; sin cambio de codigo..
+- **Test:** —; evidencia: `testPreviewSafe/Advanced/FullDebugUnitTest` 83/83 each (fresh;; assempla release 3/3 SUCCESSFUL en RUN 043.

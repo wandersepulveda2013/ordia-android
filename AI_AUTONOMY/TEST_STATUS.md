@@ -361,3 +361,10 @@ validación estática OK (`firmas`, `patrones`, `git diff --check``); falta corr
 - **Siguiente:** instalar el toolchain (JDK 17 + Android SDK 36) en un sandbox con
   red y correr `:app:testDebugUnitTest` + `assembleRelease` 3 variantes; o
   ejecutar la suite en CI.
+## Cierre RUN 043 (2026-09-11) — cross-flavor verification CERRADA
+
+- `:app:testPreviewSafeDebugUnitTest` → **83/83** (0 fallos, 0 errores; fresh, no cache..
+- `:app:testPreviewAdvancedDebugUnitTest` → **83/83** (0 fallos, 0 errores; fresh..
+- `:app:testPreviewFullDebugUnitTest` → **83/83** (0 fallos, 0 errores; re-run fresh; 14 suites; antes el filesystem tenia resultados stale 15-only..
+- `:app:assemblePreviewSafeRelease` + `:app:assemblePreviewAdvancedRelease` + `:app:assemblePreviewFullRelease` → **BUILD SUCCESSFUL** (3m17s; 3/3 flavors..
+- **Nota infra (BUG-014, P2):** `:app:testPreview*ReleaseUnitTest` **no es parte del gate CI** y falla por config preexistente (`ui-test-manifest` como `debugImplementation`);documentado en `BUGS_FOUND.md`. No es regresión de RUN 042/043.

@@ -63,6 +63,19 @@ no duplica la nota (no-op si el id sigue ocupado por la misma nota; ver BUGS_FOU
    en RUN 013. El índice accent-insensitive queda **opt-in**, solo si el usuario
    lo pide explícitamente; mientras tanto, permanecerá documentado, no implementado.
 
+## P2 (RUN 043)
+0. **BUG-014: hacer correr los unit tests en release (P2, infra/test tooling.:**
+   el problema — `:app:testPreview*ReleaseUnitTest` falla siempre con `Unable to
+   resolve activity ComponentActivity` porque `androidx.compose.ui:ui-test-manifest` es
+   `debugImplementation` (config preexistente, commit `ceb1ff3`). Por qué importa —
+   hoy el gate CI cubre debug tests + assemble release; release unit tests aportan poca
+   señal (con Robolectric+Compose asi configurado), pero la verificación de 6 variantes
+   completa sería más sólida. Cómo comprobar — tras el fix, `testPreview*ReleaseUnitTest`
+   → BUILD SUCCESSFUL 83/83 each; and el `assemble*Debug`/`*Release` + manifest merge
+   siguen verdes. Propuesta — evaluar `debugImplementation`→`testImplementation` para
+   `ui-test-manifest` (o un `src/testRelease/AndroidManifest.xml` de test) con validación
+   de las 6 variantes en un run con presupuesto suficiente.
+
 ## P3 — Mejoras opcionales
 1. Fecha relativa en la lista: **RESUELTO en RUN 014** — `RelativeDate.kt`
    (`relativeLabel(timestampMs, now = Date())`) etiqueta "Hoy" / "Ayer"

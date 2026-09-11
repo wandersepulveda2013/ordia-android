@@ -981,3 +981,11 @@ Tests: :app:testPreviewFullDebugUnitTest --rerun-tasks --no-build-cache: BUILD S
 Commit: (this run)
 Estado: push pending on this run; next: verify 6-variant compile if time permits; update CURRENT_STATE.
 Siguiente: run other 5 variant test suites to close regression across all flavors.
+### RUN 043 - 2026-09-11 (cierre de la verificacion cruzada de RUN 042)
+- **Objetivo:** cerrar the pendiente 6-variant verification dejada in RUN 042 (undo session-scoped refactor; cross-flavor confidence..
+- **Hallazgo:** el codigo enumerado por RUN 042 ya estaba `main`; RUN 042 habia verificado only `previewFullDebug`. Cross-flavor veredict pendiente. Al correr `testPreviewSafe/AdvancedDebugUnitTest`: refresh 83/83 PASS each debug variant;; tambien reran `previewFullDebug` for fresh artifacts (prior filesystem results were stale 15-only.. **Ademas descubierto un limite de infraestructura de tests:** `androidx.compose.ui:ui-test-manifest` es `debugImplementation` (preexistente desde el rebuild inicial f ceb1ff3;; asi que `testPreview*ReleaseUnitTest` falla always con `Unable to resolve activity ComponentActivity` (Robolectric.. **No es regresion del producto** (CI gate = test debug + assemble release; release unit tests nunca corrieron antes..
+- **Cambio:** ninguno al codigo del producto; solo memoria (verificacion cerrada; issue de infra documentado como BUG-014 P2..
+- **Tests:** `testPreviewSafeDebugUnitTest` 83/0/0;; `testPreviewAdvancedDebugUnitTest` 83/0/0;; `testPreviewFullDebugUnitTest` re-run 83/0/0 (fresh 14 suites;; `assemblePreviewSafeRelease` + `assemblePreviewAdvancedRelease` + `assemblePreviewFullRelease` -> BUILD SUCCESSFUL (3m17s.. `testPreviewSafeReleaseUnitTest` -> BUILD FAILED esperado por BUG-014 (no parte del gate CI..
+- **Commit:** `chore(autonomy): RUN 043 cross-flavor verification + BUG-014 infrastructure note`
+- **Estado:** `git status` limpio; push realizado..
+- **Siguiente tarea:** (P2) BUG-014: evaluar `debugImplementation`->`testImplementation` para `ui-test-manifest` (validar manifest merge and 6 variantes;; o continuar con NEXT_TASKS restantes (tags testTag consistency, editor recovery ante import/export failure..
