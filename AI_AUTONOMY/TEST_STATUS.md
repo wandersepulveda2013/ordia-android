@@ -57,10 +57,12 @@
 ## Último resultado
 
 - 2026-09-11 (ejecución 040, BUG-012 test de regresión del undo FIFO):
-  verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**83 tests,​ 0 fallos,​ 0 errores**
-  (BUILD SUCCESSFUL; 82 canónicos +  ​1 nuevo: `NotesListUndoTest.rapidDoubleDelete_undoStillRestoresFirstNote`
-  — borra A y B en rápida sucesión vía menú (`onAllNodes(hasContentDescription("Más"))[rowIndex]`)
-  y verifica que los dos undos restauran A y B en orden de borrado (FIFO, BUG-012). cursar).
+  verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**83 tests,​ 0 fallos,​  ​0 errores**.
+- 2026-09-11 (ejecución 041, cierre de verificación BUG-012): las  ​2 variantes
+  restantes verdes → `testPreviewFullDebugUnitTest` **83/83** y
+  `testPreviewAdvancedDebugUnitTest` **83/83** (0 fallos,  ​0 errores,cada una;
+  BUILD SUCCESSFUL, `--no-build-cache --rerun-tasks`). BUG-012 queda cerrado
+  en las​  ​3 variantes.
 - 2026-09-10 (ejecución 038, BUG-010 hardening: cola de commits finales acotada):
   verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**82 tests,​ ​0 fallos,
   ​0 errores** (BUILD SUCCESSFUL; +1 vs RUN 037:

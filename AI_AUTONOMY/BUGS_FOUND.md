@@ -317,7 +317,8 @@
   cada nota borrada y la consuma en orden: cada snackbar ofrece el undo de su nota.
 - **Commit:** RUN 040 (`test(notes): BUG-012 FIFO undo regression test`) — implementación RUN 039.
 - **Test:** `NotesListUndoTest.rapidDoubleDelete_undoStillRestoresFirstNote` — RESUELTO,
-  verificado en `previewSafeDebug` (83/83,RUN 040); pendiente de correr en las 2 variantes restantes.
+  verificado **83/83 en las  ​​3 variantes** (`testPreviewSafe/Full/AdvancedDebugUnitTest`;
+  RUN 040 + cierre RUN 041;  ​​0 fallos,​  ​​0 errores).  **BUG-012 cerrado por completo**.
 
 
 - **Impacto:** el código Kotlin escrito por el agente en strings/heredocs aparecía con
