@@ -32,10 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -58,7 +54,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.channels.Channel
 import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.ui.util.relativeLabel
@@ -75,13 +70,7 @@ fun NotesListScreen(
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
     var pendingDelete by remember { mutableStateOf<NoteEntity?>(null) }
-    // Cola FIFO de borrados pendientes de deshacer: si otra nota se borra
-    // mientras el snackbar del primero sigue visible, el undo del primero debe
-    // seguir disponible (BUG-012) — un único slot lo sobrescribiría y perdería
-    // la primera nota de forma irreversible..
-    val undoQueue = remember { Channel<NoteEntity>(Channel.UNLIMITED) }
     // Search mode is independent of the query text: opening it from the toolbar
     // must show the empty search field. Seeded from a lingering query so a
     // recreated screen (rotation/process death) keeps filtering consistently.
@@ -99,21 +88,8 @@ fun NotesListScreen(
         if (searchQuery.isBlank()) isSearching = false
     }
 
-    val noteDeletedMessage = stringResource(R.string.note_deleted)
-    val undoAction = stringResource(R.string.undo)
-    LaunchedEffect(Unit,) {
-        for (note in undoQueue) {
-            val result = snackbarHostState.showSnackbar(
-                message = noteDeletedMessage,
-                actionLabel = undoAction,
-                duration = SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
-        }
-    }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) },
@@ -181,7 +157,6 @@ fun NotesListScreen(
             onConfirm = {
                 pendingDelete = null
                 onDeleteNote(target)
-                undoQueue.trySend(target)
             },
             onDismiss = { pendingDelete = null },
         )

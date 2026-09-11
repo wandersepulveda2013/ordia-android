@@ -34,7 +34,7 @@ class NotesListDeleteConfirmTest {
     fun delete_fromMenu_requiresConfirmationBeforeDeleting() {
         var deleted = false
         compose.setContent {
-            NotesListScreen(
+            UndoAwareNotesListScreen(
                 notes = listOf(note),
                 onOpenNote = {},
                 onCreateNote = {},
@@ -72,7 +72,7 @@ class NotesListDeleteConfirmTest {
         var deleted: NoteEntity? = null
         var restored: NoteEntity? = null
         compose.setContent {
-            NotesListScreen(
+            UndoAwareNotesListScreen(
                 notes = listOf(note),
                 onOpenNote = {},
                 onCreateNote = {},

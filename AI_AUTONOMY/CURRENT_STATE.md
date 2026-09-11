@@ -268,3 +268,5 @@
   (vía `Modifier.semantics { contentDescription = stringResource(R.string.search_notes) }`)
   que TalkBack anuncia tanto con el campo vacío como mientras se teclea; el test
   `NotesListSearchInteractiveTest` lo verifica (incluida la persistencia tras escribir).
+
+- RUN 042: undo truly session-scoped (removed screen-local queue/kept app-scoped FIFO;; tests via UndoAwareNotesListScreen harness, 83/83 fresh PASS on PreviewFull.; pending: cross-flavor verification.

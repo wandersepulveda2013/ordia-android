@@ -54,7 +54,7 @@ class NotesListUndoTest {
         val deleted = mutableListOf<NoteEntity>()
         val restored = mutableListOf<NoteEntity>()
         compose.setContent {
-            NotesListScreen(
+            UndoAwareNotesListScreen(
                 notes = listOf(noteA, noteB),
                 onOpenNote = {},
                 onCreateNote = {},

@@ -972,3 +972,12 @@ Commit: test(editor): cover system-back save.
 - **Commit:** pendiente (`test(notes): BUG-012 FIFO undo regression test` ...¿no? — el test es la única pieza que faltaba; se commiteará con el resto de memoria en esta ejecución.
 - **Estado:** build y tests verdes (83/83); working tree: solo el nuevo archivo de test sin commitear; memoria actualizada.
 - **Siguiente tarea:** (a) correr las otras 2 variantes(`previewFull`/`previewAdvanced` — comparten `src/test`; valida 83/83 allí también;(b)  promover NEXT_TASKS restantes: consistencia tags `testTag`; recuperación del editor ante fallo de import/export; (c)  refresh de CURRENT_STATE si se detecta algo más stale.
+
+### RUN 042
+Objetivo: make undo truly session-scoped (continuation).
+Hallazgo: branch HEAD ya tenia undo app-scoped AND screen-local (doble queue). los tests viejos solo cubrian screen-local; sesion previa cerro BUG-012 sin este refactor.
+Cambio: removed screen-local undo queue+snackbar from NotesListScreen; kept app-scoped FIFO undo in NotepadApp;(fixed 2 syntax errs there);; added UndoAwareNotesListScreen test harness (real screen + session-scoped wiring);; switched fab 2 regresion tests to harness.
+Tests: :app:testPreviewFullDebugUnitTest --rerun-tasks --no-build-cache: BUILD SUCCESSFUL (83 tests, 32 executed, zero cache).
+Commit: (this run)
+Estado: push pending on this run; next: verify 6-variant compile if time permits; update CURRENT_STATE.
+Siguiente: run other 5 variant test suites to close regression across all flavors.
