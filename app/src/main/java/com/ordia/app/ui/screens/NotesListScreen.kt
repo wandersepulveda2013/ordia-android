@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.channels.Channel
 import com.ordia.app.R
 import com.ordia.app.data.NoteEntity
 import com.ordia.app.ui.util.relativeLabel
@@ -75,8 +76,12 @@ fun NotesListScreen(
     onSearchQueryChange: (String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    var pendingUndo by remember { mutableStateOf<NoteEntity?>(null) }
     var pendingDelete by remember { mutableStateOf<NoteEntity?>(null) }
+    // Cola FIFO de borrados pendientes de deshacer: si otra nota se borra
+    // mientras el snackbar del primero sigue visible, el undo del primero debe
+    // seguir disponible (BUG-012) — un único slot lo sobrescribiría y perdería
+    // la primera nota de forma irreversible..
+    val undoQueue = remember { Channel<NoteEntity>(Channel.UNLIMITED) }
     // Search mode is independent of the query text: opening it from the toolbar
     // must show the empty search field. Seeded from a lingering query so a
     // recreated screen (rotation/process death) keeps filtering consistently.
@@ -96,15 +101,15 @@ fun NotesListScreen(
 
     val noteDeletedMessage = stringResource(R.string.note_deleted)
     val undoAction = stringResource(R.string.undo)
-    LaunchedEffect(pendingUndo,) {
-        val note = pendingUndo ?: return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(
-            message = noteDeletedMessage,
-            actionLabel = undoAction,
-            duration = SnackbarDuration.Short,
-        )
-        if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
-        pendingUndo = null
+    LaunchedEffect(Unit,) {
+        for (note in undoQueue) {
+            val result = snackbarHostState.showSnackbar(
+                message = noteDeletedMessage,
+                actionLabel = undoAction,
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) onRestoreNote(note)
+        }
     }
 
     Scaffold(
@@ -176,7 +181,7 @@ fun NotesListScreen(
             onConfirm = {
                 pendingDelete = null
                 onDeleteNote(target)
-                pendingUndo = target
+                undoQueue.trySend(target)
             },
             onDismiss = { pendingDelete = null },
         )
