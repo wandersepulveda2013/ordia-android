@@ -315,11 +315,10 @@
 - **Causa:** una sola variable `pendingUndo` sobrescribía la referencia anterior.
 - **Estado:** FIXED — cola FIFO (`Channel(UNLIMITED)` en `NotesListScreen`)que encola
   cada nota borrada y la consuma en orden: cada snackbar ofrece el undo de su nota.
-- **Commit:** RUN 039 en `openhands/autonomous-notes`(implementación;el test de regresión
-  queda pendiente por corrupción del canal del agente, ver BUG-013).
-- **Test:** pendiente de añadir(ver NEXT_TASKS P1: test de UI `rapidDoubleDelete_undoStillRestoresFirstNote`).
+- **Commit:** RUN 040 (`test(notes): BUG-012 FIFO undo regression test`) — implementación RUN 039.
+- **Test:** `NotesListUndoTest.rapidDoubleDelete_undoStillRestoresFirstNote` — RESUELTO,
+  verificado en `previewSafeDebug` (83/83,RUN 040); pendiente de correr en las 2 variantes restantes.
 
-## BUG-013 — Corrupción silenciosa del canal de generación del agente (U+0301) rompe código nuevo (P2/tooling
 
 - **Impacto:** el código Kotlin escrito por el agente en strings/heredocs aparecía con
   caracteres invisibles U+0301(acento combinante)que, al eliminarse, robaban/duplicaban

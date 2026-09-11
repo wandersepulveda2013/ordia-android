@@ -140,11 +140,10 @@ no duplica la nota (no-op si el id sigue ocupado por la misma nota; ver BUGS_FOU
    No hay acción pendiente salvo cuando la dirección contextual de Search/Close lo requiera en RTL.
 ## P1
 
-0. **Test de regresión FIFO undo de BUG-012 (PENDIENTE):** la implementación
-   (cola `Channel(UNLIMITED)`) ya está en `NotesListScreen.kt`; falta el test de UI
-   `rapidDoubleDelete_undoStillRestoresFirstNote`(borrar A, borrar B, Deshacer
-   → restaura A y no B. Tres intentos de inserción fracasaron por BUG-013
-   (corrupción U+0301 del canal del agente): mitigación documentada en BUGS_FOUND:
-   construir el test derivando bytes del HEAD(`git show` byte-a-byte),strings ASCII con
-   escapes `\u00e1`,y verificar con hexdump antes de compilar. Comprobar: el test
-   compila y pasa en las 3 variantes.
+0. **Test de regresión FIFO undo de BUG-012 (RESUELTO, RUN 040):** el test de UI
+   `rapidDoubleDelete_undoStillRestoresFirstNote` ya existe en
+   `app/src/test/java/com/ordia/app/ui/NotesListUndoTest.kt` (borra A, borra B, Deshacer
+   → restaura A, Deshacer → restaura B,FIFO) y pasa en `previewSafeDebug`(83/83).
+   Pendiente de correr en las otras 2 variantes(`previewFull`/`previewAdvanced`,
+   comparten `src/test`). No es necesario reintentar la inserción; BUG-013 queda
+   mitigado (escribir con Python escapes Unicode y re-sandear con sed si aparece U+200B).

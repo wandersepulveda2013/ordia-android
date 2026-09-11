@@ -55,6 +55,12 @@
 
 - 2026-09-08 (ejecución 036, BUG-011: «Deshacer» tras un borrado fallido ya no duplica la nota): verificado en este sandbox con `--no-build-cache --rerun-tasks` → `testPreviewSafeDebugUnitTest` (`NotepadViewModelTest`): **30 tests, 0 fallos,, 0 errores** (BUILD SUCCESSFUL; +1 vs RUN 026: `restore_afterFailedDelete_doesNotDuplicate` — borrado fallido (`FakeDao.failWrites=true`) + `restore(note)` → **1 sola fila**, idéntica a la original (mismo id)no-op correcto,sin duplicado. Las otras 2 variantes (`previewFull`/`previewAdvanced`) comparten el mismo `src/test` y quedan pendientes de re-verificación en la próxima ejecución; sin fallos conocidos ni flakiness detectado.
 ## Último resultado
+
+- 2026-09-11 (ejecución 040, BUG-012 test de regresión del undo FIFO):
+  verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**83 tests,​ 0 fallos,​ 0 errores**
+  (BUILD SUCCESSFUL; 82 canónicos +  ​1 nuevo: `NotesListUndoTest.rapidDoubleDelete_undoStillRestoresFirstNote`
+  — borra A y B en rápida sucesión vía menú (`onAllNodes(hasContentDescription("Más"))[rowIndex]`)
+  y verifica que los dos undos restauran A y B en orden de borrado (FIFO, BUG-012). cursar).
 - 2026-09-10 (ejecución 038, BUG-010 hardening: cola de commits finales acotada):
   verificado en este sandbox → `testPreviewSafeDebugUnitTest`:**82 tests,​ ​0 fallos,
   ​0 errores** (BUILD SUCCESSFUL; +1 vs RUN 037:

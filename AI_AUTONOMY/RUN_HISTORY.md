@@ -963,3 +963,12 @@ Commit: test(editor): cover system-back save.
   test de regresión PENDIENTE(BUG-013 documentado).
 - **Siguiente tarea:** insertar el test de UI BUG-012 siguiendo la mitigación de BUG-013
   (bytes derivados del HEAD, ASCII puro, verificar hexdump,y correr en las 3 variantes.
+
+## RUN 040 - 2026-09-11 (P1/integridad: BUG-012 test de regresión completado)
+- **Objetivo:** cerrar la tarea pendiente de RUN 039: insertar el test de UI que prueba el undo FIFO (BUG-012) --- borrar dos notas seguidas y verificar que los dos undos restauran A y B en orden.
+- **Hallazgo:** el fix FIFO de main funciona correctamente; el test fallaba solo por (a) sintaxis rota del archivo de test previo(noteB),/restored) y (b) ambigüedad del selector `onNodeWithContentDescription("Más")` con 2 filas visibles(se resuelve con `onAllNodes(hasContentDescription("Más"))[rowIndex].performClick()`).También se confirmó que la corrupción U+200B de la sesión pasada se introdujo por el canal del agente al crear el archivo; se saneó con `sed -i $'s/\u200b//g'`.
+- **Cambio:** creado `app/src/test/java/com/ordia/app/ui/NotesListUndoTest.kt` (regression test BUG-012: `rapidDoubleDelete_undoStillRestoresFirstNote`, 1 test UI Robolectric que borra A y B vía menú y verifica `restored == [A, B]` tras dos `Deshacer`).Añadido import `assertIsDisplayed`.
+- **Tests:** `testPreviewSafeDebugUnitTest`: **83 tests, 0 fallos,  ​0 errores**(BUILD SUCCESSFUL; 82 canónicos + 1 nuevo BUG-012).`compilePreviewSafeDebugUnitTestKotlin` OK.
+- **Commit:** pendiente (`test(notes): BUG-012 FIFO undo regression test` ...¿no? — el test es la única pieza que faltaba; se commiteará con el resto de memoria en esta ejecución.
+- **Estado:** build y tests verdes (83/83); working tree: solo el nuevo archivo de test sin commitear; memoria actualizada.
+- **Siguiente tarea:** (a) correr las otras 2 variantes(`previewFull`/`previewAdvanced` — comparten `src/test`; valida 83/83 allí también;(b)  promover NEXT_TASKS restantes: consistencia tags `testTag`; recuperación del editor ante fallo de import/export; (c)  refresh de CURRENT_STATE si se detecta algo más stale.
