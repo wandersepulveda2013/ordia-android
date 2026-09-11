@@ -947,3 +947,19 @@ Commit: test(editor): cover system-back save.
 - **Commit:** sin cambios funcionales; este registro.
 - **Estado:** build y tests verdes; working tree limpio.
 - **Siguiente tarea:** continuar con NEXT_TASKS — consistencia de tags testTag; recuperación del editor ante fallo import/export o crash en medio de commit.
+
+## RUN 039 - 2026-09-11 (P1/integridad: undo FIFO para múltiples borrados)
+- **Objetivo:** cerrar BUG-012(perder la primera nota borrada si otra se borraba
+  mientras su snackbar seguía visible)con cola FIFO + test de regresión.
+- **Hallazgo:** `NotesListScreen` usaba un único `pendingUndo`(slot sobrescrito).
+  El fix FIFO(`Channel(UNLIMITED)`) ya estaba implementado en el working tree.
+- **Cambio:** validado el fix; tres intentos de insertar el test de UI fracasaron por
+  corrupción U+0301 del canal del agente(BUG-013: la flecha `->`, comas y dígitos
+  aparecían duplicados/robados). El test queda pendiente con la mitigación documentada.
+- **Tests:** `compilePreviewSafeDebugKotlin` OK(UP-TO-DATE, main con Channel compila;
+  el test de la clase no compiló por inserción corrupta(revertida), sin tocar el repo.
+- **Commit:** pendiente de esta ejecución(`fix(notes): FIFO undo queue...`);)
+- **Estado:** fix de main aplicado y commitearse;working tree con el fix + memoria;
+  test de regresión PENDIENTE(BUG-013 documentado).
+- **Siguiente tarea:** insertar el test de UI BUG-012 siguiendo la mitigación de BUG-013
+  (bytes derivados del HEAD, ASCII puro, verificar hexdump,y correr en las 3 variantes.

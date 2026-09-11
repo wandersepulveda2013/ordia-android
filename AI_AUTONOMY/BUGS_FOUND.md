@@ -303,3 +303,35 @@
   Nunca sobrescribe una nota viva.
 - **Commit:** ejecución 007 en `openhands/autonomous-notes`.
 - **Test:** `restore_whenOriginalIdReusedByAnotherNote_reinsertsUnderFreshId`.
+
+## BUG-012 — El undo tras un borrado solo recordaba la última nota borrada (P1)
+
+- **Impacto:** pérdida de datos recuperables. Con un único slot (`pendingUndo`),
+  si el usuario borra la nota A y, mientras el snackbar “Nota eliminada” de A sigue
+  visible, borra B, el undo de A quedaba sobrescrito: pulsar Deshacer restauraba B
+  dos veces(no A)y A quedaba perdida de forma irreversible sin deshacer.
+- **Reproducción:** borrar A(confirmar) → borrar B(confirmar) → Deshacer
+  → B se restaura(y A no.
+- **Causa:** una sola variable `pendingUndo` sobrescribía la referencia anterior.
+- **Estado:** FIXED — cola FIFO (`Channel(UNLIMITED)` en `NotesListScreen`)que encola
+  cada nota borrada y la consuma en orden: cada snackbar ofrece el undo de su nota.
+- **Commit:** RUN 039 en `openhands/autonomous-notes`(implementación;el test de regresión
+  queda pendiente por corrupción del canal del agente, ver BUG-013).
+- **Test:** pendiente de añadir(ver NEXT_TASKS P1: test de UI `rapidDoubleDelete_undoStillRestoresFirstNote`).
+
+## BUG-013 — Corrupción silenciosa del canal de generación del agente (U+0301) rompe código nuevo (P2/tooling
+
+- **Impacto:** el código Kotlin escrito por el agente en strings/heredocs aparecía con
+  caracteres invisibles U+0301(acento combinante)que, al eliminarse, robaban/duplicaban
+  caracteres adyacentes(`id =  2,,`, `onTogglePin = = {}`, flecha `->` rota).
+  Tres intentos de insertar el test de regresión BUG-012 fallaron por esto.
+- **Reproducción:** escribir un literal de bytes Python con acentos/números
+y ejecutarlo → `SyntaxError: bytes can only contain ASCII`;
+o escribir Kotlin nuevoy compilar → `Unexpected tokens`.
+- **Causa:** el canal de salida del modelo(heredoc, `-c`, file_editor) introduce
+  U+0301 invisible en ciertos strings,que luego corrompe el texto circumvecino al persistir.
+- **Estado:** OPEN — mitigación documentada: escribir código nuevo Solo en ASCII
+  puro con escapes `\u00e1`/`\xNN`, derivar todo lo posible bytes existentes del repo
+  (`git show` byte-a-byte),y verificar con hexdump/`grep -P '\xcc\x81'` antes de compilar.
+- **Commit:** — (sin arreglo aún; documentación).
+- **Test:** —.

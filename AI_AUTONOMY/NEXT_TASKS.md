@@ -138,3 +138,13 @@ no duplica la nota (no-op si el id sigue ocupado por la misma nota; ver BUGS_FOU
    `ProjectsScreen.kt`, etc.). Punto de verificación: `grep -rn "Icons" app/src/main`
    lista solo `Outlined.Search/Add/Close/PushPin/MoreVert` + `AutoMirrored.Outlined.ArrowBack`.
    No hay acción pendiente salvo cuando la dirección contextual de Search/Close lo requiera en RTL.
+## P1
+
+0. **Test de regresión FIFO undo de BUG-012 (PENDIENTE):** la implementación
+   (cola `Channel(UNLIMITED)`) ya está en `NotesListScreen.kt`; falta el test de UI
+   `rapidDoubleDelete_undoStillRestoresFirstNote`(borrar A, borrar B, Deshacer
+   → restaura A y no B. Tres intentos de inserción fracasaron por BUG-013
+   (corrupción U+0301 del canal del agente): mitigación documentada en BUGS_FOUND:
+   construir el test derivando bytes del HEAD(`git show` byte-a-byte),strings ASCII con
+   escapes `\u00e1`,y verificar con hexdump antes de compilar. Comprobar: el test
+   compila y pasa en las 3 variantes.

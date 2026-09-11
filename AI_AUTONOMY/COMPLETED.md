@@ -365,3 +365,7 @@
   `SnackbarHost` inferior; se eliminó el param/colector/string/imports obsoletos
   de `NotesListScreen`). UX de recuperación ante fallos:el usuario ve el error
   inmediatamente mientras edita, sin crashear y conservando el texto en curso.
+
+- **RUN 039:** Fix BUG-012 — undo FIFO (`Channel(UNLIMITED)` en `NotesListScreen`):
+  múltiples borrados rápidos ya no pierden la primera nota borrada. Sin test de UI
+   aún(BUG-013 corrupción del canal del agente bloqueó la inserción; pendiente).
